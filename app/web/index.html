@@ -956,7 +956,7 @@ function doneHTML(s){
     <div class="note" style="margin:0">${sessMeta(s)}</div>
     <div>${sessRowsHTML(s)}</div>
     ${nd?`<div class="nb-step"><b>Następny:</b> Trening ${nx}, ${wd(nd)}.</div>`:""}
-    <div class="row"><button class="btn ghost" data-act="done-edit">✎ Edytuj trening</button><button class="btn ghost" data-act="new">Nowy trening</button></div>
+    <div class="row"><button class="btn" data-act="fd-share-tr" data-id="${esc(s.id)}">📤 Udostępnij</button><button class="btn ghost" data-act="done-edit">✎ Edytuj trening</button><button class="btn ghost" data-act="new">Nowy trening</button></div>
   </div>`;
 }
 function autoDone(){const t=today();const td=sorted().find(x=>x.date===t);state.doneId=(td&&state.skipDone!==t&&!state.editingId)?td.id:null}
@@ -1644,7 +1644,7 @@ function calendarHTML(){
     if(!sel&&fut[calSel]) detail=`<div class="stack" style="gap:4px"><b>${fmtDate(calSel)} · plan: Trening ${fut[calSel]}</b><div class="note">${effPlan(fut[calSel]).map(e=>esc(e.name)+" "+e.sets+"×"+rng(e)).join(" · ")}</div><div class="note">Kolejność przesunie się, jeśli któryś trening wypadnie.</div></div>`;
     else if(!sel) detail=`<div class="note">${fmtDate(calSel)}: brak zapisanego treningu.</div>`;
     else if(calView!=="week"){
-      detail=`<div class="stack" style="gap:4px"><div class="row" style="justify-content:space-between"><b>${fmtDate(sel.date)} · Trening ${sel.day}${sel.bw?` <span class="note num">· ${fmt(sel.bw)} kg</span>`:""}<br><span class="note num">${sessMeta(sel)}</span></b><button class="btn ghost small" data-act="edit" data-id="${esc(sel.id)}">Edytuj</button></div>${sessRowsHTML(sel)}</div>`;
+      detail=`<div class="stack" style="gap:4px"><div class="row" style="justify-content:space-between"><b>${fmtDate(sel.date)} · Trening ${sel.day}${sel.bw?` <span class="note num">· ${fmt(sel.bw)} kg</span>`:""}<br><span class="note num">${sessMeta(sel)}</span></b><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="mshare" data-act="fd-share-tr" data-id="${esc(sel.id)}" aria-label="Udostępnij trening jako obrazek"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button><button class="btn ghost small" data-act="edit" data-id="${esc(sel.id)}">Edytuj</button></span></div>${sessRowsHTML(sel)}</div>`;
     }
   }
   const prCount=days.reduce((a,d)=>a+(byDate[d]?Object.values(sessionBadges(byDate[d][0])).filter(v=>v==="pr").length:0),0);
@@ -1656,7 +1656,7 @@ function calendarHTML(){
     <div class="legend" style="flex-direction:row;flex-wrap:wrap;gap:6px 14px"><span><span class="cdot A mini">A</span> zrobiony</span><span><span class="cdot miss mini"></span> pominięty</span><span><span class="cdot plan mini"></span> zaplanowany</span><span>${TROPHY} rekord</span></div>
     ${detail}
     ${calView==="week"?(()=>{const wdn=d=>new Date(d+"T12:00:00").toLocaleDateString("pl-PL",{weekday:"long"});const L=days.filter(d=>byDate[d]);
-      return L.length?`<div class="stack" style="gap:10px"><div class="label">Treningi w tym tygodniu</div>${L.map(d=>byDate[d].map(s=>`<div class="wkses ${d===calSel?"sel":""}"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start"><div><span class="cdot ${s.day} mini">${s.day}</span> <b>${wdn(d)}, ${fmtDate(d)}</b> · Trening ${s.day}<div class="note num" style="margin:2px 0 0">${sessMeta(s)}</div></div><button class="btn ghost small" data-act="edit" data-id="${esc(s.id)}">Edytuj</button></div>${sessRowsHTML(s)}</div>`).join("")).join("")}</div>`:`<div class="note">W tym tygodniu nie ma jeszcze zapisanego treningu.</div>`})():""}
+      return L.length?`<div class="stack" style="gap:10px"><div class="label">Treningi w tym tygodniu</div>${L.map(d=>byDate[d].map(s=>`<div class="wkses ${d===calSel?"sel":""}"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start"><div><span class="cdot ${s.day} mini">${s.day}</span> <b>${wdn(d)}, ${fmtDate(d)}</b> · Trening ${s.day}<div class="note num" style="margin:2px 0 0">${sessMeta(s)}</div></div><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="mshare" data-act="fd-share-tr" data-id="${esc(s.id)}" aria-label="Udostępnij trening jako obrazek"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button><button class="btn ghost small" data-act="edit" data-id="${esc(s.id)}">Edytuj</button></span></div>${sessRowsHTML(s)}</div>`).join("")).join("")}</div>`:`<div class="note">W tym tygodniu nie ma jeszcze zapisanego treningu.</div>`})():""}
   </div>`;
 }
 document.addEventListener("click",ev=>{
@@ -2515,54 +2515,99 @@ function qExpHTML(it,key,g){
     <div class="qexp-row"><button class="btn" data-act="fd-qgo" data-k="${esc(key)}">Dodaj do: ${esc(fst.meal.toLowerCase())}</button><button class="btn ghost small" data-act="fd-qmore" data-k="${esc(key)}">Więcej opcji</button></div></div>`;
 }
 function reQuick(){if(fst.qtab==="search")renderQS();else renderFood();if(fst.qopen)setTimeout(()=>{const el=document.getElementById("fd-qgin");el?.closest(".qrow")?.scrollIntoView?.({behavior:"smooth",block:"nearest"})},30)}
-/* udostępnianie posiłku jako grafika (zapis w galerii / wysyłka) */
+/* udostępnianie posiłku i treningu jako grafika (zapis w galerii / wysyłka) */
 function wrapText(cx,t,maxW,maxLines){const words=String(t).split(/\s+/),lines=[];let cur="";for(const w of words){const tr=cur?cur+" "+w:w;if(cx.measureText(tr).width<=maxW)cur=tr;else{if(cur)lines.push(cur);cur=w}}if(cur)lines.push(cur);if(lines.length>maxLines){lines.length=maxLines;let l=lines[maxLines-1];while(l&&cx.measureText(l+"…").width>maxW)l=l.slice(0,-1);lines[maxLines-1]=l+"…"}return lines}
+const SC={bg:"#0D1015",card:"#161A21",line:"#2A313C",ink:"#EEF1F5",mut:"#98A2B3",acc:"#C8F560",p:"#FF8A73",c:"#7FB2FF",f:"#FFC857",good:"#4ADE9B"};
+const SDF='"Barlow Condensed","Arial Narrow",sans-serif',SBF='"Barlow",system-ui,-apple-system,sans-serif',SW=1080,SP=72;
+function svgImage(inner,color){return new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="240" height="240" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`)})}
+/* wspólny początek grafiki: tło, koło z ikoną w prawym górnym rogu, nagłówek; zwraca [canvas, ctx, y] */
+async function shareStart(title,sub,iconSvg,color,titleColor){
+  try{await document.fonts.ready}catch(e){}
+  const cv=document.createElement("canvas");cv.width=SW;cv.height=6000;const cx=cv.getContext("2d");
+  cx.fillStyle=SC.bg;cx.fillRect(0,0,SW,6000);
+  const R=190,Cx=SW-60,Cy=60;
+  cx.fillStyle=color;cx.globalAlpha=.16;cx.beginPath();cx.arc(Cx,Cy,R,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+  const img=iconSvg?await svgImage(iconSvg,color):null;
+  if(img){const s=120;cx.drawImage(img,Cx-68-s/2,Cy+58-s/2,s,s)}
+  let y=SP+30;
+  cx.fillStyle=SC.acc;cx.font=`700 30px ${SBF}`;cx.fillText("DZIENNIK TRENINGOWY",SP,y);
+  y+=96;cx.fillStyle=titleColor||SC.ink;cx.font=`800 96px ${SDF}`;cx.fillText(title.toUpperCase(),SP,y);
+  y+=56;cx.fillStyle=SC.mut;cx.font=`500 36px ${SBF}`;cx.fillText(sub,SP,y);
+  return [cv,cx,y];
+}
+async function shareFinish(cv,y){const out=document.createElement("canvas");out.width=SW;out.height=Math.round(y+SP);out.getContext("2d").drawImage(cv,0,0);return await new Promise(res=>out.toBlob(res,"image/png"))}
+function sharePanel(cx,y,h){cx.fillStyle=SC.card;cx.beginPath();if(cx.roundRect)cx.roundRect(SP,y,SW-2*SP,h,28);else cx.rect(SP,y,SW-2*SP,h);cx.fill()}
 async function mealImage(m){
   const items=(food[fst.date]||[]).filter(x=>x.meal===m), tot=dayTotals(items), day=dayTotals(food[fst.date]||[]), G=macroGoals(fst.date);
-  try{await document.fonts.ready}catch(e){}
-  const W=1080,P=72,DF='"Barlow Condensed","Arial Narrow",sans-serif',BF='"Barlow",system-ui,-apple-system,sans-serif';
-  const cv=document.createElement("canvas"),cx=cv.getContext("2d");
-  cx.font=`600 40px ${BF}`;
-  const rows=items.map(it=>{const v=itemVals(it);return {it,v,lines:wrapText(cx,it.name,W-2*P-280,2)}});
-  const H=P+260+rows.reduce((a,r)=>a+112+(r.lines.length-1)*48,0)+390;
-  cv.width=W;cv.height=H+400;
-  const C={bg:"#0D1015",card:"#161A21",line:"#2A313C",ink:"#EEF1F5",mut:"#98A2B3",acc:"#C8F560",p:"#FF8A73",c:"#7FB2FF",f:"#FFC857"};
-  cx.fillStyle=C.bg;cx.fillRect(0,0,W,H+400);
-  const ic=(MEAL_ICON[m]||["#98A2B3"])[0];
-  cx.fillStyle=ic;cx.globalAlpha=.12;cx.beginPath();cx.arc(W-60,40,200,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
-  let y=P+30;
-  cx.fillStyle=C.acc;cx.font=`700 30px ${BF}`;cx.fillText("DZIENNIK TRENINGOWY",P,y);
-  y+=96;cx.fillStyle=C.ink;cx.font=`800 96px ${DF}`;cx.fillText(m.toUpperCase(),P,y);
+  const [col,ico]=MEAL_ICON[m]||["#98A2B3",'<circle cx="12" cy="12" r="6"/>'];
   const dd=new Date(fst.date+"T12:00:00");
-  y+=56;cx.fillStyle=C.mut;cx.font=`500 36px ${BF}`;cx.fillText(dd.toLocaleDateString("pl-PL",{weekday:"long",day:"numeric",month:"long"}),P,y);
+  let [cv,cx,y]=await shareStart(m,dd.toLocaleDateString("pl-PL",{weekday:"long",day:"numeric",month:"long"}),ico,col);
+  const C=SC,W=SW,P=SP;
   y+=48;cx.fillStyle=C.line;cx.fillRect(P,y,W-2*P,3);
-  for(const r of rows){
+  for(const it of items){
+    const v=itemVals(it);cx.font=`600 40px ${SBF}`;const lines=wrapText(cx,it.name,W-2*P-280,2);
     y+=58;
-    cx.fillStyle=C.ink;cx.font=`600 40px ${BF}`;r.lines.forEach((l,i)=>cx.fillText(l,P,y+i*48));
-    cx.textAlign="right";cx.font=`800 50px ${DF}`;cx.fillText(`${r0(r.v.kcal)} kcal`,W-P,y);
-    cx.fillStyle=C.mut;cx.font=`500 30px ${BF}`;cx.fillText(qtyTxt(r.it),W-P,y+44);cx.textAlign="left";
-    const my=y+(r.lines.length-1)*48+46;cx.font=`500 30px ${BF}`;let x=P;
-    for(const [l,val,col] of [["B",r.v.p,C.p],["W",r.v.c,C.c],["T",r.v.f,C.f]]){cx.fillStyle=col;cx.fillText(l,x,my);x+=cx.measureText(l+" ").width;cx.fillStyle=C.mut;const t=`${fmt(Math.round(val*10)/10)} g`;cx.fillText(t,x,my);x+=cx.measureText(t+"    ").width}
+    cx.fillStyle=C.ink;lines.forEach((l,i)=>cx.fillText(l,P,y+i*48));
+    cx.textAlign="right";cx.font=`800 50px ${SDF}`;cx.fillText(`${r0(v.kcal)} kcal`,W-P,y);
+    cx.fillStyle=C.mut;cx.font=`500 30px ${SBF}`;cx.fillText(qtyTxt(it),W-P,y+44);cx.textAlign="left";
+    const my=y+(lines.length-1)*48+46;let x=P;
+    for(const [l,val,cl] of [["B",v.p,C.p],["W",v.c,C.c],["T",v.f,C.f]]){cx.fillStyle=cl;cx.fillText(l,x,my);x+=cx.measureText(l+" ").width;cx.fillStyle=C.mut;const t=`${fmt(Math.round(val*10)/10)} g`;cx.fillText(t,x,my);x+=cx.measureText(t+"    ").width}
     y=my+26;cx.fillStyle=C.line;cx.fillRect(P,y,W-2*P,2);
   }
-  y+=44;const bh=210;cx.fillStyle=C.card;cx.beginPath();if(cx.roundRect)cx.roundRect(P,y,W-2*P,bh,28);else cx.rect(P,y,W-2*P,bh);cx.fill();
-  cx.fillStyle=C.mut;cx.font=`700 28px ${BF}`;cx.fillText("RAZEM",P+40,y+62);
-  cx.fillStyle=C.acc;cx.font=`800 104px ${DF}`;const kt=`${r0(tot.kcal)}`;cx.fillText(kt,P+40,y+168);const kw=cx.measureText(kt).width;
-  cx.fillStyle=C.mut;cx.font=`600 40px ${BF}`;cx.fillText("kcal",P+54+kw,y+168);
-  let bx=P+470;for(const [l,val,col] of [["Białko",tot.p,C.p],["Węgle",tot.c,C.c],["Tłuszcz",tot.f,C.f]]){cx.fillStyle=col;cx.beginPath();cx.arc(bx+10,y+72,10,0,Math.PI*2);cx.fill();cx.fillStyle=C.mut;cx.font=`500 28px ${BF}`;cx.fillText(l,bx+30,y+82);cx.fillStyle=C.ink;cx.font=`800 56px ${DF}`;cx.fillText(`${r0(val)} g`,bx,y+160);bx+=148}
-  y+=bh+60;cx.fillStyle=C.mut;cx.font=`500 30px ${BF}`;
+  y+=44;const bh=300;sharePanel(cx,y,bh);
+  cx.fillStyle=C.mut;cx.font=`700 28px ${SBF}`;cx.fillText("RAZEM",P+40,y+58);
+  cx.fillStyle=C.acc;cx.font=`800 100px ${SDF}`;const kt=`${r0(tot.kcal)}`;cx.fillText(kt,P+40,y+150);const kw=cx.measureText(kt).width;
+  cx.fillStyle=C.mut;cx.font=`600 40px ${SBF}`;cx.fillText("kcal",P+54+kw,y+150);
+  const step=(W-2*P-80)/3;let bx=P+40;for(const [l,val,cl] of [["Białko",tot.p,C.p],["Węgle",tot.c,C.c],["Tłuszcz",tot.f,C.f]]){cx.fillStyle=cl;cx.beginPath();cx.arc(bx+10,y+202,10,0,Math.PI*2);cx.fill();cx.fillStyle=C.mut;cx.font=`500 28px ${SBF}`;cx.fillText(l,bx+30,y+212);cx.fillStyle=C.ink;cx.font=`800 58px ${SDF}`;cx.fillText(`${r0(val)} g`,bx,y+272);bx+=step}
+  y+=bh+60;cx.fillStyle=C.mut;cx.font=`500 30px ${SBF}`;
   cx.fillText(`Cały dzień: ${r0(day.kcal)}${G.kc?` / ${r0(G.kc)}`:""} kcal · B ${r0(day.p)} g`,P,y);
-  const out=document.createElement("canvas");out.width=W;out.height=Math.round(y+P);out.getContext("2d").drawImage(cv,0,0);
-  return await new Promise(res=>out.toBlob(res,"image/png"));
+  return await shareFinish(cv,y);
+}
+const DAYCOL={A:"#C8F560",B:"#FF8A73",C:"#7FB2FF"};
+async function trainingImage(s){
+  const C=SC,W=SW,P=SP,col=DAYCOL[s.day]||C.acc;
+  const dd=new Date(s.date+"T12:00:00");
+  let [cv,cx,y]=await shareStart(`Trening ${s.day}`,`${dd.toLocaleDateString("pl-PL",{weekday:"long",day:"numeric",month:"long"})} · ${PLANS[s.plan||"red"].label}`,'<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/>',col,col);
+  const bd=sessionBadges(s), nSets=Object.values(s.ex||{}).reduce((a,l)=>a+l.filter(x=>x.r>0).length,0);
+  // kafelki: czas, serie, objętość
+  y+=44;const th=150,tw=(W-2*P-2*24)/3;
+  [["CZAS",s.dur?`${s.dur} min`:"–"],["SERIE",String(nSets)],["OBJĘTOŚĆ",`${fmtKg(sessVolume(s))} kg`]].forEach(([l,v],i)=>{const x=P+i*(tw+24);cx.fillStyle=C.card;cx.beginPath();if(cx.roundRect)cx.roundRect(x,y,tw,th,24);else cx.rect(x,y,tw,th);cx.fill();cx.fillStyle=C.mut;cx.font=`700 26px ${SBF}`;cx.fillText(l,x+28,y+48);cx.fillStyle=C.ink;cx.font=`800 60px ${SDF}`;cx.fillText(v,x+28,y+118)});
+  y+=th+36;cx.fillStyle=C.line;cx.fillRect(P,y,W-2*P,3);
+  const exs=(PLANS[s.plan||"red"]?.plan[s.day]||[]).filter(e=>(s.ex||{})[e.id]).map(e=>e.id);
+  const ids=[...exs,...Object.keys(s.ex||{}).filter(id=>!exs.includes(id))];
+  for(const id of ids){
+    const sets=(s.ex[id]||[]).filter(x=>x.r>0);if(!sets.length)continue;
+    const b=bd[id];cx.font=`600 40px ${SBF}`;const lines=wrapText(cx,exName(id),W-2*P-250,2);
+    y+=58;cx.fillStyle=C.ink;lines.forEach((l,i)=>cx.fillText(l,P,y+i*48));
+    cx.textAlign="right";
+    const top=Math.max(...sets.map(x=>+x.w||0));
+    cx.font=`800 50px ${SDF}`;cx.fillStyle=C.ink;cx.fillText(`${fmt(top)} kg`,W-P,y);
+    if(b==="pr"){cx.fillStyle=C.f;cx.font=`700 28px ${SBF}`;cx.fillText("🏆 REKORD",W-P,y+42)}
+    else if(b==="up"){cx.fillStyle=C.good;cx.font=`700 28px ${SBF}`;cx.fillText("↑ WIĘCEJ CIĘŻARU",W-P,y+42)}
+    cx.textAlign="left";
+    cx.font=`500 32px ${SBF}`;cx.fillStyle=C.mut;
+    const setTxt=sets.map(x=>`${fmt(+x.w||0)}×${x.r}`).join("  ·  ")+(exDef(id)?.perHand?"  (kg / ręka)":"");
+    const sl=wrapText(cx,setTxt,W-2*P-(b?250:0),3);
+    const my=y+(lines.length-1)*48+48;sl.forEach((l,i)=>cx.fillText(l,P,my+i*42));
+    y=my+(sl.length-1)*42+28;cx.fillStyle=C.line;cx.fillRect(P,y,W-2*P,2);
+  }
+  const pr=Object.values(bd).filter(v=>v==="pr").length, up=Object.values(bd).filter(v=>v==="up").length;
+  y+=60;cx.font=`600 32px ${SBF}`;let x=P;
+  if(pr){cx.fillStyle=C.f;const t=`🏆 ${pr} ${pr===1?"rekord":pr<5?"rekordy":"rekordów"}`;cx.fillText(t,x,y);x+=cx.measureText(t+"     ").width}
+  if(up){cx.fillStyle=C.good;cx.fillText(`↑ więcej ciężaru w ${up} ${up===1?"ćwiczeniu":"ćwiczeniach"}`,x,y)}
+  if(!pr&&!up){cx.fillStyle=C.mut;cx.fillText(`${ids.length} ${ids.length===1?"ćwiczenie":ids.length<5?"ćwiczenia":"ćwiczeń"} · objętość ${fmtKg(sessVolume(s))} kg`,x,y)}
+  return await shareFinish(cv,y);
 }
 let shareFile=null;
-async function openShare(m){
-  const blob=await mealImage(m);shareFile=new File([blob],`${m.replace(/\s+/g,"-").toLowerCase()}-${fst.date}.png`,{type:"image/png"});
+async function showShare(blob,name,alt){
+  shareFile=new File([blob],name,{type:"image/png"});
   const url=URL.createObjectURL(blob);const can=!!(navigator.canShare&&navigator.canShare({files:[shareFile]}));
   let el=document.getElementById("shareov");if(!el){el=document.createElement("div");el.id="shareov";document.body.appendChild(el)}
   el.className="shareov";el.hidden=false;
-  el.innerHTML=`<div class="sharebox"><img src="${url}" alt="Grafika posiłku ${esc(m)}"><div class="row" style="gap:8px;justify-content:center">${can?`<button class="btn" data-act="fd-sharego">📤 Udostępnij / Zapisz</button>`:`<a class="btn" href="${url}" download="${esc(shareFile.name)}">Pobierz obrazek</a>`}<button class="btn ghost" data-act="fd-shareclose">Zamknij</button></div><div class="note" style="text-align:center;margin:0">${can?"W menu wybierz „Zapisz obraz”, żeby trafił do galerii.":"Albo przytrzymaj obrazek i wybierz „Zapisz w Zdjęciach”."}</div></div>`;
+  el.innerHTML=`<div class="sharebox"><img src="${url}" alt="${esc(alt)}"><div class="row" style="gap:8px;justify-content:center">${can?`<button class="btn" data-act="fd-sharego">📤 Udostępnij / Zapisz</button>`:`<a class="btn" href="${url}" download="${esc(name)}">Pobierz obrazek</a>`}<button class="btn ghost" data-act="fd-shareclose">Zamknij</button></div><div class="note" style="text-align:center;margin:0">${can?"W menu wybierz „Zapisz obraz”, żeby trafił do galerii.":"Albo przytrzymaj obrazek i wybierz „Zapisz w Zdjęciach”."}</div></div>`;
 }
+async function openShare(m){await showShare(await mealImage(m),`${m.replace(/\s+/g,"-").toLowerCase()}-${fst.date}.png`,`Grafika posiłku ${m}`)}
+async function openShareTraining(id){const s=sessions.find(x=>x.id===id);if(!s)return;await showShare(await trainingImage(s),`trening-${s.day}-${s.date}.png`,`Grafika treningu ${s.day}`)}
 let atT=null;
 function addedFx(names,title,sub,undo){
   fst.flash={n:names[0],t:Date.now()};try{navigator.vibrate&&navigator.vibrate(30)}catch(e){}
@@ -2992,6 +3037,7 @@ document.addEventListener("click",async ev=>{
     for(const x of u.items){let j=-1;for(let i=cur.length-1;i>=0;i--){const c=cur[i];if(c===x||(c.name===x.name&&c.g===x.g&&c.meal===x.meal&&c.kcal===x.kcal)){j=i;break}}if(j>=0)cur.splice(j,1)}
     const before=food[u.d]||[];const el=document.getElementById("addtoast");if(el)el.hidden=true;fst.flash=null;if(store.mode==="db"){if(cur.length)food[u.d]=cur;else delete food[u.d];foodChanged();}setMsg("Cofnięto dodanie.");try{await saveDay(u.d,cur)}catch(e){if(store.mode==="db"){food[u.d]=before;foodChanged();}setMsg("Nie udało się cofnąć.")}return}
   if(a==="fd-share"){b.disabled=true;try{await openShare(b.dataset.m)}catch(e){setMsg("Nie udało się przygotować grafiki.")}b.disabled=false;return}
+  if(a==="fd-share-tr"){b.disabled=true;try{await openShareTraining(b.dataset.id)}catch(e){console.error(e)}b.disabled=false;return}
   if(a==="fd-sharego"){if(shareFile)navigator.share({files:[shareFile]}).catch(()=>{});return}
   if(a==="fd-shareclose"){const el=document.getElementById("shareov");if(el){el.hidden=true;el.innerHTML=""}return}
   if(a==="fd-radd"){const r=recipes[b.dataset.id];if(!r)return;const m=curMeal();const adds=r.items.map(x=>({...x,meal:m}));const d=fst.date,{prev,list}=optimisticAdd(d,adds);addedFx([r.name],`Dodano: ${r.name}`,`${adds.length} ${adds.length===1?"produkt":"produkty"} · <b class="num">${r0(dayTotals(adds).kcal)} kcal</b> → ${esc(m.toLowerCase())}</span><span>${dayLine(list)}`,{d,items:adds});setMsg(`Dodano posiłek: ${r.name} (${m}).`);try{await saveDay(d,list)}catch(e){optimisticFail(d,prev);setMsg("Nie udało się dodać – sprawdź internet i spróbuj jeszcze raz.")}return}
