@@ -563,6 +563,11 @@ nav.tabbar{padding-left:max(4px,env(safe-area-inset-left,0px));padding-right:max
 .fdmini{position:fixed;left:0;right:0;top:0;z-index:28;display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 10px;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:none;transform:translateY(-110%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;pointer-events:none}
 .fdmini.on{transform:none;visibility:visible;transition:transform .22s ease;pointer-events:auto}
 .fdmini .rnd{width:38px;height:38px;font-size:18px}
+header{position:relative}
+.gearbtn{position:absolute;top:0;right:0;width:44px;height:44px;border-radius:22px;border:0;background:var(--surface2);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.gearbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sethead{display:flex;align-items:center;gap:12px}
+header>div:first-child{padding-right:52px}
 .wrap{min-height:100vh;min-height:100lvh}
 #view-shop{min-height:60vh}
 .fdm-mid{flex:1;display:flex;flex-direction:column;align-items:center;border:0;background:transparent;color:var(--ink);font:inherit;cursor:pointer;padding:0;line-height:1.15}
@@ -599,6 +604,7 @@ button:disabled:active,.btn:disabled:active{transform:none;filter:none}
       <div class="modesw" role="group" aria-label="Tryb planu"><button data-act="mode" data-m="red" aria-pressed="true">Redukcja</button><button data-act="mode" data-m="masa" aria-pressed="false">Masa</button></div>
     </div>
     <div class="status" id="status"></div>
+    <button class="gearbtn" data-act="set-open" aria-label="Ustawienia"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
 
   <nav class="tabbar" role="tablist">
@@ -617,6 +623,7 @@ button:disabled:active,.btn:disabled:active{transform:none;filter:none}
   <section id="view-prog" class="stack" hidden></section>
   <section id="view-tech" class="stack" hidden></section>
   <section id="view-shop" class="stack" hidden></section>
+  <section id="view-set" class="stack" hidden></section>
 </div>
 <div id="fd-mini" class="fdmini" aria-hidden="true"><button class="rnd" data-act="fd-prev" aria-label="Poprzedni dzień" tabindex="-1">‹</button><button class="fdm-mid" data-act="fdm-top" tabindex="-1"><span class="fdm-t" id="fdm-t"></span><span class="fdm-k num" id="fdm-k"></span></button><button class="rnd" data-act="fd-next" aria-label="Następny dzień" tabindex="-1">›</button></div>
 
@@ -1067,7 +1074,17 @@ function updateLogLive(){
 }
 document.addEventListener("input",ev=>{ if(ev.target.id&&ev.target.id.startsWith("in-")){ updateLogLive(); clearTimeout(window.__dT); window.__dT=setTimeout(saveDraft,400); } });
 
-function renderPlan(){ if(MODE==="masa") renderPlanMasa(); else renderPlanRed(); document.getElementById("view-plan").insertAdjacentHTML("beforeend",remindersHTML()+(window.dzScale?window.dzScale.html():"")+(window.dzAi?window.dzAi.html():"")+(window.dzUpdate?window.dzUpdate.html():"")+backupHTML()); }
+function renderPlan(){ if(MODE==="masa") renderPlanMasa(); else renderPlanRed(); if(state.tab==="set") renderSettings(); }
+function renderSettings(){ const el=document.getElementById("view-set"); if(!el) return; const y=window.scrollY;
+  el.innerHTML=`<div class="sethead"><button class="rnd" data-act="set-back" aria-label="Wróć">‹</button><h2>Ustawienia</h2></div>`+remindersHTML()+(window.dzScale?window.dzScale.html():"")+(window.dzAi?window.dzAi.html():"")+(window.dzUpdate?window.dzUpdate.html():"")+backupHTML();
+  if(y) window.scrollTo(0,y); }
+function openSettings(){ if(state.tab!=="set") state.prevTab=state.tab; state.tab="set";
+  document.querySelectorAll("nav.tabbar button").forEach(x=>x.setAttribute("aria-selected","false"));
+  ["log","plan","food","prog","tech","shop"].forEach(t=>document.getElementById("view-"+t).hidden=true);
+  document.getElementById("view-set").hidden=false; window.scrollTo({top:0}); renderSettings(); fdMiniUpd(); }
+document.addEventListener("click",ev=>{const b=ev.target.closest('[data-act="set-open"],[data-act="set-back"]'); if(!b) return;
+  if(b.dataset.act==="set-open"){ if(state.tab==="set") document.querySelector(`[data-tab="${state.prevTab||"plan"}"]`)?.click(); else openSettings(); }
+  else document.querySelector(`[data-tab="${state.prevTab||"plan"}"]`)?.click(); });
 let bk={msg:"",pending:null,busy:false};
 function backupHTML(){
   const n=sessions.length, fd=Object.keys(food).length, wd=Object.values(activity).filter(a=>a.bw>0).length;
@@ -1289,7 +1306,7 @@ document.addEventListener("click",async ev=>{
   const b=ev.target.closest("[data-act],[data-tab]"); if(!b) return;
   if(b.dataset.tab){state.tab=b.dataset.tab;
     document.querySelectorAll("nav.tabbar button").forEach(x=>x.setAttribute("aria-selected",x===b)); window.scrollTo({top:0});
-    ["log","plan","food","prog","tech","shop"].forEach(t=>document.getElementById("view-"+t).hidden=t!==state.tab);
+    ["log","plan","food","prog","tech","shop","set"].forEach(t=>document.getElementById("view-"+t).hidden=t!==state.tab);
     if(state.tab==="shop") renderShop(); fdMiniUpd();
     try{localStorage.setItem("sila-5x5-tab",state.tab)}catch(e){}
     if(state.tab==="log"&&syncPlanned()) renderLog();
@@ -4514,7 +4531,7 @@ function saveView(){ try{ localStorage.setItem(LSV,JSON.stringify({tab:state.tab
 (()=>{let v=null;try{v=JSON.parse(localStorage.getItem(LSV)||"null")}catch(e){}
   if(v&&v.tab&&Date.now()-v.at<6*3600e3){
     if(v.progSec) progSec=v.progSec; if(v.knowTopic) knowTopic=v.knowTopic; if(v.techView) techView=v.techView; if(v.techSel&&TECH[v.techSel]) techSel=v.techSel; if(v.techGroup) techGroup=v.techGroup;
-    renderTech(); document.querySelector(`[data-tab="${v.tab}"]`)?.click();
+    renderTech(); if(v.tab==="set") openSettings(); else document.querySelector(`[data-tab="${v.tab}"]`)?.click();
     let moved=false; const mark=()=>{moved=true}; ["touchstart","wheel","keydown"].forEach(e=>window.addEventListener(e,mark,{once:true,passive:true}));
     for(const ms of [60,400,1200,2500]) setTimeout(()=>{ if(!moved&&v.y) window.scrollTo(0,v.y); },ms);
     return; }
