@@ -95,7 +95,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.middleware("http")
 async def guard(req: Request, call_next):
     p = req.url.path
-    if p.startswith("/api/") and p not in ("/api/login", "/api/me") and not authed(req):
+    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if p in ("/", "/index.html", "/shim.js", "/sw.js"):
@@ -325,6 +325,52 @@ def watcher():
 
 
 threading.Thread(target=watcher, daemon=True).start()
+
+# ---------- waga z Apple Health (skrót iPhone) ----------
+def hook_key():
+    k = kv_get("hook_key")
+    if not k:
+        k = secrets.token_urlsafe(18)
+        kv_set("hook_key", k)
+    return k
+
+
+@app.get("/api/hook/info")
+def hook_info():
+    last = kv_get("hook_last")
+    return {"url": f"https://{DOMAIN}/api/hook/weight?key={hook_key()}", "last": json.loads(last) if last else None}
+
+
+@app.post("/api/hook/newkey")
+def hook_newkey():
+    kv_set("hook_key", secrets.token_urlsafe(18))
+    return hook_info()
+
+
+@app.post("/api/hook/weight")
+async def hook_weight(req: Request, key: str = ""):
+    if not hmac.compare_digest(key, hook_key()):
+        return JSONResponse({"error": "zły klucz"}, status_code=403)
+    raw = (await req.body()).decode("utf-8", "replace")
+    try:
+        body = json.loads(raw) if raw.strip().startswith("{") else {"kg": raw}
+    except Exception:
+        body = {"kg": raw}
+    val = body.get("kg", body.get("value", body.get("waga", "")))
+    m = re.search(r"\d+(?:[.,]\d+)?", str(val))
+    kg = float(m.group(0).replace(",", ".")) if m else 0
+    if not 20 <= kg <= 400:
+        return JSONResponse({"error": f"Nie rozpoznałem wagi w: {str(val)[:60]}"}, status_code=400)
+    kg = round(kg, 1)
+    d = str(body.get("date", ""))[:10]
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", d):
+        d = datetime.now(TZ).date().isoformat()
+    cur = get_doc("activity/" + d) or {"steps": None, "cardio": []}
+    if cur.get("bw") != kg:
+        put_doc("activity/" + d, {**cur, "bw": kg, "bwSrc": "xiaomi"})
+    kv_set("hook_last", json.dumps({"at": datetime.now(TZ).isoformat(timespec="seconds"), "kg": kg, "date": d}))
+    return {"ok": True, "text": f"Zapisano wagę {str(kg).replace('.', ',')} kg ({d})"}
+
 
 # ---------- powiadomienia (Web Push) i przypomnienia ----------
 _con.execute("CREATE TABLE IF NOT EXISTS push_subs(endpoint TEXT PRIMARY KEY, sub TEXT, created REAL, agent TEXT)")

@@ -181,6 +181,36 @@
   }
   window.dzAi = { html: () => { setTimeout(paintAi, 0); return `<div class="card stack"><h2>Zużycie AI</h2><div id="dz-ai" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
 
+
+  /* ---------- waga Xiaomi przez Zdrowie + Skróty ---------- */
+  let scaleOpen = false;
+  async function paintScale() {
+    const el = document.getElementById("dz-scale"); if (!el) return;
+    let info; try { info = await req("GET", "/hook/info") } catch (e) { el.innerHTML = `<p class="note" style="margin:0">Nie udało się pobrać ustawień.</p>`; return; }
+    const last = info.last ? `Ostatni pomiar z wagi: <b>${String(info.last.kg).replace(".", ",")} kg</b> (${new Date(info.last.at).toLocaleString("pl-PL", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })})` : "Jeszcze nie przyszedł żaden pomiar z wagi.";
+    el.innerHTML = `<div class="nb-step" style="margin:0">${last}</div>
+      <div class="stack" style="gap:6px"><span class="label">Twój link dla Skrótów</span>
+        <div class="row" style="gap:8px;flex-wrap:nowrap"><input id="dz-hookurl" readonly value="${info.url}" style="flex:1;min-width:0;font-size:13px"><button class="btn small" data-dzscale="copy">Kopiuj</button></div>
+        <span class="note">Link działa jak hasło do wpisywania wagi – nie udostępniaj go.</span></div>
+      <details ${scaleOpen ? "open" : ""} id="dz-scale-how"><summary class="note" style="cursor:pointer;font-weight:600">Jak ustawić (raz, ok. 3 minuty)</summary>
+      <ol class="steps" style="margin-top:8px">
+        <li><b>Xiaomi Home → Zdrowie:</b> Ustawienia iPhone'a → Zdrowie → Dostęp do danych i urządzenia → Xiaomi Home → włącz <b>Waga</b>.</li>
+        <li>Otwórz aplikację <b>Skróty</b> → zakładka <b>Automatyzacja</b> → <b>+</b> → <b>Aplikacja</b> → wybierz <b>Xiaomi Home</b>, zaznacz <b>Jest zamknięta</b> (odznacz „Jest otwarta”) → <b>Uruchom natychmiast</b> → Dalej → <b>Nowy pusty skrót</b>.</li>
+        <li>Dodaj akcję <b>Znajdź próbki zdrowia</b>: typ <b>Waga</b>, dodaj filtr <b>Data rozpoczęcia – jest dzisiaj</b>, sortuj <b>Data rozpoczęcia – od najnowszych</b>, <b>Ogranicz</b> do <b>1</b>.</li>
+        <li>Dodaj akcję <b>Pobierz zawartość URL</b>: w miejsce adresu wklej link skopiowany wyżej. Rozwiń: <b>Metoda: POST</b>, <b>Treść żądania: JSON</b>, dodaj pole typu <b>Tekst</b>: klucz <b>kg</b>, wartość – wybierz zmienną <b>Próbki zdrowia</b>.</li>
+        <li>Gotowe. Zważ się, otwórz Xiaomi Home, poczekaj aż pomiar się pojawi i zamknij aplikację – waga wpisze się sama do dziennika (Podsumowanie → Waga).</li>
+      </ol>
+      <p class="note" style="margin:0">Jeśli danego dnia nie było ważenia, skrót niczego nie wyśle. Kilka pomiarów jednego dnia – zostaje ostatni.</p></details>
+      <div class="row" style="gap:8px"><button class="btn ghost small" data-dzscale="new">Zmień link (stary przestanie działać)</button></div>`;
+    el.querySelector("#dz-scale-how").addEventListener("toggle", e => { scaleOpen = e.target.open });
+  }
+  document.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-dzscale]"); if (!b) return;
+    if (b.dataset.dzscale === "copy") { const i = document.getElementById("dz-hookurl"); try { await navigator.clipboard.writeText(i.value); b.textContent = "✓ Skopiowano" } catch (e) { i.select(); document.execCommand && document.execCommand("copy"); b.textContent = "✓ Skopiowano" } setTimeout(() => b.textContent = "Kopiuj", 2000); return; }
+    if (b.dataset.dzscale === "new") { await req("POST", "/hook/newkey", {}); paintScale(); }
+  });
+  window.dzScale = { html: () => { setTimeout(paintScale, 0); return `<div class="card stack"><h2>Waga Xiaomi</h2><div id="dz-scale" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
+
   let authP = null;
   const auth = () => authP || (authP = fetch("/api/me", { credentials: "same-origin" }).then(r => { if (!r.ok) { showLogin(); return new Promise(() => {}) } }).catch(() => { showLogin("Brak połączenia z serwerem."); return new Promise(() => {}) }));
   let dbP = null;
