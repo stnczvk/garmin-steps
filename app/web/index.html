@@ -38,7 +38,7 @@ header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justify-co
 .pill.deload{background:var(--warn);color:#0D1015}
 .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .pill.ok .dot{background:var(--good)}
-nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px));box-shadow:0 -2px 12px rgba(0,0,0,.06)}
 nav.tabbar button{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:600;padding:6px 2px;border-radius:10px;cursor:pointer;min-height:52px;justify-content:center}
 nav.tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 nav.tabbar button[aria-selected="true"]{color:var(--accent)}
@@ -558,6 +558,33 @@ button,.btn,label.btn,[data-act],[data-tab],summary,.ccell,.tooltile,.dtile{-web
 button:active,.btn:active,label.btn:active,[data-tab]:active,.chips button:active,.qtabs button:active,.seg button:active,.star:active,.x:active,.plus:active,.rnd:active,.madd:active,.techlink:active,.unitbtn:active,.ccell:active,.scanbtn:active,.qs-x:active,.ktopic:active,.sb:active{transform:scale(.93);filter:brightness(.8)}
 .ex-top:active,.mtog:active,.tooltile:active,.dtile:active,.remrow .btn:active,.wkses:active,[data-act="fd-qpick"]:active,summary:active,.kdet summary:active{transform:scale(.98);filter:brightness(.85)}
 nav.tabbar button:active{transform:scale(.88)}
+nav.tabbar button span{white-space:nowrap;font-size:10.5px;letter-spacing:-.01em}
+nav.tabbar{padding-left:max(4px,env(safe-area-inset-left,0px));padding-right:max(4px,env(safe-area-inset-right,0px))}
+.fdmini{position:fixed;left:0;right:0;top:0;z-index:28;display:flex;align-items:center;gap:10px;padding:calc(6px + env(safe-area-inset-top,0px)) 12px 6px;background:color-mix(in srgb,var(--surface) 94%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);transform:translateY(-110%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;pointer-events:none}
+.fdmini.on{transform:none;visibility:visible;transition:transform .22s ease;pointer-events:auto}
+.fdmini .rnd{width:38px;height:38px;font-size:18px}
+.fdm-mid{flex:1;display:flex;flex-direction:column;align-items:center;border:0;background:transparent;color:var(--ink);font:inherit;cursor:pointer;padding:0;line-height:1.15}
+.fdm-t{font-family:var(--display);font-size:18px;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.fdm-k{font-size:12px;color:var(--muted);font-weight:600}
+@media (min-width:900px){.fdmini{left:50%;right:auto;width:600px;margin-left:-300px;border:1px solid var(--line);border-top:0;border-radius:0 0 16px 16px}}
+.shadd{display:flex;gap:8px;align-items:stretch}
+.shadd input{min-width:0}
+.shadd #sh-name{flex:1}
+.shadd #sh-qty{width:76px;flex:none}
+.shcat{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.shcat h3{display:flex;align-items:center;gap:8px}
+.shdot{width:10px;height:10px;border-radius:5px;flex:none}
+.shlist{display:flex;flex-direction:column}
+.shrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.shrow:first-child{border-top:0}
+.shchk{width:28px;height:28px;flex:none;border-radius:9px;border:2px solid var(--line);background:transparent;color:var(--accent-ink);font-size:15px;font-weight:800;display:grid;place-items:center;cursor:pointer;padding:0}
+.shrow.done .shchk{background:var(--accent);border-color:var(--accent)}
+.shname{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:16px;text-align:left;padding:0;cursor:pointer;overflow-wrap:anywhere}
+.shqty{color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+.shrow.done .shname{text-decoration:line-through;color:var(--muted)}
+.shrow.done{opacity:.7}
+.shrow.fresh{animation:shIn .5s ease}
+@keyframes shIn{from{background:color-mix(in srgb,var(--accent) 22%,transparent)}to{background:transparent}}
 button:disabled:active,.btn:disabled:active{transform:none;filter:none}
 @media (prefers-reduced-motion:reduce){button:active,.btn:active,[data-act]:active{transform:none}}
 </style>
@@ -577,6 +604,7 @@ button:disabled:active,.btn:disabled:active{transform:none;filter:none}
     <button role="tab" id="tab-food" data-tab="food" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v6M9 3v6M17 21V3c-2 1.5-3 4-3 7h3"/></svg><span>Jedzenie</span></button>
     <button role="tab" id="tab-prog" data-tab="prog" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg><span>Podsumowanie</span></button>
     <button role="tab" id="tab-plan" data-tab="plan" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span>Plan</span></button>
+    <button role="tab" id="tab-shop" data-tab="shop" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.3 12.2a1 1 0 0 1-1 .8H7.3a1 1 0 0 1-1-.8z"/><path d="M9 11V6.5a3 3 0 0 1 6 0V11"/></svg><span>Zakupy</span></button>
     <button role="tab" id="tab-tech" data-tab="tech" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg><span>Wiedza</span></button>
   </nav>
 
@@ -586,7 +614,9 @@ button:disabled:active,.btn:disabled:active{transform:none;filter:none}
   <section id="view-food" class="stack" hidden></section>
   <section id="view-prog" class="stack" hidden></section>
   <section id="view-tech" class="stack" hidden></section>
+  <section id="view-shop" class="stack" hidden></section>
 </div>
+<div id="fd-mini" class="fdmini" aria-hidden="true"><button class="rnd" data-act="fd-prev" aria-label="Poprzedni dzień" tabindex="-1">‹</button><button class="fdm-mid" data-act="fdm-top" tabindex="-1"><span class="fdm-t" id="fdm-t"></span><span class="fdm-k num" id="fdm-k"></span></button><button class="rnd" data-act="fd-next" aria-label="Następny dzień" tabindex="-1">›</button></div>
 
 <script>
 const PLANS={
@@ -1257,7 +1287,8 @@ document.addEventListener("click",async ev=>{
   const b=ev.target.closest("[data-act],[data-tab]"); if(!b) return;
   if(b.dataset.tab){state.tab=b.dataset.tab;
     document.querySelectorAll("nav.tabbar button").forEach(x=>x.setAttribute("aria-selected",x===b)); window.scrollTo({top:0});
-    ["log","plan","food","prog","tech"].forEach(t=>document.getElementById("view-"+t).hidden=t!==state.tab);
+    ["log","plan","food","prog","tech","shop"].forEach(t=>document.getElementById("view-"+t).hidden=t!==state.tab);
+    if(state.tab==="shop") renderShop(); fdMiniUpd();
     try{localStorage.setItem("sila-5x5-tab",state.tab)}catch(e){}
     if(state.tab==="log"&&syncPlanned()) renderLog();
     return;}
@@ -1991,6 +2022,8 @@ function remindersHTML(){
 }
 function lsGet(k,d){try{return JSON.parse(localStorage.getItem(k)||"null")??d}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+const SHOP_CATS=[["food","Spożywcze","var(--good)"],["supp","Suplementy","var(--m-c)"],["home","Chemia i dom","var(--m-f)"],["other","Inne","var(--muted)"]];
+let shop={items:[],hist:[]}; const sst={cat:"food",fresh:null};
 function slug(s){return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ł/g,"l").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)||"produkt"}
 function initFood(){
   if(store.mode==="db"){
@@ -2005,8 +2038,10 @@ function initFood(){
       window.__wstDb=w.start||0; renderRemind(); if(state.tab==="log"&&!document.activeElement?.id?.startsWith("in-")) renderLog();},()=>{});
     db.doc("settings/reminders").onSnapshot(d=>{reminders={...REM_DEF,...(d.exists?d.data():{})};renderRemind();if(typeof renderPlan==="function")renderPlan()},()=>{});
     db.doc("settings/targets").onSnapshot(d=>{targets=d.exists?{...d.data()}:{kcal:null,protein:null};foodChanged()},()=>{});
+    db.doc("settings/shopping").onSnapshot(d=>{shop=shopNorm(d.exists?d.data():null); if(state.tab==="shop") renderShop();},()=>{});
   }else{
     reminders={...REM_DEF,...lsGet("sila-5x5-reminders",{})};
+    shop=shopNorm(lsGet("sila-5x5-shop",null));
     food=lsGet(LSF,{});activity=lsGet(LSA,{});products=lsGet(LSP,{});recipes=lsGet(LSR,{});targets=lsGet(LST,{kcal:null,protein:null});foodChanged();
   }
   (async()=>{try{sampleApi=window.claude?.use?await window.claude.use("sample"):null}catch(e){sampleApi=null} if(sampleApi){try{imgCaps=(await sampleApi.limits())?.images||null}catch(e){imgCaps=null}} renderFood();})();
@@ -2308,7 +2343,70 @@ function keepAnchor(fn){const T=x=>x.getBoundingClientRect().top;const ql0=docum
   if(!a0)return;const a1=qAnchorEl();if(!a1)return;
   if(ql&&r0!=null&&ql.contains(a1)){const d=(T(a1)-T(ql))-r0;if(Math.abs(d)>1)ql.scrollTop+=d}
   const d=T(a1)-y0;if(Math.abs(d)>1)window.scrollBy(0,d)}
-function renderFood(){keepAnchor(renderFood0)}
+function renderFood(){keepAnchor(renderFood0); fdMiniUpd();}
+// ---------- mini pasek dnia (Jedzenie) ----------
+function fdDayLabel(d){const isT=d===today(),y=shiftDate(today(),-1),dd=new Date(d+"T12:00:00");
+  return (isT?"Dziś · ":d===y?"Wczoraj · ":dd.toLocaleDateString("pl-PL",{weekday:"short"})+" · ")+dd.toLocaleDateString("pl-PL",{day:"numeric",month:"short"});}
+let fdmRaf=0;
+function fdMiniUpd(){const m=document.getElementById("fd-mini"); if(!m) return;
+  const head=document.querySelector("#view-food .dayhead");
+  const on=state.tab==="food"&&!!head&&head.getBoundingClientRect().bottom<4;
+  if(on){const t=dayTotals(food[fst.date]||[]),G=macroGoals(fst.date);
+    document.getElementById("fdm-t").textContent=fdDayLabel(fst.date);
+    document.getElementById("fdm-k").textContent=Math.round(t.kcal)+(G.kc?" / "+Math.round(G.kc):"")+" kcal · B "+Math.round(t.p)+" g";}
+  m.classList.toggle("on",on); m.setAttribute("aria-hidden",on?"false":"true");
+  m.querySelectorAll("button").forEach(b=>b.tabIndex=on?0:-1);}
+window.addEventListener("scroll",()=>{if(fdmRaf)return;fdmRaf=requestAnimationFrame(()=>{fdmRaf=0;fdMiniUpd()})},{passive:true});
+document.addEventListener("click",ev=>{if(ev.target.closest('[data-act="fdm-top"]')) window.scrollTo({top:0,behavior:"smooth"});});
+
+// ---------- lista zakupów ----------
+function shopNorm(d){d=d||{};return {items:Array.isArray(d.items)?d.items:[],hist:Array.isArray(d.hist)?d.hist:[]}}
+function shopSave(){ if(store.mode==="db"){ store.db.doc("settings/shopping").set(shop).catch(()=>{}); } else lsSet("sila-5x5-shop",shop); }
+function shopAdd(name,qty,cat){name=String(name||"").trim().replace(/\s+/g," ").slice(0,80); qty=String(qty||"").trim().slice(0,20); if(!name) return false;
+  const low=name.toLocaleLowerCase("pl");
+  const ex=shop.items.find(i=>!i.done&&i.name.toLocaleLowerCase("pl")===low);
+  if(ex){ if(qty) ex.qty=qty; sst.fresh=ex.id; }
+  else { const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6); shop.items.push({id,name,qty,cat,done:false,at:Date.now()}); sst.fresh=id; }
+  shop.hist=[{n:name,c:cat},...shop.hist.filter(h=>h.n.toLocaleLowerCase("pl")!==low)].slice(0,60);
+  shopSave(); return true;}
+function shopListHTML(){
+  const open=shop.items.filter(i=>!i.done), done=shop.items.filter(i=>i.done);
+  const onList=new Set(open.map(i=>i.name.toLocaleLowerCase("pl")));
+  const recent=shop.hist.filter(h=>h.c===sst.cat&&!onList.has(h.n.toLocaleLowerCase("pl"))).slice(0,14);
+  let h=recent.length?`<div class="card stack"><div class="label">Ostatnio kupowane · ${esc(SHOP_CATS.find(c=>c[0]===sst.cat)[1])}</div><div class="chips">${recent.map(r=>`<button data-act="sh-re" data-n="${esc(r.n)}" data-c="${esc(r.c)}">+ ${esc(r.n)}</button>`).join("")}</div></div>`:"";
+  if(!shop.items.length) return h+`<div class="card"><p class="note" style="margin:0">Lista jest pusta. Wpisz, co trzeba kupić, wybierz kategorię i kliknij „Dodaj”. Kupione rzeczy odhaczasz jednym kliknięciem.</p></div>`;
+  for(const [k,label,col] of SHOP_CATS){
+    const its=shop.items.filter(i=>(i.cat||"other")===k); if(!its.length) continue;
+    its.sort((a,b)=>(a.done-b.done)||(a.at-b.at));
+    const left=its.filter(i=>!i.done).length;
+    h+=`<div class="card stack" style="gap:6px"><div class="shcat"><h3><span class="shdot" style="background:${col}"></span>${label}</h3><span class="note num">${left?`${left} do kupienia`:"wszystko kupione ✓"}</span></div><div class="shlist">${its.map(i=>`<div class="shrow${i.done?" done":""}${sst.fresh===i.id?" fresh":""}"><button class="shchk" data-act="sh-tog" data-id="${i.id}" aria-label="${i.done?"Odznacz":"Kupione"}">${i.done?"✓":""}</button><button class="shname" data-act="sh-tog" data-id="${i.id}">${esc(i.name)}</button>${i.qty?`<span class="shqty">${esc(i.qty)}</span>`:""}<button class="x" data-act="sh-del" data-id="${i.id}" aria-label="Usuń">×</button></div>`).join("")}</div></div>`;
+  }
+  h+=`<div class="row" style="gap:8px;flex-wrap:wrap">${done.length?`<button class="btn ghost small" data-act="sh-clear">Usuń kupione (${done.length})</button>`:""}${open.length?`<button class="btn ghost small" data-act="sh-share">Wyślij listę</button>`:""}</div><div class="note" id="sh-msg"></div>`;
+  sst.fresh=null; return h;}
+function renderShop(){const el=document.getElementById("view-shop"); if(!el) return;
+  if(!document.getElementById("sh-name")){
+    const names=[...new Set([...shop.hist.map(h=>h.n),...Object.values(products).map(p=>p.name)])].slice(0,400);
+    el.innerHTML=`<div class="card stack"><h2>Lista zakupów</h2>
+      <div class="chips" id="sh-cats">${SHOP_CATS.map(([k,l])=>`<button data-act="sh-cat" data-c="${k}" aria-pressed="${sst.cat===k}">${l}</button>`).join("")}</div>
+      <div class="shadd"><input id="sh-name" list="sh-dl" placeholder="Co kupić?" autocomplete="off" enterkeyhint="done"><input id="sh-qty" placeholder="Ilość" autocomplete="off" enterkeyhint="done"><button class="btn small" data-act="sh-add">Dodaj</button></div>
+      <datalist id="sh-dl">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist></div><div id="sh-list" class="stack"></div>`;
+  }
+  document.querySelectorAll("#sh-cats button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.c===sst.cat));
+  document.getElementById("sh-list").innerHTML=shopListHTML();}
+function shopDoAdd(){const n=document.getElementById("sh-name"),q=document.getElementById("sh-qty");
+  if(shopAdd(n.value,q.value,sst.cat)){n.value="";q.value="";renderShop();n.focus();}}
+document.addEventListener("keydown",ev=>{if(ev.key==="Enter"&&(ev.target.id==="sh-name"||ev.target.id==="sh-qty")){ev.preventDefault();shopDoAdd();}});
+document.addEventListener("click",async ev=>{const b=ev.target.closest("[data-act^='sh-']"); if(!b) return; const a=b.dataset.act;
+  if(a==="sh-cat"){sst.cat=b.dataset.c;renderShop();return}
+  if(a==="sh-add"){shopDoAdd();return}
+  if(a==="sh-re"){shopAdd(b.dataset.n,"",b.dataset.c);renderShop();return}
+  if(a==="sh-tog"){const i=shop.items.find(x=>x.id===b.dataset.id); if(i){i.done=!i.done; shopSave(); renderShop();} return}
+  if(a==="sh-del"){shop.items=shop.items.filter(x=>x.id!==b.dataset.id); shopSave(); renderShop(); return}
+  if(a==="sh-clear"){shop.items=shop.items.filter(x=>!x.done); shopSave(); renderShop(); return}
+  if(a==="sh-share"){const txt="Lista zakupów\n"+SHOP_CATS.map(([k,l])=>{const its=shop.items.filter(i=>!i.done&&(i.cat||"other")===k);return its.length?`\n${l}:\n`+its.map(i=>"• "+i.name+(i.qty?" – "+i.qty:"")).join("\n"):""}).join("");
+    try{ if(navigator.share){ await navigator.share({text:txt}); return; } await navigator.clipboard.writeText(txt); const m=document.getElementById("sh-msg"); if(m) m.textContent="Skopiowano listę – wklej ją w wiadomości."; }catch(e){}
+    return}
+});
 function renderFood0(){
   const el=document.getElementById("view-food"); if(!el) return;
   const keep=[...el.querySelectorAll("input,select,textarea")].filter(i=>i.id.startsWith("fd-")&&!["fd-meal","fd-emeal","fd-qgin","fd-qpw","fd-qs"].includes(i.id)).map(i=>[i.id,i.value]);
