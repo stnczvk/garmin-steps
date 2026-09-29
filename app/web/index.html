@@ -530,6 +530,8 @@ header h1{font-size:24px}
 .addprev b{font-size:17px}
 .pa-row{padding:10px 0;border-top:1px solid var(--line)}
 .pa-row:first-child{border-top:0}
+.mshare{flex:none;width:40px;height:40px;border:0;border-radius:12px;background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;align-self:flex-start;margin-top:2px}
+.mshare svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .shareov{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px}
 .shareov[hidden]{display:none}
 .sharebox{display:flex;flex-direction:column;gap:12px;max-width:440px;width:100%;max-height:100%}
@@ -2381,8 +2383,8 @@ function renderFood0(){
     if(!items.length&&prevD.length) mealsH+=`<div class="empty" style="padding:6px 0">Brak wpisów na ten dzień. <button class="btn ghost small" data-act="fd-copy">Skopiuj cały poprzedni dzień</button></div>`;
     mealsH+=byMeal.map(([m,l])=>{const t=dayTotals(l);const addH=fst.addMenu&&fst.meal===m?addMenuHTML():`<button class="madd" data-act="fd-plus" data-m="${m}">+ Dodaj do: ${/^II /.test(m)?m:m.toLowerCase()}</button>`;
       if(!l.length) return `<div class="meal meal-empty"><div class="mhwrap">${fst.addMenu&&fst.meal===m?`<button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="true">${mealIcon(m)}<h3>${m}</h3><span class="note meal-sum">brak wpisów</span><span class="chev" aria-hidden="true">▴</span></button>`:`<div class="meal-head">${mealIcon(m)}<h3>${m}</h3><span class="note meal-sum">brak wpisów</span></div>`}</div>${addH}</div>`;
-      return `<div class="meal"><div class="mhwrap"><button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="${isOpen(m)}" ${mf!=="all"?"disabled":""}>${mealIcon(m)}<h3>${m}</h3><span class="note num meal-sum"><b>${r0(t.kcal)} kcal</b> · <i style="color:var(--m-p)">B</i> ${r0(t.p)} · <i style="color:var(--m-c)">W</i> ${r0(t.c)} · <i style="color:var(--m-f)">T</i> ${r0(t.f)} g</span>${mf==="all"?`<span class="chev" aria-hidden="true">${isOpen(m)?"▴":"▾"}</span>`:""}</button></div>${addH}${isOpen(m)?`
-      ${fst.saveMeal===m?`<div class="row" style="margin-bottom:6px"><input id="fd-rname" placeholder="Nazwa, np. Moja owsianka" style="flex:1;min-width:0"><button class="btn small" data-act="fd-rsave" data-m="${m}">Zapisz</button><button class="btn ghost small" data-act="fd-rcancel">Anuluj</button></div>`:`<div class="row mealacts"><button class="btn ghost small" data-act="fd-rstart" data-m="${m}">Zapisz jako mój posiłek</button><button class="btn ghost small" data-act="fd-mvstart" data-m="${m}">Kopiuj / przenieś</button><button class="btn ghost small" data-act="fd-share" data-m="${m}">📤 Udostępnij</button></div>`}
+      return `<div class="meal"><div class="mhwrap"><button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="${isOpen(m)}" ${mf!=="all"?"disabled":""}>${mealIcon(m)}<h3>${m}</h3><span class="note num meal-sum"><b>${r0(t.kcal)} kcal</b> · <i style="color:var(--m-p)">B</i> ${r0(t.p)} · <i style="color:var(--m-c)">W</i> ${r0(t.c)} · <i style="color:var(--m-f)">T</i> ${r0(t.f)} g</span>${mf==="all"?`<span class="chev" aria-hidden="true">${isOpen(m)?"▴":"▾"}</span>`:""}</button><button class="mshare" data-act="fd-share" data-m="${m}" aria-label="Udostępnij posiłek ${esc(m)} jako obrazek"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button></div>${addH}${isOpen(m)?`
+      ${fst.saveMeal===m?`<div class="row" style="margin-bottom:6px"><input id="fd-rname" placeholder="Nazwa, np. Moja owsianka" style="flex:1;min-width:0"><button class="btn small" data-act="fd-rsave" data-m="${m}">Zapisz</button><button class="btn ghost small" data-act="fd-rcancel">Anuluj</button></div>`:`<div class="row mealacts"><button class="btn ghost small" data-act="fd-rstart" data-m="${m}">Zapisz jako mój posiłek</button><button class="btn ghost small" data-act="fd-mvstart" data-m="${m}">Kopiuj / przenieś</button></div>`}
       ${fst.mvMeal===m?`<div class="mvbox"><div class="label">${esc(m)} → gdzie?</div><div class="row" style="gap:8px"><input type="date" id="fd-mvdate" value="${fst.date===today()?shiftDate(fst.date,1):today()}" style="flex:1;min-width:0"><select id="fd-mvmeal" style="flex:1;min-width:0">${MEALS.map(x=>`<option ${x===m?"selected":""}>${x}</option>`).join("")}</select></div><div class="row" style="gap:8px"><button class="btn small" data-act="fd-mvgo" data-m="${m}" data-mode="copy">Kopiuj</button><button class="btn ghost small" data-act="fd-mvgo" data-m="${m}" data-mode="move">Przenieś</button><button class="btn ghost small" data-act="fd-mvcancel">Anuluj</button></div></div>`:""}
       ${l.map(it=>{const v=itemVals(it);
         if(fst.editI===it.i){const r1=x=>Math.round(x*10)/10;return `<div class="stack editbox" style="gap:8px;padding:10px 0;border-top:1px solid var(--line)">
@@ -2523,9 +2525,9 @@ async function mealImage(m){
   cx.font=`600 40px ${BF}`;
   const rows=items.map(it=>{const v=itemVals(it);return {it,v,lines:wrapText(cx,it.name,W-2*P-280,2)}});
   const H=P+260+rows.reduce((a,r)=>a+112+(r.lines.length-1)*48,0)+390;
-  cv.width=W;cv.height=H;
+  cv.width=W;cv.height=H+400;
   const C={bg:"#0D1015",card:"#161A21",line:"#2A313C",ink:"#EEF1F5",mut:"#98A2B3",acc:"#C8F560",p:"#FF8A73",c:"#7FB2FF",f:"#FFC857"};
-  cx.fillStyle=C.bg;cx.fillRect(0,0,W,H);
+  cx.fillStyle=C.bg;cx.fillRect(0,0,W,H+400);
   const ic=(MEAL_ICON[m]||["#98A2B3"])[0];
   cx.fillStyle=ic;cx.globalAlpha=.12;cx.beginPath();cx.arc(W-60,40,200,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
   let y=P+30;
@@ -2547,10 +2549,11 @@ async function mealImage(m){
   cx.fillStyle=C.mut;cx.font=`700 28px ${BF}`;cx.fillText("RAZEM",P+40,y+62);
   cx.fillStyle=C.acc;cx.font=`800 104px ${DF}`;const kt=`${r0(tot.kcal)}`;cx.fillText(kt,P+40,y+168);const kw=cx.measureText(kt).width;
   cx.fillStyle=C.mut;cx.font=`600 40px ${BF}`;cx.fillText("kcal",P+54+kw,y+168);
-  let bx=P+500;for(const [l,val,col] of [["Białko",tot.p,C.p],["Węgle",tot.c,C.c],["Tłuszcz",tot.f,C.f]]){cx.fillStyle=col;cx.beginPath();cx.arc(bx+10,y+72,10,0,Math.PI*2);cx.fill();cx.fillStyle=C.mut;cx.font=`500 28px ${BF}`;cx.fillText(l,bx+30,y+82);cx.fillStyle=C.ink;cx.font=`800 56px ${DF}`;cx.fillText(`${r0(val)} g`,bx,y+160);bx+=148}
+  let bx=P+470;for(const [l,val,col] of [["Białko",tot.p,C.p],["Węgle",tot.c,C.c],["Tłuszcz",tot.f,C.f]]){cx.fillStyle=col;cx.beginPath();cx.arc(bx+10,y+72,10,0,Math.PI*2);cx.fill();cx.fillStyle=C.mut;cx.font=`500 28px ${BF}`;cx.fillText(l,bx+30,y+82);cx.fillStyle=C.ink;cx.font=`800 56px ${DF}`;cx.fillText(`${r0(val)} g`,bx,y+160);bx+=148}
   y+=bh+60;cx.fillStyle=C.mut;cx.font=`500 30px ${BF}`;
   cx.fillText(`Cały dzień: ${r0(day.kcal)}${G.kc?` / ${r0(G.kc)}`:""} kcal · B ${r0(day.p)} g`,P,y);
-  return await new Promise(res=>cv.toBlob(res,"image/png"));
+  const out=document.createElement("canvas");out.width=W;out.height=Math.round(y+P);out.getContext("2d").drawImage(cv,0,0);
+  return await new Promise(res=>out.toBlob(res,"image/png"));
 }
 let shareFile=null;
 async function openShare(m){
