@@ -484,6 +484,12 @@ def scheduler():
                 kv_set("evening", day)
                 evening_check(now)
             workout_check()
+            if now.hour == 3 and kv_get("backup") != day:
+                kv_set("backup", day)
+                bd = ROOT / "backups"; bd.mkdir(exist_ok=True)
+                _con.execute("VACUUM INTO ?", (str(bd / f"dziennik-{day}.db"),))
+                for old in sorted(bd.glob("dziennik-*.db"))[:-14]:
+                    old.unlink()
         except Exception as e:
             print("scheduler error", e, flush=True)
         time.sleep(60)

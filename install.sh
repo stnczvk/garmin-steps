@@ -78,6 +78,14 @@ EOF
   systemctl reload caddy 2>/dev/null || systemctl restart caddy
 fi
 
+cat > /usr/local/bin/dz-update <<'UPD'
+#!/usr/bin/env bash
+# Aktualizacja Dziennika do najnowszej wersji z GitHuba
+D=$(grep '^DZ_DOMAIN=' /root/dziennik/.env | cut -d= -f2)
+git -C /root/dziennik/src fetch -q --depth 1 origin dziennik-app && git -C /root/dziennik/src reset -q --hard FETCH_HEAD && bash /root/dziennik/src/install.sh "$D"
+UPD
+chmod +x /usr/local/bin/dz-update
+
 say "6/6 Sprawdzenie"
 sleep 3
 systemctl is-active --quiet dziennik.service && echo "Aplikacja: działa" || { echo "Aplikacja: BŁĄD"; journalctl -u dziennik -n 20 --no-pager; }
