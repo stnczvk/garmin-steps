@@ -530,6 +530,10 @@ header h1{font-size:24px}
 .addprev b{font-size:17px}
 .pa-row{padding:10px 0;border-top:1px solid var(--line)}
 .pa-row:first-child{border-top:0}
+.shareov{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px}
+.shareov[hidden]{display:none}
+.sharebox{display:flex;flex-direction:column;gap:12px;max-width:440px;width:100%;max-height:100%}
+.sharebox img{width:100%;max-height:70vh;object-fit:contain;border-radius:16px;border:1px solid var(--line)}
 /* potwierdzenie dodania produktu */
 @keyframes qflash{0%{background:color-mix(in srgb,var(--good) 32%,transparent);box-shadow:inset 3px 0 0 var(--good)}70%{background:color-mix(in srgb,var(--good) 14%,transparent);box-shadow:inset 3px 0 0 var(--good)}100%{background:transparent;box-shadow:inset 3px 0 0 transparent}}
 .qrow.just-added{animation:qflash 1.8s ease-out both;border-radius:10px}
@@ -2377,8 +2381,8 @@ function renderFood0(){
     if(!items.length&&prevD.length) mealsH+=`<div class="empty" style="padding:6px 0">Brak wpisów na ten dzień. <button class="btn ghost small" data-act="fd-copy">Skopiuj cały poprzedni dzień</button></div>`;
     mealsH+=byMeal.map(([m,l])=>{const t=dayTotals(l);const addH=fst.addMenu&&fst.meal===m?addMenuHTML():`<button class="madd" data-act="fd-plus" data-m="${m}">+ Dodaj do: ${/^II /.test(m)?m:m.toLowerCase()}</button>`;
       if(!l.length) return `<div class="meal meal-empty"><div class="mhwrap">${fst.addMenu&&fst.meal===m?`<button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="true">${mealIcon(m)}<h3>${m}</h3><span class="note meal-sum">brak wpisów</span><span class="chev" aria-hidden="true">▴</span></button>`:`<div class="meal-head">${mealIcon(m)}<h3>${m}</h3><span class="note meal-sum">brak wpisów</span></div>`}</div>${addH}</div>`;
-      return `<div class="meal"><div class="mhwrap"><button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="${isOpen(m)}" ${mf!=="all"?"disabled":""}>${mealIcon(m)}<h3>${m}</h3><span class="note num meal-sum"><b>${r0(t.kcal)} kcal</b> · <i style="color:var(--m-p)">B</i> ${r0(t.p)} · <i style="color:var(--m-c)">W</i> ${r0(t.c)} · <i style="color:var(--m-f)">T</i> ${r0(t.f)} g</span>${mf==="all"?`<span class="chev" aria-hidden="true">${isOpen(m)?"▴":"▾"}</span>`:""}</button></div>${isOpen(m)?`
-      ${fst.saveMeal===m?`<div class="row" style="margin-bottom:6px"><input id="fd-rname" placeholder="Nazwa, np. Moja owsianka" style="flex:1;min-width:0"><button class="btn small" data-act="fd-rsave" data-m="${m}">Zapisz</button><button class="btn ghost small" data-act="fd-rcancel">Anuluj</button></div>`:`<div class="row mealacts"><button class="btn ghost small" data-act="fd-rstart" data-m="${m}">Zapisz jako mój posiłek</button><button class="btn ghost small" data-act="fd-mvstart" data-m="${m}">Kopiuj / przenieś</button></div>`}
+      return `<div class="meal"><div class="mhwrap"><button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="${isOpen(m)}" ${mf!=="all"?"disabled":""}>${mealIcon(m)}<h3>${m}</h3><span class="note num meal-sum"><b>${r0(t.kcal)} kcal</b> · <i style="color:var(--m-p)">B</i> ${r0(t.p)} · <i style="color:var(--m-c)">W</i> ${r0(t.c)} · <i style="color:var(--m-f)">T</i> ${r0(t.f)} g</span>${mf==="all"?`<span class="chev" aria-hidden="true">${isOpen(m)?"▴":"▾"}</span>`:""}</button></div>${addH}${isOpen(m)?`
+      ${fst.saveMeal===m?`<div class="row" style="margin-bottom:6px"><input id="fd-rname" placeholder="Nazwa, np. Moja owsianka" style="flex:1;min-width:0"><button class="btn small" data-act="fd-rsave" data-m="${m}">Zapisz</button><button class="btn ghost small" data-act="fd-rcancel">Anuluj</button></div>`:`<div class="row mealacts"><button class="btn ghost small" data-act="fd-rstart" data-m="${m}">Zapisz jako mój posiłek</button><button class="btn ghost small" data-act="fd-mvstart" data-m="${m}">Kopiuj / przenieś</button><button class="btn ghost small" data-act="fd-share" data-m="${m}">📤 Udostępnij</button></div>`}
       ${fst.mvMeal===m?`<div class="mvbox"><div class="label">${esc(m)} → gdzie?</div><div class="row" style="gap:8px"><input type="date" id="fd-mvdate" value="${fst.date===today()?shiftDate(fst.date,1):today()}" style="flex:1;min-width:0"><select id="fd-mvmeal" style="flex:1;min-width:0">${MEALS.map(x=>`<option ${x===m?"selected":""}>${x}</option>`).join("")}</select></div><div class="row" style="gap:8px"><button class="btn small" data-act="fd-mvgo" data-m="${m}" data-mode="copy">Kopiuj</button><button class="btn ghost small" data-act="fd-mvgo" data-m="${m}" data-mode="move">Przenieś</button><button class="btn ghost small" data-act="fd-mvcancel">Anuluj</button></div></div>`:""}
       ${l.map(it=>{const v=itemVals(it);
         if(fst.editI===it.i){const r1=x=>Math.round(x*10)/10;return `<div class="stack editbox" style="gap:8px;padding:10px 0;border-top:1px solid var(--line)">
@@ -2395,7 +2399,7 @@ function renderFood0(){
           <div class="addprev" id="fe-prev" data-i="${it.i}">${fePrevHTML(it.i)}</div>
           <p class="note" style="margin:0">Wartości dla całej porcji, tak jak w Fitatu. Gdy zmienisz same gramy, kalorie i makro przeliczą się proporcjonalnie. Zmiana posiłku przenosi produkt, a „Zapisz kopię” zostawia go też tutaj.</p>
           <div class="row"><button class="btn small" data-act="fd-esave" data-i="${it.i}">Zapisz</button><button class="btn ghost small" data-act="fd-esave" data-i="${it.i}" data-copy="1">Zapisz kopię</button><button class="btn ghost small" data-act="fd-ecancel">Anuluj</button></div></div>`}
-        return `<div class="fitem"><div><div>${esc(it.name)} <span class="note num">${qtyTxt(it)}</span></div><div class="m">B ${fmt(Math.round(v.p*10)/10)} · W ${fmt(Math.round(v.c*10)/10)} · T ${fmt(Math.round(v.f*10)/10)}</div></div><span class="k">${r0(v.kcal)} kcal</span><span style="display:flex"><button class="x" data-act="fd-edit" data-i="${it.i}" aria-label="Edytuj ${esc(it.name)}">✎</button><button class="x" data-act="fd-del" data-i="${it.i}" aria-label="Usuń ${esc(it.name)}">×</button></span></div>`}).join("")}`:""}${addH}</div>`}).join("");
+        return `<div class="fitem"><div><div>${esc(it.name)} <span class="note num">${qtyTxt(it)}</span></div><div class="m">B ${fmt(Math.round(v.p*10)/10)} · W ${fmt(Math.round(v.c*10)/10)} · T ${fmt(Math.round(v.f*10)/10)}</div></div><span class="k">${r0(v.kcal)} kcal</span><span style="display:flex"><button class="x" data-act="fd-edit" data-i="${it.i}" aria-label="Edytuj ${esc(it.name)}">✎</button><button class="x" data-act="fd-del" data-i="${it.i}" aria-label="Usuń ${esc(it.name)}">×</button></span></div>`}).join("")}`:""}</div>`}).join("");
   }
   const chipsM=`<div class="chips">${[["all","Wszystkie"],...MEALS.map(m=>[m,m])].map(([k,l])=>{const kc=k==="all"?null:dayTotals(allMeals.find(x=>x[0]===k)[1]).kcal;return `<button data-act="fd-mf" data-k="${k}" aria-pressed="${mf===k}">${l}${kc?` <span class="num" style="opacity:.7">${r0(kc)}</span>`:""}</button>`}).join("")}</div>`;
   h=h.replace("<!--MEALS-->",`<div class="card stack"><div class="row" style="justify-content:space-between"><h2>Posiłki</h2>${mf==="all"&&items.length?`<button class="techlink" data-act="fd-mall">${MEALS.every(m=>!(allMeals.find(x=>x[0]===m)[1].length)||(fst.open||{})[m])?"Zwiń wszystkie":"Rozwiń wszystkie"}</button>`:""}</div>${chipsM}<div class="stack" style="gap:8px">${mealsH}</div>
@@ -2509,6 +2513,53 @@ function qExpHTML(it,key,g){
     <div class="qexp-row"><button class="btn" data-act="fd-qgo" data-k="${esc(key)}">Dodaj do: ${esc(fst.meal.toLowerCase())}</button><button class="btn ghost small" data-act="fd-qmore" data-k="${esc(key)}">Więcej opcji</button></div></div>`;
 }
 function reQuick(){if(fst.qtab==="search")renderQS();else renderFood();if(fst.qopen)setTimeout(()=>{const el=document.getElementById("fd-qgin");el?.closest(".qrow")?.scrollIntoView?.({behavior:"smooth",block:"nearest"})},30)}
+/* udostępnianie posiłku jako grafika (zapis w galerii / wysyłka) */
+function wrapText(cx,t,maxW,maxLines){const words=String(t).split(/\s+/),lines=[];let cur="";for(const w of words){const tr=cur?cur+" "+w:w;if(cx.measureText(tr).width<=maxW)cur=tr;else{if(cur)lines.push(cur);cur=w}}if(cur)lines.push(cur);if(lines.length>maxLines){lines.length=maxLines;let l=lines[maxLines-1];while(l&&cx.measureText(l+"…").width>maxW)l=l.slice(0,-1);lines[maxLines-1]=l+"…"}return lines}
+async function mealImage(m){
+  const items=(food[fst.date]||[]).filter(x=>x.meal===m), tot=dayTotals(items), day=dayTotals(food[fst.date]||[]), G=macroGoals(fst.date);
+  try{await document.fonts.ready}catch(e){}
+  const W=1080,P=72,DF='"Barlow Condensed","Arial Narrow",sans-serif',BF='"Barlow",system-ui,-apple-system,sans-serif';
+  const cv=document.createElement("canvas"),cx=cv.getContext("2d");
+  cx.font=`600 40px ${BF}`;
+  const rows=items.map(it=>{const v=itemVals(it);return {it,v,lines:wrapText(cx,it.name,W-2*P-280,2)}});
+  const H=P+260+rows.reduce((a,r)=>a+112+(r.lines.length-1)*48,0)+390;
+  cv.width=W;cv.height=H;
+  const C={bg:"#0D1015",card:"#161A21",line:"#2A313C",ink:"#EEF1F5",mut:"#98A2B3",acc:"#C8F560",p:"#FF8A73",c:"#7FB2FF",f:"#FFC857"};
+  cx.fillStyle=C.bg;cx.fillRect(0,0,W,H);
+  const ic=(MEAL_ICON[m]||["#98A2B3"])[0];
+  cx.fillStyle=ic;cx.globalAlpha=.12;cx.beginPath();cx.arc(W-60,40,200,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+  let y=P+30;
+  cx.fillStyle=C.acc;cx.font=`700 30px ${BF}`;cx.fillText("DZIENNIK TRENINGOWY",P,y);
+  y+=96;cx.fillStyle=C.ink;cx.font=`800 96px ${DF}`;cx.fillText(m.toUpperCase(),P,y);
+  const dd=new Date(fst.date+"T12:00:00");
+  y+=56;cx.fillStyle=C.mut;cx.font=`500 36px ${BF}`;cx.fillText(dd.toLocaleDateString("pl-PL",{weekday:"long",day:"numeric",month:"long"}),P,y);
+  y+=48;cx.fillStyle=C.line;cx.fillRect(P,y,W-2*P,3);
+  for(const r of rows){
+    y+=58;
+    cx.fillStyle=C.ink;cx.font=`600 40px ${BF}`;r.lines.forEach((l,i)=>cx.fillText(l,P,y+i*48));
+    cx.textAlign="right";cx.font=`800 50px ${DF}`;cx.fillText(`${r0(r.v.kcal)} kcal`,W-P,y);
+    cx.fillStyle=C.mut;cx.font=`500 30px ${BF}`;cx.fillText(qtyTxt(r.it),W-P,y+44);cx.textAlign="left";
+    const my=y+(r.lines.length-1)*48+46;cx.font=`500 30px ${BF}`;let x=P;
+    for(const [l,val,col] of [["B",r.v.p,C.p],["W",r.v.c,C.c],["T",r.v.f,C.f]]){cx.fillStyle=col;cx.fillText(l,x,my);x+=cx.measureText(l+" ").width;cx.fillStyle=C.mut;const t=`${fmt(Math.round(val*10)/10)} g`;cx.fillText(t,x,my);x+=cx.measureText(t+"    ").width}
+    y=my+26;cx.fillStyle=C.line;cx.fillRect(P,y,W-2*P,2);
+  }
+  y+=44;const bh=210;cx.fillStyle=C.card;cx.beginPath();if(cx.roundRect)cx.roundRect(P,y,W-2*P,bh,28);else cx.rect(P,y,W-2*P,bh);cx.fill();
+  cx.fillStyle=C.mut;cx.font=`700 28px ${BF}`;cx.fillText("RAZEM",P+40,y+62);
+  cx.fillStyle=C.acc;cx.font=`800 104px ${DF}`;const kt=`${r0(tot.kcal)}`;cx.fillText(kt,P+40,y+168);const kw=cx.measureText(kt).width;
+  cx.fillStyle=C.mut;cx.font=`600 40px ${BF}`;cx.fillText("kcal",P+54+kw,y+168);
+  let bx=P+500;for(const [l,val,col] of [["Białko",tot.p,C.p],["Węgle",tot.c,C.c],["Tłuszcz",tot.f,C.f]]){cx.fillStyle=col;cx.beginPath();cx.arc(bx+10,y+72,10,0,Math.PI*2);cx.fill();cx.fillStyle=C.mut;cx.font=`500 28px ${BF}`;cx.fillText(l,bx+30,y+82);cx.fillStyle=C.ink;cx.font=`800 56px ${DF}`;cx.fillText(`${r0(val)} g`,bx,y+160);bx+=148}
+  y+=bh+60;cx.fillStyle=C.mut;cx.font=`500 30px ${BF}`;
+  cx.fillText(`Cały dzień: ${r0(day.kcal)}${G.kc?` / ${r0(G.kc)}`:""} kcal · B ${r0(day.p)} g`,P,y);
+  return await new Promise(res=>cv.toBlob(res,"image/png"));
+}
+let shareFile=null;
+async function openShare(m){
+  const blob=await mealImage(m);shareFile=new File([blob],`${m.replace(/\s+/g,"-").toLowerCase()}-${fst.date}.png`,{type:"image/png"});
+  const url=URL.createObjectURL(blob);const can=!!(navigator.canShare&&navigator.canShare({files:[shareFile]}));
+  let el=document.getElementById("shareov");if(!el){el=document.createElement("div");el.id="shareov";document.body.appendChild(el)}
+  el.className="shareov";el.hidden=false;
+  el.innerHTML=`<div class="sharebox"><img src="${url}" alt="Grafika posiłku ${esc(m)}"><div class="row" style="gap:8px;justify-content:center">${can?`<button class="btn" data-act="fd-sharego">📤 Udostępnij / Zapisz</button>`:`<a class="btn" href="${url}" download="${esc(shareFile.name)}">Pobierz obrazek</a>`}<button class="btn ghost" data-act="fd-shareclose">Zamknij</button></div><div class="note" style="text-align:center;margin:0">${can?"W menu wybierz „Zapisz obraz”, żeby trafił do galerii.":"Albo przytrzymaj obrazek i wybierz „Zapisz w Zdjęciach”."}</div></div>`;
+}
 let atT=null;
 function addedFx(names,title,sub,undo){
   fst.flash={n:names[0],t:Date.now()};try{navigator.vibrate&&navigator.vibrate(30)}catch(e){}
@@ -2937,6 +2988,9 @@ document.addEventListener("click",async ev=>{
   if(a==="fd-undo"){const u=fst.undo;if(!u)return;fst.undo=null;const cur=[...(food[u.d]||[])];
     for(const x of u.items){let j=-1;for(let i=cur.length-1;i>=0;i--){const c=cur[i];if(c===x||(c.name===x.name&&c.g===x.g&&c.meal===x.meal&&c.kcal===x.kcal)){j=i;break}}if(j>=0)cur.splice(j,1)}
     const before=food[u.d]||[];const el=document.getElementById("addtoast");if(el)el.hidden=true;fst.flash=null;if(store.mode==="db"){if(cur.length)food[u.d]=cur;else delete food[u.d];foodChanged();}setMsg("Cofnięto dodanie.");try{await saveDay(u.d,cur)}catch(e){if(store.mode==="db"){food[u.d]=before;foodChanged();}setMsg("Nie udało się cofnąć.")}return}
+  if(a==="fd-share"){b.disabled=true;try{await openShare(b.dataset.m)}catch(e){setMsg("Nie udało się przygotować grafiki.")}b.disabled=false;return}
+  if(a==="fd-sharego"){if(shareFile)navigator.share({files:[shareFile]}).catch(()=>{});return}
+  if(a==="fd-shareclose"){const el=document.getElementById("shareov");if(el){el.hidden=true;el.innerHTML=""}return}
   if(a==="fd-radd"){const r=recipes[b.dataset.id];if(!r)return;const m=curMeal();const adds=r.items.map(x=>({...x,meal:m}));const d=fst.date,{prev,list}=optimisticAdd(d,adds);addedFx([r.name],`Dodano: ${r.name}`,`${adds.length} ${adds.length===1?"produkt":"produkty"} · <b class="num">${r0(dayTotals(adds).kcal)} kcal</b> → ${esc(m.toLowerCase())}</span><span>${dayLine(list)}`,{d,items:adds});setMsg(`Dodano posiłek: ${r.name} (${m}).`);try{await saveDay(d,list)}catch(e){optimisticFail(d,prev);setMsg("Nie udało się dodać – sprawdź internet i spróbuj jeszcze raz.")}return}
   if(a==="fd-rdel"){try{await deleteRecipe(b.dataset.id)}catch(e){setMsg("Nie udało się usunąć.")}return}
   if(a==="fd-rstart"){fst.saveMeal=b.dataset.m;renderFood();document.getElementById("fd-rname")?.focus();return}
