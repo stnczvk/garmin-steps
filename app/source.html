@@ -2514,10 +2514,13 @@ async function shareStart(title,sub,iconSvg,color,titleColor){
   try{await document.fonts.ready}catch(e){}
   const cv=document.createElement("canvas");cv.width=SW;cv.height=6000;const cx=cv.getContext("2d");
   cx.fillStyle=SC.bg;cx.fillRect(0,0,SW,6000);
-  const R=190,Cx=SW-60,Cy=60;
+  const R=108,Cx=SW-SP-R,Cy=SP+96,icx=Cx,icy=Cy,isz=106;
   cx.fillStyle=color;cx.globalAlpha=.16;cx.beginPath();cx.arc(Cx,Cy,R,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
   const img=iconSvg?await svgImage(iconSvg,color):null;
-  if(img){const s=120;cx.drawImage(img,Cx-68-s/2,Cy+58-s/2,s,s)}
+  if(img){/* środek ikony liczony z jej faktycznego kształtu, nie z ramki 24×24 */
+    const t=document.createElement("canvas");t.width=t.height=240;const tc=t.getContext("2d");tc.drawImage(img,0,0,240,240);
+    const d=tc.getImageData(0,0,240,240).data;let x0=240,y0=240,x1=0,y1=0;for(let yy=0;yy<240;yy++)for(let xx=0;xx<240;xx++)if(d[(yy*240+xx)*4+3]>40){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(yy<y0)y0=yy;if(yy>y1)y1=yy}
+    if(x1>x0){const bw=x1-x0,bh=y1-y0,k=isz/Math.max(bw,bh);cx.drawImage(t,x0,y0,bw,bh,icx-bw*k/2,icy-bh*k/2,bw*k,bh*k)}}
   let y=SP+30;
   cx.fillStyle=SC.acc;cx.font=`700 30px ${SBF}`;cx.fillText("DZIENNIK TRENINGOWY",SP,y);
   y+=96;cx.fillStyle=titleColor||SC.ink;cx.font=`800 96px ${SDF}`;cx.fillText(title.toUpperCase(),SP,y);
