@@ -15,8 +15,8 @@ if [ -d "$SRC/.git" ]; then git -C "$SRC" fetch -q --depth 1 origin "$BRANCH" &&
 else git clone -q --depth 1 -b "$BRANCH" https://github.com/stnczvk/garmin-steps "$SRC"; fi
 
 say "1b Baza produktów (pierwszy raz ok. 200 MB)"
-if [ -d "$HOME_DIR/data/.git" ]; then git -C "$HOME_DIR/data" fetch -q --depth 1 origin dziennik-data && git -C "$HOME_DIR/data" reset -q --hard FETCH_HEAD
-else git clone -q --depth 1 -b dziennik-data https://github.com/stnczvk/garmin-steps "$HOME_DIR/data"; fi
+# baza jest pobierana tylko przy pierwszej instalacji; potem serwer sam ją odświeża 1. dnia miesiąca
+if [ ! -d "$HOME_DIR/data/food-bc" ]; then git clone -q --depth 1 -b dziennik-data https://github.com/stnczvk/garmin-steps "$HOME_DIR/data"; fi
 ls "$HOME_DIR/data"
 
 say "2/6 Środowisko Pythona"
@@ -85,6 +85,14 @@ D=$(grep '^DZ_DOMAIN=' /root/dziennik/.env | cut -d= -f2)
 git -C /root/dziennik/src fetch -q --depth 1 origin dziennik-app && git -C /root/dziennik/src reset -q --hard FETCH_HEAD && bash /root/dziennik/src/install.sh "$D"
 UPD
 chmod +x /usr/local/bin/dz-update
+
+say "Garmin co godzinę (6:40–23:40)"
+if systemctl list-unit-files garmin-steps.timer >/dev/null 2>&1; then
+  mkdir -p /etc/systemd/system/garmin-steps.timer.d
+  printf '[Timer]\nOnCalendar=\nOnCalendar=*-*-* 06..23:40:00 Europe/Warsaw\n' > /etc/systemd/system/garmin-steps.timer.d/co-godzine.conf
+  systemctl daemon-reload && systemctl restart garmin-steps.timer
+  systemctl list-timers garmin-steps.timer --no-pager | sed -n 2p
+fi
 
 say "6/6 Sprawdzenie"
 sleep 3

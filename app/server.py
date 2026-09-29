@@ -3,7 +3,7 @@
 Baza dokumentów w stylu kolekcja/dokument, logowanie hasłem, pośrednik do API Claude
 (odczyt etykiet i zrzutów), import kroków i cardio z Garmina.
 """
-import asyncio, base64, hashlib, hmac, io, json, os, re, secrets, sqlite3, subprocess, threading, time
+import asyncio, sys, base64, hashlib, hmac, io, json, os, re, secrets, sqlite3, subprocess, threading, time
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -46,6 +46,9 @@ _con.execute("CREATE TABLE IF NOT EXISTS docs(path TEXT PRIMARY KEY, coll TEXT, 
 _con.execute("CREATE INDEX IF NOT EXISTS docs_ts ON docs(ts)")
 _con.execute("CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, created REAL, agent TEXT)")
 _con.execute("CREATE TABLE IF NOT EXISTS ai_usage(day TEXT PRIMARY KEY, n INTEGER, tin INTEGER, tout INTEGER)")
+if "cost" not in [r[1] for r in _con.execute("PRAGMA table_info(ai_usage)").fetchall()]:
+    _con.execute("ALTER TABLE ai_usage ADD COLUMN cost REAL DEFAULT 0")
+PRICES = {"claude-sonnet-5": (2.0, 10.0), "claude-haiku-4-5-20251001": (1.0, 5.0), "claude-opus-5-5": (4.0, 20.0)}  # $ za 1 mln tokenów (wejście, wyjście)
 _last_ts = 0.0
 
 
@@ -227,8 +230,10 @@ async def ai(prompt: str = Form(...), tier: str = Form("default"), files: list[U
         return JSONResponse({"error": r.text[:300], "code": code}, status_code=502 if code == "ai_error" else 429)
     res = r.json()
     u = res.get("usage", {})
-    _con.execute("INSERT INTO ai_usage VALUES(?,?,?,?) ON CONFLICT(day) DO UPDATE SET n=n+1, tin=tin+excluded.tin, tout=tout+excluded.tout",
-                 (day, 1, u.get("input_tokens", 0), u.get("output_tokens", 0)))
+    pi, po = PRICES.get(body["model"], (2.0, 10.0))
+    cost = (u.get("input_tokens", 0) * pi + u.get("output_tokens", 0) * po) / 1e6
+    _con.execute("INSERT INTO ai_usage(day,n,tin,tout,cost) VALUES(?,?,?,?,?) ON CONFLICT(day) DO UPDATE SET n=n+1, tin=tin+excluded.tin, tout=tout+excluded.tout, cost=cost+excluded.cost",
+                 (day, 1, u.get("input_tokens", 0), u.get("output_tokens", 0), cost))
     text = "".join(b.get("text", "") for b in res.get("content", []) if b.get("type") == "text")
     try:
         return {"json": _json_from(text)}
@@ -238,8 +243,15 @@ async def ai(prompt: str = Form(...), tier: str = Form("default"), files: list[U
 
 @app.get("/api/ai/usage")
 def ai_usage():
-    rows = _con.execute("SELECT day,n,tin,tout FROM ai_usage ORDER BY day DESC LIMIT 31").fetchall()
-    return [{"day": d, "n": n, "in": i, "out": o} for d, n, i, o in rows]
+    rows = _con.execute("SELECT day,n,tin,tout,cost FROM ai_usage ORDER BY day DESC LIMIT 400").fetchall()
+    month = datetime.now(TZ).strftime("%Y-%m")
+    today = datetime.now(TZ).strftime("%Y-%m-%d")
+    m = [r for r in rows if r[0].startswith(month)]
+    t = next((r for r in rows if r[0] == today), None)
+    return {"limit": AI_DAILY, "today": {"n": t[1] if t else 0, "cost": round(t[4] or 0, 4) if t else 0},
+            "month": {"n": sum(r[1] for r in m), "cost": round(sum(r[4] or 0 for r in m), 4)},
+            "total": {"n": sum(r[1] for r in rows), "cost": round(sum(r[4] or 0 for r in rows), 4)},
+            "days": [{"day": d, "n": n, "cost": round(c or 0, 4)} for d, n, i, o, c in rows[:31]]}
 
 
 # ---------- Garmin ----------
@@ -472,17 +484,32 @@ def workout_check():
         send_push("Dziennik – trening", f"🏋️ Trening trwa już {int(mins // 60)} h {int(mins % 60)} min – skończyłeś? Zapisz trening albo anuluj stoper.", "workout")
 
 
+def _hm(v, default):
+    try:
+        a, b = str(v).split(":")
+        return int(a) * 60 + int(b)
+    except Exception:
+        return default
+
+
 def scheduler():
     while True:
         try:
             now = datetime.now(TZ)
             day = now.date().isoformat()
-            if (7, 58) <= (now.hour, now.minute) <= (8, 40) and kv_get("morning") != day:
+            r = _rem()
+            nm = now.hour * 60 + now.minute
+            mt, et = _hm(r.get("morningAt"), 8 * 60), _hm(r.get("eveningAt"), 21 * 60 + 30)
+            if mt <= nm <= mt + 60 and kv_get("morning") != day:
                 kv_set("morning", day)
                 morning_check(now)
-            if (21, 28) <= (now.hour, now.minute) <= (22, 30) and kv_get("evening") != day:
+            if et <= nm <= et + 60 and kv_get("evening") != day:
                 kv_set("evening", day)
                 evening_check(now)
+            if now.day == 1 and now.hour == 4 and kv_get("foodbuild") != now.strftime("%Y-%m"):
+                kv_set("foodbuild", now.strftime("%Y-%m"))
+                subprocess.Popen(["nice", "-n", "15", sys.executable, str(HERE / "food_build.py"), str(FOOD_DIR)],
+                                 stdout=open(ROOT / "food_build.log", "a"), stderr=subprocess.STDOUT)
             workout_check()
             if now.hour == 3 and kv_get("backup") != day:
                 kv_set("backup", day)

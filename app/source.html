@@ -521,10 +521,14 @@ header h1{font-size:24px}
 .pa-row:first-child{border-top:0}
 .mshare{flex:none;width:40px;height:40px;border:0;border-radius:12px;background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;align-self:flex-start;margin-top:2px}
 .mshare svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.remtime{width:auto;min-height:0;padding:4px 8px;font-size:16px;font-weight:700;display:inline-block;vertical-align:baseline}
 .shareov{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px}
 .shareov[hidden]{display:none}
 .sharebox{display:flex;flex-direction:column;gap:12px;max-width:440px;width:100%;max-height:100%}
-.sharebox img{width:100%;max-height:70vh;object-fit:contain;border-radius:16px;border:1px solid var(--line)}
+.shareimg{position:relative;align-self:center;max-width:100%}
+.sharebox img{display:block;max-width:100%;max-height:72vh;object-fit:contain;border-radius:16px;border:1px solid var(--line)}
+.sharex{position:absolute;top:-14px;right:-14px;width:40px;height:40px;border-radius:20px;border:2px solid var(--bg);background:var(--surface2);color:var(--ink);font-size:24px;line-height:1;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.sharemain{width:100%;text-align:center;text-decoration:none}
 /* potwierdzenie dodania produktu */
 @keyframes qflash{0%{background:color-mix(in srgb,var(--good) 32%,transparent);box-shadow:inset 3px 0 0 var(--good)}70%{background:color-mix(in srgb,var(--good) 14%,transparent);box-shadow:inset 3px 0 0 var(--good)}100%{background:transparent;box-shadow:inset 3px 0 0 transparent}}
 .qrow.just-added{animation:qflash 1.8s ease-out both;border-radius:10px}
@@ -1020,7 +1024,7 @@ function updateLogLive(){
 }
 document.addEventListener("input",ev=>{ if(ev.target.id&&ev.target.id.startsWith("in-")){ updateLogLive(); clearTimeout(window.__dT); window.__dT=setTimeout(saveDraft,400); } });
 
-function renderPlan(){ if(MODE==="masa") renderPlanMasa(); else renderPlanRed(); document.getElementById("view-plan").insertAdjacentHTML("beforeend",remindersHTML()+backupHTML()); }
+function renderPlan(){ if(MODE==="masa") renderPlanMasa(); else renderPlanRed(); document.getElementById("view-plan").insertAdjacentHTML("beforeend",remindersHTML()+(window.dzAi?window.dzAi.html():"")+backupHTML()); }
 let bk={msg:"",pending:null,busy:false};
 function backupHTML(){
   const n=sessions.length, fd=Object.keys(food).length, wd=Object.values(activity).filter(a=>a.bw>0).length;
@@ -1933,7 +1937,8 @@ let reminders={...REM_DEF};
 function remItems(){
   const now=new Date(),h=now.getHours(),t=today(),y=shiftDate(t,-1),out=[];
   const noSteps=d=>!(activity[d]?.steps>0), noFood=d=>!((food[d]||[]).length);
-  if(reminders.evening&&(h>21||(h===21&&now.getMinutes()>=30))){ if(noSteps(t)) out.push({k:"steps",d:t,txt:"Nie ma jeszcze kroków z dzisiaj."}); if(reminders.meals&&noFood(t)) out.push({k:"food",d:t,txt:"Nie ma jeszcze posiłków z dzisiaj."}); }
+  const hm=x=>{const [a,b]=String(x||"").split(":").map(Number);return (a||0)*60+(b||0)}, nowM=h*60+now.getMinutes();
+  if(reminders.evening&&nowM>=hm(reminders.eveningAt||"21:30")){ if(noSteps(t)) out.push({k:"steps",d:t,txt:"Nie ma jeszcze kroków z dzisiaj."}); if(reminders.meals&&noFood(t)) out.push({k:"food",d:t,txt:"Nie ma jeszcze posiłków z dzisiaj."}); }
   if(reminders.morning&&h<14){ if(noSteps(y)) out.push({k:"steps",d:y,txt:"Brakuje kroków z wczoraj."}); if(reminders.meals&&noFood(y)) out.push({k:"food",d:y,txt:"Brakuje posiłków z wczoraj."}); }
   const wst=typeof wTimerStart==="function"?wTimerStart():0; if(wst&&Date.now()-wst>=WLONG){const ms=Date.now()-wst;out.unshift({k:"workout",d:t,txt:`Trening trwa już ${Math.floor(ms/3600000)} h ${Math.floor(ms%3600000/60000)} min. Skończyłeś, a zapomniałeś zapisać?`});}
   let dis={};try{dis=JSON.parse(localStorage.getItem("sila-5x5-remdis")||"{}")}catch(e){}
@@ -1955,6 +1960,10 @@ document.addEventListener("click",ev=>{
     return; }
 });
 document.addEventListener("change",async ev=>{
+  const tm=ev.target.closest('[data-remtime]');
+  if(tm){ if(!/^\d{2}:\d{2}$/.test(tm.value)) return; reminders={...reminders,[tm.dataset.remtime]:tm.value};
+    if(store.mode==="db"){ try{ await store.db.doc("settings/reminders").set(reminders); }catch(e){} } else { lsSet("sila-5x5-reminders",reminders); }
+    renderRemind(); const m=document.getElementById("rem-msg"); if(m) m.textContent="Zapisano godzinę."; return; }
   const i=ev.target.closest('[data-rem]'); if(!i) return;
   reminders={...reminders,[i.dataset.rem]:i.checked};
   if(store.mode==="db"){ try{ await store.db.doc("settings/reminders").set(reminders); }catch(e){} } else { lsSet("sila-5x5-reminders",reminders); }
@@ -1963,11 +1972,11 @@ document.addEventListener("change",async ev=>{
 function remindersHTML(){
   const C=(k,t,d)=>`<label class="row" style="gap:10px;cursor:pointer;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" data-rem="${k}" ${reminders[k]?"checked":""} style="width:22px;height:22px;min-height:0;flex:none"><span><b>${t}</b><br><span class="note">${d}</span></span></label>`;
   return `<div class="card stack" id="reminders"><h2>Przypomnienia</h2>${window.dzPush?window.dzPush.html():""}
-    ${C("evening","Wieczorem o 21:30","Tylko jeśli dziś nie ma jeszcze żadnego posiłku.")}
-    ${C("morning","Rano o 8:00","Tylko jeśli brakuje kroków albo posiłków z poprzedniego dnia. W poniedziałek sprawdza też, czy waga nie stoi.")}
+    ${C("evening",`Wieczorem o <input type="time" data-remtime="eveningAt" value="${esc(reminders.eveningAt||"21:30")}" class="remtime">`,"Tylko jeśli dziś nie ma jeszcze żadnego posiłku.")}
+    ${C("morning",`Rano o <input type="time" data-remtime="morningAt" value="${esc(reminders.morningAt||"08:00")}" class="remtime">`,"Tylko jeśli brakuje kroków albo posiłków z poprzedniego dnia. W poniedziałek sprawdza też, czy waga nie stoi.")}
     ${C("meals","Też posiłki","Przypomina także, gdy danego dnia nie ma żadnego posiłku.")}
     <div class="note" id="rem-msg" style="font-weight:600"></div>
-    <p class="note" style="margin:0">Powiadomienie na telefon przychodzi tylko wtedy, gdy czegoś faktycznie brakuje. Gdy wszystko jest wpisane, nic nie dostajesz. Dodatkowo, gdy stoper treningu chodzi ponad 100 minut, dostaniesz pytanie, czy nie zapomniałeś zapisać treningu. Chcesz inną godzinę? Napisz do Claude, a zmieni ją. Przypomnienie widać też na górze dziennika.</p></div>`;
+    <p class="note" style="margin:0">Powiadomienie na telefon przychodzi tylko wtedy, gdy czegoś faktycznie brakuje. Gdy wszystko jest wpisane, nic nie dostajesz. Dodatkowo, gdy stoper treningu chodzi ponad 100 minut, dostaniesz pytanie, czy nie zapomniałeś zapisać treningu. Godziny ustawisz wyżej. Przypomnienie widać też na górze dziennika.</p></div>`;
 }
 function lsGet(k,d){try{return JSON.parse(localStorage.getItem(k)||"null")??d}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -2039,34 +2048,29 @@ document.addEventListener("change",async ev=>{
   }catch(e){acMsg("Nie udało się odczytać zdjęcia. Wpisz kroki ręcznie.")}
   ev.target.value="";
 });
-/* odświeżanie z Garmina na żądanie: uruchamia zadanie „Dziennik – Garmin” przez połączenie Claude Code Remote */
+/* odświeżanie z Garmina na żądanie: serwer pobiera świeże dane z Garmin Connect */
 const GARMIN_TRIGGER="trig_019poW8k4BXqkPZYcfxgVxN8", GR_SERVER="Claude Code Remote";
 let gr={busy:false,msg:"",firedAt:0}, garminLog=null;
-function nextAutoSync(){const n=new Date(),m=n.getHours()*60+n.getMinutes();const t=[6*60+50,12*60+50,18*60+50,23*60+50].find(x=>x>m);return t==null?"jutro o 6:50":`dziś o ${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`}
+function nextAutoSync(){const n=new Date(),m=n.getHours()*60+n.getMinutes();const t=Array.from({length:18},(_,i)=>(6+i)*60+42).find(x=>x>m);return t==null?"jutro o 6:42":`dziś o ${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`}
 function garminRefreshHTML(){
   const lg=garminLog, at=lg&&lg.at?new Date(lg.at):null;
   const last=at&&!isNaN(at)?`${at.toDateString()===new Date().toDateString()?"dziś":at.toLocaleDateString("pl-PL",{day:"numeric",month:"numeric"})} o ${at.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}`:null;
   const cool=gr.firedAt&&Date.now()-gr.firedAt<120000;
-  return `<div class="grbox"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;gap:10px"><div class="note" style="margin:0">${last?`Ostatnie przepisanie z Garmina: <b>${last}</b>${lg.step==="start"?" (w toku…)":""}`:"Dane z Garmina wpisują się same 4 razy dziennie."}<br>Następne automatyczne: ${nextAutoSync()}.</div>
+  return `<div class="grbox"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;gap:10px"><div class="note" style="margin:0">${last?`Ostatnie przepisanie z Garmina: <b>${last}</b>${lg.step==="start"?" (w toku…)":""}`:"Dane z Garmina wpisują się same co godzinę (6:40–23:40)."}<br>Następne automatyczne: ${nextAutoSync()}.</div>
     <button class="btn small" data-act="gr-go" ${gr.busy||cool?"disabled":""}>${gr.busy?"Pobieram…":"⟳ Odśwież z Garmina"}</button></div>
     ${gr.msg?`<div class="note" style="margin:0;font-weight:600">${esc(gr.msg)}</div>`:""}</div>`;
 }
 async function garminRefresh(){
   gr.busy=true; gr.msg="Uruchamiam pobieranie…"; renderProg();
   let mcp=null; try{ mcp=window.claude?.use?await window.claude.use("mcp"):null }catch(e){ mcp=null }
-  if(!mcp){ gr.busy=false; gr.msg=`W tym widoku nie da się uruchomić odświeżania. Dane wejdą same ${nextAutoSync()}.`; renderProg(); return; }
+  if(!mcp){ gr.busy=false; gr.msg=`Brak połączenia z serwerem. Dane wejdą same ${nextAutoSync()}.`; renderProg(); return; }
   try{
     await mcp.callTool(GR_SERVER,"fire_trigger",{trigger_id:GARMIN_TRIGGER});
     gr.firedAt=Date.now(); gr.msg="Pobieram dane z Garmina – zwykle trwa to około minuty. Kroki pojawią się same.";
-    setTimeout(()=>{ if(gr.busy){ gr.busy=false; gr.msg="Trwa dłużej niż zwykle. Dane pojawią się same, gdy zadanie skończy."; renderProg(); } },180000);
+    setTimeout(()=>{ if(gr.busy){ gr.busy=false; gr.msg="Trwa dłużej niż zwykle. Dane pojawią się same, gdy pobieranie się skończy."; renderProg(); } },180000);
   }catch(e){
     gr.busy=false; const c=e&&e.code;
-    gr.msg=c==="not_in_manifest"||c==="consent_required"?"Nie zezwolono dziennikowi na uruchamianie zadań. Kliknij przycisk jeszcze raz i zaakceptuj prośbę.":
-      c==="server_not_connected"||c==="selection_required"?"Połączenie „Claude Code Remote” nie jest dostępne na tym koncie. Dane wejdą same "+nextAutoSync()+".":
-      c==="needs_reauth"?"Połączenie „Claude Code Remote” wymaga ponownego zalogowania w ustawieniach claude.ai (Łączniki).":
-      c==="tool_error"?"Zadanie nie wystartowało: "+String(e.message||"").slice(0,120):
-      c==="blocked_by_policy"||c==="approval_required"?"Ustawienia konta blokują uruchamianie zadań z dziennika.":
-      "Nie mam pewności, czy pobieranie ruszyło. Sprawdź za minutę – jeśli godzina ostatniego przepisania się nie zmieni, kliknij jeszcze raz.";
+    gr.msg=c==="network"?"Brak połączenia z serwerem. Dane wejdą same "+nextAutoSync()+".":"Nie udało się uruchomić pobierania"+(e&&e.message?": "+String(e.message).slice(0,120):"")+". Spróbuj za chwilę.";
   }
   renderProg();
 }
@@ -2118,7 +2122,7 @@ function activityHTML(){
       <label class="stack" style="gap:4px;flex:1;min-width:150px"><span class="label">Cardio</span><select id="fd-ctype">${CARDIO.map(c=>`<option>${c}</option>`).join("")}</select></label>
       <label class="stack" style="gap:4px;width:90px"><span class="label">Minuty</span><input type="number" id="fd-cmin" inputmode="numeric" placeholder="30"></label>
       <button class="btn ghost small" data-act="fd-cadd">Dodaj cardio</button></div>
-    <div class="note" id="ac-msg" style="font-weight:600"></div><p class="note" style="margin:0">Kroki przepisz z zegarka albo wczytaj screen z Garmin Connect (ekran z liczbą kroków). Kroki i cardio (bieganie, rower, orbitrek, spacery itp.) spływają automatycznie z Garmina 4 razy dziennie (ok. 6:50, 12:50, 18:50 i 23:50), o ile zegarek zdążył się zsynchronizować z Garmin Connect. Przycisk „Odśwież z Garmina” robi to od razu. Trening siłowy nie jest liczony jako cardio. Cel zmienisz w Jedzenie → Ustaw cele.</p>
+    <div class="note" id="ac-msg" style="font-weight:600"></div><p class="note" style="margin:0">Kroki przepisz z zegarka albo wczytaj screen z Garmin Connect (ekran z liczbą kroków). Kroki i cardio (bieganie, rower, orbitrek, spacery itp.) spływają automatycznie z Garmina co godzinę od 6:40 do 23:40, o ile zegarek zdążył się zsynchronizować z Garmin Connect. Przycisk „Odśwież z Garmina” robi to od razu. Trening siłowy nie jest liczony jako cardio. Cel zmienisz w Jedzenie → Ustaw cele.</p>
   </div>`;
 }
 async function saveRecipe(r){
@@ -2314,12 +2318,12 @@ function renderFood0(){
       <label><span class="label">Węgle (g)</span><input type="number" id="fd-gc" inputmode="numeric" value="${targets.carbs??""}" placeholder="auto"></label>
       <label><span class="label">Kroki / dzień</span><input type="number" id="fd-gs" inputmode="numeric" value="${targets.steps??""}" placeholder="${MODE==="red"?"10000":"8000"}"></label>
       <button class="btn small" data-act="fd-goals">Zapisz cele</button></div>
-    <p class="note">Kroki: domyślnie ${MODE==="red"?"10 000 na redukcji":"8 000 na masie"}. Waga: dziennik bierze średnią z pomiarów z ostatnich 7 dni (Podsumowanie → Waga). Jeśli nie wpiszesz własnych liczb, białko, tłuszcz i węgle pokazują przedział: białko ${MODE==="red"?"2–2,4":"1,6–2,2"} g/kg, tłuszcz 20–35% kalorii, węgle to reszta. Własna liczba zamienia przedział na jeden cel. Kalorie wpisz takie, jakie masz ustawione w Fitatu, albo zapytaj mnie w czacie.</p>
+    <p class="note">Kroki: domyślnie ${MODE==="red"?"10 000 na redukcji":"8 000 na masie"}. Waga: dziennik bierze średnią z pomiarów z ostatnich 7 dni (Podsumowanie → Waga). Jeśli nie wpiszesz własnych liczb, białko, tłuszcz i węgle pokazują przedział: białko ${MODE==="red"?"2–2,4":"1,6–2,2"} g/kg, tłuszcz 20–35% kalorii, węgle to reszta. Własna liczba zamienia przedział na jeden cel. Kalorie wpisz takie, jakie masz ustawione w Fitatu.</p>
   </details></div>
   ${dayTilesHTML(fst.date)}
   <!--MEALS-->
   <div id="fd-toolanchor"></div>${fst.addTool==="quick"?quickHTML():""}
-  ${fst.addTool==="screen"?`${!imgCaps?`<div class="card stack"><h3>Screen z Fitatu</h3>${sampleApi===undefined?`<p class="note" style="margin:0">Ładuję…</p>`:!sampleApi?`<p class="note" style="margin:0">Tutaj Claude nie jest dostępny. Wrzuć screena z Fitatu do czatu z Claude, a on wpisze produkty za Ciebie.</p>`:`
+  ${fst.addTool==="screen"?`${!imgCaps?`<div class="card stack"><h3>Screen z Fitatu</h3>${sampleApi===undefined?`<p class="note" style="margin:0">Ładuję…</p>`:!sampleApi?`<p class="note" style="margin:0">Odczyt zrzutów przez AI jest teraz niedostępny (brak połączenia z serwerem albo klucza API). Dodaj produkty ręcznie albo spróbuj za chwilę.</p>`:`
     <p class="note" style="margin:0">Zrób screen dziennika dnia w Fitatu i wczytaj go tutaj. Można kilka screenów naraz, jeśli lista jest długa.</p>
     <div class="row"><label class="btn" style="cursor:pointer;${fst.reading?"opacity:.6;pointer-events:none":""}">${fst.reading?esc(fst.ocrMsg||"Czytam…"):"Wczytaj screen"}<input type="file" id="fd-ocr" accept="image/*" multiple hidden></label></div>
     ${pendingHTML()}
@@ -2329,11 +2333,11 @@ function renderFood0(){
     <div class="row" style="margin-top:8px"><button class="btn ghost" data-act="fd-parse" ${fst.reading?"disabled":""}>Odczytaj tekst</button></div></details>`}</div>`:""}
   ${imgCaps?`<div class="card stack"><div class="row" style="justify-content:space-between"><h3>Zrzut z Fitatu</h3>
       <label class="btn ${fst.reading?"ghost":""}" style="cursor:pointer">${fst.reading?"Czytam zrzut…":"Wczytaj zrzut"}<input type="file" id="fd-shot" accept="${esc(imgCaps.mediaTypes.join(","))}" ${imgCaps.maxCount>1?"multiple":""} hidden ${fst.reading?"disabled":""}></label></div>
-    <p class="note" style="margin:0">Zrób screen dziennika dnia w Fitatu (można kilka, jeśli lista się nie mieści). Claude odczyta produkty, gramy i makro, a Ty zatwierdzasz przed dodaniem.</p>
+    <p class="note" style="margin:0">Zrób screen dziennika dnia w Fitatu (można kilka, jeśli lista się nie mieści). AI odczyta produkty, gramy i makro, a Ty zatwierdzasz przed dodaniem.</p>
     ${pendingHTML()}
   </div>`:""}`:""}
   ${fst.addTool==="est"?`${sampleApi?`<div class="card stack"><h3>Szacuj posiłek</h3>
-    <p class="note" style="margin:0">Na mieście albo gdy nie masz jak zważyć. Opisz, co jesz i jaka to porcja, i/lub dodaj zdjęcie. Claude oszacuje kalorie i makro.</p>
+    <p class="note" style="margin:0">Na mieście albo gdy nie masz jak zważyć. Opisz, co jesz i jaka to porcja, i/lub dodaj zdjęcie. AI oszacuje kalorie i makro.</p>
     <label class="stack" style="gap:4px"><span class="label">Posiłek</span><select id="fd-emeal" style="max-width:220px">${MEALS.map(m=>`<option ${m===fst.meal?"selected":""}>${m}</option>`).join("")}</select></label>
     <textarea id="fd-edesc" rows="3" style="width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:8px 10px" placeholder="np. kebab w bułce, duży, sos czosnkowy, do tego mała cola zero"></textarea>
     <div class="row"><label class="btn ghost" style="cursor:pointer">📷 ${fst.ephoto?"Zmień zdjęcie":"Dodaj zdjęcie"}<input type="file" id="fd-ephoto" accept="${esc(imgCaps?imgCaps.mediaTypes.join(","):"image/*")}" hidden></label>${fst.ephoto?`<span class="ephoto"><img src="${fst.ephotoUrl}" alt="Zdjęcie posiłku"><button class="x" data-act="fd-ephoto-del" aria-label="Usuń zdjęcie">×</button></span>`:""}
@@ -2357,7 +2361,7 @@ function renderFood0(){
     </div>
     <div class="tools">
       ${sampleApi?`<label class="btn ghost small" style="cursor:pointer">${fst.tool==="label"?esc(fst.ocrMsg||"Czytam etykietę…"):"Etykieta ze zdjęcia"}<input type="file" id="fd-label" accept="image/*" hidden></label>
-      <button class="btn ghost small" data-act="fd-ai" ${fst.busy?"disabled":""}>${fst.busy?"Liczę…":"Policz z Claude"}</button>`:""}
+      <button class="btn ghost small" data-act="fd-ai" ${fst.busy?"disabled":""}>${fst.busy?"Liczę…":"Policz z AI"}</button>`:""}
     </div>
     <button class="techlink" data-act="fd-scanretry" style="align-self:flex-start">Spróbuj skanowania na żywo (podgląd z aparatu)</button>
     ${fst.code?`<div class="note">Kod <b class="num">${esc(fst.code)}</b> zostanie zapamiętany z tym produktem.</div>`:""}
@@ -2596,7 +2600,8 @@ async function showShare(blob,name,alt){
   const url=URL.createObjectURL(blob);const can=!!(navigator.canShare&&navigator.canShare({files:[shareFile]}));
   let el=document.getElementById("shareov");if(!el){el=document.createElement("div");el.id="shareov";document.body.appendChild(el)}
   el.className="shareov";el.hidden=false;
-  el.innerHTML=`<div class="sharebox"><img src="${url}" alt="${esc(alt)}"><div class="row" style="gap:8px;justify-content:center">${can?`<button class="btn" data-act="fd-sharego">📤 Udostępnij / Zapisz</button>`:`<a class="btn" href="${url}" download="${esc(name)}">Pobierz obrazek</a>`}<button class="btn ghost" data-act="fd-shareclose">Zamknij</button></div><div class="note" style="text-align:center;margin:0">${can?"W menu wybierz „Zapisz obraz”, żeby trafił do galerii.":"Albo przytrzymaj obrazek i wybierz „Zapisz w Zdjęciach”."}</div></div>`;
+  el.innerHTML=`<div class="sharebox"><div class="shareimg"><img src="${url}" alt="${esc(alt)}"><button class="sharex" data-act="fd-shareclose" aria-label="Zamknij">×</button></div>${can?`<button class="btn sharemain" data-act="fd-sharego">📤 Udostępnij / Zapisz</button>`:`<a class="btn sharemain" href="${url}" download="${esc(name)}">Pobierz obrazek</a>`}<div class="note" style="text-align:center;margin:0">${can?"W menu wybierz „Zapisz obraz”, żeby trafił do galerii.":"Albo przytrzymaj obrazek i wybierz „Zapisz w Zdjęciach”."}</div></div>`;
+  el.onclick=e=>{if(e.target===el){el.hidden=true;el.innerHTML=""}};
 }
 async function openShare(m){await showShare(await mealImage(m),`${m.replace(/\s+/g,"-").toLowerCase()}-${fst.date}.png`,`Grafika posiłku ${m}`)}
 async function openShareTraining(id){const s=sessions.find(x=>x.id===id);if(!s)return;await showShare(await trainingImage(s),`trening-${s.day}-${s.date}.png`,`Grafika treningu ${s.day}`)}
@@ -2743,7 +2748,7 @@ async function openScanner(){
   let stream;
   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});}
   catch(e){ try{localStorage.setItem("sila-5x5-nolive",String(Date.now()));localStorage.setItem("sila-5x5-nolive-err",(e&&e.name||"?")+": "+String(e&&e.message||"").slice(0,80))}catch(_){}
-    msg("["+(e&&e.name||"błąd")+"] Aplikacja Claude nie wpuszcza podglądu z aparatu do dziennika (to ustawienie aplikacji, nie telefonu). Kliknij „Zrób zdjęcie kodu” – otworzy się aparat, zrób zdjęcie z bliska, a kod odczyta się sam. Następnym razem przycisk skanowania od razu otworzy aparat.");
+    msg("["+(e&&e.name||"błąd")+"] Brak dostępu do aparatu. Zezwól na aparat w Ustawieniach telefonu (Safari / Dziennik → Aparat) albo kliknij „Zrób zdjęcie kodu” – otworzy się aparat, zrób zdjęcie z bliska, a kod odczyta się sam. Następnym razem przycisk skanowania od razu otworzy aparat.");
     const lb=el.querySelector("label.btn"); if(lb){lb.classList.remove("ghost");lb.style.fontSize="17px";lb.style.padding="14px 20px";} return}
   if(!SCN||SCN.el!==el){stream.getTracks().forEach(t=>t.stop());return}
   SCN.stream=stream;const v=el.querySelector("video");v.srcObject=stream;try{await v.play()}catch(e){}
@@ -2838,7 +2843,7 @@ document.addEventListener("click",async ev=>{
     const photo=fst.ephoto||null;
     if(!desc&&!photo){setMsg("Opisz posiłek albo dodaj zdjęcie.");return}
     if(photo&&!imgCaps){try{imgCaps=(await sampleApi.limits())?.images||null}catch(e){}}
-    if(photo&&!imgCaps&&!desc){setMsg("Na tym urządzeniu apka nie może pokazać zdjęcia Claude'owi. Dopisz krótki opis (np. „kebab w bułce, duży”) albo wyślij zdjęcie do mnie w czacie.");return}
+    if(photo&&!imgCaps&&!desc){setMsg("Na tym urządzeniu nie da się wysłać zdjęcia do AI. Dopisz krótki opis (np. „kebab w bułce, duży”).");return}
     fst.meal=meal;fst.estBusy=true;fst.est=null;renderFood();
     const d2=document.getElementById("fd-edesc");if(d2)d2.value=desc;
     try{
@@ -3064,7 +3069,7 @@ document.addEventListener("click",async ev=>{
     if(!n||n<=0){setMsg(unit==="szt"?"Wpisz, ile sztuk zjadłeś.":"Wpisz, ile gramów zjadłeś.");return}
     if(unit==="szt"&&(!pw||pw<=0)){setMsg("Wpisz, ile waży 1 sztuka (w gramach).");document.getElementById("fd-pw")?.focus();return}
     const g=unit==="szt"?r1g(n*pw):n;
-    if(kcal==null){setMsg("Wpisz kalorie na 100 g albo użyj „Policz z Claude”.");return}
+    if(kcal==null){setMsg("Wpisz kalorie na 100 g albo użyj „Policz z AI”.");return}
     {const w=macroCheck(kcal,readNum("fd-p"),readNum("fd-c"),readNum("fd-f")); const sig=[name,kcal,readNum("fd-p"),readNum("fd-c"),readNum("fd-f")].join("|");
      if(w&&fst.warnOk!==sig){fst.warnOk=sig;setMsg("⚠ "+w+" Jeśli wszystko się zgadza, kliknij Dodaj jeszcze raz.");document.getElementById("fd-prev")?.scrollIntoView({behavior:"smooth",block:"center"});return}}
     const it={meal:document.getElementById("fd-meal").value,name,g,kcal,p:readNum("fd-p")||0,c:readNum("fd-c")||0,f:readNum("fd-f")||0};
@@ -3110,8 +3115,8 @@ document.addEventListener("click",async ev=>{
       const r=await sampleApi.json(`Podaj typowe wartości odżywcze na 100 g dla produktu spożywczego: "${name}". Jeśli to danie, oszacuj typowy skład. Odpowiedz wyłącznie JSON w formacie {"kcal":liczba,"p":liczba,"c":liczba,"f":liczba}, gdzie p to białko, c węglowodany, f tłuszcz w gramach na 100 g.`,{modelTier:"quick"});
       for(const k of ["kcal","p","c","f"]) if(r&&typeof r[k]==="number") document.getElementById("fd-"+k).value=Math.round(r[k]*10)/10;
       setMsg("Uzupełnione szacunkowo. Jeśli masz etykietę, popraw liczby.");
-    }catch(e){setMsg(e&&e.code==="not_granted"?"Liczenie z Claude jest wyłączone na tej stronie.":"Nie udało się policzyć. Wpisz wartości ręcznie.")}
-    fst.busy=false;b.disabled=false;b.textContent="Policz z Claude";
+    }catch(e){setMsg(e&&e.code==="not_granted"?"Liczenie z AI jest teraz niedostępne.":"Nie udało się policzyć. Wpisz wartości ręcznie.")}
+    fst.busy=false;b.disabled=false;b.textContent="Policz z AI";
   }
 });
 

@@ -166,6 +166,21 @@
   });
   window.dzPush = { html: () => { setTimeout(paintPush, 0); return `<div id="dz-push" class="stack" style="gap:8px"></div>`; } };
 
+
+  /* ---------- zużycie AI ---------- */
+  async function paintAi() {
+    const el = document.getElementById("dz-ai"); if (!el) return;
+    try {
+      const u = await req("GET", "/ai/usage");
+      const usd = v => "$" + (v < 0.01 && v > 0 ? v.toFixed(3) : v.toFixed(2));
+      el.innerHTML = `<div class="wk-grid">
+        <div class="wk-t"><span class="label">Dziś</span><b class="num">${u.today.n} / ${u.limit}</b><span class="note num">zapytań · ${usd(u.today.cost)}</span></div>
+        <div class="wk-t"><span class="label">Ten miesiąc</span><b class="num">${usd(u.month.cost)}</b><span class="note num">${u.month.n} zapytań</span></div></div>
+        <p class="note" style="margin:0">AI czyta etykiety, zrzuty z Fitatu i szacuje posiłki. Koszt jest szacunkowy (według cennika Anthropic). Dokładne rozliczenie i saldo: platform.claude.com → Usage. Dzienny limit ${u.limit} zapytań chroni przed przypadkowym wydaniem kredytów.</p>`;
+    } catch (e) { el.innerHTML = `<p class="note" style="margin:0">Nie udało się pobrać zużycia.</p>`; }
+  }
+  window.dzAi = { html: () => { setTimeout(paintAi, 0); return `<div class="card stack"><h2>Zużycie AI</h2><div id="dz-ai" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
+
   let authP = null;
   const auth = () => authP || (authP = fetch("/api/me", { credentials: "same-origin" }).then(r => { if (!r.ok) { showLogin(); return new Promise(() => {}) } }).catch(() => { showLogin("Brak połączenia z serwerem."); return new Promise(() => {}) }));
   let dbP = null;
