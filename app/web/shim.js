@@ -195,9 +195,9 @@
       <details ${scaleOpen ? "open" : ""} id="dz-scale-how"><summary class="note" style="cursor:pointer;font-weight:600">Jak ustawić (raz, ok. 3 minuty)</summary>
       <ol class="steps" style="margin-top:8px">
         <li><b>Xiaomi Home → Zdrowie:</b> Ustawienia iPhone'a → Zdrowie → Dostęp do danych i urządzenia → Xiaomi Home → włącz <b>Waga</b>.</li>
-        <li>Otwórz aplikację <b>Skróty</b> → zakładka <b>Automatyzacja</b> → <b>+</b> → <b>Aplikacja</b> → wybierz <b>Xiaomi Home</b>, zaznacz <b>Jest zamknięta</b> (odznacz „Jest otwarta”) → <b>Uruchom natychmiast</b> → Dalej → <b>Nowy pusty skrót</b>.</li>
+        <li>Otwórz aplikację <b>Skróty</b> → zakładka <b>Automatyzacja</b> → <b>+</b> → <b>Aplikacja</b> → wybierz <b>Xiaomi Home</b> i ustaw <b>Zamknięto</b> (nie „Otwarto”). Przełącznik <b>Automatyzacja</b> ma być włączony – wtedy skrót uruchamia się sam, bez pytania.</li>
         <li>Dodaj akcję <b>Znajdź próbki zdrowia</b>: typ <b>Waga</b>, dodaj filtr <b>Data rozpoczęcia – jest dzisiaj</b>, sortuj <b>Data rozpoczęcia – od najnowszych</b>, <b>Ogranicz</b> do <b>1</b>.</li>
-        <li>Dodaj akcję <b>Pobierz zawartość URL</b>: w miejsce adresu wklej link skopiowany wyżej. Rozwiń: <b>Metoda: POST</b>, <b>Treść żądania: JSON</b>, dodaj pole typu <b>Tekst</b>: klucz <b>kg</b>, wartość – wybierz zmienną <b>Próbki zdrowia</b>.</li>
+        <li>Dodaj akcję <b>Pobierz zawartość URL</b>: w miejsce adresu wklej link skopiowany wyżej. Rozwiń: <b>Metoda: POST</b>, <b>Treść żądania: JSON</b>, dodaj pole typu <b>Tekst</b>: po lewej (klucz) wpisz ręcznie <b>kg</b>, po prawej (wartość) wybierz zmienną <b>Próbki zdrowia</b>.</li>
         <li>Gotowe. Zważ się, otwórz Xiaomi Home, poczekaj aż pomiar się pojawi i zamknij aplikację – waga wpisze się sama do dziennika (Podsumowanie → Waga).</li>
       </ol>
       <p class="note" style="margin:0">Jeśli danego dnia nie było ważenia, skrót niczego nie wyśle. Kilka pomiarów jednego dnia – zostaje ostatni.</p></details>
@@ -210,6 +210,33 @@
     if (b.dataset.dzscale === "new") { await req("POST", "/hook/newkey", {}); paintScale(); }
   });
   window.dzScale = { html: () => { setTimeout(paintScale, 0); return `<div class="card stack"><h2>Waga Xiaomi</h2><div id="dz-scale" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
+
+
+  /* ---------- aktualizacja aplikacji z telefonu ---------- */
+  let updPoll = null, updStarted = 0;
+  const fdt = d => d ? new Date(d).toLocaleString("pl-PL", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+  async function paintUpd() {
+    const el = document.getElementById("dz-upd"); if (!el) return;
+    let st; try { st = await req("GET", "/update/status") } catch (e) {
+      if (updStarted) { el.innerHTML = `<p class="note" style="margin:0">Serwer się restartuje…</p>`; return; }
+      el.innerHTML = `<p class="note" style="margin:0">Nie udało się sprawdzić wersji.</p>`; return; }
+    const cur = st.current || {}, lat = st.latest;
+    const fresh = lat && cur.sha && lat.sha === cur.sha;
+    if (updStarted && !st.running && fresh) { el.innerHTML = `<div class="nb-step" style="margin:0">✓ Zaktualizowano. Przeładowuję…</div>`; clearInterval(updPoll); updPoll = null; setTimeout(() => location.reload(), 1200); return; }
+    if (updStarted && !st.running && Date.now() - updStarted > 20000 && !fresh) { updStarted = 0; clearInterval(updPoll); updPoll = null; }
+    const busy = st.running || updStarted;
+    el.innerHTML = `<div class="nb-step" style="margin:0">${busy ? "⏳ Aktualizuję… to trwa ok. 1–2 minuty, aplikacja sama się przeładuje." : !lat ? "Nie udało się sprawdzić, czy jest nowa wersja." : fresh ? "✓ Masz najnowszą wersję." : "<b>Jest nowa wersja.</b>"}</div>
+      <div class="note">Na serwerze: ${cur.msg ? `„${cur.msg}” (${fdt(cur.date)})` : "—"}${lat && !fresh ? `<br>Najnowsza: „${lat.msg}” (${fdt(lat.date)})` : ""}</div>
+      ${!busy && lat && !fresh ? `<div class="row"><button class="btn small" data-dzupd="run">Zaktualizuj teraz</button></div>` : ""}
+      ${st.log && !busy && !fresh && st.last_run ? `<details><summary class="note" style="cursor:pointer">Log ostatniej aktualizacji</summary><pre style="white-space:pre-wrap;font-size:12px;margin:6px 0 0">${st.log.replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]))}</pre></details>` : ""}`;
+  }
+  document.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-dzupd]"); if (!b) return;
+    b.disabled = true; b.textContent = "Uruchamiam…";
+    try { await req("POST", "/update", {}); updStarted = Date.now(); if (!updPoll) updPoll = setInterval(paintUpd, 4000); paintUpd(); }
+    catch (e) { b.disabled = false; b.textContent = "Zaktualizuj teraz"; const el = document.getElementById("dz-upd"); el && el.insertAdjacentHTML("beforeend", `<p class="note" style="margin:0;color:var(--bad)">Nie udało się uruchomić aktualizacji. Spróbuj za chwilę.</p>`); }
+  });
+  window.dzUpdate = { html: () => { setTimeout(paintUpd, 0); return `<div class="card stack"><h2>Aktualizacja aplikacji</h2><div id="dz-upd" class="stack" style="gap:10px"><p class="note" style="margin:0">Sprawdzam…</p></div></div>`; } };
 
   let authP = null;
   const auth = () => authP || (authP = fetch("/api/me", { credentials: "same-origin" }).then(r => { if (!r.ok) { showLogin(); return new Promise(() => {}) } }).catch(() => { showLogin("Brak połączenia z serwerem."); return new Promise(() => {}) }));

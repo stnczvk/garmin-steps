@@ -347,6 +347,62 @@ def hook_newkey():
     return hook_info()
 
 
+# ---------- aktualizacja aplikacji z telefonu ----------
+SRC_DIR = HERE.parent
+UPD_LOG = ROOT / "update.log"
+UPD_UNIT = "dz-selfupdate"
+
+
+def _git(*a):
+    try:
+        return subprocess.run(["git", "-C", str(SRC_DIR), *a], capture_output=True, text=True, timeout=20).stdout.strip()
+    except Exception:
+        return ""
+
+
+def _upd_running():
+    try:
+        return subprocess.run(["systemctl", "is-active", "--quiet", UPD_UNIT], timeout=10).returncode == 0
+    except Exception:
+        return False
+
+
+@app.get("/api/update/status")
+async def update_status():
+    cur = {"sha": _git("rev-parse", "HEAD"), "msg": _git("log", "-1", "--format=%s"), "date": _git("log", "-1", "--format=%cI")}
+    latest = None
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get("https://api.github.com/repos/stnczvk/garmin-steps/commits/dziennik-app",
+                            headers={"Accept": "application/vnd.github+json", "User-Agent": "dziennik"})
+            if r.status_code == 200:
+                j = r.json()
+                latest = {"sha": j["sha"], "msg": j["commit"]["message"].split("\n")[0], "date": j["commit"]["committer"]["date"]}
+    except Exception:
+        pass
+    tail = ""
+    try:
+        tail = "\n".join(UPD_LOG.read_text(errors="replace").splitlines()[-6:])
+    except Exception:
+        pass
+    return {"current": cur, "latest": latest, "running": _upd_running(),
+            "last_run": kv_get("upd_at"), "log": re.sub(r"\x1b\[[0-9;]*m", "", tail)}
+
+
+@app.post("/api/update")
+def update_run():
+    if _upd_running():
+        return {"ok": True, "text": "Aktualizacja już trwa."}
+    subprocess.run(["systemctl", "reset-failed", UPD_UNIT], capture_output=True, timeout=10)
+    # systemd-run: aktualizacja działa poza usługą dziennika, więc przeżyje jej restart
+    r = subprocess.run(["systemd-run", "--unit", UPD_UNIT, "--collect", "/bin/bash", "-c",
+                        f"/usr/local/bin/dz-update > {UPD_LOG} 2>&1 < /dev/null"], capture_output=True, text=True, timeout=20)
+    if r.returncode != 0:
+        return JSONResponse({"error": "Nie udało się uruchomić aktualizacji: " + (r.stderr or r.stdout)[:200]}, status_code=500)
+    kv_set("upd_at", datetime.now(TZ).isoformat(timespec="seconds"))
+    return {"ok": True, "text": "Aktualizacja ruszyła."}
+
+
 @app.post("/api/hook/weight")
 async def hook_weight(req: Request, key: str = ""):
     if not hmac.compare_digest(key, hook_key()):

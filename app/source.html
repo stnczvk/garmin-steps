@@ -1056,7 +1056,7 @@ function updateLogLive(){
 }
 document.addEventListener("input",ev=>{ if(ev.target.id&&ev.target.id.startsWith("in-")){ updateLogLive(); clearTimeout(window.__dT); window.__dT=setTimeout(saveDraft,400); } });
 
-function renderPlan(){ if(MODE==="masa") renderPlanMasa(); else renderPlanRed(); document.getElementById("view-plan").insertAdjacentHTML("beforeend",remindersHTML()+(window.dzScale?window.dzScale.html():"")+(window.dzAi?window.dzAi.html():"")+backupHTML()); }
+function renderPlan(){ if(MODE==="masa") renderPlanMasa(); else renderPlanRed(); document.getElementById("view-plan").insertAdjacentHTML("beforeend",remindersHTML()+(window.dzScale?window.dzScale.html():"")+(window.dzAi?window.dzAi.html():"")+(window.dzUpdate?window.dzUpdate.html():"")+backupHTML()); }
 let bk={msg:"",pending:null,busy:false};
 function backupHTML(){
   const n=sessions.length, fd=Object.keys(food).length, wd=Object.values(activity).filter(a=>a.bw>0).length;
