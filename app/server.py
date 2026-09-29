@@ -28,7 +28,7 @@ def load_env(p):
 load_env(ROOT / ".env")
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 PASS = os.environ.get("DZ_PASS", "")  # scrypt$salt$hash
-FOOD_DIR = Path(os.environ.get("FOOD_DIR", "/root/garmin-sync/food_out"))
+FOOD_DIR = Path(os.environ.get("FOOD_DATA", str(ROOT / "data")))
 STEPS_FILE = Path(os.environ.get("GARMIN_STEPS", "/root/garmin-sync/repo/steps.json"))
 GARMIN_SERVICE = os.environ.get("GARMIN_SERVICE", "garmin-steps.service")
 AI_DAILY = int(os.environ.get("AI_DAILY_LIMIT", "150"))

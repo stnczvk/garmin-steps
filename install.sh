@@ -14,6 +14,11 @@ mkdir -p "$HOME_DIR"
 if [ -d "$SRC/.git" ]; then git -C "$SRC" fetch -q --depth 1 origin "$BRANCH" && git -C "$SRC" reset -q --hard FETCH_HEAD
 else git clone -q --depth 1 -b "$BRANCH" https://github.com/stnczvk/garmin-steps "$SRC"; fi
 
+say "1b Baza produktów (pierwszy raz ok. 200 MB)"
+if [ -d "$HOME_DIR/data/.git" ]; then git -C "$HOME_DIR/data" fetch -q --depth 1 origin dziennik-data && git -C "$HOME_DIR/data" reset -q --hard FETCH_HEAD
+else git clone -q --depth 1 -b dziennik-data https://github.com/stnczvk/garmin-steps "$HOME_DIR/data"; fi
+ls "$HOME_DIR/data"
+
 say "2/6 Środowisko Pythona"
 [ -d "$HOME_DIR/venv" ] || python3 -m venv "$HOME_DIR/venv" || { apt-get update -qq && apt-get install -y -qq python3-venv && python3 -m venv "$HOME_DIR/venv"; }
 "$HOME_DIR/venv/bin/pip" install -q --upgrade pip
@@ -33,7 +38,7 @@ if ! grep -q '^DZ_PASS=' "$HOME_DIR/.env"; then
   echo "Hasło zapisane."
 else echo "Hasło już ustawione – zostawiam."; fi
 grep -q '^ANTHROPIC_API_KEY=sk-' "$HOME_DIR/.env" && echo "Klucz API: jest." || echo "UWAGA: brak klucza API – odczyt etykiet i zrzutów nie zadziała."
-grep -q '^FOOD_DIR=' "$HOME_DIR/.env" || echo "FOOD_DIR=/root/garmin-sync/food_out" >> "$HOME_DIR/.env"
+sed -i '/^FOOD_DIR=/d' "$HOME_DIR/.env"
 grep -q '^GARMIN_STEPS=' "$HOME_DIR/.env" || echo "GARMIN_STEPS=/root/garmin-sync/repo/steps.json" >> "$HOME_DIR/.env"
 
 say "4/6 Usługa systemowa"
