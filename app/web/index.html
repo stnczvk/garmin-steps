@@ -1967,7 +1967,7 @@ document.addEventListener("change",async ev=>{
 });
 function remindersHTML(){
   const C=(k,t,d)=>`<label class="row" style="gap:10px;cursor:pointer;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" data-rem="${k}" ${reminders[k]?"checked":""} style="width:22px;height:22px;min-height:0;flex:none"><span><b>${t}</b><br><span class="note">${d}</span></span></label>`;
-  return `<div class="card stack" id="reminders"><h2>Przypomnienia</h2>
+  return `<div class="card stack" id="reminders"><h2>Przypomnienia</h2>${window.dzPush?window.dzPush.html():""}
     ${C("evening","Wieczorem o 21:30","Tylko jeśli dziś nie ma jeszcze żadnego posiłku.")}
     ${C("morning","Rano o 8:00","Tylko jeśli brakuje kroków albo posiłków z poprzedniego dnia. W poniedziałek sprawdza też, czy waga nie stoi.")}
     ${C("meals","Też posiłki","Przypomina także, gdy danego dnia nie ma żadnego posiłku.")}

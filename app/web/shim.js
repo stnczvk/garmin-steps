@@ -117,6 +117,55 @@
     }
   });
 
+
+  /* ---------- powiadomienia na telefon ---------- */
+  const b64 = s => { const p = "=".repeat((4 - s.length % 4) % 4); const r = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...r].map(c => c.charCodeAt(0))); };
+  const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  let pushMsg = "";
+  async function pushState() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return standalone() ? "unsupported" : "install";
+    if (Notification.permission === "denied") return "denied";
+    const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
+    return sub ? "on" : "off";
+  }
+  async function paintPush() {
+    const el = document.getElementById("dz-push"); if (!el) return;
+    const st = await pushState().catch(() => "unsupported");
+    const txt = { on: "✅ Powiadomienia są włączone na tym telefonie.", off: "Powiadomienia są wyłączone na tym urządzeniu.",
+      denied: "Powiadomienia są zablokowane. Włącz je w Ustawieniach telefonu → Powiadomienia → Dziennik.",
+      install: "Na iPhonie powiadomienia działają tylko z ikony na ekranie głównym: w Safari kliknij Udostępnij → „Do ekranu początkowego”, otwórz Dziennik z ikony i wróć tutaj.",
+      unsupported: "Ta przeglądarka nie obsługuje powiadomień." }[st];
+    el.innerHTML = `<div class="nb-step" style="margin:0"><b>Powiadomienia na telefon</b><br>${txt}</div>
+      <div class="row" style="gap:8px">${st === "off" ? `<button class="btn small" data-dzpush="on">🔔 Włącz powiadomienia</button>` : ""}${st === "on" ? `<button class="btn small" data-dzpush="test">Wyślij test</button><button class="btn ghost small" data-dzpush="off">Wyłącz</button>` : ""}</div>
+      ${pushMsg ? `<div class="note" style="margin:0;font-weight:600">${pushMsg}</div>` : ""}`;
+  }
+  document.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-dzpush]"); if (!b) return;
+    const a = b.dataset.dzpush; b.disabled = true;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (a === "on") {
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") { pushMsg = "Nie zezwolono na powiadomienia."; }
+        else {
+          const { key } = await req("GET", "/push/key");
+          const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) });
+          await req("POST", "/push/subscribe", sub.toJSON());
+          pushMsg = "Włączone. Kliknij „Wyślij test”, żeby sprawdzić.";
+        }
+      } else if (a === "off") {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) { await req("POST", "/push/unsubscribe", { endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe(); }
+        pushMsg = "Wyłączone na tym urządzeniu.";
+      } else if (a === "test") {
+        const r = await req("POST", "/push/test", {});
+        pushMsg = r.sent ? "Wysłano – powiadomienie powinno przyjść za kilka sekund." : "Nie udało się wysłać. Wyłącz i włącz powiadomienia jeszcze raz.";
+      }
+    } catch (e) { pushMsg = "Błąd: " + (e.message || e); }
+    paintPush();
+  });
+  window.dzPush = { html: () => { setTimeout(paintPush, 0); return `<div id="dz-push" class="stack" style="gap:8px"></div>`; } };
+
   let authP = null;
   const auth = () => authP || (authP = fetch("/api/me", { credentials: "same-origin" }).then(r => { if (!r.ok) { showLogin(); return new Promise(() => {}) } }).catch(() => { showLogin("Brak połączenia z serwerem."); return new Promise(() => {}) }));
   let dbP = null;

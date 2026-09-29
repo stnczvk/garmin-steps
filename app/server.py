@@ -314,6 +314,184 @@ def watcher():
 
 threading.Thread(target=watcher, daemon=True).start()
 
+# ---------- powiadomienia (Web Push) i przypomnienia ----------
+_con.execute("CREATE TABLE IF NOT EXISTS push_subs(endpoint TEXT PRIMARY KEY, sub TEXT, created REAL, agent TEXT)")
+_con.execute("CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT)")
+VAPID_PEM = ROOT / "vapid.pem"
+DOMAIN = os.environ.get("DZ_DOMAIN", "localhost")
+
+
+def kv_get(k):
+    r = _con.execute("SELECT v FROM kv WHERE k=?", (k,)).fetchone()
+    return r[0] if r else None
+
+
+def kv_set(k, v):
+    _con.execute("INSERT INTO kv VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", (k, v))
+
+
+def vapid_public():
+    from py_vapid import Vapid02
+    from cryptography.hazmat.primitives import serialization
+    if not VAPID_PEM.exists():
+        v = Vapid02()
+        v.generate_keys()
+        v.save_key(str(VAPID_PEM))
+        os.chmod(VAPID_PEM, 0o600)
+    v = Vapid02.from_file(str(VAPID_PEM))
+    raw = v.public_key.public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def send_push(title, body, tag="dziennik", url="/"):
+    try:
+        from pywebpush import webpush, WebPushException
+    except Exception:
+        return 0
+    n = 0
+    for ep, sub in _con.execute("SELECT endpoint, sub FROM push_subs").fetchall():
+        try:
+            webpush(subscription_info=json.loads(sub), data=json.dumps({"title": title, "body": body, "tag": tag, "url": url}, ensure_ascii=False),
+                    vapid_private_key=str(VAPID_PEM), vapid_claims={"sub": "https://" + DOMAIN}, ttl=6 * 3600)
+            n += 1
+        except WebPushException as e:
+            if e.response is not None and e.response.status_code in (404, 410):
+                _con.execute("DELETE FROM push_subs WHERE endpoint=?", (ep,))
+        except Exception:
+            pass
+    return n
+
+
+@app.get("/api/push/key")
+def push_key():
+    return {"key": vapid_public()}
+
+
+@app.post("/api/push/subscribe")
+async def push_sub(req: Request):
+    sub = await req.json()
+    ep = sub.get("endpoint", "")
+    if not ep.startswith("https://"):
+        raise HTTPException(400, "bad subscription")
+    _con.execute("INSERT INTO push_subs VALUES(?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET sub=excluded.sub",
+                 (ep, json.dumps(sub), time.time(), req.headers.get("user-agent", "")[:200]))
+    return {"ok": True, "devices": _con.execute("SELECT COUNT(*) FROM push_subs").fetchone()[0]}
+
+
+@app.post("/api/push/unsubscribe")
+async def push_unsub(req: Request):
+    sub = await req.json()
+    _con.execute("DELETE FROM push_subs WHERE endpoint=?", (sub.get("endpoint", ""),))
+    return {"ok": True}
+
+
+@app.post("/api/push/test")
+def push_test():
+    n = send_push("Dziennik treningowy", "✅ Powiadomienia działają. Tak będą wyglądać przypomnienia.", "test")
+    return {"sent": n}
+
+
+def _rem():
+    return {"evening": True, "morning": True, "meals": True, **(get_doc("settings/reminders") or {})}
+
+
+def _plateau_msg(today):
+    t = get_doc("settings/targets") or {}
+    if t.get("plateauSnooze") and t["plateauSnooze"] > today.isoformat():
+        return None
+    mode = (get_doc("settings/mode") or {}).get("mode", "red")
+    start = today - timedelta(days=21)
+    pts = []
+    for p, d in _con.execute("SELECT path,data FROM docs WHERE coll='activity' AND data IS NOT NULL").fetchall():
+        day = p.split("/")[1]
+        v = (json.loads(d) or {}).get("bw")
+        if v and start.isoformat() <= day <= today.isoformat():
+            pts.append((day, float(v)))
+    pts.sort()
+    if len(pts) < 4 or (datetime.fromisoformat(pts[-1][0]) - datetime.fromisoformat(pts[0][0])).days < 14:
+        return None
+    d0 = datetime.fromisoformat(pts[0][0]) + timedelta(days=7)
+    d1 = datetime.fromisoformat(pts[-1][0]) - timedelta(days=7)
+    first = [v for d, v in pts if datetime.fromisoformat(d) < d0]
+    last = [v for d, v in pts if datetime.fromisoformat(d) > d1]
+    if not first or not last:
+        return None
+    a, b = sum(first) / len(first), sum(last) / len(last)
+    if mode == "masa":
+        stalled = b - a < 0.2
+    else:
+        if t.get("goalBw") and b <= float(t["goalBw"]) + 0.2:
+            return None
+        stalled = a - b < 0.2
+    return "⚖️ Waga stoi od ~3 tygodni – zajrzyj do zakładki Jedzenie, jest propozycja zmiany." if stalled else None
+
+
+def morning_check(now):
+    today = now.date()
+    y = (today - timedelta(days=1)).isoformat()
+    r = _rem()
+    parts = []
+    if r.get("morning"):
+        if not ((get_doc("activity/" + y) or {}).get("steps") or 0) > 0:
+            parts.append("kroki z Garmina nie wczytały się za wczoraj – wpisz je ręcznie")
+        if r.get("meals") and not (get_doc("food/" + y) or {}).get("items"):
+            parts.append("brakuje posiłków z wczoraj")
+    j = ", ".join(parts)
+    msg = ("🔔 " + j[:1].upper() + j[1:] + ".") if parts else ""
+    if r.get("morning") and today.isoweekday() == 1:
+        pm = _plateau_msg(today)
+        if pm:
+            msg = (msg + " " + pm).strip()
+    put_doc("settings/remindlog_morning", {"at": now.isoformat(timespec="seconds"), "result": msg or "OK"})
+    if msg:
+        send_push("Dziennik – poranne przypomnienie", msg, "morning")
+
+
+def evening_check(now):
+    r = _rem()
+    msg = ""
+    if r.get("evening") and r.get("meals") and not (get_doc("food/" + now.date().isoformat()) or {}).get("items"):
+        msg = "🔔 Nie ma dziś jeszcze żadnego posiłku w Dzienniku – dodaj produkty albo wrzuć screen z Fitatu."
+    put_doc("settings/remindlog_evening", {"at": now.isoformat(timespec="seconds"), "result": msg or "OK"})
+    if msg:
+        send_push("Dziennik – wieczorne przypomnienie", msg, "evening")
+
+
+def workout_check():
+    w = get_doc("settings/workout") or {}
+    st = w.get("start")
+    if not st:
+        return
+    mins = (time.time() * 1000 - float(st)) / 60000
+    if mins > 360:
+        put_doc("settings/workout", {**w, "start": None, "at": int(time.time() * 1000)})
+        return
+    n = int(w.get("notified") or 0)
+    if (n == 0 and mins >= 100) or (n == 1 and mins >= 160):
+        put_doc("settings/workout", {**w, "notified": n + 1})
+        send_push("Dziennik – trening", f"🏋️ Trening trwa już {int(mins // 60)} h {int(mins % 60)} min – skończyłeś? Zapisz trening albo anuluj stoper.", "workout")
+
+
+def scheduler():
+    while True:
+        try:
+            now = datetime.now(TZ)
+            day = now.date().isoformat()
+            if (7, 58) <= (now.hour, now.minute) <= (8, 40) and kv_get("morning") != day:
+                kv_set("morning", day)
+                morning_check(now)
+            if (21, 28) <= (now.hour, now.minute) <= (22, 30) and kv_get("evening") != day:
+                kv_set("evening", day)
+                evening_check(now)
+            workout_check()
+        except Exception as e:
+            print("scheduler error", e, flush=True)
+        time.sleep(60)
+
+
+threading.Thread(target=scheduler, daemon=True).start()
+
+
 # ---------- pliki ----------
 for sub in ("food-bc", "food-sx"):
     if (FOOD_DIR / sub).is_dir():

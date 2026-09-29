@@ -22,7 +22,7 @@ ls "$HOME_DIR/data"
 say "2/6 Środowisko Pythona"
 [ -d "$HOME_DIR/venv" ] || python3 -m venv "$HOME_DIR/venv" || { apt-get update -qq && apt-get install -y -qq python3-venv && python3 -m venv "$HOME_DIR/venv"; }
 "$HOME_DIR/venv/bin/pip" install -q --upgrade pip
-"$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pillow python-multipart
+"$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pillow python-multipart pywebpush
 
 say "3/6 Hasło do aplikacji"
 touch "$HOME_DIR/.env"; chmod 600 "$HOME_DIR/.env"
@@ -39,6 +39,7 @@ if ! grep -q '^DZ_PASS=' "$HOME_DIR/.env"; then
 else echo "Hasło już ustawione – zostawiam."; fi
 grep -q '^ANTHROPIC_API_KEY=sk-' "$HOME_DIR/.env" && echo "Klucz API: jest." || echo "UWAGA: brak klucza API – odczyt etykiet i zrzutów nie zadziała."
 sed -i '/^FOOD_DIR=/d' "$HOME_DIR/.env"
+[ -n "$DOMAIN" ] && { sed -i '/^DZ_DOMAIN=/d' "$HOME_DIR/.env"; echo "DZ_DOMAIN=$DOMAIN" >> "$HOME_DIR/.env"; }
 grep -q '^GARMIN_STEPS=' "$HOME_DIR/.env" || echo "GARMIN_STEPS=/root/garmin-sync/repo/steps.json" >> "$HOME_DIR/.env"
 
 say "4/6 Usługa systemowa"
