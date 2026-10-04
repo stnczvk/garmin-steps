@@ -245,6 +245,7 @@
   const mzEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const mzMB = n => (n / 1048576).toFixed(n > 104857600 ? 0 : 1).replace(".", ",") + " MB";
   const mzUrls = new Map();
+  function mzListOpen() { try { return localStorage.getItem("dz-mz-list") === "1" } catch (e) { return false } }
   function mzUrl(f) { if (!mzUrls.has(f)) mzUrls.set(f, URL.createObjectURL(f)); return mzUrls.get(f); }
   function mzDate() { try { return fst.date } catch (e) { return new Date().toISOString().slice(0, 10) } }
   function mzTitle(d) {
@@ -300,10 +301,11 @@
     if (mz.err) h += `<p class="note" style="margin:0;color:var(--bad)">${mzEsc(mz.err)}</p>`;
     if (mz.list.length) {
       const lab = x => x.state === "done" ? `gotowy · ${mzMB(x.size || 0)}` : x.state === "working" ? "montuje się…" : x.state === "error" ? "błąd montażu" : "niewysłany";
-      h += `<div class="stack" style="gap:0;margin-top:6px"><span class="label">Twoje filmy</span>${mz.list.map(x => {
+      const lo = mzListOpen();
+      h += `<div class="stack" style="gap:0;margin-top:6px"><button class="mzhead" data-mz="listtog" aria-expanded="${lo}"><span class="label">Twoje filmy (${mz.list.length})</span><span class="chev" aria-hidden="true">${lo ? "▴" : "▾"}</span></button>${!lo ? "" : mz.list.map(x => {
         const cur = j && j.id === x.id, d = x.date ? new Date(x.date + "T12:00:00").toLocaleDateString("pl-PL", { day: "numeric", month: "short" }) : "";
         return `<div class="mzrow${cur ? " cur" : ""}"><button class="mzname" data-mz="pick" data-id="${x.id}"><b>${mzEsc((x.title && x.title[0]) || x.film || "Film")}</b><span class="note">${mzEsc(d)} · ${lab(x)}</span></button>${x.state === "working" ? "" : `<button class="x${mz.delAsk === x.id ? " ask" : ""}" data-mz="del" data-id="${x.id}" aria-label="Usuń film">${mz.delAsk === x.id ? "Usuń?" : "×"}</button>`}</div>`; }).join("")}
-        <span class="note" style="margin-top:6px">Filmy są trzymane na serwerze 14 dni.</span></div>`;
+        ${lo ? `<span class="note" style="margin-top:6px">Filmy są trzymane na serwerze 14 dni.</span>` : ""}</div>`;
     }
     el.innerHTML = h;
   }
@@ -375,6 +377,7 @@
     const b = ev.target.closest("[data-mz]"); if (!b || b.tagName === "INPUT") return;
     const a = b.dataset.mz;
     if (a === "go") { b.disabled = true; mzGo(); }
+    if (a === "listtog") { try { localStorage.setItem("dz-mz-list", mzListOpen() ? "0" : "1") } catch (e) {} mzPaint(); return; }
     if (a === "rmclip") { const f = mz.files[+b.dataset.i]; if (f && mzUrls.has(f)) { URL.revokeObjectURL(mzUrls.get(f)); mzUrls.delete(f); } mz.files.splice(+b.dataset.i, 1); mzPaint(); return; }
     if (a === "new") { mz.job = null; mz.pick = null; mz.blob = null; mz.err = ""; mzPaint(); }
     if (a === "pick") { mz.delAsk = null; mz.err = ""; try { mz.job = await req("GET", "/montaz/" + b.dataset.id); mz.pick = b.dataset.id; mz.blob = null; } catch (e) { mz.err = e.message; } mzPaint(); mzWatch(); document.getElementById("dz-mz")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
