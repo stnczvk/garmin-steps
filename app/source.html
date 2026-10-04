@@ -389,6 +389,7 @@ h1{font-weight:800}
 .mzrow{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding:8px 0}
 .mzname{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;border:0;background:transparent;color:var(--ink);font:inherit;text-align:left;padding:0;cursor:pointer}
 .mzrow.cur .mzname b{color:var(--accent)}
+.meal .card{padding:12px 0 0;background:transparent;border-radius:0;box-shadow:none;border:0}
 .amhead{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:transparent;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-align:left}
 .amhead .chev{color:var(--muted)}
 .qclose{font-size:26px;padding:2px 10px}
@@ -2460,6 +2461,9 @@ function keepAnchor(fn){const T=x=>x.getBoundingClientRect().top;const ql0=docum
   if(ql&&r0!=null&&ql.contains(a1)){const d=(T(a1)-T(ql))-r0;if(Math.abs(d)>1)ql.scrollTop+=d}
   const d=T(a1)-y0;if(Math.abs(d)>1)window.scrollBy(0,d)}
 function renderFood(){keepAnchor(renderFood0); fdMiniUpd();}
+// utrzymuje nagłówek danego posiłku w tym samym miejscu ekranu podczas przerysowania
+function holdMeal(m,fn){const q=()=>document.querySelector(`#view-food .meal-head[data-m="${CSS.escape(m||"")}"]`)||document.querySelector(`#view-food [data-act="fd-plus"][data-m="${CSS.escape(m||"")}"]`);
+  const e0=q(),y0=e0?e0.getBoundingClientRect().top:null; fn(); if(y0==null) return; const e1=q(); if(!e1) return; const d=e1.getBoundingClientRect().top-y0; if(Math.abs(d)>1) window.scrollBy(0,d);}
 // ---------- mini pasek dnia (Jedzenie) ----------
 function fdDayLabel(d){const isT=d===today(),y=shiftDate(today(),-1),dd=new Date(d+"T12:00:00");
   return (isT?"Dziś · ":d===y?"Wczoraj · ":dd.toLocaleDateString("pl-PL",{weekday:"short"})+" · ")+dd.toLocaleDateString("pl-PL",{day:"numeric",month:"short"});}
@@ -2622,8 +2626,11 @@ function renderFood0(){
         return `<div class="fitem"><div><div>${esc(it.name)} <span class="note num">${qtyTxt(it)}</span></div><div class="m">B ${fmt(Math.round(v.p*10)/10)} · W ${fmt(Math.round(v.c*10)/10)} · T ${fmt(Math.round(v.f*10)/10)}</div></div><span class="k">${r0(v.kcal)} kcal</span><span style="display:flex"><button class="x" data-act="fd-edit" data-i="${it.i}" aria-label="Edytuj ${esc(it.name)}">✎</button><button class="x" data-act="fd-del" data-i="${it.i}" aria-label="Usuń ${esc(it.name)}">×</button></span></div>`}).join("")}`:""}</div>`}).join("");
   }
   const chipsM=`<div class="chips">${[["all","Wszystkie"],...MEALS.map(m=>[m,m])].map(([k,l])=>{const kc=k==="all"?null:dayTotals(allMeals.find(x=>x[0]===k)[1]).kcal;return `<button data-act="fd-mf" data-k="${k}" aria-pressed="${mf===k}">${l}${kc?` <span class="num" style="opacity:.7">${r0(kc)}</span>`:""}</button>`}).join("")}</div>`;
+  // narzędzia dodawania (szybkie, screen, produkt) pokazujemy w posiłku, pod „Dodaj do” – bez przewijania strony
+  {const ti=h.indexOf('<div id="fd-toolanchor"></div>'); var toolsH=ti>=0?h.slice(ti):""; if(ti>=0) h=h.slice(0,ti); h=h.replace("<!--MEALS-->","<!--MEALS--><!--TOOLSFB-->");}
   h=h.replace("<!--MEALS-->",`<div class="card stack"><div class="row" style="justify-content:space-between"><h2>Posiłki</h2>${mf==="all"&&items.length?`<button class="techlink" data-act="fd-mall">${MEALS.every(m=>!(allMeals.find(x=>x[0]===m)[1].length)||(fst.open||{})[m])?"Zwiń wszystkie":"Rozwiń wszystkie"}</button>`:""}</div>${chipsM}<div class="stack" style="gap:8px">${mealsH}</div>
     <div class="note" id="fd-msg" style="font-weight:600">${esc(fst.msg)}</div></div>`);
+  h=h.includes("<!--TOOLS-->")?h.replace("<!--TOOLS-->",toolsH).replace("<!--TOOLSFB-->",""):h.replace("<!--TOOLSFB-->",toolsH);
   h+=(window.dzMontaz?window.dzMontaz.html():"");
   h+=weekHTML();
   el.innerHTML=h;
@@ -2631,7 +2638,8 @@ function renderFood0(){
   {const u=document.getElementById("fd-unit"); if(u) u.dataset.prev=u.value;}
   renderSugg(); syncUnit(); renderPortions(); addPreview(); {const fp=document.getElementById("fe-prev"); if(fp) fp.innerHTML=fePrevHTML(+fp.dataset.i);}
 }
-function addMenuHTML(){return `<div class="addmenu stack" style="gap:8px"><button class="amhead" data-act="fd-plusclose" aria-label="Zwiń dodawanie"><b>Dodaj do: ${esc(/^II /.test(fst.meal)?fst.meal:fst.meal.toLowerCase())}</b><span class="chev" aria-hidden="true">▴</span></button>
+function addMenuHTML(){return addMenuHTML0()+"<!--TOOLS-->"}
+function addMenuHTML0(){return `<div class="addmenu stack" style="gap:8px"><button class="amhead" data-act="fd-plusclose" aria-label="Zwiń dodawanie"><b>Dodaj do: ${esc(/^II /.test(fst.meal)?fst.meal:fst.meal.toLowerCase())}</b><span class="chev" aria-hidden="true">▴</span></button>
       
       ${(()=>{const lm=lastMealDay(fst.meal,fst.date);if(!lm)return "";const [d,l]=lm,t=dayTotals(l);return `<div class="copyline"><div><b>${esc(fst.meal)} jak ${relDay(d)}</b><div class="note num">${l.slice(0,3).map(x=>esc(x.name)).join(", ")}${l.length>3?` i ${l.length-3} więcej`:""} · ${r0(t.kcal)} kcal</div></div><button class="btn small" data-act="fd-mcopy" data-d="${d}" data-m="${esc(fst.meal)}">Dodaj to samo</button></div>`})()}
       <div class="label">Jak chcesz dodać?</div>
@@ -3206,13 +3214,13 @@ document.addEventListener("click",async ev=>{
   if(a==="fd-cadd"){const mn=readNum("fd-cmin");if(!mn||mn<=0){acMsg("Wpisz, ile minut trwało cardio.");return}const cur=activity[aDate]||{};const t=document.getElementById("fd-ctype").value;try{await saveActivity(aDate,{...cur,steps:cur.steps||null,cardio:[...(cur.cardio||[]),{type:t,min:mn}]});document.getElementById("fd-cmin").value="";acMsg(`Dodano: ${t}, ${fmt(mn)} min.`)}catch(e){acMsg("Nie udało się zapisać cardio.")}return}
   if(a==="fd-cdel"){const cur=activity[aDate]||{};const l=[...(cur.cardio||[])];l.splice(+b.dataset.i,1);try{await saveActivity(aDate,{...cur,steps:cur.steps||null,cardio:l})}catch(e){acMsg("Nie udało się usunąć.")}return}
   if(a==="fd-goprog"){progSec=b.dataset.k;if(b.dataset.k==="aktywnosc")aDate=fst.date;document.getElementById("tab-prog").click();renderProg();return}
-  if(a==="fd-plus"){resetQuick();fst.meal=b.dataset.m;fst.open={...(fst.open||{}),[b.dataset.m]:true};fst.addMenu=true;if(!fst.addTool)fst.addTool=null;fst.msg="";renderFood();document.querySelector(".addmenu")?.scrollIntoView({behavior:"smooth",block:"center"});return}
-  if(a==="fd-plusclose"){resetQuick();fst.addMenu=false;fst.addTool=null;renderFood();return}
+  if(a==="fd-plus"){holdMeal(b.dataset.m,()=>{resetQuick();fst.meal=b.dataset.m;fst.open={...(fst.open||{}),[b.dataset.m]:true};fst.addMenu=true;if(!fst.addTool)fst.addTool=null;fst.msg="";renderFood();});return}
+  if(a==="fd-plusclose"){holdMeal(fst.meal,()=>{resetQuick();fst.addMenu=false;fst.addTool=null;renderFood();});return}
   if(a==="fd-setmeal"){fst.meal=b.dataset.m;renderFood();return}
-  if(a==="fd-tool"){fst.addTool=fst.addTool===b.dataset.k?null:b.dataset.k;renderFood();if(fst.addTool)setTimeout(()=>document.getElementById("fd-toolanchor")?.scrollIntoView?.({behavior:"smooth",block:"start"}),50);return}
+  if(a==="fd-tool"){holdMeal(fst.meal,()=>{fst.addTool=fst.addTool===b.dataset.k?null:b.dataset.k;renderFood();});return}
   if(a==="fd-qall"){fst.qAll=b.dataset.v==="1";renderFood();return}
-  if(a==="fd-mtoggle"&&fst.addMenu&&fst.meal===b.dataset.m){resetQuick();fst.addMenu=false;fst.addTool=null;fst.open={...(fst.open||{}),[b.dataset.m]:false};renderFood();return}
-  if(a==="fd-mtoggle"){fst.open={...(fst.open||{})};fst.open[b.dataset.m]=!fst.open[b.dataset.m];if(fst.open[b.dataset.m])fst.meal=b.dataset.m;renderFood();return}
+  if(a==="fd-mtoggle"&&fst.addMenu&&fst.meal===b.dataset.m){holdMeal(b.dataset.m,()=>{resetQuick();fst.addMenu=false;fst.addTool=null;fst.open={...(fst.open||{}),[b.dataset.m]:false};renderFood();});return}
+  if(a==="fd-mtoggle"){holdMeal(b.dataset.m,()=>{fst.open={...(fst.open||{})};fst.open[b.dataset.m]=!fst.open[b.dataset.m];if(fst.open[b.dataset.m])fst.meal=b.dataset.m;renderFood();});return}
   if(a==="fd-mf"){fst.mealFilter=b.dataset.k;if(b.dataset.k!=="all")fst.meal=b.dataset.k;renderFood();return}
   if(a==="fd-mall"){const all=MEALS.filter(m=>(food[fst.date]||[]).some(x=>x.meal===m));const allOpen=all.every(m=>(fst.open||{})[m]);fst.open={};if(!allOpen)all.forEach(m=>fst.open[m]=true);renderFood();return}
   if(a==="fd-edit"){fst.feTouched=false;fst.editI=+b.dataset.i;renderFood();return}
