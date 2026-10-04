@@ -244,6 +244,8 @@
   const mz = { info: null, job: null, files: [], titles: {}, up: null, err: "", poll: null, blob: null, open: false, list: [], pick: null, delAsk: null };
   const mzEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const mzMB = n => (n / 1048576).toFixed(n > 104857600 ? 0 : 1).replace(".", ",") + " MB";
+  const mzUrls = new Map();
+  function mzUrl(f) { if (!mzUrls.has(f)) mzUrls.set(f, URL.createObjectURL(f)); return mzUrls.get(f); }
   function mzDate() { try { return fst.date } catch (e) { return new Date().toISOString().slice(0, 10) } }
   function mzTitle(d) {
     if (mz.titles[d]) return mz.titles[d];
@@ -291,8 +293,9 @@
           <span class="note">Dzień 1 = <input type="date" data-mz="start" value="${mzEsc(info.start)}" style="width:auto;display:inline-block;padding:2px 6px"></span></div>
         <div class="note">Karty posiłków z dziennika: ${meals.length ? mzEsc(meals.join(", ")) : "<b>brak posiłków w tym dniu</b> – film będzie bez kart"}.</div>
         <div class="note">Muzyka w tle: ${info.music ? "jest ✓" : "<b>brak</b> – film będzie bez muzyki"} · <label class="techlink" style="cursor:pointer">${info.music ? "zmień" : "wgraj mp3"}<input type="file" accept="audio/*" data-mz="music" hidden></label></div>
-        <label class="btn ghost" style="cursor:pointer;text-align:center">${mz.files.length ? `Wybrane klipy: ${mz.files.length} (${mzMB(mz.files.reduce((a, f) => a + f.size, 0))}) – zmień` : "Wybierz klipy z galerii"}<input type="file" accept="video/*" multiple data-mz="clips" hidden></label>
-        ${mz.files.length ? `<span class="note">${mz.files.map(f => mzEsc(f.name)).join(", ")}</span><button class="btn" data-mz="go" ${info.groq && info.ffmpeg ? "" : "disabled"}>Montaż film</button>` : `<span class="note">Każdy posiłek = osobny klip, mów co jesz („na obiad…”). Pomyłkę powtórz od początku zdania – pierwsze podejście się wytnie. Kolejność ułoży się wg godziny nagrania.</span>`}`;
+        ${mz.files.length ? `<div class="stack" style="gap:0"><span class="label">Klipy do filmu: ${mz.files.length} · ${mzMB(mz.files.reduce((a, f) => a + f.size, 0))}</span>${mz.files.map((f, i) => `<div class="mzrow"><video class="mzthumb" src="${mzUrl(f)}#t=0.1" muted playsinline preload="metadata"></video><span class="mzname"><b>Klip ${i + 1}</b><span class="note">${mzEsc(f.name)} · ${mzMB(f.size)}</span></span><button class="x" data-mz="rmclip" data-i="${i}" aria-label="Usuń klip">×</button></div>`).join("")}</div>` : ""}
+        <label class="btn ghost" style="cursor:pointer;text-align:center">${mz.files.length ? "+ Dodaj kolejne klipy" : "Wybierz klipy z galerii"}<input type="file" accept="video/*" multiple data-mz="clips" hidden></label>
+        ${mz.files.length ? `<button class="btn" data-mz="go" ${info.groq && info.ffmpeg ? "" : "disabled"}>Montaż film</button>` : `<span class="note">Każdy posiłek = osobny klip, mów co jesz („na obiad…”). Pomyłkę powtórz od początku zdania – pierwsze podejście się wytnie. Kolejność ułoży się wg godziny nagrania.</span>`}`;
     }
     if (mz.err) h += `<p class="note" style="margin:0;color:var(--bad)">${mzEsc(mz.err)}</p>`;
     if (mz.list.length) {
@@ -344,13 +347,19 @@
       }
       mz.up = null;
       mz.job = await req("POST", `/montaz/${id}/start`, {});
+      for (const u of mzUrls.values()) URL.revokeObjectURL(u); mzUrls.clear();
       mz.files = []; delete mz.titles[d]; mz.pick = id; mzList();
     } catch (e) { mz.up = null; mz.err = e.message || "Nie udało się wysłać."; }
     mzPaint(); mzWatch();
   }
   document.addEventListener("change", async ev => {
     const t = ev.target;
-    if (t.dataset && t.dataset.mz === "clips") { mz.files = [...t.files]; mz.err = ""; mzPaint(); }
+    if (t.dataset && t.dataset.mz === "clips") {
+      const key = f => f.name + "|" + f.size + "|" + f.lastModified;
+      const have = new Set(mz.files.map(key));
+      mz.files = mz.files.concat([...t.files].filter(f => !have.has(key(f))));
+      mz.err = ""; t.value = ""; mzPaint();
+    }
     if (t.dataset && t.dataset.mz === "start" && t.value) { try { mz.info = await req("POST", "/montaz/settings", { start: t.value }); } catch (e) {} delete mz.titles[mzDate()]; mzPaint(); }
     if (t.dataset && t.dataset.mz === "music" && t.files[0]) {
       mz.err = ""; mz.up = { label: "muzykę", i: 1, n: 1, pct: 0 }; mzPaint();
@@ -366,6 +375,7 @@
     const b = ev.target.closest("[data-mz]"); if (!b || b.tagName === "INPUT") return;
     const a = b.dataset.mz;
     if (a === "go") { b.disabled = true; mzGo(); }
+    if (a === "rmclip") { const f = mz.files[+b.dataset.i]; if (f && mzUrls.has(f)) { URL.revokeObjectURL(mzUrls.get(f)); mzUrls.delete(f); } mz.files.splice(+b.dataset.i, 1); mzPaint(); return; }
     if (a === "new") { mz.job = null; mz.pick = null; mz.blob = null; mz.err = ""; mzPaint(); }
     if (a === "pick") { mz.delAsk = null; mz.err = ""; try { mz.job = await req("GET", "/montaz/" + b.dataset.id); mz.pick = b.dataset.id; mz.blob = null; } catch (e) { mz.err = e.message; } mzPaint(); mzWatch(); document.getElementById("dz-mz")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
     if (a === "del") {
