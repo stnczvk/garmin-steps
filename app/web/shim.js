@@ -240,6 +240,143 @@
   });
   window.dzUpdate = { html: () => { setTimeout(paintUpd, 0); return `<div class="card stack"><h2>Aktualizacja aplikacji</h2><div id="dz-upd" class="stack" style="gap:10px"><p class="note" style="margin:0">Sprawdzam…</p></div></div>`; } };
 
+  /* ---------- montaż filmu dnia (TikTok) ---------- */
+  const mz = { info: null, job: null, files: [], titles: {}, up: null, err: "", poll: null, blob: null, open: false };
+  const mzEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const mzMB = n => (n / 1048576).toFixed(n > 104857600 ? 0 : 1).replace(".", ",") + " MB";
+  function mzDate() { try { return fst.date } catch (e) { return new Date().toISOString().slice(0, 10) } }
+  function mzTitle(d) {
+    if (mz.titles[d]) return mz.titles[d];
+    const start = (mz.info && mz.info.start) || "2026-09-08";
+    const n = Math.round((new Date(d + "T12:00:00") - new Date(start + "T12:00:00")) / 864e5) + 1;
+    let tr = true, kc = null, nazwa = "Redukcja";
+    try { tr = isTrainDay(d); kc = kcalGoal(d); nazwa = MODE === "masa" ? "Masa" : "Redukcja"; } catch (e) {}
+    kc = kc ? Math.round(kc / 100) * 100 : (tr ? 2100 : 2000);
+    return [`${nazwa} dzień ${n}`, `${kc} kcal`, tr ? "dzień treningowy" : "dzień nietreningowy"];
+  }
+  function mzDayN(t) { const m = /dzień\s+(\d+)/i.exec(t[0] || ""); return m ? +m[1] : 0; }
+  function mzMeals(d) { try { const it = food[d] || []; return MEALS.filter(m => it.some(x => x.meal === m)); } catch (e) { return []; } }
+  function mzCardName(m, d) { return (m === "II śniadanie" ? "drugie-sniadanie" : m.toLowerCase().replace(/\s+/g, "-")) + "-" + d + ".png"; }
+  function mzJobShown() {
+    const j = mz.job; if (!j) return null;
+    if (j.state === "uploading" || j.state === "working" || mz.up) return j;
+    return j.date === mzDate() ? j : null;
+  }
+  function mzPaint() {
+    const el = document.getElementById("dz-mz"); if (!el) return;
+    if (el.contains(document.activeElement) && document.activeElement.tagName === "INPUT" && document.activeElement.type !== "file") return;
+    const d = mzDate(), info = mz.info, j = mzJobShown();
+    if (!info) { el.innerHTML = `<p class="note" style="margin:0">Ładuję…</p>`; return; }
+    let h = "";
+    if (!info.groq) h += `<div class="nb-step" style="margin:0"><b>Brak klucza Groq na serwerze</b> (potrzebny do wycinania pomyłek). Zaloguj się na serwer i wpisz:<br><code style="font-size:12px;word-break:break-all">read -rsp "Klucz Groq: " K &amp;&amp; echo "GROQ_API_KEY=$K" &gt;&gt; /root/dziennik/.env &amp;&amp; unset K</code><br>wklej klucz (nie będzie widoczny) i Enter.</div>`;
+    if (mz.up) {
+      const u = mz.up;
+      h += `<div class="stack" style="gap:6px"><b>Wysyłam ${mzEsc(u.label)} (${u.i} z ${u.n})</b><div class="bar"><i style="width:${Math.round(u.pct * 100)}%"></i></div><span class="note">Nie zamykaj aplikacji, dopóki wysyłanie się nie skończy. Potem możesz.</span></div>`;
+    } else if (j && j.state === "working") {
+      const sec = j.started ? Math.round((Date.now() / 1000 - j.started)) : 0;
+      h += `<div class="nb-step" style="margin:0">⏳ <b>${mzEsc(j.step || "Montuję…")}</b>${sec > 5 ? ` <span class="note num">${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}</span>` : ""}<br><span class="note">Montaż trwa zwykle 3–8 minut. Możesz zamknąć aplikację – film poczeka.</span></div>`;
+    } else if (j && j.state === "done") {
+      h += `<video src="/api/montaz/${j.id}/film" controls playsinline preload="metadata" style="width:100%;max-height:60vh;border-radius:14px;background:#000"></video>
+        <div class="row" style="gap:8px;flex-wrap:wrap">${mz.blob ? `<button class="btn small" data-mz="share">Zapisz / udostępnij film</button>` : `<button class="btn small" data-mz="prep">${mz.prep ? "Pobieram… " + mz.prep : "Zapisz w telefonie"}</button>`}<a class="btn ghost small" href="/api/montaz/${j.id}/film?dl=1">Pobierz plik</a></div>
+        <span class="note">${mzEsc(j.film || "")} · ${mzMB(j.size || 0)}</span>
+        ${j.raport ? `<details><summary class="note" style="cursor:pointer;font-weight:600">Co zostało wycięte (raport)</summary><pre style="white-space:pre-wrap;font-size:12px;margin:6px 0 0">${mzEsc(j.raport)}</pre></details>` : ""}
+        <div class="row" style="gap:8px"><button class="btn ghost small" data-mz="new">Zrób nowy film</button><button class="btn ghost small" data-mz="redo">Zmontuj jeszcze raz</button></div>`;
+    } else if (j && j.state === "error") {
+      h += `<div class="nb-step" style="margin:0;border-color:var(--bad)"><b>Montaż się nie udał.</b> ${mzEsc(j.error || "")}</div>
+        ${j.log ? `<details><summary class="note" style="cursor:pointer">Szczegóły</summary><pre style="white-space:pre-wrap;font-size:12px;margin:6px 0 0">${mzEsc(j.log)}</pre></details>` : ""}
+        <div class="row" style="gap:8px"><button class="btn small" data-mz="redo">Spróbuj ponownie</button><button class="btn ghost small" data-mz="new">Nowy film</button></div>`;
+    } else {
+      const t = mzTitle(d), meals = mzMeals(d);
+      h += `<div class="stack" style="gap:6px"><span class="label">Tytuł na początku filmu</span>${t.map((l, i) => `<input data-mzt="${i}" value="${mzEsc(l)}" style="font-weight:600">`).join("")}
+          <span class="note">Dzień 1 = <input type="date" data-mz="start" value="${mzEsc(info.start)}" style="width:auto;display:inline-block;padding:2px 6px"></span></div>
+        <div class="note">Karty posiłków z dziennika: ${meals.length ? mzEsc(meals.join(", ")) : "<b>brak posiłków w tym dniu</b> – film będzie bez kart"}.</div>
+        <div class="note">Muzyka w tle: ${info.music ? "jest ✓" : "<b>brak</b> – film będzie bez muzyki"} · <label class="techlink" style="cursor:pointer">${info.music ? "zmień" : "wgraj mp3"}<input type="file" accept="audio/*" data-mz="music" hidden></label></div>
+        <label class="btn ghost" style="cursor:pointer;text-align:center">${mz.files.length ? `Wybrane klipy: ${mz.files.length} (${mzMB(mz.files.reduce((a, f) => a + f.size, 0))}) – zmień` : "Wybierz klipy z galerii"}<input type="file" accept="video/*" multiple data-mz="clips" hidden></label>
+        ${mz.files.length ? `<span class="note">${mz.files.map(f => mzEsc(f.name)).join(", ")}</span><button class="btn" data-mz="go" ${info.groq && info.ffmpeg ? "" : "disabled"}>Montaż film</button>` : `<span class="note">Każdy posiłek = osobny klip, mów co jesz („na obiad…”). Pomyłkę powtórz od początku zdania – pierwsze podejście się wytnie. Kolejność ułoży się wg godziny nagrania.</span>`}`;
+    }
+    if (mz.err) h += `<p class="note" style="margin:0;color:var(--bad)">${mzEsc(mz.err)}</p>`;
+    el.innerHTML = h;
+  }
+  async function mzLoad() { try { mz.info = await req("GET", "/montaz/info"); if (!mz.job || !(mz.up || mz.job.state === "working")) mz.job = mz.info.last; mzPaint(); mzWatch(); } catch (e) { const el = document.getElementById("dz-mz"); if (el) el.innerHTML = `<p class="note" style="margin:0">Montaż jest teraz niedostępny.</p>`; } }
+  function mzWatch() {
+    if (mz.poll || !mz.job || mz.job.state !== "working") return;
+    mz.poll = setInterval(async () => {
+      try { mz.job = await req("GET", "/montaz/" + mz.job.id); } catch (e) { return; }
+      if (mz.job.state !== "working") { clearInterval(mz.poll); mz.poll = null; mz.blob = null; }
+      mzPaint();
+    }, 3000);
+  }
+  function mzPut(url, body, onp) {
+    return new Promise((res, rej) => {
+      const x = new XMLHttpRequest(); x.open("PUT", url); x.withCredentials = true;
+      x.upload.onprogress = e => { if (e.lengthComputable) onp(e.loaded / e.total) };
+      x.onload = () => x.status < 300 ? res() : rej(new Error((() => { try { return JSON.parse(x.responseText).error } catch (e) { return "Błąd " + x.status } })()));
+      x.onerror = () => rej(new Error("Przerwane połączenie podczas wysyłania."));
+      x.send(body);
+    });
+  }
+  async function mzGo() {
+    const d = mzDate(), title = mzTitle(d), files = mz.files.slice();
+    mz.err = ""; mz.blob = null;
+    try {
+      const { id } = await req("POST", "/montaz/new", { date: d, title, n: mzDayN(title) });
+      mz.job = { id, state: "uploading", date: d };
+      for (let i = 0; i < files.length; i++) {
+        mz.up = { label: "klip", i: i + 1, n: files.length, pct: 0 }; mzPaint();
+        await mzPut(`/api/montaz/${id}/file?kind=clip&i=${i + 1}&name=${encodeURIComponent(files[i].name)}`, files[i], p => { mz.up.pct = p; mzPaint(); });
+      }
+      const meals = mzMeals(d);
+      for (let i = 0; i < meals.length; i++) {
+        mz.up = { label: "kartę posiłku", i: i + 1, n: meals.length, pct: 0 }; mzPaint();
+        const blob = await mealImage(meals[i]);
+        await mzPut(`/api/montaz/${id}/file?kind=card&i=${i + 1}&name=${encodeURIComponent(mzCardName(meals[i], d))}`, blob, p => { mz.up.pct = p; mzPaint(); });
+      }
+      mz.up = null;
+      mz.job = await req("POST", `/montaz/${id}/start`, {});
+      mz.files = []; delete mz.titles[d];
+    } catch (e) { mz.up = null; mz.err = e.message || "Nie udało się wysłać."; }
+    mzPaint(); mzWatch();
+  }
+  document.addEventListener("change", async ev => {
+    const t = ev.target;
+    if (t.dataset && t.dataset.mz === "clips") { mz.files = [...t.files]; mz.err = ""; mzPaint(); }
+    if (t.dataset && t.dataset.mz === "start" && t.value) { try { mz.info = await req("POST", "/montaz/settings", { start: t.value }); } catch (e) {} delete mz.titles[mzDate()]; mzPaint(); }
+    if (t.dataset && t.dataset.mz === "music" && t.files[0]) {
+      mz.err = ""; mz.up = { label: "muzykę", i: 1, n: 1, pct: 0 }; mzPaint();
+      try { await mzPut("/api/montaz/music", t.files[0], p => { mz.up.pct = p; mzPaint(); }); mz.info.music = true; } catch (e) { mz.err = e.message; }
+      mz.up = null; mzPaint();
+    }
+  });
+  document.addEventListener("input", ev => {
+    const i = ev.target.dataset && ev.target.dataset.mzt; if (i == null) return;
+    const d = mzDate(); const t = mzTitle(d).slice(); t[+i] = ev.target.value; mz.titles[d] = t;
+  });
+  document.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-mz]"); if (!b || b.tagName === "INPUT") return;
+    const a = b.dataset.mz;
+    if (a === "go") { b.disabled = true; mzGo(); }
+    if (a === "new") { mz.job = null; mz.blob = null; mz.err = ""; mzPaint(); }
+    if (a === "redo" && mz.job) { mz.err = ""; try { mz.job = await req("POST", `/montaz/${mz.job.id}/start`, {}); } catch (e) { mz.err = e.message; } mz.blob = null; mzPaint(); mzWatch(); }
+    if (a === "prep" && mz.job && !mz.prep) {
+      mz.prep = "0%"; mzPaint();
+      try {
+        const r = await fetch(`/api/montaz/${mz.job.id}/film`, { credentials: "same-origin" });
+        const total = +r.headers.get("content-length") || mz.job.size || 0, rd = r.body.getReader(), parts = []; let got = 0;
+        for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; mz.prep = total ? Math.round(got / total * 100) + "%" : mzMB(got); mzPaint(); }
+        mz.blob = new Blob(parts, { type: "video/mp4" });
+      } catch (e) { mz.err = "Nie udało się pobrać filmu."; }
+      mz.prep = null; mzPaint();
+    }
+    if (a === "share" && mz.blob) {
+      const f = new File([mz.blob], mz.job.film || "film.mp4", { type: "video/mp4" });
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f] });
+        else { const u = URL.createObjectURL(f); const l = document.createElement("a"); l.href = u; l.download = f.name; l.click(); setTimeout(() => URL.revokeObjectURL(u), 60000); }
+      } catch (e) { if (e.name !== "AbortError") { mz.err = "Udostępnianie nie zadziałało – użyj „Pobierz plik”."; mzPaint(); } }
+    }
+  });
+  window.dzMontaz = { html: () => { setTimeout(() => { mz.info ? (mzPaint(), mzWatch()) : mzLoad(); }, 0); return `<div class="card stack"><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Film dnia</h2><span class="note">TikTok</span></div><div id="dz-mz" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
+
   window.dzSleep = { refresh: () => req("POST", "/sleep/refresh", {}), status: () => req("GET", "/sleep/status") };
 
   let authP = null;

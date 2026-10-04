@@ -2609,6 +2609,7 @@ function renderFood0(){
   const chipsM=`<div class="chips">${[["all","Wszystkie"],...MEALS.map(m=>[m,m])].map(([k,l])=>{const kc=k==="all"?null:dayTotals(allMeals.find(x=>x[0]===k)[1]).kcal;return `<button data-act="fd-mf" data-k="${k}" aria-pressed="${mf===k}">${l}${kc?` <span class="num" style="opacity:.7">${r0(kc)}</span>`:""}</button>`}).join("")}</div>`;
   h=h.replace("<!--MEALS-->",`<div class="card stack"><div class="row" style="justify-content:space-between"><h2>Posiłki</h2>${mf==="all"&&items.length?`<button class="techlink" data-act="fd-mall">${MEALS.every(m=>!(allMeals.find(x=>x[0]===m)[1].length)||(fst.open||{})[m])?"Zwiń wszystkie":"Rozwiń wszystkie"}</button>`:""}</div>${chipsM}<div class="stack" style="gap:8px">${mealsH}</div>
     <div class="note" id="fd-msg" style="font-weight:600">${esc(fst.msg)}</div></div>`);
+  h+=(window.dzMontaz?window.dzMontaz.html():"");
   h+=weekHTML();
   el.innerHTML=h;
   for(const [id,v] of keep){ if(id==="fd-date"||id==="fd-gk"||id==="fd-gkt"||id==="fd-gkr"||id==="fd-gp"||id==="fd-shot"||id==="fd-ocr"||id==="fd-ephoto"||id==="fd-bar"||id==="fd-label"||id==="fd-steps"||id==="fd-gs"||id==="fd-gf"||id==="fd-gc"||id==="fd-gbw"||id.startsWith("fe-")) continue; const x=document.getElementById(id); if(x&&v!=="") x.value=v; }

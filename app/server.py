@@ -3,7 +3,7 @@
 Baza dokumentów w stylu kolekcja/dokument, logowanie hasłem, pośrednik do API Claude
 (odczyt etykiet i zrzutów), import kroków i cardio z Garmina.
 """
-import asyncio, sys, base64, hashlib, hmac, io, json, os, re, secrets, sqlite3, subprocess, threading, time
+import asyncio, sys, base64, hashlib, hmac, io, json, os, re, secrets, shutil, sqlite3, subprocess, threading, time
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -390,6 +390,187 @@ def hook_info():
 def hook_newkey():
     kv_set("hook_key", secrets.token_urlsafe(18))
     return hook_info()
+
+
+# ---------- montaż filmu dnia (TikTok) ----------
+MZ_DIR = ROOT / "montaz"
+MZ_JOBS = MZ_DIR / "zadania"
+MZ_ID = re.compile(r"^[0-9]{8}-[0-9]{6}-[a-z0-9]{4}$")
+MZ_KIND = {"clip": {".mov", ".mp4", ".m4v"}, "card": {".png", ".jpg", ".jpeg"}}
+
+
+def _mz_env():
+    env = dict(os.environ)
+    try:
+        for line in (ROOT / ".env").read_text().splitlines():
+            if line.startswith("GROQ_API_KEY="):
+                env["GROQ_API_KEY"] = line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    env["MONTAZ_MUSIC"] = str(MZ_DIR / "muzyka_tlo.mp3")
+    env["MONTAZ_FONT"] = str(MZ_DIR / "Montserrat.ttf")
+    return env
+
+
+def _mz_job(jid):
+    if not MZ_ID.match(jid or ""):
+        raise HTTPException(404)
+    d = MZ_JOBS / jid
+    if not d.is_dir():
+        raise HTTPException(404)
+    return d
+
+
+def _mz_status(d):
+    try:
+        st = json.loads((d / "status.json").read_text())
+    except Exception:
+        st = {}
+    st["id"] = d.name
+    if st.get("state") == "working" and time.time() - st.get("at", 0) > 1800:
+        st.update(state="error", error="Montaż przestał odpowiadać (ponad 30 min bez postępu).")
+    return st
+
+
+def _mz_cleanup(keep):
+    """Zostawia gotowe filmy z 7 dni; klipy tylko z ostatniego zadania (miejsce na dysku)."""
+    if not MZ_JOBS.is_dir():
+        return
+    for d in sorted(MZ_JOBS.iterdir()):
+        if not d.is_dir() or d.name == keep:
+            continue
+        age = time.time() - d.stat().st_mtime
+        if age > 7 * 86400:
+            shutil.rmtree(d, ignore_errors=True)
+            continue
+        for day in d.glob("dzien_*"):
+            for f in day.iterdir():
+                if f.suffix.lower() in MZ_KIND["clip"]:
+                    f.unlink(missing_ok=True)
+
+
+@app.get("/api/montaz/info")
+def montaz_info():
+    env = _mz_env()
+    last = None
+    if MZ_JOBS.is_dir():
+        jobs = sorted(d for d in MZ_JOBS.iterdir() if d.is_dir() and MZ_ID.match(d.name))
+        if jobs:
+            last = _mz_status(jobs[-1])
+    return {"groq": bool(env.get("GROQ_API_KEY")), "music": (MZ_DIR / "muzyka_tlo.mp3").is_file(),
+            "start": kv_get("mz_start") or "2026-09-08", "last": last,
+            "ffmpeg": shutil.which("ffmpeg") is not None}
+
+
+@app.post("/api/montaz/settings")
+async def montaz_settings(req: Request):
+    b = await req.json()
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", str(b.get("start", ""))):
+        kv_set("mz_start", b["start"])
+    return montaz_info()
+
+
+@app.post("/api/montaz/music")
+async def montaz_music(req: Request):
+    MZ_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = MZ_DIR / "muzyka_tlo.part"
+    n = 0
+    with tmp.open("wb") as f:
+        async for chunk in req.stream():
+            n += len(chunk)
+            if n > 40 * 1024 * 1024:
+                f.close(); tmp.unlink(missing_ok=True)
+                return JSONResponse({"error": "Plik muzyki za duży (max 40 MB)."}, status_code=413)
+            f.write(chunk)
+    tmp.replace(MZ_DIR / "muzyka_tlo.mp3")
+    return {"ok": True}
+
+
+@app.post("/api/montaz/new")
+async def montaz_new(req: Request):
+    b = await req.json()
+    n = int(b.get("n") or 0)
+    title = [str(x).strip()[:60] for x in (b.get("title") or []) if str(x).strip()][:4]
+    if not title or n < 0 or n > 9999:
+        return JSONResponse({"error": "Brak tytułu."}, status_code=400)
+    jid = datetime.now(TZ).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
+    day = MZ_JOBS / jid / f"dzien_{n}"
+    day.mkdir(parents=True)
+    (MZ_JOBS / jid / "title.json").write_text(json.dumps(title, ensure_ascii=False))
+    (MZ_JOBS / jid / "status.json").write_text(json.dumps({"state": "uploading", "step": "Wysyłanie klipów…",
+                                                           "date": str(b.get("date", ""))[:10], "at": time.time()}))
+    _mz_cleanup(jid)
+    return {"id": jid}
+
+
+@app.put("/api/montaz/{jid}/file")
+async def montaz_file(jid: str, req: Request, kind: str = "clip", i: int = 0, name: str = ""):
+    d = _mz_job(jid)
+    day = next(d.glob("dzien_*"))
+    ext = Path(name).suffix.lower()
+    if kind not in MZ_KIND or ext not in MZ_KIND[kind]:
+        return JSONResponse({"error": "Nieobsługiwany plik: " + name[:40]}, status_code=400)
+    if kind == "clip":
+        fn = f"klip_{i:02d}{ext}"
+    else:
+        base = re.sub(r"[^a-z0-9ąćęłńóśźż-]+", "-", Path(name).stem.lower())[:60].strip("-") or f"karta-{i}"
+        fn = base + ext
+    tmp = day / (fn + ".part")
+    with tmp.open("wb") as f:
+        async for chunk in req.stream():
+            f.write(chunk)
+    tmp.replace(day / fn)
+    return {"ok": True, "name": fn, "size": (day / fn).stat().st_size}
+
+
+@app.post("/api/montaz/{jid}/start")
+def montaz_start(jid: str):
+    d = _mz_job(jid)
+    st = _mz_status(d)
+    if st.get("state") == "working":
+        return st
+    day = next(d.glob("dzien_*"))
+    if not any(f.suffix.lower() in MZ_KIND["clip"] for f in day.iterdir()):
+        return JSONResponse({"error": "Nie ma żadnego klipu."}, status_code=400)
+    env = _mz_env()
+    if not env.get("GROQ_API_KEY"):
+        return JSONResponse({"error": "Brak klucza Groq na serwerze."}, status_code=400)
+    # tytuł jako opis.txt – nowszy niż klipy, więc skrypt go użyje
+    (day / "opis.txt").write_text("\n".join(json.loads((d / "title.json").read_text())) + "\n", encoding="utf-8")
+    for f in ("kolejnosc.txt", "raport.txt"):
+        (day / f).unlink(missing_ok=True)
+    if (d / "gotowe").is_dir():
+        shutil.rmtree(d / "gotowe", ignore_errors=True)
+    st = {k: v for k, v in st.items() if k in ("date",)}
+    st.update(state="working", step="Start…", at=time.time())
+    (d / "status.json").write_text(json.dumps(st, ensure_ascii=False))
+    subprocess.Popen(["nice", "-n", "15", sys.executable, str(HERE / "montaz_job.py"), str(d)], env=env,
+                     stdout=subprocess.DEVNULL, stderr=open(d / "job_err.txt", "w"), start_new_session=True)
+    return _mz_status(d)
+
+
+@app.post("/api/montaz/{jid}/title")
+async def montaz_title(jid: str, req: Request):
+    d = _mz_job(jid)
+    title = [str(x).strip()[:60] for x in ((await req.json()).get("title") or []) if str(x).strip()][:4]
+    if title:
+        (d / "title.json").write_text(json.dumps(title, ensure_ascii=False))
+    return {"ok": True}
+
+
+@app.get("/api/montaz/{jid}")
+def montaz_get(jid: str):
+    return _mz_status(_mz_job(jid))
+
+
+@app.get("/api/montaz/{jid}/film")
+def montaz_film(jid: str, dl: int = 0):
+    d = _mz_job(jid)
+    st = _mz_status(d)
+    f = d / "gotowe" / str(st.get("film", ""))
+    if st.get("state") != "done" or not f.is_file():
+        raise HTTPException(404)
+    return FileResponse(f, media_type="video/mp4", filename=f.name if dl else None)
 
 
 # ---------- aktualizacja aplikacji z telefonu ----------

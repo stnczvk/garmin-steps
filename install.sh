@@ -24,6 +24,12 @@ say "2/6 Środowisko Pythona"
 "$HOME_DIR/venv/bin/pip" install -q --upgrade pip
 "$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pillow python-multipart pywebpush garminconnect
 
+say "2b Montaż filmów: ffmpeg i font"
+command -v ffmpeg >/dev/null || { apt-get update -qq && apt-get install -y -qq ffmpeg; }
+mkdir -p "$HOME_DIR/montaz"
+[ -s "$HOME_DIR/montaz/Montserrat.ttf" ] || curl -fsSL -o "$HOME_DIR/montaz/Montserrat.ttf" "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf" || echo "Nie udało się pobrać fontu Montserrat – użyję Barlow."
+ffmpeg -hide_banner -filters 2>/dev/null | grep -q zscale && echo "ffmpeg: OK" || echo "UWAGA: ffmpeg bez zscale – filmy HDR z iPhone'a mogą mieć złe kolory"
+
 say "3/6 Hasło do aplikacji"
 touch "$HOME_DIR/.env"; chmod 600 "$HOME_DIR/.env"
 if ! grep -q '^DZ_PASS=' "$HOME_DIR/.env"; then
@@ -38,6 +44,7 @@ if ! grep -q '^DZ_PASS=' "$HOME_DIR/.env"; then
   echo "Hasło zapisane."
 else echo "Hasło już ustawione – zostawiam."; fi
 grep -q '^ANTHROPIC_API_KEY=sk-' "$HOME_DIR/.env" && echo "Klucz API: jest." || echo "UWAGA: brak klucza API – odczyt etykiet i zrzutów nie zadziała."
+grep -q '^GROQ_API_KEY=.' "$HOME_DIR/.env" && echo "Klucz Groq: jest." || echo "Brak klucza Groq – montaż filmu nie zadziała (instrukcja w aplikacji)."
 sed -i '/^FOOD_DIR=/d' "$HOME_DIR/.env"
 [ -n "$DOMAIN" ] && { sed -i '/^DZ_DOMAIN=/d' "$HOME_DIR/.env"; echo "DZ_DOMAIN=$DOMAIN" >> "$HOME_DIR/.env"; }
 grep -q '^GARMIN_STEPS=' "$HOME_DIR/.env" || echo "GARMIN_STEPS=/root/garmin-sync/repo/steps.json" >> "$HOME_DIR/.env"
