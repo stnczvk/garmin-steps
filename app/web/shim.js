@@ -241,7 +241,7 @@
   window.dzUpdate = { html: () => { setTimeout(paintUpd, 0); return `<div class="card stack"><h2>Aktualizacja aplikacji</h2><div id="dz-upd" class="stack" style="gap:10px"><p class="note" style="margin:0">Sprawdzam…</p></div></div>`; } };
 
   /* ---------- montaż filmu dnia (TikTok) ---------- */
-  const mz = { info: null, job: null, files: [], titles: {}, up: null, err: "", poll: null, blob: null, open: false };
+  const mz = { info: null, job: null, files: [], titles: {}, up: null, err: "", poll: null, blob: null, open: false, list: [], pick: null, delAsk: null };
   const mzEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const mzMB = n => (n / 1048576).toFixed(n > 104857600 ? 0 : 1).replace(".", ",") + " MB";
   function mzDate() { try { return fst.date } catch (e) { return new Date().toISOString().slice(0, 10) } }
@@ -259,7 +259,7 @@
   function mzCardName(m, d) { return (m === "II śniadanie" ? "drugie-sniadanie" : m.toLowerCase().replace(/\s+/g, "-")) + "-" + d + ".png"; }
   function mzJobShown() {
     const j = mz.job; if (!j) return null;
-    if (j.state === "uploading" || j.state === "working" || mz.up) return j;
+    if (j.state === "working" || mz.up || mz.pick === j.id) return j;
     return j.date === mzDate() ? j : null;
   }
   function mzPaint() {
@@ -295,14 +295,22 @@
         ${mz.files.length ? `<span class="note">${mz.files.map(f => mzEsc(f.name)).join(", ")}</span><button class="btn" data-mz="go" ${info.groq && info.ffmpeg ? "" : "disabled"}>Montaż film</button>` : `<span class="note">Każdy posiłek = osobny klip, mów co jesz („na obiad…”). Pomyłkę powtórz od początku zdania – pierwsze podejście się wytnie. Kolejność ułoży się wg godziny nagrania.</span>`}`;
     }
     if (mz.err) h += `<p class="note" style="margin:0;color:var(--bad)">${mzEsc(mz.err)}</p>`;
+    if (mz.list.length) {
+      const lab = x => x.state === "done" ? `gotowy · ${mzMB(x.size || 0)}` : x.state === "working" ? "montuje się…" : x.state === "error" ? "błąd montażu" : "niewysłany";
+      h += `<div class="stack" style="gap:0;margin-top:6px"><span class="label">Twoje filmy</span>${mz.list.map(x => {
+        const cur = j && j.id === x.id, d = x.date ? new Date(x.date + "T12:00:00").toLocaleDateString("pl-PL", { day: "numeric", month: "short" }) : "";
+        return `<div class="mzrow${cur ? " cur" : ""}"><button class="mzname" data-mz="pick" data-id="${x.id}"><b>${mzEsc((x.title && x.title[0]) || x.film || "Film")}</b><span class="note">${mzEsc(d)} · ${lab(x)}</span></button>${x.state === "working" ? "" : `<button class="x${mz.delAsk === x.id ? " ask" : ""}" data-mz="del" data-id="${x.id}" aria-label="Usuń film">${mz.delAsk === x.id ? "Usuń?" : "×"}</button>`}</div>`; }).join("")}
+        <span class="note" style="margin-top:6px">Filmy są trzymane na serwerze 14 dni.</span></div>`;
+    }
     el.innerHTML = h;
   }
-  async function mzLoad() { try { mz.info = await req("GET", "/montaz/info"); if (!mz.job || !(mz.up || mz.job.state === "working")) mz.job = mz.info.last; mzPaint(); mzWatch(); } catch (e) { const el = document.getElementById("dz-mz"); if (el) el.innerHTML = `<p class="note" style="margin:0">Montaż jest teraz niedostępny.</p>`; } }
+  async function mzList() { try { mz.list = await req("GET", "/montaz/list"); } catch (e) {} mzPaint(); }
+  async function mzLoad() { mzList(); try { mz.info = await req("GET", "/montaz/info"); if (!mz.job || !(mz.up || mz.job.state === "working")) mz.job = mz.info.last; mzPaint(); mzWatch(); } catch (e) { const el = document.getElementById("dz-mz"); if (el) el.innerHTML = `<p class="note" style="margin:0">Montaż jest teraz niedostępny.</p>`; } }
   function mzWatch() {
     if (mz.poll || !mz.job || mz.job.state !== "working") return;
     mz.poll = setInterval(async () => {
       try { mz.job = await req("GET", "/montaz/" + mz.job.id); } catch (e) { return; }
-      if (mz.job.state !== "working") { clearInterval(mz.poll); mz.poll = null; mz.blob = null; }
+      if (mz.job.state !== "working") { clearInterval(mz.poll); mz.poll = null; mz.blob = null; mzList(); }
       mzPaint();
     }, 3000);
   }
@@ -336,7 +344,7 @@
       }
       mz.up = null;
       mz.job = await req("POST", `/montaz/${id}/start`, {});
-      mz.files = []; delete mz.titles[d];
+      mz.files = []; delete mz.titles[d]; mz.pick = id; mzList();
     } catch (e) { mz.up = null; mz.err = e.message || "Nie udało się wysłać."; }
     mzPaint(); mzWatch();
   }
@@ -358,7 +366,15 @@
     const b = ev.target.closest("[data-mz]"); if (!b || b.tagName === "INPUT") return;
     const a = b.dataset.mz;
     if (a === "go") { b.disabled = true; mzGo(); }
-    if (a === "new") { mz.job = null; mz.blob = null; mz.err = ""; mzPaint(); }
+    if (a === "new") { mz.job = null; mz.pick = null; mz.blob = null; mz.err = ""; mzPaint(); }
+    if (a === "pick") { mz.delAsk = null; mz.err = ""; try { mz.job = await req("GET", "/montaz/" + b.dataset.id); mz.pick = b.dataset.id; mz.blob = null; } catch (e) { mz.err = e.message; } mzPaint(); mzWatch(); document.getElementById("dz-mz")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    if (a === "del") {
+      const id = b.dataset.id;
+      if (mz.delAsk !== id) { mz.delAsk = id; mzPaint(); setTimeout(() => { if (mz.delAsk === id) { mz.delAsk = null; mzPaint(); } }, 4000); return; }
+      mz.delAsk = null;
+      try { await req("DELETE", "/montaz/" + id); mz.list = mz.list.filter(x => x.id !== id); if (mz.job && mz.job.id === id) { mz.job = null; mz.pick = null; mz.blob = null; } } catch (e) { mz.err = e.message; }
+      mzPaint();
+    }
     if (a === "redo" && mz.job) { mz.err = ""; try { mz.job = await req("POST", `/montaz/${mz.job.id}/start`, {}); } catch (e) { mz.err = e.message; } mz.blob = null; mzPaint(); mzWatch(); }
     if (a === "prep" && mz.job && !mz.prep) {
       mz.prep = "0%"; mzPaint();

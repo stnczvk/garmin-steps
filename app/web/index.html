@@ -395,6 +395,12 @@ h1{font-weight:800}
 .kc-wrap{display:flex;gap:16px;align-items:center}
 .qs-row{display:flex;gap:8px;align-items:stretch}
 .qs-wrap{position:relative;flex:1;min-width:0;display:flex}
+#fd-name{flex:1;min-width:0;padding-right:40px}
+#fd-name:placeholder-shown+.qs-x{display:none}
+.mzrow{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding:8px 0}
+.mzname{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;border:0;background:transparent;color:var(--ink);font:inherit;text-align:left;padding:0;cursor:pointer}
+.mzrow.cur .mzname b{color:var(--accent)}
+.x.ask{color:var(--bad);font-size:14px;font-weight:700}
 .qs-wrap input{flex:1;min-width:0;padding-right:40px}
 .qs-wrap input::-webkit-search-cancel-button{display:none}
 .qs-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:0;border-radius:999px;background:var(--surface2);color:var(--ink);font-size:18px;line-height:1;cursor:pointer}
@@ -2567,7 +2573,7 @@ function renderFood0(){
   ${fst.addTool==="add"?`<div class="card stack"><h3>Dodaj produkt</h3>
     <div class="addform">
       <label class="mid"><span class="label">Posiłek</span><select id="fd-meal">${MEALS.map(m=>`<option ${m===fst.meal?"selected":""}>${m}</option>`).join("")}</select></label>
-      <label class="wide sugg" style="grid-column:span 3"><span class="label">Produkt</span><input id="fd-name" autocomplete="off" placeholder="Szukaj, np. skyr, banan, kebab"><div class="sugg-list" id="fd-sugg" hidden></div></label>
+      <label class="wide sugg" style="grid-column:span 3"><span class="label">Produkt</span><span class="qs-wrap"><input id="fd-name" autocomplete="off" placeholder="Szukaj, np. skyr, banan, kebab"><button type="button" class="qs-x" data-act="fd-nameclear" aria-label="Wyczyść wyszukiwanie">×</button></span><div class="sugg-list" id="fd-sugg" hidden></div></label>
       <label class="mid"><span class="label" id="fd-glabel">Ilość</span><input type="number" id="fd-g" inputmode="decimal" placeholder="g"></label>
       <label class="mid"><span class="label">Jednostka</span><select id="fd-unit"><option value="g">gramy</option><option value="szt">sztuki</option><option value="ml">mililitry</option></select></label>
       <label class="mid pwrow" id="fd-pwl" hidden><span class="label">Waga 1 sztuki (g)</span><input type="number" id="fd-pw" inputmode="decimal" placeholder="np. 60"></label>
@@ -3274,6 +3280,7 @@ document.addEventListener("click",async ev=>{
     if(noLive||!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){document.getElementById("fd-bar")?.click();return}
     openScanner();return}
   if(a==="fd-scanclose"){closeScanner();return}
+  if(a==="fd-nameclear"){ev.preventDefault();const i=document.getElementById("fd-name");if(i){i.value="";i.focus();}fst.sel=null;fst.sugg=[];renderSugg();renderPortions();return}
   if(a==="fd-qsclear"){fst.qs="";fst.qopen=null;const i=document.getElementById("fd-qs");if(i){i.value="";i.focus();}b.hidden=true;renderQS();return}
   if(a==="fd-srange"){stepsRange=+b.dataset.v;renderProg();return}
   if(a==="fd-aday"){aDate=b.dataset.d;renderProg();setTimeout(()=>document.getElementById("fd-steps")?.closest(".card")?.scrollIntoView({behavior:"smooth",block:"start"}),50);return}

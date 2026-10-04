@@ -440,7 +440,7 @@ def _mz_cleanup(keep):
         if not d.is_dir() or d.name == keep:
             continue
         age = time.time() - d.stat().st_mtime
-        if age > 7 * 86400:
+        if age > 14 * 86400:
             shutil.rmtree(d, ignore_errors=True)
             continue
         for day in d.glob("dzien_*"):
@@ -460,6 +460,30 @@ def montaz_info():
     return {"groq": bool(env.get("GROQ_API_KEY")), "music": (MZ_DIR / "muzyka_tlo.mp3").is_file(),
             "start": kv_get("mz_start") or "2026-09-08", "last": last,
             "ffmpeg": shutil.which("ffmpeg") is not None}
+
+
+@app.get("/api/montaz/list")
+def montaz_list():
+    out = []
+    if MZ_JOBS.is_dir():
+        for d in sorted((d for d in MZ_JOBS.iterdir() if d.is_dir() and MZ_ID.match(d.name)), reverse=True):
+            st = _mz_status(d)
+            try:
+                st["title"] = json.loads((d / "title.json").read_text())
+            except Exception:
+                st["title"] = []
+            st.pop("raport", None); st.pop("log", None)
+            out.append(st)
+    return out
+
+
+@app.delete("/api/montaz/{jid}")
+def montaz_delete(jid: str):
+    d = _mz_job(jid)
+    if _mz_status(d).get("state") == "working":
+        return JSONResponse({"error": "Ten film właśnie się montuje – poczekaj, aż skończy."}, status_code=409)
+    shutil.rmtree(d, ignore_errors=True)
+    return {"ok": True}
 
 
 @app.post("/api/montaz/settings")
