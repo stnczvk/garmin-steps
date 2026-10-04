@@ -470,7 +470,7 @@ async def montaz_settings(req: Request):
     return montaz_info()
 
 
-@app.post("/api/montaz/music")
+@app.api_route("/api/montaz/music", methods=["PUT", "POST"])
 async def montaz_music(req: Request):
     MZ_DIR.mkdir(parents=True, exist_ok=True)
     tmp = MZ_DIR / "muzyka_tlo.part"

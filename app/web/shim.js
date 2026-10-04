@@ -271,7 +271,7 @@
     if (!info.groq) h += `<div class="nb-step" style="margin:0"><b>Brak klucza Groq na serwerze</b> (potrzebny do wycinania pomyłek). Zaloguj się na serwer i wpisz:<br><code style="font-size:12px;word-break:break-all">read -rsp "Klucz Groq: " K &amp;&amp; echo "GROQ_API_KEY=$K" &gt;&gt; /root/dziennik/.env &amp;&amp; unset K</code><br>wklej klucz (nie będzie widoczny) i Enter.</div>`;
     if (mz.up) {
       const u = mz.up;
-      h += `<div class="stack" style="gap:6px"><b>Wysyłam ${mzEsc(u.label)} (${u.i} z ${u.n})</b><div class="bar"><i style="width:${Math.round(u.pct * 100)}%"></i></div><span class="note">Nie zamykaj aplikacji, dopóki wysyłanie się nie skończy. Potem możesz.</span></div>`;
+      h += `<div class="stack" style="gap:6px"><b>Wysyłam ${mzEsc(u.label)} (${u.i} z ${u.n}) · ${Math.round(u.pct * 100)}%${u.tot ? ` <span class="note num">${mzMB(u.got)} z ${mzMB(u.tot)}</span>` : ""}</b><div class="bar"><i style="width:${Math.round(u.pct * 100)}%"></i></div>${u.pct >= 0.999 ? `<span class="note">Plik wysłany, serwer go zapisuje…</span>` : ""}<span class="note">Nie zamykaj aplikacji, dopóki wysyłanie się nie skończy. Potem możesz.</span></div>`;
     } else if (j && j.state === "working") {
       const sec = j.started ? Math.round((Date.now() / 1000 - j.started)) : 0;
       h += `<div class="nb-step" style="margin:0">⏳ <b>${mzEsc(j.step || "Montuję…")}</b>${sec > 5 ? ` <span class="note num">${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}</span>` : ""}<br><span class="note">Montaż trwa zwykle 3–8 minut. Możesz zamknąć aplikację – film poczeka.</span></div>`;
@@ -309,7 +309,10 @@
   function mzPut(url, body, onp) {
     return new Promise((res, rej) => {
       const x = new XMLHttpRequest(); x.open("PUT", url); x.withCredentials = true;
-      x.upload.onprogress = e => { if (e.lengthComputable) onp(e.loaded / e.total) };
+      let last = Date.now();
+      const dog = setInterval(() => { if (Date.now() - last > 90000) { clearInterval(dog); x.abort(); rej(new Error("Wysyłanie stanęło (brak postępu przez 90 s). Sprawdź internet i spróbuj ponownie.")); } }, 5000);
+      x.upload.onprogress = e => { last = Date.now(); if (e.lengthComputable) onp(e.loaded / e.total, e.loaded, e.total) };
+      x.onloadend = () => clearInterval(dog);
       x.onload = () => x.status < 300 ? res() : rej(new Error((() => { try { return JSON.parse(x.responseText).error } catch (e) { return "Błąd " + x.status } })()));
       x.onerror = () => rej(new Error("Przerwane połączenie podczas wysyłania."));
       x.send(body);
@@ -323,13 +326,13 @@
       mz.job = { id, state: "uploading", date: d };
       for (let i = 0; i < files.length; i++) {
         mz.up = { label: "klip", i: i + 1, n: files.length, pct: 0 }; mzPaint();
-        await mzPut(`/api/montaz/${id}/file?kind=clip&i=${i + 1}&name=${encodeURIComponent(files[i].name)}`, files[i], p => { mz.up.pct = p; mzPaint(); });
+        await mzPut(`/api/montaz/${id}/file?kind=clip&i=${i + 1}&name=${encodeURIComponent(files[i].name)}`, files[i], (p, g, t) => { mz.up.pct = p; mz.up.got = g; mz.up.tot = t; mzPaint(); });
       }
       const meals = mzMeals(d);
       for (let i = 0; i < meals.length; i++) {
         mz.up = { label: "kartę posiłku", i: i + 1, n: meals.length, pct: 0 }; mzPaint();
         const blob = await mealImage(meals[i]);
-        await mzPut(`/api/montaz/${id}/file?kind=card&i=${i + 1}&name=${encodeURIComponent(mzCardName(meals[i], d))}`, blob, p => { mz.up.pct = p; mzPaint(); });
+        await mzPut(`/api/montaz/${id}/file?kind=card&i=${i + 1}&name=${encodeURIComponent(mzCardName(meals[i], d))}`, blob, (p, g, t) => { mz.up.pct = p; mz.up.got = g; mz.up.tot = t; mzPaint(); });
       }
       mz.up = null;
       mz.job = await req("POST", `/montaz/${id}/start`, {});
@@ -343,7 +346,7 @@
     if (t.dataset && t.dataset.mz === "start" && t.value) { try { mz.info = await req("POST", "/montaz/settings", { start: t.value }); } catch (e) {} delete mz.titles[mzDate()]; mzPaint(); }
     if (t.dataset && t.dataset.mz === "music" && t.files[0]) {
       mz.err = ""; mz.up = { label: "muzykę", i: 1, n: 1, pct: 0 }; mzPaint();
-      try { await mzPut("/api/montaz/music", t.files[0], p => { mz.up.pct = p; mzPaint(); }); mz.info.music = true; } catch (e) { mz.err = e.message; }
+      try { await mzPut("/api/montaz/music", t.files[0], (p, g, t) => { mz.up.pct = p; mz.up.got = g; mz.up.tot = t; mzPaint(); }); mz.info.music = true; } catch (e) { mz.err = e.message; }
       mz.up = null; mzPaint();
     }
   });
