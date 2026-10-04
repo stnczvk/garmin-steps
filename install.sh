@@ -22,7 +22,7 @@ ls "$HOME_DIR/data"
 say "2/6 Środowisko Pythona"
 [ -d "$HOME_DIR/venv" ] || python3 -m venv "$HOME_DIR/venv" || { apt-get update -qq && apt-get install -y -qq python3-venv && python3 -m venv "$HOME_DIR/venv"; }
 "$HOME_DIR/venv/bin/pip" install -q --upgrade pip
-"$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pillow python-multipart pywebpush
+"$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pillow python-multipart pywebpush garminconnect
 
 say "3/6 Hasło do aplikacji"
 touch "$HOME_DIR/.env"; chmod 600 "$HOME_DIR/.env"

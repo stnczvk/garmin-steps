@@ -213,7 +213,7 @@
 
 
   /* ---------- aktualizacja aplikacji z telefonu ---------- */
-  let updPoll = null, updStarted = 0;
+  let updPoll = null, updStarted = 0, updSeen = false;
   const fdt = d => d ? new Date(d).toLocaleString("pl-PL", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
   async function paintUpd() {
     const el = document.getElementById("dz-upd"); if (!el) return;
@@ -222,21 +222,25 @@
       el.innerHTML = `<p class="note" style="margin:0">Nie udało się sprawdzić wersji.</p>`; return; }
     const cur = st.current || {}, lat = st.latest;
     const fresh = lat && cur.sha && lat.sha === cur.sha;
-    if (updStarted && !st.running && fresh) { el.innerHTML = `<div class="nb-step" style="margin:0">✓ Zaktualizowano. Przeładowuję…</div>`; clearInterval(updPoll); updPoll = null; setTimeout(() => location.reload(), 1200); return; }
+    if (st.running) updSeen = true;
+    if (updStarted && !st.running && fresh && (updSeen || Date.now() - updStarted > 15000)) { el.innerHTML = `<div class="nb-step" style="margin:0">✓ Zaktualizowano. Przeładowuję…</div>`; clearInterval(updPoll); updPoll = null; setTimeout(() => location.reload(), 1200); return; }
     if (updStarted && !st.running && Date.now() - updStarted > 20000 && !fresh) { updStarted = 0; clearInterval(updPoll); updPoll = null; }
     const busy = st.running || updStarted;
     el.innerHTML = `<div class="nb-step" style="margin:0">${busy ? "⏳ Aktualizuję… to trwa ok. 1–2 minuty, aplikacja sama się przeładuje." : !lat ? "Nie udało się sprawdzić, czy jest nowa wersja." : fresh ? "✓ Masz najnowszą wersję." : "<b>Jest nowa wersja.</b>"}</div>
       <div class="note">Na serwerze: ${cur.msg ? `„${cur.msg}” (${fdt(cur.date)})` : "—"}${lat && !fresh ? `<br>Najnowsza: „${lat.msg}” (${fdt(lat.date)})` : ""}</div>
-      ${!busy && lat && !fresh ? `<div class="row"><button class="btn small" data-dzupd="run">Zaktualizuj teraz</button></div>` : ""}
+      ${busy ? "" : `<div class="row" style="gap:8px"><button class="btn small${lat && fresh ? " ghost" : ""}" data-dzupd="run">${lat && fresh ? "Zaktualizuj mimo to" : "Zaktualizuj teraz"}</button><button class="btn ghost small" data-dzupd="check">Sprawdź ponownie</button></div>`}
       ${st.log && !busy && !fresh && st.last_run ? `<details><summary class="note" style="cursor:pointer">Log ostatniej aktualizacji</summary><pre style="white-space:pre-wrap;font-size:12px;margin:6px 0 0">${st.log.replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]))}</pre></details>` : ""}`;
   }
   document.addEventListener("click", async ev => {
     const b = ev.target.closest("[data-dzupd]"); if (!b) return;
+    if (b.dataset.dzupd === "check") { b.textContent = "Sprawdzam…"; paintUpd(); return; }
     b.disabled = true; b.textContent = "Uruchamiam…";
-    try { await req("POST", "/update", {}); updStarted = Date.now(); if (!updPoll) updPoll = setInterval(paintUpd, 4000); paintUpd(); }
+    try { await req("POST", "/update", {}); updStarted = Date.now(); updSeen = false; if (!updPoll) updPoll = setInterval(paintUpd, 4000); paintUpd(); }
     catch (e) { b.disabled = false; b.textContent = "Zaktualizuj teraz"; const el = document.getElementById("dz-upd"); el && el.insertAdjacentHTML("beforeend", `<p class="note" style="margin:0;color:var(--bad)">Nie udało się uruchomić aktualizacji. Spróbuj za chwilę.</p>`); }
   });
   window.dzUpdate = { html: () => { setTimeout(paintUpd, 0); return `<div class="card stack"><h2>Aktualizacja aplikacji</h2><div id="dz-upd" class="stack" style="gap:10px"><p class="note" style="margin:0">Sprawdzam…</p></div></div>`; } };
+
+  window.dzSleep = { refresh: () => req("POST", "/sleep/refresh", {}), status: () => req("GET", "/sleep/status") };
 
   let authP = null;
   const auth = () => authP || (authP = fetch("/api/me", { credentials: "same-origin" }).then(r => { if (!r.ok) { showLogin(); return new Promise(() => {}) } }).catch(() => { showLogin("Brak połączenia z serwerem."); return new Promise(() => {}) }));

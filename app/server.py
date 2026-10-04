@@ -300,6 +300,51 @@ def garmin_refresh_job():
         put_doc("settings/garminlog", {"at": datetime.now(TZ).isoformat(timespec="seconds"), "step": "koniec", "result": err + res})
     finally:
         _gr_lock.release()
+    sleep_sync(force_today=True)
+
+
+# ---------- sen z Garmina ----------
+_sl_lock = threading.Lock()
+
+
+def sleep_sync(force_today=False, back=3):
+    """Pobiera sen z ostatnich dni (brakujące) – dane zostają na serwerze."""
+    if not _sl_lock.acquire(blocking=False):
+        return
+    try:
+        import garmin_sleep
+        today = datetime.now(TZ).date()
+        if not kv_get("sleep_backfill"):
+            back = 30
+        n = 0
+        for i in range(back):
+            d = (today - timedelta(days=i)).isoformat()
+            if get_doc("sleep/" + d) and not (force_today and i == 0):
+                continue
+            s = garmin_sleep.sleep_for(d)
+            if s:
+                put_doc("sleep/" + d, {**s, "at": datetime.now(TZ).isoformat(timespec="seconds")})
+                n += 1
+        kv_set("sleep_backfill", "1")
+        kv_set("sleep_status", json.dumps({"at": datetime.now(TZ).isoformat(timespec="seconds"), "ok": True, "n": n}))
+    except Exception as e:
+        kv_set("sleep_status", json.dumps({"at": datetime.now(TZ).isoformat(timespec="seconds"), "ok": False,
+                                           "err": e.__class__.__name__ + (": " + str(e)[:120] if "logowania" in str(e) or "garminconnect" in str(e) else "")}))
+        print("sleep sync error", e.__class__.__name__, flush=True)
+    finally:
+        _sl_lock.release()
+
+
+@app.get("/api/sleep/status")
+def sleep_status():
+    v = kv_get("sleep_status")
+    return json.loads(v) if v else {}
+
+
+@app.post("/api/sleep/refresh")
+def sleep_refresh():
+    threading.Thread(target=sleep_sync, kwargs={"force_today": True}, daemon=True).start()
+    return {"ok": True}
 
 
 @app.post("/api/garmin/refresh")
@@ -613,6 +658,9 @@ def scheduler():
                 subprocess.Popen(["nice", "-n", "15", sys.executable, str(HERE / "food_build.py"), str(FOOD_DIR)],
                                  stdout=open(ROOT / "food_build.log", "a"), stderr=subprocess.STDOUT)
             workout_check()
+            # sen: co godzinę między 7 a 13, dopóki nie ma dzisiejszej nocy (raz o 13 także odśwież dzisiejszą)
+            if 7 <= now.hour <= 13 and now.minute == 25 and (not get_doc("sleep/" + day) or now.hour == 13):
+                threading.Thread(target=sleep_sync, kwargs={"force_today": now.hour == 13}, daemon=True).start()
             if now.hour == 3 and kv_get("backup") != day:
                 kv_set("backup", day)
                 bd = ROOT / "backups"; bd.mkdir(exist_ok=True)

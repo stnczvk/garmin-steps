@@ -53,6 +53,8 @@ input[type=number]{width:100%;min-width:0;text-align:center;font-variant-numeric
 .ex-head h3 .scheme{color:var(--muted);font-weight:600;margin-left:6px}
 .target{font-size:14px;display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted)}
 .target b{color:var(--ink)}
+.gymline{flex-basis:100%;font-size:13px}
+.gymask{flex-basis:100%;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:12px;background:var(--surface2);color:var(--ink)}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.04em}
 .tag.up{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
 .tag.hold{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
@@ -435,6 +437,21 @@ header h1{font-size:24px}
 .ex-body[hidden]{display:none!important}
 .sets input.filled{background:color-mix(in srgb,var(--accent) 14%,var(--surface2))!important;color:var(--accent)!important;border-color:transparent!important;font-weight:700}
 .daytiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sltile{grid-column:1/-1;order:3}
+.slbar{display:flex;width:100%;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin-top:6px}
+.slbar.big{height:16px;border-radius:8px}
+.slbar i{display:block;min-width:2px}
+.slhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.slbig{font-family:var(--display);font-size:36px;font-weight:700;line-height:1;white-space:nowrap}
+.slscore{display:flex;flex-direction:column;align-items:center;justify-content:center;width:72px;height:72px;border-radius:36px;border:4px solid;flex:none;line-height:1.05}
+.slscore b{font-family:var(--display);font-size:26px}
+.slscore span{font-size:11px;font-weight:600}
+.slleg{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px}
+.slleg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.slstats{display:flex;flex-wrap:wrap;gap:10px 22px}
+.slstats>div{display:flex;flex-direction:column}
+.slstats b{font-family:var(--display);font-size:22px}
+.slchart{width:100%;height:auto;display:block}
 .dtile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:0;background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px;cursor:pointer;font:inherit;min-height:44px}
 .dtile .v{font-family:var(--display);font-size:28px;font-weight:700;line-height:1.1}
 .dtile .bar{width:100%;margin-top:6px}
@@ -753,7 +770,26 @@ function recentFor(exId,n){
   }
   return out;
 }
-function target(ex){
+function target(ex){ return gymAdjust(ex,target0(ex)); }
+// dostępne ciężary na siłowni: skok ciężaru ustawiony dla ćwiczenia (np. hantle co 2,5 kg, maszyna co 5 kg)
+function gymAdjust(ex,t){ const st=+gymSteps[ex.id]||0; if(!t||ex.time) return t;
+  if(t.kind==="up"&&t.last){ const w=Math.max(...t.last.sets.map(x=>+x.w||0)); const add=st?Math.max(st,Math.ceil(ex.inc/st-1e-9)*st):ex.inc;
+    return {...t,w:+(w+add).toFixed(2),add,big:!!st&&add>=Math.max(ex.inc*2,w*0.08)}; }
+  if(t.kind==="down"&&st){ const d=Math.max(st,Math.round(t.d/st)*st), w0=t.w+t.d; return {...t,d,w:Math.max(0,+(w0-d).toFixed(2))}; }
+  if(t.kind==="up") return {...t,add:ex.inc};
+  return t; }
+function gymHTML(ex,t){ if(ex.time||!(t.kind==="up"||t.kind==="down")) return "";
+  const st=+gymSteps[ex.id]||0, open=state.gymAsk===ex.id;
+  let h=`<span class="gymline">${st?`Na Twojej siłowni: co <b class="num">${fmt(st)} kg</b> · `:""}<button class="techlink" data-act="gym-ask" data-id="${ex.id}">${st?"zmień":"Nie ma takiego ciężaru?"}</button></span>`;
+  if(t.big) h+=`<span class="gymline">Duży skok. Jeśli nie zrobisz wszystkich serii na <b class="num">${fmt(t.w)} kg</b>, wróć do poprzedniego ciężaru i dobijaj 1–2 powtórzenia ponad zakres, zanim spróbujesz znowu.</span>`;
+  if(open) h+=`<div class="gymask"><span>Co ile kg możesz zmieniać ciężar w tym ćwiczeniu na swojej siłowni?</span><div class="chips">${[1,1.25,2,2.5,4,5,10].map(v=>`<button data-act="gym-set" data-id="${ex.id}" data-v="${v}" aria-pressed="${st===v}">${fmt(v)} kg</button>`).join("")}${st?`<button data-act="gym-set" data-id="${ex.id}" data-v="0">domyślnie (${fmt(ex.inc)} kg)</button>`:""}</div></div>`;
+  return h; }
+async function saveGymSteps(){ if(store.mode==="db"){ try{ await store.db.doc("settings/gymsteps").set(gymSteps); }catch(e){} } else lsSet("sila-5x5-gymsteps",gymSteps); }
+document.addEventListener("click",ev=>{const b=ev.target.closest('[data-act="gym-ask"],[data-act="gym-set"]'); if(!b) return; const id=b.dataset.id;
+  if(b.dataset.act==="gym-ask"){ state.gymAsk=state.gymAsk===id?null:id; }
+  else { const v=+b.dataset.v; if(v) gymSteps[id]=v; else delete gymSteps[id]; state.gymAsk=null; saveGymSteps(); }
+  renderLog(); if(typeof renderProg==="function") renderProg(); });
+function target0(ex){
   const last=lastFor(ex.id,state.editingId);
   if(last && ex.time){ const allHit=last.sets.length>=ex.sets&&last.sets.every(x=>x.r>=ex.hi); return {kind:allHit?"up":"hold",w:Math.max(...last.sets.map(x=>+x.w||0)),last,time:true}; }
   if(last && !ex.time){
@@ -781,6 +817,7 @@ function target(ex){
   return allHit?{kind:"up",w:w+ex.inc,last}:{kind:"hold",w,last,short:top.some(x=>x.r<ex.lo),ramp};
 }
 let swaps={};
+let gymSteps={};
 const PERHAND_LIB=new Set(["dbfly","incdbfly","dbrdl","kickback","dbbench","incl","row2","row2arc","dbohp","arnold","latA","latC","hammer","inclcurl","curlB","lunge"]);
 function libName(id){if(typeof TECH_LIB==="undefined")return null;for(const [,l] of TECH_LIB)for(const [i,n] of l)if(i===id)return n;return null}
 function exDef(id){for(const p of Object.values(PLANS))for(const d of Object.values(p.plan))for(const e of d)if(e.id===id)return e;const n=libName(id);return n?{id,name:n,perHand:PERHAND_LIB.has(id)}:null}
@@ -898,16 +935,16 @@ function renderLog0(){
         : t.kind==="keep"
         ? `<span class="tag hold">Utrzymaj ciężar</span><span>Zastój na redukcji to norma. Zostań przy <b class="num">${fmt(t.w)} kg</b>, nawet jeśli wejdzie mniej powtórzeń.</span>`
         : t.kind==="down"
-        ? `<span class="tag down">Zmniejsz o ${fmt(t.d)} kg</span><span>Cel: <b class="num">${fmt(t.w)} kg</b>. ${t.why}</span>`
+        ? `<span class="tag down">Zmniejsz o ${fmt(t.d)} kg</span><span>Cel: <b class="num">${fmt(t.w)} kg</b>. ${t.why}</span>${gymHTML(ex,t)}`
         : t.kind==="up"
-        ? `<span class="tag up">Dokładasz +${fmt(ex.inc)} kg</span><span>Cel: <b class="num">${fmt(t.w)} kg</b></span>`
+        ? `<span class="tag up">Dokładasz +${fmt(t.add)} kg</span><span>Cel: <b class="num">${fmt(t.w)} kg</b></span>${gymHTML(ex,t)}`
         : t.ramp
         ? (t.ramp.first?`<span class="tag hold">Po teście ciężaru</span><span>Pierwszy trening był testem (piramida). Teraz zrób <b>wszystkie ${ex.sets} ${ex.sets<5?"serie":"serii"} na ${fmt(t.w)} kg</b>, czyli ciężarze z ostatniej serii. Po tym treningu podpowiem, czy dołożyć.${t.ramp.short?" Ostatnio na tym ciężarze nie weszły pełne powtórzenia – jeśli dziś też nie wejdą, zostaniesz przy nim.":""}</span>`:`<span class="tag hold">Ten sam ciężar</span><span>Ostatnio <b class="num">${fmt(t.w)} kg</b> zrobiłeś tylko w ${t.ramp.n} z ${ex.sets} serii (piramida). Zanim dołożysz, zrób wszystkie ${ex.sets} serie robocze na tym ciężarze. Lżejsze serie na początku licz jako rozgrzewkę.</span>`)
         : `<span class="tag hold">Ten sam ciężar</span><span>Cel: <b class="num">${fmt(t.w)} kg</b>, ${ex.lo===ex.hi?`zrób wszystkie ${ex.sets}×${ex.hi}`:`dobij do ${ex.hi} powt.`}.</span>`;
 
     }
     const scheme=ex.time?ex.sets+"× "+ex.lo+"–"+ex.hi+" s":ex.sets+"×"+rng(ex);
-    const short=t.kind==="new"?"pierwszy raz":t.ramp&&t.ramp.first?`wszystkie serie na ${fmt(t.w)} kg`:t.time?(t.kind==="up"?"dodaj obciążenie":`cel ${ex.hi} s`):t.kind==="up"?`+${fmt(ex.inc)} kg · cel ${fmt(t.w)} kg`:t.kind==="down"?`−${fmt(t.d)} kg · cel ${fmt(t.w)} kg`:t.kind==="keep"?`utrzymaj ${fmt(t.w)} kg`:`ten sam ciężar · ${fmt(t.w)} kg`;
+    const short=t.kind==="new"?"pierwszy raz":t.ramp&&t.ramp.first?`wszystkie serie na ${fmt(t.w)} kg`:t.time?(t.kind==="up"?"dodaj obciążenie":`cel ${ex.hi} s`):t.kind==="up"?`+${fmt(t.add)} kg · cel ${fmt(t.w)} kg`:t.kind==="down"?`−${fmt(t.d)} kg · cel ${fmt(t.w)} kg`:t.kind==="keep"?`utrzymaj ${fmt(t.w)} kg`:`ten sam ciężar · ${fmt(t.w)} kg`;
     const isOpen=state.openEx===ex.id;
     h+=`<div class="ex ${isOpen?"open":""}" data-ex="${ex.id}" data-sets="${ex.sets}"><button class="ex-top" data-act="ex-toggle" data-id="${ex.id}" aria-expanded="${isOpen}"><span class="ex-check num">${exi+1}</span><span class="ex-tt"><b>${esc(ex.name)}</b><span class="note num">${scheme} · przerwa ${restOf(ex)} · <span class="${t.kind==="up"?"ex-up":t.kind==="down"?"ex-down":""}">${short}</span></span></span><span class="chev" aria-hidden="true">▾</span></button>
       <div class="ex-body" ${isOpen?"":"hidden"}><div class="ex-head"><span></span><span style="display:flex;gap:12px">${swapOptions(PLAN[day].find(e=>e.id===(ex.slot||ex.id))||ex).length?`<button class="techlink" data-act="swap-open" data-slot="${ex.slot||ex.id}">⇄ Zamień</button>`:""}${TECH[ex.id]?`<button class="techlink" data-act="tech-open" data-id="${ex.id}">Technika ›</button>`:""}</span></div>
@@ -1238,7 +1275,7 @@ function renderProgInner(){
   const bwNow=bwPts.at(-1)?.v;
   const best=(id)=>{let b=0;for(const s of sorted()){for(const x of (s.ex||{})[id]||[]){if(x.r>0&&(+x.w||0)>b)b=+x.w}}return b};
   const _keep=(window.__pk=["w-today","w-val","wg-adj","fd-steps","fd-cmin","fd-ctype","wg-goal","wg-bw","wg-h","wg-age"].map(id=>{const x=document.getElementById(id);return [id,x&&x.value!==x.defaultValue&&x.tagName!=="SELECT"?x.value:(x&&x.tagName==="SELECT"?x.value:null)]}));
-  const PS=[["waga","Waga"],["jedzenie","Kalorie"],["aktywnosc","Aktywność"],["sila","Siła"]];
+  const PS=[["waga","Waga"],["jedzenie","Kalorie"],["aktywnosc","Aktywność"],["sen","Sen"],["sila","Siła"]];
   document.getElementById("view-prog").innerHTML=`
   <div class="qtabs" role="tablist" style="position:sticky;top:env(safe-area-inset-top,0px);z-index:6">${PS.map(([k,l])=>`<button role="tab" data-act="psec" data-k="${k}" aria-selected="${progSec===k}">${l}</button>`).join("")}</div>
   <div class="stack" ${progSec!=="waga"?"hidden":""}>
@@ -1253,6 +1290,7 @@ function renderProgInner(){
   ${typeof stepsSummaryHTML==="function"?stepsSummaryHTML():""}
   ${typeof activityHTML==="function"?activityHTML():""}
   </div>
+  <div class="stack" ${progSec!=="sen"?"hidden":""}>${sleepHTML()}</div>
   <div class="stack" ${progSec!=="sila"?"hidden":""}>
   ${progressAssistantHTML()}
   ${calendarHTML()}
@@ -1979,6 +2017,7 @@ document.addEventListener("click",async ev=>{
 /* ---------- jedzenie ---------- */
 const MEALS=["Śniadanie","II śniadanie","Obiad","Przekąski","Kolacja"];
 let aDate=today();
+let sleepD={};
 let food={}, activity={}, products={}, recipes={}, targets={kcal:null,protein:null}, sampleApi=undefined, imgCaps=null;
 let fst={date:today(), meal:(()=>{const x=new Date().getHours();return x<10?"Śniadanie":x<12?"II śniadanie":x<15?"Obiad":x<17?"Przekąski":"Kolacja"})(), msg:"", busy:false, pending:null, reading:false, est:null, estBusy:false, qtab:"search", sugg:[], sel:null, code:null, saveMeal:null, tool:""};
 const LSA="sila-5x5-activity", LSF="sila-5x5-food", LSP="sila-5x5-products", LST="sila-5x5-targets", LSR="sila-5x5-recipes";
@@ -2039,6 +2078,7 @@ function initFood(){
     db.collection("food").onSnapshot(s=>{food={};s.docs.forEach(d=>{if(d.exists)food[d.id]=d.data().items||[]});foodChanged()},()=>{});
     db.collection("products").onSnapshot(s=>{products={};s.docs.forEach(d=>{if(d.exists)products[d.id]=d.data()});foodChanged()},()=>{});
     db.collection("activity").onSnapshot(s=>{activity={};s.docs.forEach(d=>{if(d.exists)activity[d.id]=d.data()});foodChanged()},()=>{});
+    db.collection("sleep").onSnapshot(s=>{sleepD={};s.docs.forEach(d=>{if(d.exists)sleepD[d.id]=d.data()});foodChanged()},()=>{});
     db.collection("recipes").onSnapshot(s=>{recipes={};s.docs.forEach(d=>{if(d.exists)recipes[d.id]=d.data()});foodChanged()},()=>{});
     db.doc("settings/garminlog").onSnapshot(d=>{garminLog=d.exists?d.data():null; if(gr.busy&&garminLog&&garminLog.step==="koniec"&&new Date(garminLog.at).getTime()>gr.firedAt-5000){gr.busy=false;gr.msg="Gotowe: "+String(garminLog.result||"dane przepisane").slice(0,160);} if(typeof renderProg==="function"&&progSec==="aktywnosc"&&!document.activeElement?.id?.startsWith("fd-")) renderProg();},()=>{});
     db.doc("settings/workout").onSnapshot(d=>{const w=d.exists?d.data():{};let ls=0;try{ls=+localStorage.getItem("sila-5x5-wstart")||0}catch(e){}
@@ -2046,10 +2086,11 @@ function initFood(){
       window.__wstDb=w.start||0; renderRemind(); if(state.tab==="log"&&!document.activeElement?.id?.startsWith("in-")) renderLog();},()=>{});
     db.doc("settings/reminders").onSnapshot(d=>{reminders={...REM_DEF,...(d.exists?d.data():{})};renderRemind();if(typeof renderPlan==="function")renderPlan()},()=>{});
     db.doc("settings/targets").onSnapshot(d=>{targets=d.exists?{...d.data()}:{kcal:null,protein:null};foodChanged()},()=>{});
+    db.doc("settings/gymsteps").onSnapshot(d=>{gymSteps=d.exists?{...d.data()}:{}; if(!document.activeElement?.id?.startsWith("in-")) renderLog(); if(typeof renderProg==="function") renderProg();},()=>{});
     db.doc("settings/shopping").onSnapshot(d=>{shop=shopNorm(d.exists?d.data():null); if(state.tab==="shop") renderShop();},()=>{});
   }else{
     reminders={...REM_DEF,...lsGet("sila-5x5-reminders",{})};
-    shop=shopNorm(lsGet("sila-5x5-shop",null));
+    shop=shopNorm(lsGet("sila-5x5-shop",null)); sleepD=lsGet("sila-5x5-sleep",{}); gymSteps=lsGet("sila-5x5-gymsteps",{});
     food=lsGet(LSF,{});activity=lsGet(LSA,{});products=lsGet(LSP,{});recipes=lsGet(LSR,{});targets=lsGet(LST,{kcal:null,protein:null});foodChanged();
   }
   (async()=>{try{sampleApi=window.claude?.use?await window.claude.use("sample"):null}catch(e){sampleApi=null} if(sampleApi){try{imgCaps=(await sampleApi.limits())?.images||null}catch(e){imgCaps=null}} renderFood();})();
@@ -2312,6 +2353,57 @@ function dayHeadHTML(d,pfx,sub,o={}){
     <button class="rnd" data-act="${o.next||pfx+"-next"}" aria-label="Następny dzień" ${o.max&&d>=o.max?"disabled":""}>›</button>
   </div>${isT?"":`<button class="techlink dh-today" data-act="${o.today||pfx+"-today"}">Wróć do dziś</button>`}`;
 }
+// ---------- sen (Garmin) ----------
+const SL_COL={deep:"#4F6BFF",light:"#7FB2FF",rem:"#B28CFF",awake:"#FFB547"};
+function hmin(m){m=Math.round(+m||0);return `${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")} min`}
+function hminShort(m){m=Math.round(+m||0);return `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")}`}
+function slScoreCol(v){return v>=80?"var(--good)":v>=60?"var(--warn)":"var(--bad)"}
+function slQual(q){return ({EXCELLENT:"świetny",GOOD:"dobry",FAIR:"przeciętny",POOR:"słaby"})[q]||""}
+function sleepTileHTML(d){const s=sleepD[d];
+  return `<button class="dtile sltile" data-act="fd-goprog" data-k="sen"><span class="label">Sen${d===today()?" (ostatnia noc)":""}</span><span class="v num">${s?hmin(s.total):"–"}</span><span class="note">${s?[s.score?`wynik ${s.score}`:"",s.start&&s.end?`${s.start}–${s.end}`:""].filter(Boolean).join(" · "):"brak danych z zegarka"}</span>${s?`<span class="slbar">${["deep","light","rem","awake"].map(k=>`<i style="flex:${+s[k]||0};background:${SL_COL[k]}"></i>`).join("")}</span>`:""}</button>`;}
+function sleepHTML(){
+  const days=Object.keys(sleepD).filter(k=>sleepD[k]&&sleepD[k].total>0).sort();
+  setTimeout(()=>{const el=document.getElementById("sl-status"); if(el&&window.dzSleep) window.dzSleep.status().then(st=>{if(!st||!st.at)return; el.textContent=st.ok?`Ostatnie pobranie z Garmina: ${new Date(st.at).toLocaleString("pl-PL",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}.`:`Nie udało się pobrać snu z Garmina (${st.err||"błąd"}). Spróbuję ponownie za godzinę.`;}).catch(()=>{});},0);
+  const foot=`<div class="row" style="gap:8px;align-items:center">${window.dzSleep?`<button class="btn ghost small" data-act="sl-refresh">Pobierz teraz z Garmina</button>`:""}<span class="note" id="sl-status"></span></div>`;
+  if(!days.length) return `<div class="card stack"><h2>Raport snu</h2><p class="note" style="margin:0">Sen pobiera się sam z Garmina każdego ranka (między 7 a 13). Zegarek musi być w nocy na ręce. Pierwsze pobranie ściąga też ostatnie 30 nocy.</p>${foot}</div>`;
+  const last=days.at(-1), s=sleepD[last];
+  const prev7=days.filter(k=>k<last).slice(-7).map(k=>sleepD[k]);
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+  const avgTot=avg(prev7.map(x=>+x.total)), avgSc=avg(prev7.filter(x=>x.score).map(x=>+x.score));
+  const diff=avgTot!=null?s.total-avgTot:null;
+  const ph=[["deep","Głęboki"],["light","Lekki"],["rem","REM"],["awake","Przebudzenia"]];
+  const sumPh=ph.reduce((a,[k])=>a+(+s[k]||0),0)||1;
+  const tips=[];
+  if(s.total<420) tips.push("Mniej niż 7 h. Krótki sen zwiększa głód i utrudnia regenerację – szczególnie na redukcji.");
+  else if(s.total>=420&&s.total<=540) tips.push("Długość w normie (7–9 h).");
+  if(s.deep!=null&&s.total&&s.deep/s.total<0.1) tips.push("Mało snu głębokiego. Pomaga stała pora zasypiania, chłodna sypialnia i brak alkoholu oraz ciężkiego jedzenia tuż przed snem.");
+  if(diff!=null&&Math.abs(diff)>=30) tips.push(`To o ${hmin(Math.abs(diff))} ${diff<0?"krócej":"dłużej"} niż Twoja średnia z poprzednich nocy.`);
+  const isTr=isTrainDay(today());
+  if(last===today()&&isTr&&s.score&&s.score<60) tips.push("Dziś trening, a noc była słaba – nie goń rekordów, trzymaj ciężary z planu.");
+  // wykres 14 nocy
+  const d14=[];for(let i=13;i>=0;i--){const k=shiftDate(last,-i);d14.push([k,sleepD[k]])}
+  const W=320,H=120,bw=W/14,mx=Math.max(600,...d14.map(([,x])=>x?+x.total:0)),y=m=>H-18-(m/mx)*(H-28);
+  const chart=`<svg viewBox="0 0 ${W} ${H}" class="slchart" role="img" aria-label="Długość snu z ostatnich 14 nocy">
+    <line x1="0" x2="${W}" y1="${y(420)}" y2="${y(420)}" stroke="var(--line)" stroke-dasharray="4 4"/><text x="${W-2}" y="${y(420)-4}" text-anchor="end" font-size="10" fill="var(--muted)">7 h</text>
+    ${d14.map(([k,x],i)=>{const dd=new Date(k+"T12:00:00");const lab=`<text x="${i*bw+bw/2}" y="${H-4}" text-anchor="middle" font-size="9" fill="var(--muted)">${dd.getDate()}</text>`;if(!x)return lab;const h=H-18-y(x.total);return `<rect x="${i*bw+3}" y="${y(x.total)}" width="${bw-6}" height="${Math.max(2,h)}" rx="3" fill="${x.score?slScoreCol(x.score):"var(--c)"}" opacity="${k===last?1:.75}"><title>${k}: ${hmin(x.total)}${x.score?`, wynik ${x.score}`:""}</title></rect>`+lab}).join("")}</svg>`;
+  const lastLab=last===today()?"Ostatnia noc":"Noc zakończona "+fmtDate(last);
+  const bedAvg=avg(days.slice(-7).map(k=>sleepD[k].start).filter(Boolean).map(t=>{const [h,m]=t.split(":").map(Number);let v=h*60+m;if(v<12*60)v+=24*60;return v}));
+  return `<div class="card stack"><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Raport snu</h2><span class="note">${lastLab}</span></div>
+    <div class="slhead"><div><div class="slbig num">${hmin(s.total)}</div><div class="note num">${s.start&&s.end?`${s.start} → ${s.end}`:""}</div></div>
+    ${s.score?`<div class="slscore" style="border-color:${slScoreCol(s.score)};color:${slScoreCol(s.score)}"><b class="num">${s.score}</b><span>${slQual(s.quality)||"wynik"}</span></div>`:""}</div>
+    <div class="slbar big">${ph.map(([k])=>`<i style="flex:${+s[k]||0};background:${SL_COL[k]}"></i>`).join("")}</div>
+    <div class="slleg">${ph.map(([k,l])=>`<span><i style="background:${SL_COL[k]}"></i>${l} <b class="num">${hminShort(s[k])}</b> <span class="note num">${Math.round((+s[k]||0)/sumPh*100)}%</span></span>`).join("")}</div>
+    ${(s.rhr||s.hrv||s.resp)?`<div class="slstats">${s.rhr?`<div><span class="label">Tętno spocz.</span><b class="num">${s.rhr}</b> <span class="note">ud/min</span></div>`:""}${s.hrv?`<div><span class="label">HRV (noc)</span><b class="num">${Math.round(s.hrv)}</b> <span class="note">ms</span></div>`:""}${s.resp?`<div><span class="label">Oddech</span><b class="num">${fmt(Math.round(s.resp*10)/10)}</b> <span class="note">/min</span></div>`:""}</div>`:""}
+    ${tips.length?`<div class="nb-step" style="margin:0">${tips.join(" ")}</div>`:""}
+  </div>
+  <div class="card stack"><h3>Ostatnie 14 nocy</h3>${chart}
+    <div class="slstats">${avgTot!=null?`<div><span class="label">Średnio (7 nocy)</span><b class="num">${hmin(avg(days.slice(-7).map(k=>+sleepD[k].total)))}</b></div>`:""}${avgSc!=null?`<div><span class="label">Średni wynik</span><b class="num">${Math.round(avg(days.slice(-7).map(k=>+sleepD[k].score||0).filter(Boolean)))}</b></div>`:""}${bedAvg?`<div><span class="label">Zasypiasz ok.</span><b class="num">${hminShort(Math.round(bedAvg)%1440)}</b></div>`:""}</div>
+    <p class="note" style="margin:0">Kolor słupka to wynik snu z Garmina: zielony 80+, żółty 60–79, czerwony poniżej 60.</p>
+    ${foot}</div>`;
+}
+document.addEventListener("click",async ev=>{const b=ev.target.closest('[data-act="sl-refresh"]'); if(!b||!window.dzSleep) return; b.disabled=true; b.textContent="Pobieram…";
+  try{ await window.dzSleep.refresh(); }catch(e){}
+  setTimeout(()=>{ if(typeof renderProg==="function") renderProg(); },8000); });
 function dayTilesHTML(d){
   const a=activity[d]||{}, st=+a.steps||0, goal=stepsGoal();
   const bw=a.bw>0?+a.bw:(d===today()?smoothBw():null), tr=bwTrend();
@@ -2319,6 +2411,7 @@ function dayTilesHTML(d){
   const good=tr&&(MODE==="red"?tr.perWeek<0:tr.perWeek>0);
   return `<div class="daytiles">
     <button class="dtile" data-act="fd-goprog" data-k="aktywnosc"><span class="label">Kroki</span><span class="v num">${st?st.toLocaleString("pl-PL"):"–"}</span><span class="note">${st?`cel ${goal.toLocaleString("pl-PL")}`:"jeszcze brak"}</span>${st?`<span class="bar"><i style="width:${Math.min(100,st/goal*100)}%;${st>=goal?"background:var(--good)":""}"></i></span>`:""}</button>
+    ${Object.keys(sleepD).length?sleepTileHTML(d):""}
     <button class="dtile" data-act="fd-goprog" data-k="waga"><span class="label">Waga</span><span class="v num">${bw?fmt(Math.round(bw*10)/10)+" kg":"–"}</span><span class="note" style="${good?"color:var(--accent);font-weight:600":""}">${bw?trTxt:"wpisz pomiar"}</span></button>
   </div>`;
 }
