@@ -245,6 +245,7 @@
   const mzEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const mzMB = n => (n / 1048576).toFixed(n > 104857600 ? 0 : 1).replace(".", ",") + " MB";
   const mzUrls = new Map();
+  function mzCardOpen() { try { return localStorage.getItem("dz-mz-card") !== "0" } catch (e) { return true } }
   function mzListOpen() { try { return localStorage.getItem("dz-mz-list") === "1" } catch (e) { return false } }
   function mzUrl(f) { if (!mzUrls.has(f)) mzUrls.set(f, URL.createObjectURL(f)); return mzUrls.get(f); }
   function mzDate() { try { return fst.date } catch (e) { return new Date().toISOString().slice(0, 10) } }
@@ -265,7 +266,13 @@
     if (j.state === "working" || mz.up || mz.pick === j.id) return j;
     return j.date === mzDate() ? j : null;
   }
+  function mzSum() {
+    const el = document.getElementById("dz-mz-sum"); if (!el) return;
+    const j = mzJobShown();
+    el.textContent = mz.up ? `wysyłanie ${Math.round(mz.up.pct * 100)}%` : j && j.state === "working" ? "montuję…" : j && j.state === "done" ? "✓ gotowy" : j && j.state === "error" ? "błąd" : mz.files.length ? `${mz.files.length} klip.` : "TikTok";
+  }
   function mzPaint() {
+    mzSum();
     const el = document.getElementById("dz-mz"); if (!el) return;
     if (el.contains(document.activeElement) && document.activeElement.tagName === "INPUT" && document.activeElement.type !== "file") return;
     const d = mzDate(), info = mz.info, j = mzJobShown();
@@ -377,6 +384,12 @@
     const b = ev.target.closest("[data-mz]"); if (!b || b.tagName === "INPUT") return;
     const a = b.dataset.mz;
     if (a === "go") { b.disabled = true; mzGo(); }
+    if (a === "cardtog") {
+      const o = !mzCardOpen(); try { localStorage.setItem("dz-mz-card", o ? "1" : "0") } catch (e) {}
+      const el = document.getElementById("dz-mz"); if (el) el.hidden = !o;
+      b.setAttribute("aria-expanded", o); const c = b.querySelector(".chev"); if (c) c.textContent = o ? "▴" : "▾";
+      if (o) mzPaint(); return;
+    }
     if (a === "listtog") { try { localStorage.setItem("dz-mz-list", mzListOpen() ? "0" : "1") } catch (e) {} mzPaint(); return; }
     if (a === "rmclip") { const f = mz.files[+b.dataset.i]; if (f && mzUrls.has(f)) { URL.revokeObjectURL(mzUrls.get(f)); mzUrls.delete(f); } mz.files.splice(+b.dataset.i, 1); mzPaint(); return; }
     if (a === "new") { mz.job = null; mz.pick = null; mz.blob = null; mz.err = ""; mzPaint(); }
@@ -407,7 +420,8 @@
       } catch (e) { if (e.name !== "AbortError") { mz.err = "Udostępnianie nie zadziałało – użyj „Pobierz plik”."; mzPaint(); } }
     }
   });
-  window.dzMontaz = { html: () => { setTimeout(() => { mz.info ? (mzPaint(), mzWatch()) : mzLoad(); }, 0); return `<div class="card stack"><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Film dnia</h2><span class="note">TikTok</span></div><div id="dz-mz" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
+  window.dzMontaz = { html: () => { setTimeout(() => { mz.info ? (mzPaint(), mzWatch()) : mzLoad(); }, 0); const o = mzCardOpen();
+    return `<div class="card stack"><button class="mzcardhead" data-mz="cardtog" aria-expanded="${o}"><h2>Film dnia</h2><span class="note" id="dz-mz-sum"></span><span class="chev" aria-hidden="true">${o ? "▴" : "▾"}</span></button><div id="dz-mz" class="stack" style="gap:10px" ${o ? "" : "hidden"}><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
 
   window.dzSleep = { refresh: () => req("POST", "/sleep/refresh", {}), status: () => req("GET", "/sleep/status") };
 
