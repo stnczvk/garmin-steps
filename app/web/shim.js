@@ -266,6 +266,19 @@
     if (j.state === "working" || mz.up || mz.pick === j.id) return j;
     return j.date === mzDate() ? j : null;
   }
+  const mzPlans = {};
+  const mzCardLabel = n => { const b = n.replace(/-\d{4}-\d{2}-\d{2}\.png$/i, "").replace(/\.png$/i, ""); return ({ "drugie-sniadanie": "II śniadanie", "sniadanie": "Śniadanie", "śniadanie": "Śniadanie", "obiad": "Obiad", "przekaski": "Przekąski", "przekąski": "Przekąski", "kolacja": "Kolacja" })[b.toLowerCase()] || (b.charAt(0).toUpperCase() + b.slice(1).replace(/-/g, " ")); };
+  function mzPlanHTML(j) {
+    const pl = mzPlans[j.id];
+    if (pl === undefined) { mzPlans[j.id] = null; req("GET", `/montaz/${j.id}/plan`).then(r => { mzPlans[j.id] = r; mzPaint(); }).catch(() => {}); return ""; }
+    if (!pl || !pl.rows.length) return "";
+    const miss = pl.cards.filter(c => !pl.rows.some(r => r.card === c));
+    return `<details ${mz.planOpen === j.id || miss.length ? "open" : ""} data-mzplan="${j.id}"><summary class="note" style="cursor:pointer;font-weight:600">Karty posiłków w filmie${miss.length ? ` – <span style="color:var(--warn)">${miss.length} niedopasowana</span>` : ""}</summary>
+      <div class="stack" style="gap:0;margin-top:6px">${pl.rows.map((r, i) => `<div class="mzrow" style="align-items:flex-start"><span class="mzname"><b>Klip ${i + 1}</b><span class="note">${r.text ? "„" + mzEsc(r.text.slice(0, 90)) + (r.text.length > 90 ? "…" : "") + "”" : "bez mowy"}</span></span>
+        <select data-mzcard="${mzEsc(r.clip)}" style="width:auto;max-width:46%;flex:none"><option value="">bez karty</option>${pl.cards.map(c => `<option value="${mzEsc(c)}" ${r.card === c ? "selected" : ""}>${mzEsc(mzCardLabel(c))}</option>`).join("")}</select></div>`).join("")}</div>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn small" data-mz="planset">Zmontuj z tymi kartami</button>${pl.manual ? `<button class="btn ghost small" data-mz="planreset">Przywróć automatyczne</button>` : ""}</div>
+      <span class="note">Każdą kartę można użyć raz. Montaż od nowa trwa kilka minut.</span></details>`;
+  }
   function mzSum() {
     const el = document.getElementById("dz-mz-sum"); if (!el) return;
     const j = mzJobShown();
@@ -274,7 +287,8 @@
   function mzPaint() {
     mzSum();
     const el = document.getElementById("dz-mz"); if (!el) return;
-    if (el.contains(document.activeElement) && document.activeElement.tagName === "INPUT" && document.activeElement.type !== "file") return;
+    if (el.contains(document.activeElement) && (document.activeElement.tagName === "SELECT" || (document.activeElement.tagName === "INPUT" && document.activeElement.type !== "file"))) return;
+    const pd = el.querySelector("details[data-mzplan]"); if (pd) mz.planOpen = pd.open ? pd.dataset.mzplan : null;
     const d = mzDate(), info = mz.info, j = mzJobShown();
     if (!info) { el.innerHTML = `<p class="note" style="margin:0">Ładuję…</p>`; return; }
     let h = "";
@@ -289,6 +303,7 @@
       h += `<video src="/api/montaz/${j.id}/film" controls playsinline preload="metadata" style="width:100%;max-height:60vh;border-radius:14px;background:#000"></video>
         <div class="row" style="gap:8px;flex-wrap:wrap">${mz.blob ? `<button class="btn small" data-mz="share">Zapisz / udostępnij film</button>` : `<button class="btn small" data-mz="prep">${mz.prep ? "Pobieram… " + mz.prep : "Zapisz w telefonie"}</button>`}<a class="btn ghost small" href="/api/montaz/${j.id}/film?dl=1">Pobierz plik</a></div>
         <span class="note">${mzEsc(j.film || "")} · ${mzMB(j.size || 0)}</span>
+        ${mzPlanHTML(j)}
         ${j.raport ? `<details><summary class="note" style="cursor:pointer;font-weight:600">Co zostało wycięte (raport)</summary><pre style="white-space:pre-wrap;font-size:12px;margin:6px 0 0">${mzEsc(j.raport)}</pre></details>` : ""}
         <div class="row" style="gap:8px"><button class="btn ghost small" data-mz="new">Zrób nowy film</button><button class="btn ghost small" data-mz="redo">Zmontuj jeszcze raz</button></div>`;
     } else if (j && j.state === "error") {
@@ -322,7 +337,7 @@
     if (mz.poll || !mz.job || mz.job.state !== "working") return;
     mz.poll = setInterval(async () => {
       try { mz.job = await req("GET", "/montaz/" + mz.job.id); } catch (e) { return; }
-      if (mz.job.state !== "working") { clearInterval(mz.poll); mz.poll = null; mz.blob = null; mzList(); }
+      if (mz.job.state !== "working") { clearInterval(mz.poll); mz.poll = null; mz.blob = null; delete mzPlans[mz.job.id]; mzList(); }
       mzPaint();
     }, 3000);
   }
@@ -384,6 +399,12 @@
     const b = ev.target.closest("[data-mz]"); if (!b || b.tagName === "INPUT") return;
     const a = b.dataset.mz;
     if (a === "go") { b.disabled = true; mzGo(); }
+    if ((a === "planset" || a === "planreset") && mz.job) {
+      const id = mz.job.id, rows = [...document.querySelectorAll("[data-mzcard]")].map(s => ({ clip: s.dataset.mzcard, card: s.value || null }));
+      mz.err = ""; b.disabled = true;
+      try { mz.job = await req("POST", `/montaz/${id}/plan`, a === "planreset" ? { reset: 1 } : { rows }); delete mzPlans[id]; mz.blob = null; } catch (e) { mz.err = e.message; }
+      mzPaint(); mzWatch(); return;
+    }
     if (a === "cardtog") {
       const o = !mzCardOpen(); try { localStorage.setItem("dz-mz-card", o ? "1" : "0") } catch (e) {}
       const el = document.getElementById("dz-mz"); if (el) el.hidden = !o;

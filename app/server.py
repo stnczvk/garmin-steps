@@ -561,8 +561,10 @@ def montaz_start(jid: str):
         return JSONResponse({"error": "Brak klucza Groq na serwerze."}, status_code=400)
     # tytuł jako opis.txt – nowszy niż klipy, więc skrypt go użyje
     (day / "opis.txt").write_text("\n".join(json.loads((d / "title.json").read_text())) + "\n", encoding="utf-8")
-    for f in ("kolejnosc.txt", "raport.txt"):
-        (day / f).unlink(missing_ok=True)
+    ko = day / "kolejnosc.txt"
+    if ko.exists() and ko.read_text(encoding="utf-8").startswith("# AUTO"):
+        ko.unlink()                      # ręczny plan (ustawiony w aplikacji) zostaje
+    (day / "raport.txt").unlink(missing_ok=True)
     if (d / "gotowe").is_dir():
         shutil.rmtree(d / "gotowe", ignore_errors=True)
     st = {k: v for k, v in st.items() if k in ("date",)}
@@ -571,6 +573,66 @@ def montaz_start(jid: str):
     subprocess.Popen(["nice", "-n", "15", sys.executable, str(HERE / "montaz_job.py"), str(d)], env=env,
                      stdout=subprocess.DEVNULL, stderr=open(d / "job_err.txt", "w"), start_new_session=True)
     return _mz_status(d)
+
+
+def _mz_plan_rows(day):
+    import shlex
+    ko = day / "kolejnosc.txt"
+    rows = []
+    if ko.exists():
+        for line in ko.read_text(encoding="utf-8").splitlines():
+            try:
+                toks = shlex.split(line, comments=True)
+            except ValueError:
+                continue
+            if not toks:
+                continue
+            names = [t for t in toks if "=" not in t]
+            rows.append({"clip": names[0], "card": names[1] if len(names) > 1 else None,
+                         "opts": [t for t in toks if "=" in t]})
+    return rows
+
+
+@app.get("/api/montaz/{jid}/plan")
+def montaz_plan(jid: str):
+    d = _mz_job(jid)
+    day = next(d.glob("dzien_*"))
+    try:
+        tr = json.loads((day / "transkrypcja.json").read_text(encoding="utf-8"))
+    except Exception:
+        tr = {}
+    rows = _mz_plan_rows(day)
+    for r in rows:
+        r["text"] = (tr.get(r["clip"], {}).get("text") or "")[:140]
+    cards = sorted(f.name for f in day.iterdir() if f.suffix.lower() in MZ_KIND["card"])
+    ko = day / "kolejnosc.txt"
+    return {"rows": rows, "cards": cards, "manual": ko.exists() and not ko.read_text(encoding="utf-8").startswith("# AUTO")}
+
+
+@app.post("/api/montaz/{jid}/plan")
+async def montaz_plan_set(jid: str, req: Request):
+    import shlex
+    d = _mz_job(jid)
+    day = next(d.glob("dzien_*"))
+    body = await req.json()
+    if body.get("reset"):
+        (day / "kolejnosc.txt").unlink(missing_ok=True)
+        return montaz_start(jid)
+    want = {r.get("clip"): r.get("card") for r in body.get("rows", [])}
+    cards = {f.name for f in day.iterdir() if f.suffix.lower() in MZ_KIND["card"]}
+    rows = _mz_plan_rows(day)
+    if not rows:
+        return JSONResponse({"error": "Brak planu montażu – zmontuj film najpierw automatycznie."}, status_code=400)
+    used = set()
+    out = ["# RĘCZNY – karty posiłków ustawione w aplikacji", ""]
+    for r in rows:
+        card = want.get(r["clip"], r["card"])
+        card = card if card in cards and card not in used else None
+        if card:
+            used.add(card)
+        out.append(" ".join([shlex.quote(r["clip"])] + ([shlex.quote(card)] if card else []) + r["opts"]))
+    (day / "kolejnosc.txt").write_text("\n".join(out) + "\n", encoding="utf-8")
+    return montaz_start(jid)
 
 
 @app.post("/api/montaz/{jid}/title")

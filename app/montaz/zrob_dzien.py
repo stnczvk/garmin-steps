@@ -37,8 +37,12 @@ DNI_PELNE = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota
 SWEAR = re.compile(r"kurw|chuj|pierdol|jeb|szmat")
 
 # posiłek w mowie -> klucz ; kolejność ma znaczenie ("drugie śniadanie" przed "śniadanie")
-MEAL_SPEECH = [("drugie", r"drugie\s+śniadani"), ("sniadanie", r"śniadani"), ("obiad", r"obiad"),
-               ("podwieczorek", r"podwieczor"), ("przekaska", r"przekąsk"), ("kolacja", r"kolacj")]
+# dopasowanie na tekście bez polskich znaków (Whisper czasem gubi ogonki albo zdrabnia: "śniadanko", "kolacyjka")
+MEAL_SPEECH = [("drugie", r"(drug\w*|ii|2)\s+sniadan"), ("sniadanie", r"sniadan"), ("obiad", r"obiad"),
+               ("podwieczorek", r"podwieczor"), ("przekaska", r"przekas|przegryz|deser"),
+               ("kolacja", r"kolac|kolacyj")]
+MEAL_ORDER = ["sniadanie", "drugie", "obiad", "podwieczorek", "przekaska", "kolacja"]
+MEAL_HOUR = {"sniadanie": 8.0, "drugie": 11.0, "obiad": 14.5, "podwieczorek": 16.5, "przekaska": 17.0, "kolacja": 20.0}
 MEAL_FILE = [("drugie", "drugie"), ("sniadanie", "sniadan"), ("obiad", "obiad"),
              ("podwieczorek", "podwieczor"), ("przekaska", "przekask"), ("kolacja", "kolac")]
 
@@ -159,7 +163,7 @@ def recorded_at(video):
 
 def meal_from_speech(text):
     """Posiłek, który PIERWSZY pada w wypowiedzi ("na obiad to samo co na kolację" -> obiad)."""
-    t = text.lower()
+    t = ascii_low(text)
     best = None
     for key, pat in MEAL_SPEECH:
         m = re.search(pat, t)
@@ -317,18 +321,36 @@ def main():
         free = {meal_from_file(i.name): i for i in images if meal_from_file(i.name)}
         unnamed = [i for i in images if not meal_from_file(i.name)]
         lines = [f"# AUTO [{fh}] - plan przygotowany automatycznie; możesz go poprawić ręcznie", ""]
+        meals, shots, how = {}, {}, {}
+        for v in videos:
+            meals[v] = meal_from_speech(trans.get(v.name, {}).get("text", ""))
+            shot = free.pop(meals[v], None) if meals[v] else None
+            if shot is None and meals[v] and meals[v] != "drugie" and unnamed:
+                shot = unnamed.pop(0)       # zrzuty bez nazwy posiłku -> po kolei
+            shots[v] = shot
+            if shot:
+                how[v] = "z mowy"
+        # karty, których nie udało się dopasować z mowy -> do klipów bez karty, wg godziny nagrania
+        left_cards = sorted(free.items(), key=lambda kv: MEAL_ORDER.index(kv[0]) if kv[0] in MEAL_ORDER else 99)
+        last_t = None
+        for meal_key, img in left_cards:
+            cand = [v for v in videos if shots[v] is None and (last_t is None or times[v][0] >= last_t)]
+            if not cand:
+                break
+            want = MEAL_HOUR.get(meal_key, 14.0)
+            v = min(cand, key=lambda x: abs(times[x][0].hour + times[x][0].minute / 60 - want))
+            shots[v], meals[v], how[v] = img, meals[v] or meal_key, "wg godziny nagrania – sprawdź"
+            free.pop(meal_key, None)
+            last_t = times[v][0]
         for v in videos:
             info = trans.get(v.name, {})
             text = info.get("text", "")
-            meal = meal_from_speech(text)
-            shot = free.pop(meal, None) if meal else None
-            if shot is None and meal and meal != "drugie" and unnamed:
-                shot = unnamed.pop(0)       # zrzuty bez nazwy posiłku -> po kolei
+            meal, shot = meals[v], shots[v]
             opts, reasons = auto_cuts(info)
             parts = [shlex.quote(v.name)] + ([shlex.quote(shot.name)] if shot else []) + opts
             lines.append(" ".join(parts) + f"   # {times[v][0].strftime('%H:%M')} {meal or '-'}")
             desc = f"{times[v][0].strftime('%H:%M')}  {v.name}  ->  " + \
-                   (f"{meal or '?'} + zrzut {shot.name}" if shot else f"{meal or 'bez posiłku'}, bez zrzutu")
+                   (f"{meal or '?'} + zrzut {shot.name} ({how.get(v, '')})" if shot else f"{meal or 'bez posiłku'}, bez zrzutu")
             rep.append(desc)
             rep += [f"      {r}" for r in reasons]
             rep += [f"      transkrypcja: {w}" for w in info.get("warnings", [])
