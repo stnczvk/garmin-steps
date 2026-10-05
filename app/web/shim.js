@@ -272,10 +272,13 @@
     const pl = mzPlans[j.id];
     if (pl === undefined) { mzPlans[j.id] = null; req("GET", `/montaz/${j.id}/plan`).then(r => { mzPlans[j.id] = r; mzPaint(); }).catch(() => {}); return ""; }
     if (!pl || !pl.rows.length) return "";
+    const dayMeals = j.date ? mzMeals(j.date) : [];
     const miss = pl.cards.filter(c => !pl.rows.some(r => r.card === c));
     return `<details ${mz.planOpen === j.id || miss.length ? "open" : ""} data-mzplan="${j.id}"><summary class="note" style="cursor:pointer;font-weight:600">Karty posiłków w filmie${miss.length ? ` – <span style="color:var(--warn)">${miss.length} niedopasowana</span>` : ""}</summary>
       <div class="stack" style="gap:0;margin-top:6px">${pl.rows.map((r, i) => `<div class="mzrow" style="align-items:flex-start"><span class="mzname"><b>Klip ${i + 1}</b><span class="note">${r.text ? "„" + mzEsc(r.text.slice(0, 90)) + (r.text.length > 90 ? "…" : "") + "”" : "bez mowy"}</span></span>
         <select data-mzcard="${mzEsc(r.clip)}" style="width:auto;max-width:46%;flex:none"><option value="">bez karty</option>${pl.cards.map(c => `<option value="${mzEsc(c)}" ${r.card === c ? "selected" : ""}>${mzEsc(mzCardLabel(c))}</option>`).join("")}</select></div>`).join("")}</div>
+      ${!pl.cards.length ? `<p class="note" style="margin:6px 0 0;color:var(--warn)">Na serwerze nie ma żadnej karty posiłku dla tego filmu.</p>` : ""}
+      <button class="btn ghost small" data-mz="cardsync" style="margin-top:8px;align-self:flex-start">${mz.cardSync ? mz.cardSync : `Pobierz karty z dziennika${dayMeals.length ? ` (${dayMeals.length})` : ""}`}</button>
       <div class="row" style="gap:8px;margin-top:8px"><button class="btn small" data-mz="planset">Zmontuj z tymi kartami</button>${pl.manual ? `<button class="btn ghost small" data-mz="planreset">Przywróć automatyczne</button>` : ""}</div>
       <span class="note">Każdą kartę można użyć raz. Montaż od nowa trwa kilka minut.</span></details>`;
   }
@@ -399,6 +402,20 @@
     const b = ev.target.closest("[data-mz]"); if (!b || b.tagName === "INPUT") return;
     const a = b.dataset.mz;
     if (a === "go") { b.disabled = true; mzGo(); }
+    if (a === "cardsync" && mz.job && !mz.cardSync) {
+      const j = mz.job, d = j.date || mzDate(), meals = mzMeals(d);
+      if (!meals.length) { mz.err = "W dzienniku nie ma posiłków z tego dnia – najpierw je dodaj."; mzPaint(); return; }
+      const keep = fst.date; mz.err = "";
+      try {
+        for (let i = 0; i < meals.length; i++) {
+          mz.cardSync = `Wysyłam kartę ${i + 1} z ${meals.length}…`; mzPaint();
+          fst.date = d; const blob = await mealImage(meals[i]); fst.date = keep;
+          await mzPut(`/api/montaz/${j.id}/file?kind=card&i=${i + 1}&name=${encodeURIComponent(mzCardName(meals[i], d))}`, blob, () => {});
+        }
+        mzPlans[j.id] = await req("GET", `/montaz/${j.id}/plan`);
+      } catch (e) { mz.err = "Nie udało się wysłać kart: " + (e.message || ""); }
+      fst.date = keep; mz.cardSync = null; mz.planOpen = j.id; mzPaint(); return;
+    }
     if ((a === "planset" || a === "planreset") && mz.job) {
       const id = mz.job.id, rows = [...document.querySelectorAll("[data-mzcard]")].map(s => ({ clip: s.dataset.mzcard, card: s.value || null }));
       mz.err = ""; b.disabled = true;
