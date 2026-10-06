@@ -207,7 +207,10 @@
   document.addEventListener("click", async ev => {
     const b = ev.target.closest("[data-dzscale]"); if (!b) return;
     if (b.dataset.dzscale === "copy") { const i = document.getElementById("dz-hookurl"); try { await navigator.clipboard.writeText(i.value); b.textContent = "✓ Skopiowano" } catch (e) { i.select(); document.execCommand && document.execCommand("copy"); b.textContent = "✓ Skopiowano" } setTimeout(() => b.textContent = "Kopiuj", 2000); return; }
-    if (b.dataset.dzscale === "new") { await req("POST", "/hook/newkey", {}); paintScale(); }
+    if (b.dataset.dzscale === "new") {
+      if (b.dataset.ask !== "1") { b.dataset.ask = "1"; b.textContent = "Na pewno? Skrót w telefonie przestanie działać – kliknij jeszcze raz"; b.style.color = "var(--bad)"; setTimeout(() => { if (b.isConnected) { b.dataset.ask = ""; b.textContent = "Zmień link (stary przestanie działać)"; b.style.color = ""; } }, 5000); return; }
+      await req("POST", "/hook/newkey", {}); paintScale();
+    }
   });
   window.dzScale = { html: () => { setTimeout(paintScale, 0); return `<div class="card stack"><h2>Waga Xiaomi</h2><div id="dz-scale" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
 
