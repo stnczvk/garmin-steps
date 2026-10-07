@@ -180,6 +180,7 @@ def meal_from_file(name):
     return None
 
 
+START_WORDS = {"no", "i", "a", "to", "wiec", "dobra", "dobrze", "okej", "ok", "noi"}
 FILLER = {"yyy", "eee", "em", "eh", "hmm", "mmm", "yy", "ee"}
 
 
@@ -260,14 +261,20 @@ def auto_cuts(info):
         reasons.append(f"powtórka (słowa): wycinam {a:.2f}-{b:.2f} s (zostaje od \"{txt}...\")")
     # 1c) "rozciągnięte" słowo – rozpoznawanie mowy skleja powtórzone słowo z pauzą w jedno długie
     #     (np. "na" trwające 1,6 s = "na… na"). Zostawiamy tylko końcówkę, w której słowo faktycznie pada.
-    for w in info.get("words", []):
+    for w in info.get("words", [])[:-1]:
         txt = _wn(w.get("word", ""))
-        if not txt or re.search(r"\d", txt):
+        if not txt or len(txt) > 4 or re.search(r"\d", txt):
             continue
         st, en = float(w["start"]), float(w["end"])
         normal = 0.15 + 0.09 * len(txt)
         if en - st > max(1.0, normal * 2.5):
             a, b = max(0.0, st - 0.05), en - normal - 0.05
+            # krótkie słowa startowe tuż przed ("no i", "a", "to") to zwykle pierwsze podejście – też wycinamy
+            ws_all = info.get("words", [])
+            k = next((n for n, x in enumerate(ws_all) if x is w), None)
+            while k and _wn(ws_all[k - 1].get("word", "")) in START_WORDS and st - float(ws_all[k - 1]["start"]) < 3.0:
+                k -= 1
+                a = max(0.0, float(ws_all[k]["start"]) - 0.05)
             if b - a >= 0.4 and not any(a < cb and b > ca for ca, cb in cuts):
                 cuts.append((a, b))
                 reasons.append(f"rozciągnięte słowo \"{w['word']}\" ({en - st:.1f} s) – pewnie powtórka/zawieszenie: wycinam {a:.2f}-{b:.2f} s")
@@ -285,8 +292,8 @@ def auto_cuts(info):
                            f"{c['start']:.2f}-{c['end']:.2f} s \"{c['text']}\"")
     # 3) długa cisza na początku (zanim zaczniesz mówić)
     kept = [c for i, c in enumerate(chunks) if i not in removed]
-    if kept and not any(a <= 0.2 for a, _ in cuts) and kept[0]["start"] > 2.0:
-        b = kept[0]["start"] - 0.5
+    if kept and not any(a <= 0.2 for a, _ in cuts) and kept[0]["start"] > 0.9:
+        b = kept[0]["start"] - 0.3
         cuts.append((0.0, b))
         reasons.append(f"cisza na początku: wycinam 0.00-{b:.2f} s")
     # scal nakładające się cięcia
@@ -297,6 +304,24 @@ def auto_cuts(info):
             merged[-1] = (merged[-1][0], max(merged[-1][1], b))
         else:
             merged.append((a, b))
+    # po cięciu nie zostawiaj ciszy: zacznij ~0,3 s przed następnym słowem
+    wl = [(float(x["start"]), float(x["end"])) for x in info.get("words", []) if _wn(x.get("word", ""))]
+    for n, (a, b) in enumerate(merged):
+        if any(s0 < b < e0 for s0, e0 in wl):
+            continue
+        nxt = min((s0 for s0, _ in wl if s0 >= b), default=None)
+        if nxt is not None and nxt - b > 0.6:
+            merged[n] = (a, nxt - 0.3)
+            reasons.append(f"cisza po cięciu: start od {nxt - 0.3:.2f} s")
+    # między cięciami zostały tylko "no", "i" albo cisza → jedno cięcie
+    m2 = []
+    for a, b in merged:
+        if m2 and all(_wn(x["word"]) in START_WORDS or not _wn(x["word"]) for x in info.get("words", [])
+                      if m2[-1][1] <= float(x["start"]) < a):
+            m2[-1] = (m2[-1][0], b)
+        else:
+            m2.append((a, b))
+    merged = m2
     opts = []
     for a, b in merged:
         opts.append(f"od={b:.2f}" if a <= 0.2 else f"wytnij={a:.2f}-{b:.2f}")
