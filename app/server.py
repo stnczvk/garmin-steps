@@ -685,7 +685,13 @@ async def montaz_fix(jid: str, req: Request):
         r = await c.post(os.environ.get("ANTHROPIC_URL", "https://api.anthropic.com/v1/messages"), json=body,
                          headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
     if r.status_code != 200:
-        return JSONResponse({"error": "AI nie odpowiedziało (" + str(r.status_code) + ")."}, status_code=502)
+        try:
+            msg = r.json().get("error", {}).get("message", "")
+        except Exception:
+            msg = r.text[:200]
+        if "credit balance" in msg.lower():
+            msg = "Brak środków na koncie API Anthropic – doładuj kredyty w console.anthropic.com (Billing)."
+        return JSONResponse({"error": f"AI nie odpowiedziało ({r.status_code}): {msg[:250]}"}, status_code=502)
     res = r.json()
     u = res.get("usage", {})
     pi, po = PRICES.get(model, (2.0, 10.0))
