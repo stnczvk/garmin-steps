@@ -427,6 +427,10 @@ def _mz_status(d):
     except Exception:
         st = {}
     st["id"] = d.name
+    try:
+        st["uwagi"] = json.loads((d / "uwagi.json").read_text())[-5:]
+    except Exception:
+        pass
     if st.get("state") == "working" and time.time() - st.get("at", 0) > 1800:
         st.update(state="error", error="Montaż przestał odpowiadać (ponad 30 min bez postępu).")
     return st
@@ -633,6 +637,106 @@ async def montaz_plan_set(jid: str, req: Request):
         out.append(" ".join([shlex.quote(r["clip"])] + ([shlex.quote(card)] if card else []) + r["opts"]))
     (day / "kolejnosc.txt").write_text("\n".join(out) + "\n", encoding="utf-8")
     return montaz_start(jid)
+
+
+MZ_FIX_PROMPT = """Jesteś montażystą krótkiego filmu (TikTok) z dnia jedzenia. Film składa się z klipów w podanej kolejności.
+Dla każdego klipu masz transkrypcję z czasem każdego słowa (sekundy od początku ORYGINALNEGO klipu) i obecne cięcia:
+od=X (zacznij od X s), do=Y (skończ na Y s), wytnij=A-B (usuń fragment A–B).
+Użytkownik opisał, co poprawić. Ustal nowe cięcia TYLKO dla klipów, których dotyczy uwaga.
+Zasady:
+- Powtórzone zdanie/początek: zostaw OSTATNIE podejście, wytnij od początku pierwszego podejścia do ok. 0,15 s przed początkiem ostatniego.
+- Cięcia stawiaj na granicach słów (z listy czasów), z zapasem ok. 0,1 s, nie w środku słowa.
+- Zwracane cięcia dla klipu ZASTĘPUJĄ obecne, więc przepisz też obecne cięcia, które mają zostać.
+- Nie wycinaj całego klipu, chyba że użytkownik wyraźnie każe go usunąć – wtedy ustaw "usun": true.
+Odpowiedz wyłącznie JSON:
+{"klipy":[{"klip":"nazwa pliku","od":liczba|null,"do":liczba|null,"wytnij":[[A,B],...],"usun":false}],"opis":"jedno zdanie po polsku co zmieniłeś"}
+"""
+
+
+@app.post("/api/montaz/{jid}/fix")
+async def montaz_fix(jid: str, req: Request):
+    import shlex
+    d = _mz_job(jid)
+    day = next(d.glob("dzien_*"))
+    comment = str((await req.json()).get("comment", "")).strip()[:1500]
+    if not comment:
+        return JSONResponse({"error": "Wpisz, co poprawić."}, status_code=400)
+    if not API_KEY:
+        return JSONResponse({"error": "Brak klucza API na serwerze."}, status_code=503)
+    rows = _mz_plan_rows(day)
+    if not rows:
+        return JSONResponse({"error": "Brak planu montażu – zmontuj film najpierw automatycznie."}, status_code=400)
+    try:
+        tr = json.loads((day / "transkrypcja.json").read_text(encoding="utf-8"))
+    except Exception:
+        tr = {}
+    parts = []
+    for i, r in enumerate(rows, 1):
+        t = tr.get(r["clip"], {})
+        words = " ".join(f'{w["word"]}[{w["start"]:.2f}-{w["end"]:.2f}]' for w in t.get("words", []))
+        parts.append(f"Klip {i}: {r['clip']} (długość {t.get('duration', 0):.1f} s)\nObecne cięcia: {' '.join(r['opts']) or 'brak'}\n"
+                     f"Fragmenty mowy: " + " | ".join(f"[{c['start']:.2f}-{c['end']:.2f}] {c['text']}" for c in t.get("chunks", []) if not c.get("szum")) +
+                     f"\nSłowa: {words or '(brak mowy)'}")
+    prompt = MZ_FIX_PROMPT + "\n\n" + "\n\n".join(parts) + f"\n\nUWAGA UŻYTKOWNIKA: {comment}"
+    model = MODELS["default"]
+    body = {"model": model, "max_tokens": 2000, "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
+            "messages": [{"role": "user", "content": prompt[:60000]}]}
+    async with httpx.AsyncClient(timeout=120) as c:
+        r = await c.post(os.environ.get("ANTHROPIC_URL", "https://api.anthropic.com/v1/messages"), json=body,
+                         headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
+    if r.status_code != 200:
+        return JSONResponse({"error": "AI nie odpowiedziało (" + str(r.status_code) + ")."}, status_code=502)
+    res = r.json()
+    u = res.get("usage", {})
+    pi, po = PRICES.get(model, (2.0, 10.0))
+    dd = datetime.now(TZ).strftime("%Y-%m-%d")
+    _con.execute("INSERT INTO ai_usage(day,n,tin,tout,cost) VALUES(?,?,?,?,?) ON CONFLICT(day) DO UPDATE SET n=n+1, tin=tin+excluded.tin, tout=tout+excluded.tout, cost=cost+excluded.cost",
+                 (dd, 1, u.get("input_tokens", 0), u.get("output_tokens", 0), (u.get("input_tokens", 0) * pi + u.get("output_tokens", 0) * po) / 1e6))
+    try:
+        ans = _json_from("".join(b.get("text", "") for b in res.get("content", []) if b.get("type") == "text"))
+    except Exception:
+        return JSONResponse({"error": "Nie udało się odczytać odpowiedzi AI."}, status_code=502)
+    changes = {x.get("klip"): x for x in (ans.get("klipy") or []) if isinstance(x, dict)}
+    out, changed = [f"# RĘCZNY – poprawki z uwag: {comment[:120].replace(chr(10), ' ')}", ""], 0
+    for r in rows:
+        ch = changes.get(r["clip"])
+        dur = float(tr.get(r["clip"], {}).get("duration") or 1e6)
+        if ch and ch.get("usun"):
+            changed += 1
+            continue
+        opts = r["opts"]
+        if ch:
+            opts = []
+            num = lambda v: v is not None and isinstance(v, (int, float)) and 0 <= v <= dur
+            if num(ch.get("od")) and ch["od"] > 0.05:
+                opts.append(f"od={float(ch['od']):.2f}")
+            if num(ch.get("do")) and ch["do"] < dur - 0.05:
+                opts.append(f"do={float(ch['do']):.2f}")
+            for ab in ch.get("wytnij") or []:
+                try:
+                    a, b = float(ab[0]), float(ab[1])
+                except Exception:
+                    continue
+                if 0 <= a < b <= dur:
+                    opts.append(f"wytnij={a:.2f}-{b:.2f}")
+            changed += 1
+        out.append(" ".join([shlex.quote(r["clip"])] + ([shlex.quote(r["card"])] if r["card"] else []) + opts))
+    if not changed:
+        return JSONResponse({"error": "AI nie znalazło nic do zmiany. Napisz dokładniej, np. który klip i co się powtarza."}, status_code=400)
+    if len(out) <= 2:
+        return JSONResponse({"error": "Po zmianach nie zostałby żaden klip."}, status_code=400)
+    (day / "kolejnosc.txt").write_text("\n".join(out) + "\n", encoding="utf-8")
+    hist = []
+    try:
+        hist = json.loads((d / "uwagi.json").read_text())
+    except Exception:
+        pass
+    hist.append({"at": datetime.now(TZ).isoformat(timespec="seconds"), "uwaga": comment, "opis": str(ans.get("opis", ""))[:300]})
+    (d / "uwagi.json").write_text(json.dumps(hist, ensure_ascii=False))
+    st = montaz_start(jid)
+    if isinstance(st, dict):
+        st["fix"] = hist[-1]["opis"]
+    return st
 
 
 @app.post("/api/montaz/{jid}/title")
