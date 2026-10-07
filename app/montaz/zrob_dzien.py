@@ -258,6 +258,19 @@ def auto_cuts(info):
             continue
         cuts.append((a, b))
         reasons.append(f"powtórka (słowa): wycinam {a:.2f}-{b:.2f} s (zostaje od \"{txt}...\")")
+    # 1c) "rozciągnięte" słowo – rozpoznawanie mowy skleja powtórzone słowo z pauzą w jedno długie
+    #     (np. "na" trwające 1,6 s = "na… na"). Zostawiamy tylko końcówkę, w której słowo faktycznie pada.
+    for w in info.get("words", []):
+        txt = _wn(w.get("word", ""))
+        if not txt or re.search(r"\d", txt):
+            continue
+        st, en = float(w["start"]), float(w["end"])
+        normal = 0.15 + 0.09 * len(txt)
+        if en - st > max(1.0, normal * 2.5):
+            a, b = max(0.0, st - 0.05), en - normal - 0.05
+            if b - a >= 0.4 and not any(a < cb and b > ca for ca, cb in cuts):
+                cuts.append((a, b))
+                reasons.append(f"rozciągnięte słowo \"{w['word']}\" ({en - st:.1f} s) – pewnie powtórka/zawieszenie: wycinam {a:.2f}-{b:.2f} s")
     # 2) krótkie fragmenty z przekleństwem (reakcja na pomyłkę)
     for i, c in enumerate(chunks):
         if i in removed or not SWEAR.search(c["text"].lower()):
