@@ -180,6 +180,52 @@ def meal_from_file(name):
     return None
 
 
+FILLER = {"yyy", "eee", "em", "eh", "hmm", "mmm", "yy", "ee"}
+
+
+def _wn(w):
+    return re.sub(r"[^a-z0-9]", "", ascii_low(w))
+
+
+def _same(a, b):
+    """To samo słowo – także urwane ("ob" ~ "obiad") albo z inną końcówką ("obiad" ~ "obiadu")."""
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    short, long_ = sorted((a, b), key=len)
+    return len(short) >= 2 and long_.startswith(short) and (len(short) >= 3 or len(long_) <= 4) \
+        or (len(a) >= 4 and len(b) >= 4 and a[:4] == b[:4])
+
+
+def word_restarts(words, max_gap=14):
+    """Szuka miejsc, gdzie zaczynasz zdanie jeszcze raz: te same 2+ słowa (albo 1 słowo + urwane następne)
+    pojawiają się znowu w ciągu kilkunastu słów. Zwraca [(start_cięcia, koniec_cięcia, początek_tekstu_który_zostaje)]."""
+    ws = [(_wn(w["word"]), float(w["start"]), float(w["end"])) for w in words]
+    ws = [x for x in ws if x[0] and x[0] not in FILLER]
+    out, i = [], 0
+    while i < len(ws) - 2:
+        best = None
+        for j in range(i + 1, min(len(ws) - 1, i + 1 + max_gap)):
+            if not _same(ws[i][0], ws[j][0]):
+                continue
+            k = 0
+            while j + k < len(ws) and i + k < j and _same(ws[i + k][0], ws[j + k][0]):
+                k += 1
+            # 2+ zgodne słowa, albo 1 słowo, po którym w pierwszym podejściu jest urwane słowo
+            broken = k == 1 and i + 1 < j and len(ws[i + 1][0]) <= 3 and j + 1 < len(ws) and ws[j + 1][0].startswith(ws[i + 1][0])
+            if (k >= 2 or broken) and ws[j][1] - ws[i][1] >= 0.4 and len(ws[i][0]) + len(ws[i + 1][0]) >= 3:
+                best = j            # szukamy dalej – przy kilku podejściach zostaje ostatnie
+        if best is not None:
+            a, b = max(0.0, ws[i][1] - 0.1), ws[best][1] - 0.12
+            if b - a >= 0.3:
+                out.append((a, b, " ".join(x[0] for x in ws[best:best + 4])))
+            i = best
+        else:
+            i += 1
+    return out
+
+
 def auto_cuts(info):
     """Cięcia z transkrypcji. Zwraca (opcje dla kolejnosc.txt, lista powodów)."""
     chunks = [c for c in info.get("chunks", []) if not c.get("szum")]
@@ -206,6 +252,12 @@ def auto_cuts(info):
                 removed.update(range(i, last_j))
                 reasons.append(f"powtórka nagrania: wycinam {a:.2f}-{b:.2f} s (zostaje ostatnie podejście "
                                f"od \"{' '.join(chunks[last_j]['text'].split()[:5])}...\")")
+    # 1b) powtórki na poziomie słów – także bez pauzy i z urwanym słowem ("na ob… na obiad", "no to no to jem")
+    for a, b, txt in word_restarts(info.get("words", [])):
+        if any(a < cb and b > ca for ca, cb in cuts):
+            continue
+        cuts.append((a, b))
+        reasons.append(f"powtórka (słowa): wycinam {a:.2f}-{b:.2f} s (zostaje od \"{txt}...\")")
     # 2) krótkie fragmenty z przekleństwem (reakcja na pomyłkę)
     for i, c in enumerate(chunks):
         if i in removed or not SWEAR.search(c["text"].lower()):
