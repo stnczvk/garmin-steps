@@ -227,6 +227,35 @@ def word_restarts(words, max_gap=14):
     return out
 
 
+def audio_silences(video):
+    """Cisza w nagraniu wg głośności (ffmpeg). Próg względem najgłośniejszego miejsca klipu.
+    Zwraca ([(start, koniec)], długość klipu)."""
+    try:
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(video), "-vn", "-af", "volumedetect",
+                            "-f", "null", "-"], capture_output=True, text=True, timeout=300)
+        mx = float(re.search(r"max_volume: (-?[\d.]+) dB", r.stderr).group(1))
+        h, m, sec = re.search(r"Duration: (\d+):(\d+):([\d.]+)", r.stderr).groups()
+        dur = int(h) * 3600 + int(m) * 60 + float(sec)
+        thr = min(-30.0, max(-55.0, mx - 28.0))
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(video), "-vn", "-af",
+                            f"silencedetect=noise={thr:.0f}dB:d=0.6", "-f", "null", "-"],
+                           capture_output=True, text=True, timeout=300)
+        out, st = [], None
+        for line in r.stderr.splitlines():
+            m = re.search(r"silence_start: (-?[\d.]+)", line)
+            if m:
+                st = max(0.0, float(m.group(1)))
+            m = re.search(r"silence_end: ([\d.]+)", line)
+            if m and st is not None:
+                out.append((st, float(m.group(1))))
+                st = None
+        if st is not None:
+            out.append((st, dur))
+        return out, dur
+    except Exception:
+        return [], None
+
+
 def auto_cuts(info):
     """Cięcia z transkrypcji. Zwraca (opcje dla kolejnosc.txt, lista powodów)."""
     chunks = [c for c in info.get("chunks", []) if not c.get("szum")]
@@ -296,6 +325,19 @@ def auto_cuts(info):
         b = kept[0]["start"] - 0.3
         cuts.append((0.0, b))
         reasons.append(f"cisza na początku: wycinam 0.00-{b:.2f} s")
+    # 4) cisza w dźwięku (pauzy, wstęp, koniec) – zostawiamy ~0,25 s oddechu
+    dur = info.get("dur")
+    norm_words = [(float(x["start"]), float(x["end"])) for x in info.get("words", []) if _wn(x.get("word", ""))
+                  and float(x["end"]) - float(x["start"]) <= max(1.0, (0.15 + 0.09 * len(_wn(x["word"]))) * 2.5)]
+    for s0, e0 in info.get("silences", []):
+        lead, tail = s0 <= 0.1, dur is not None and e0 >= dur - 0.1
+        a, b = (0.0 if lead else s0 + 0.25), (dur if tail else e0 - 0.25)
+        if b - a < (0.5 if lead or tail else 0.7):
+            continue
+        if any(ws >= a and we <= b for ws, we in norm_words):
+            continue        # rozpoznane słowo w środku – to cicha mowa, nie cisza
+        cuts.append((a, b))
+        reasons.append(f"cisza: wycinam {a:.2f}-{b:.2f} s")
     # scal nakładające się cięcia
     cuts.sort()
     merged = []
@@ -324,7 +366,10 @@ def auto_cuts(info):
     merged = m2
     opts = []
     for a, b in merged:
-        opts.append(f"od={b:.2f}" if a <= 0.2 else f"wytnij={a:.2f}-{b:.2f}")
+        if dur is not None and b >= dur - 0.05:
+            opts.append(f"do={a:.2f}")
+        else:
+            opts.append(f"od={b:.2f}" if a <= 0.2 else f"wytnij={a:.2f}-{b:.2f}")
     return opts, reasons
 
 
@@ -420,11 +465,26 @@ def main():
             shots[v] = shot
             if shot:
                 how[v] = "z mowy"
+        # karty ustawione ręcznie w aplikacji (karty.json) mają pierwszeństwo
+        kj = day / "karty.json"
+        manual = json.loads(kj.read_text()) if kj.exists() else {}
+        byname = {i.name: i for i in images}
+        for v in videos:
+            if v.name in manual:
+                c = byname.get(manual[v.name] or "")
+                if shots[v] and shots[v] != c:
+                    free[meal_from_file(shots[v].name) or shots[v].name] = shots[v]
+                shots[v], how[v] = c, "ręcznie"
+                if c:
+                    meals[v] = meal_from_file(c.name) or meals[v]
+        taken = {s for s in shots.values() if s}
+        free = {k: i for k, i in free.items() if i not in taken}
+        unnamed = [i for i in unnamed if i not in taken]
         # karty, których nie udało się dopasować z mowy -> do klipów bez karty, wg godziny nagrania
         left_cards = sorted(free.items(), key=lambda kv: MEAL_ORDER.index(kv[0]) if kv[0] in MEAL_ORDER else 99)
         last_t = None
         for meal_key, img in left_cards:
-            cand = [v for v in videos if shots[v] is None and (last_t is None or times[v][0] >= last_t)]
+            cand = [v for v in videos if shots[v] is None and v.name not in manual and (last_t is None or times[v][0] >= last_t)]
             if not cand:
                 break
             want = MEAL_HOUR.get(meal_key, 14.0)
@@ -433,7 +493,8 @@ def main():
             free.pop(meal_key, None)
             last_t = times[v][0]
         for v in videos:
-            info = trans.get(v.name, {})
+            info = dict(trans.get(v.name, {}))
+            info["silences"], info["dur"] = audio_silences(v)
             text = info.get("text", "")
             meal, shot = meals[v], shots[v]
             opts, reasons = auto_cuts(info)

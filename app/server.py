@@ -566,8 +566,11 @@ def montaz_start(jid: str):
     # tytuł jako opis.txt – nowszy niż klipy, więc skrypt go użyje
     (day / "opis.txt").write_text("\n".join(json.loads((d / "title.json").read_text())) + "\n", encoding="utf-8")
     ko = day / "kolejnosc.txt"
-    if ko.exists() and ko.read_text(encoding="utf-8").startswith("# AUTO"):
-        ko.unlink()                      # ręczny plan (ustawiony w aplikacji) zostaje
+    if ko.exists() and ko.read_text(encoding="utf-8").startswith("# RĘCZNY"):
+        # karty z aplikacji zapamiętujemy osobno – cięcia i tak liczone są od nowa
+        (day / "karty.json").write_text(json.dumps({r["clip"]: r["card"] for r in _mz_plan_rows(day)}))
+    if ko.exists() and ko.read_text(encoding="utf-8").startswith(("# AUTO", "# RĘCZNY")):
+        ko.unlink()
     (day / "raport.txt").unlink(missing_ok=True)
     if (d / "gotowe").is_dir():
         shutil.rmtree(d / "gotowe", ignore_errors=True)
@@ -610,7 +613,8 @@ def montaz_plan(jid: str):
         r["text"] = (tr.get(r["clip"], {}).get("text") or "")[:140]
     cards = sorted(f.name for f in day.iterdir() if f.suffix.lower() in MZ_KIND["card"])
     ko = day / "kolejnosc.txt"
-    return {"rows": rows, "cards": cards, "manual": ko.exists() and not ko.read_text(encoding="utf-8").startswith("# AUTO")}
+    return {"rows": rows, "cards": cards, "manual": (day / "karty.json").exists()
+            or (ko.exists() and not ko.read_text(encoding="utf-8").startswith("# AUTO"))}
 
 
 @app.post("/api/montaz/{jid}/plan")
@@ -621,6 +625,7 @@ async def montaz_plan_set(jid: str, req: Request):
     body = await req.json()
     if body.get("reset"):
         (day / "kolejnosc.txt").unlink(missing_ok=True)
+        (day / "karty.json").unlink(missing_ok=True)
         return montaz_start(jid)
     want = {r.get("clip"): r.get("card") for r in body.get("rows", [])}
     cards = {f.name for f in day.iterdir() if f.suffix.lower() in MZ_KIND["card"]}
