@@ -197,6 +197,64 @@ def draw_pill(text, icon, out):
 
 
 # ---------------------------------------------------------------------------
+# ANIMACJE (Remotion) – tytuł wjeżdża linijkami, karty i naklejki „wskakują”.
+# Gdy Remotion nie jest zainstalowany albo coś pójdzie nie tak, zostają zwykłe PNG.
+# ---------------------------------------------------------------------------
+GRAFIKI = HERE / "grafiki"
+ANIM = {}          # ścieżka PNG -> (klip .mov z przezroczystością, przesunięcie x, y)
+
+
+def animate(jobs, work):
+    if not jobs or os.environ.get("MONTAZ_BEZ_ANIMACJI") or not (GRAFIKI / "node_modules").is_dir() \
+            or not shutil.which("node"):
+        return
+    spec = work / "animacje.json"
+    spec.write_text(json.dumps({"public": str(work), "jobs": [j["job"] for j in jobs]}, ensure_ascii=False))
+    print("Animacje grafik…", flush=True)
+    try:
+        r = subprocess.run(["node", str(GRAFIKI / "render.mjs"), str(spec)], cwd=str(GRAFIKI),
+                           capture_output=True, text=True, timeout=900)
+        out = (r.stdout or "") + (r.stderr or "")
+    except Exception as e:
+        print(f"  animacje: {e} – zostają zwykłe grafiki", flush=True)
+        return
+    for j in jobs:
+        if Path(j["job"]["out"]).exists():
+            ANIM[j["png"]] = (j["job"]["out"], j["dx"], j["dy"])
+    msg = next((l for l in out.splitlines() if l.startswith("animacje:")), out.strip()[-300:])
+    print(f"  {msg}", flush=True)
+
+
+def anim_job(png, seconds, style, work):
+    """Zadanie animacji dla gotowego PNG (karta/naklejka). Płótno większe o margines na „wyskok”."""
+    w, h = Image.open(png).size
+    m = int(max(w, h) * 0.08)
+    return {"png": str(png), "dx": -m, "dy": -m, "job": {
+        "comp": "Obraz", "out": str(work / (Path(png).stem + ".mov")),
+        "props": {"width": w + 2 * m, "height": h + 2 * m, "imgW": w, "imgH": h, "seconds": seconds,
+                  "src": Path(png).name, "style": style}}}
+
+
+def title_job(lines, png, work):
+    shutil.copy(FONT_PATH, work / "font_tytul.ttf")
+    h = int(TITLE_TOP + len(lines) * (TITLE_FONT_SIZE * 1.2 + 6) + 120)
+    return {"png": str(png), "dx": 0, "dy": 0, "job": {
+        "comp": "Tytul", "out": str(work / "tytul.mov"),
+        "props": {"width": W, "height": h, "seconds": TITLE_SECONDS, "lines": lines, "size": TITLE_FONT_SIZE,
+                  "top": TITLE_TOP, "font": "font_tytul.ttf"}}}
+
+
+def overlay_input(png, start, x, y, n, last):
+    """Animowany klip zamiast PNG (jeśli jest): (wejścia, filtry) albo None."""
+    a = ANIM.get(str(png))
+    if not a:
+        return None
+    mov, dx, dy = a
+    return (["-i", mov], [f"[{n}:v]setpts=PTS+{start:.3f}/TB[s{n}]",
+                          f"[{last}][s{n}]overlay={x + dx}:{y + dy}:eof_action=pass[v{n}]"])
+
+
+# ---------------------------------------------------------------------------
 # WIDEO
 # ---------------------------------------------------------------------------
 def base_filter(transfer):
@@ -245,16 +303,24 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None):
     last, n = "v0", 1
 
     if title_png:
-        inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(title_png)]
-        fc.append(f"[{last}][{n}:v]overlay=0:0:enable='lte(t,{TITLE_SECONDS})'[v{n}]")
+        an = overlay_input(title_png, 0.0, 0, 0, n, last)
+        if an:
+            inputs += an[0]; fc += an[1]
+        else:
+            inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(title_png)]
+            fc.append(f"[{last}][{n}:v]overlay=0:0:enable='lte(t,{TITLE_SECONDS})'[v{n}]")
         last, n = f"v{n}", n + 1
 
     start = total - need
     for png, (x, y) in shots:
         s, e = start, start + SHOT_SECONDS
-        inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(png)]
-        fc.append(f"[{n}:v]format=rgba,fade=t=in:st={s:.3f}:d=0.2:alpha=1[s{n}]")
-        fc.append(f"[{last}][s{n}]overlay={x}:{y}:enable='between(t,{s:.3f},{e:.3f})'[v{n}]")
+        an = overlay_input(png, s, x, y, n, last)
+        if an:
+            inputs += an[0]; fc += an[1]
+        else:
+            inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(png)]
+            fc.append(f"[{n}:v]format=rgba,fade=t=in:st={s:.3f}:d=0.2:alpha=1[s{n}]")
+            fc.append(f"[{last}][s{n}]overlay={x}:{y}:enable='between(t,{s:.3f},{e:.3f})'[v{n}]")
         last, n = f"v{n}", n + 1
         start = e
 
@@ -284,16 +350,22 @@ def finalize(segments, total, workdir, music, out_path):
     joined = workdir / "polaczone.mp4"
     run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(joined)])
 
-    fw, _ = draw_pill("FOLLOW", "check", workdir / "follow.png")
-    lw, _ = draw_pill("LIKE", "heart", workdir / "like.png")
+    fw = Image.open(workdir / "follow.png").width
+    lw = Image.open(workdir / "like.png").width
     f_start = max(0.0, total - FOLLOW_SECONDS - LIKE_SECONDS)
     l_start = total - LIKE_SECONDS
-
-    inputs = ["-i", str(joined),
-              "-loop", "1", "-t", f"{total:.3f}", "-i", str(workdir / "follow.png"),
-              "-loop", "1", "-t", f"{total:.3f}", "-i", str(workdir / "like.png")]
-    fc = [f"[0:v][1:v]overlay={W - fw - 50}:230:enable='between(t,{f_start:.3f},{l_start:.3f})'[v1]",
-          f"[v1][2:v]overlay={W - lw - 50}:230:enable='gte(t,{l_start:.3f})'[v]"]
+    inputs, fc = ["-i", str(joined)], []
+    for k, (png, st, en, x, outl) in enumerate([(workdir / "follow.png", f_start, l_start, W - fw - 50, "v1"),
+                                                  (workdir / "like.png", l_start, total, W - lw - 50, "v")], 1):
+        a = ANIM.get(str(png))
+        src = "0:v" if k == 1 else "v1"
+        if a:
+            inputs += ["-i", a[0]]
+            fc += [f"[{k}:v]setpts=PTS+{st:.3f}/TB[p{k}]",
+                   f"[{src}][p{k}]overlay={x + a[1]}:{230 + a[2]}:eof_action=pass[{outl}]"]
+        else:
+            inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(png)]
+            fc.append(f"[{src}][{k}:v]overlay={x}:230:enable='between(t,{st:.3f},{en:.3f})'[{outl}]")
     if music and Path(music).exists():
         inputs += ["-stream_loop", "-1", "-i", str(music)]
         fc.append(f"[3:a]volume={MUSIC_VOLUME},aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,"
@@ -423,13 +495,24 @@ def main():
     try:
         title_png = work / "tytul.png"
         draw_title_png(title, title_png)
-
-        segments, total = [], 0.0
+        draw_pill("FOLLOW", "check", work / "follow.png")
+        draw_pill("LIKE", "heart", work / "like.png")
+        prepared_all = []
         for i, (video, shots, keep) in enumerate(plan):
             prepared = []
             for j, s in enumerate(shots):
                 png = work / f"shot_{i}_{j}.png"
                 prepared.append((png, prepare_screenshot(s, png)))
+            prepared_all.append(prepared)
+        jobs = [title_job(title, title_png, work)]
+        jobs += [anim_job(png, SHOT_SECONDS, "karta", work) for pr in prepared_all for png, _ in pr]
+        jobs += [anim_job(work / "follow.png", FOLLOW_SECONDS, "naklejka", work),
+                 anim_job(work / "like.png", LIKE_SECONDS, "naklejka", work)]
+        animate(jobs, work)
+
+        segments, total = [], 0.0
+        for i, (video, shots, keep) in enumerate(plan):
+            prepared = prepared_all[i]
             seg, d, speed, keep = render_segment(video, prepared, title_png if i == 0 else None, work, i, keep)
             segments.append(seg)
             total += d

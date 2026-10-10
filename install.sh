@@ -30,6 +30,22 @@ mkdir -p "$HOME_DIR/montaz"
 [ -s "$HOME_DIR/montaz/Montserrat.ttf" ] || curl -fsSL -o "$HOME_DIR/montaz/Montserrat.ttf" "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf" || echo "Nie udało się pobrać fontu Montserrat – użyję Barlow."
 ffmpeg -hide_banner -filters 2>/dev/null | grep -q zscale && echo "ffmpeg: OK" || echo "UWAGA: ffmpeg bez zscale – filmy HDR z iPhone'a mogą mieć złe kolory"
 
+say "2c Animowane grafiki do montażu (Remotion)"
+(
+  set -e
+  if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 18 ]; then
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null && apt-get install -y -qq nodejs
+  fi
+  # biblioteki potrzebne przeglądarce, w której Remotion rysuje grafiki
+  apt-get install -y -qq libnss3 libdbus-1-3 libatk1.0-0 libgbm1 libxrandr2 libxkbcommon0 libxfixes3 \
+    libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 >/dev/null 2>&1 || true
+  apt-get install -y -qq libasound2t64 >/dev/null 2>&1 || apt-get install -y -qq libasound2 >/dev/null 2>&1 || true
+  cd "$SRC/app/montaz/grafiki"
+  npm install --no-fund --no-audit --loglevel=error
+  node -e "import('@remotion/renderer').then(r => r.ensureBrowser())" >/dev/null
+  echo "Animacje: OK (node $(node -v))"
+) || echo "UWAGA: animacje nie zainstalowały się – montaż użyje zwykłych grafik."
+
 say "3/6 Hasło do aplikacji"
 touch "$HOME_DIR/.env"; chmod 600 "$HOME_DIR/.env"
 if ! grep -q '^DZ_PASS=' "$HOME_DIR/.env"; then

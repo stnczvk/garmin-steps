@@ -1,0 +1,12 @@
+{
+  "name": "montaz-grafiki",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@remotion/bundler": "4.0.534",
+    "@remotion/renderer": "4.0.534",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.534"
+  }
+}
