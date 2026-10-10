@@ -31,20 +31,27 @@ mkdir -p "$HOME_DIR/montaz"
 ffmpeg -hide_banner -filters 2>/dev/null | grep -q zscale && echo "ffmpeg: OK" || echo "UWAGA: ffmpeg bez zscale – filmy HDR z iPhone'a mogą mieć złe kolory"
 
 say "2c Animowane grafiki do montażu (Remotion)"
-(
-  set -e
-  if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 18 ]; then
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null && apt-get install -y -qq nodejs
+anim_install() {
+  # Node.js z oficjalnej paczki (z npm) – wersja z apt bywa bez npm
+  if ! command -v npm >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)" -lt 18 ]; then
+    NV=v22.12.0; ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=x64;; aarch64) ARCH=arm64;; esac
+    curl -fsSL "https://nodejs.org/dist/$NV/node-$NV-linux-$ARCH.tar.xz" | tar -xJ -C /opt || return 1
+    ln -sf "/opt/node-$NV-linux-$ARCH/bin/node" "/opt/node-$NV-linux-$ARCH/bin/npm" "/opt/node-$NV-linux-$ARCH/bin/npx" /usr/local/bin/
+    hash -r
   fi
+  command -v npm >/dev/null || return 1
   # biblioteki potrzebne przeglądarce, w której Remotion rysuje grafiki
   apt-get install -y -qq libnss3 libdbus-1-3 libatk1.0-0 libgbm1 libxrandr2 libxkbcommon0 libxfixes3 \
     libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 >/dev/null 2>&1 || true
   apt-get install -y -qq libasound2t64 >/dev/null 2>&1 || apt-get install -y -qq libasound2 >/dev/null 2>&1 || true
-  cd "$SRC/app/montaz/grafiki"
-  npm install --no-fund --no-audit --loglevel=error
-  node -e "import('@remotion/renderer').then(r => r.ensureBrowser())" >/dev/null
-  echo "Animacje: OK (node $(node -v))"
-) || echo "UWAGA: animacje nie zainstalowały się – montaż użyje zwykłych grafik."
+  cd "$SRC/app/montaz/grafiki" || return 1
+  npm install --no-fund --no-audit --loglevel=error || return 1
+  [ -d node_modules/@remotion/renderer ] || return 1
+  node -e "import('@remotion/renderer').then(r => r.ensureBrowser()).catch(e => { console.error(e.message); process.exit(1) })" >/dev/null || return 1
+}
+if anim_install; then echo "Animacje: OK (node $(node -v))"
+else echo "UWAGA: animacje nie zainstalowały się – montaż użyje zwykłych grafik."; fi
+cd "$HOME_DIR"
 
 say "3/6 Hasło do aplikacji"
 touch "$HOME_DIR/.env"; chmod 600 "$HOME_DIR/.env"
