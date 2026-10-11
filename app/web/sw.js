@@ -5,7 +5,7 @@ self.addEventListener("fetch", () => {});
 self.addEventListener("push", e => {
   let d = {}; try { d = e.data ? e.data.json() : {} } catch (_) { d = { body: e.data && e.data.text() } }
   e.waitUntil(self.registration.showNotification(d.title || "Dziennik treningowy", {
-    body: d.body || "", tag: d.tag || "dziennik", icon: "/icon-192.png", badge: "/icon-192.png", data: { url: d.url || "/" }
+    body: d.body || "", tag: d.tag || "dziennik", icon: "/ikona-192.png", badge: "/ikona-192.png", data: { url: d.url || "/" }
   }));
 });
 self.addEventListener("notificationclick", e => {
