@@ -1,6 +1,6 @@
 <!doctype html><html lang="pl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0D1015">
+<meta name="theme-color" content="#08090A">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,10 +16,10 @@
 :root{
   color-scheme:dark;
   --bg:#0D1015; --surface:#161A21; --surface2:#202630; --line:#2A313C;
-  --ink:#EEF1F5; --muted:#98A2B3; --accent:#C8F560; --accent-ink:#0D1015;
+  --ink:#EEF1F5; --muted:#98A2B3; --accent:#9E8CFC; --accent-ink:#FFFFFF;
   --good:#4ADE9B; --warn:#FFB547; --bad:#FF6B5A;
-  --m-kcal:#C8F560; --m-p:#FF8A73; --m-c:#7FB2FF; --m-f:#FFC857;
-  --a:#C8F560; --b:#FF8A73; --c:#7FB2FF;
+  --m-kcal:#9E8CFC; --m-p:#FF8A73; --m-c:#7FB2FF; --m-f:#FFC857;
+  --a:#9E8CFC; --b:#FF8A73; --c:#7FB2FF;
   --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
@@ -690,6 +690,44 @@ nav.tabbar button[aria-selected="true"]:before{content:"";position:absolute;top:
 section[id^="view-"]:not([hidden]){animation:vin .38s var(--ease)}
 @keyframes vin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){section[id^="view-"]:not([hidden]){animation:none}.btn{transition:none}}
+
+/* ===== spójna paleta (bez limonki) ===== */
+:root{--a:#9E8CFC;--b:#FF8A73;--c:#6EA8FF;--m-kcal:#9E8CFC;--m-p:#FF8A73;--m-c:#6EA8FF;--m-f:#F5B25A}
+.daypick button{border:1px solid var(--line)!important;background:rgba(255,255,255,.03)!important;color:var(--muted)!important;font-family:var(--display);font-weight:600;font-size:24px;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1),border-color .2s var(--ease),background .2s var(--ease),box-shadow .3s var(--ease),color .2s}
+.daypick button[aria-pressed="true"]{--dc:var(--a);border-color:color-mix(in srgb,var(--dc) 70%,transparent)!important;background:color-mix(in srgb,var(--dc) 16%,transparent)!important;color:var(--dc)!important;
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--dc) 12%,transparent),0 10px 30px -10px color-mix(in srgb,var(--dc) 70%,transparent),inset 0 1px 0 rgba(255,255,255,.12)}
+.daypick button[data-d="B"][aria-pressed="true"]{--dc:var(--b)}.daypick button[data-d="C"][aria-pressed="true"]{--dc:var(--c)}
+.daypick button:active{transform:scale(.9)}
+.hist-item .d,.cdot.A,.cdot.B,.cdot.C{--dc:var(--a);background:color-mix(in srgb,var(--dc) 16%,transparent)!important;color:var(--dc)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--dc) 45%,transparent);font-weight:600}
+.hist-item .d.B,.cdot.B{--dc:var(--b)}.hist-item .d.C,.cdot.C{--dc:var(--c)}
+.plan-card{border-top:1px solid var(--line)!important;position:relative;overflow:hidden}
+.plan-card:before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--a),transparent)}
+.plan-card.B:before{background:linear-gradient(90deg,transparent,var(--b),transparent)}.plan-card.C:before{background:linear-gradient(90deg,transparent,var(--c),transparent)}
+.bar{height:6px;background:rgba(255,255,255,.06)}
+.bar i{background:linear-gradient(90deg,var(--accent-2),var(--accent));box-shadow:0 0 12px -2px rgba(158,140,252,.6);transition:width .7s var(--ease)}
+.bar i.over{background:var(--warn);box-shadow:none}
+.plus{background:linear-gradient(180deg,#B1A2FF,#7E69F5);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.madd{border-color:var(--line-hi)}
+.chips button[aria-pressed="true"]{background:var(--surface2)!important;color:var(--ink)!important;border-color:var(--line-hi)!important}
+.star.on{color:var(--warn)}
+.ccell.sel{outline:1px solid var(--accent);background:var(--accent-soft)}
+/* ===== efekty kliknięć ===== */
+.btn,.plus,.madd,.chips button,.chipsel button,.tooltile,.ktopic,.modesw button{position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
+.rip{position:absolute;border-radius:50%;pointer-events:none;transform:scale(0);opacity:.35;background:radial-gradient(circle,rgba(255,255,255,.9),rgba(255,255,255,0) 70%);animation:rip .6s cubic-bezier(.2,0,0,1) forwards}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+.plus:active,.madd:active,.chips button:active,.chipsel button:active,.tooltile:active,.ktopic:active,.mtog:active,.ccell:active,.hist-item:active,.qtabs button:active,.modesw button:active{transform:scale(.97)}
+.plus,.madd,.chips button,.chipsel button,.tooltile,.ktopic,.mtog,.ccell,.hist-item,.qtabs button,.modesw button{transition:transform .16s var(--ease),background .2s,border-color .2s,color .2s}
+nav.tabbar button[aria-selected="true"] svg{animation:tabpop .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tabpop{0%{transform:scale(.8) translateY(2px)}100%{transform:none}}
+nav.tabbar button:active svg{transform:scale(.88);transition:transform .1s}
+.btn.pop,.plus.pop{animation:bpop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes bpop{0%{transform:scale(.94)}60%{transform:scale(1.03)}100%{transform:none}}
+input[type=number]:not(:placeholder-shown){border-color:color-mix(in srgb,var(--accent) 45%,var(--line))!important;background:var(--accent-soft)!important;transition:background .3s var(--ease),border-color .3s}
+.card,.ex,.meal{position:relative}
+@media (hover:hover){.card,.ex,.meal,.stat{background-image:radial-gradient(400px circle at var(--mx,-999px) var(--my,-999px),rgba(158,140,252,.07),transparent 40%),var(--card-bg)!important}}
+@media (prefers-reduced-motion:reduce){.rip{display:none}nav.tabbar button[aria-selected="true"] svg,.btn.pop,.plus.pop{animation:none}}
 </style>
 
 <div class="wrap">
@@ -2513,7 +2551,7 @@ function kcalRing(v,goal){
 const MEAL_ICON={
   "Śniadanie":["#FFC857",'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'],
   "II śniadanie":["#7FB2FF",'<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/>'],
-  "Obiad":["#C8F560",'<path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v6M9 3v6M17 21V3c-2 1.5-3 4-3 7h3"/>'],
+  "Obiad":["#2DD4BF",'<path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v6M9 3v6M17 21V3c-2 1.5-3 4-3 7h3"/>'],
   "Przekąski":["#FF8A73",'<path d="M12 7c-3-2-8-1-8 5 0 5 3 9 6 9 1 0 1.5-.5 2-.5s1 .5 2 .5c3 0 6-4 6-9 0-6-5-7-8-5z"/><path d="M12 7c0-2 1-4 3-4"/>'],
   "Kolacja":["#B79CFF",'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>']
 };
@@ -2818,7 +2856,7 @@ function qExpHTML(it,key,g){
 function reQuick(){if(fst.qtab==="search")renderQS();else renderFood();if(fst.qopen)setTimeout(()=>{const el=document.getElementById("fd-qgin");el?.closest(".qrow")?.scrollIntoView?.({behavior:"smooth",block:"nearest"})},30)}
 /* udostępnianie posiłku i treningu jako grafika (zapis w galerii / wysyłka) */
 function wrapText(cx,t,maxW,maxLines){const words=String(t).split(/\s+/),lines=[];let cur="";for(const w of words){const tr=cur?cur+" "+w:w;if(cx.measureText(tr).width<=maxW)cur=tr;else{if(cur)lines.push(cur);cur=w}}if(cur)lines.push(cur);if(lines.length>maxLines){lines.length=maxLines;let l=lines[maxLines-1];while(l&&cx.measureText(l+"…").width>maxW)l=l.slice(0,-1);lines[maxLines-1]=l+"…"}return lines}
-const SC={bg:"#0D1015",card:"#161A21",line:"#2A313C",ink:"#EEF1F5",mut:"#98A2B3",acc:"#C8F560",p:"#FF8A73",c:"#7FB2FF",f:"#FFC857",good:"#4ADE9B"};
+const SC={bg:"#08090A",card:"#141518",line:"#26272C",ink:"#F4F4F5",mut:"#A1A1AA",acc:"#9E8CFC",p:"#FF8A73",c:"#6EA8FF",f:"#F5B25A",good:"#4ADE80"};
 const SDF='"Barlow Condensed","Arial Narrow",sans-serif',SBF='"Barlow",system-ui,-apple-system,sans-serif',SW=1080,SP=72;
 function svgImage(inner,color){return new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="240" height="240" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`)})}
 /* wspólny początek grafiki: tło, koło z ikoną w prawym górnym rogu, nagłówek; zwraca [canvas, ctx, y] */
@@ -2867,7 +2905,7 @@ async function mealImage(m){
   cx.fillText(`Cały dzień: ${r0(day.kcal)}${G.kc?` / ${r0(G.kc)}`:""} kcal · B ${r0(day.p)} g`,P,y);
   return await shareFinish(cv,y);
 }
-const DAYCOL={A:"#C8F560",B:"#FF8A73",C:"#7FB2FF"};
+const DAYCOL={A:"#9E8CFC",B:"#FF8A73",C:"#6EA8FF"};
 async function trainingImage(s){
   const C=SC,W=SW,P=SP,col=DAYCOL[s.day]||C.acc;
   const dd=new Date(s.date+"T12:00:00");
@@ -4724,6 +4762,17 @@ document.addEventListener("click",()=>setTimeout(saveView,50));
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&state.tab!=="food"&&!document.getElementById("view-log").hidden&&syncPlanned()) renderLog(); });
 renderAll();
 initStore();
+</script>
+<script>
+(()=>{const RM=matchMedia("(prefers-reduced-motion: reduce)");
+const SEL=".btn,.plus,.madd,.chips button,.chipsel button,.tooltile,.ktopic,.modesw button";
+document.addEventListener("pointerdown",e=>{const b=e.target.closest(SEL);if(!b||b.disabled||RM.matches)return;
+  const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2,s=document.createElement("span");s.className="rip";
+  s.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;b.appendChild(s);setTimeout(()=>s.remove(),650);
+  if(navigator.vibrate)try{navigator.vibrate(6)}catch(_){}},{passive:true});
+document.addEventListener("click",e=>{const b=e.target.closest(".btn,.plus");if(!b||RM.matches)return;b.classList.remove("pop");void b.offsetWidth;b.classList.add("pop");setTimeout(()=>b.classList.remove("pop"),520)},true);
+if(matchMedia("(hover:hover)").matches)document.addEventListener("pointermove",e=>{const c=e.target.closest(".card,.ex,.meal,.stat");if(!c)return;const r=c.getBoundingClientRect();c.style.setProperty("--mx",e.clientX-r.left+"px");c.style.setProperty("--my",e.clientY-r.top+"px")},{passive:true});
+})();
 </script>
 
 </body></html>

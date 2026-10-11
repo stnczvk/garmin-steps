@@ -9,11 +9,11 @@
     const go = () => {
       const d = document.createElement("div");
       d.id = "dz-login";
-      d.innerHTML = `<form style="position:fixed;inset:0;z-index:9999;background:#0D1015;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;font-family:system-ui,-apple-system,sans-serif;color:#EEF1F5">
-        <div style="font-size:28px;font-weight:800;letter-spacing:.02em">DZIENNIK TRENINGOWY</div>
-        <input id="dz-pw" type="password" autocomplete="current-password" placeholder="Hasło" style="width:min(320px,90vw);font-size:17px;padding:14px;border-radius:12px;border:1px solid #2A313C;background:#202630;color:#EEF1F5">
-        <button style="width:min(320px,90vw);font-size:17px;font-weight:700;padding:14px;border:0;border-radius:12px;background:#C8F560;color:#0D1015">Zaloguj</button>
-        <div id="dz-msg" style="color:#FF6B5A;min-height:20px;font-size:14px">${msg || ""}</div></form>`;
+      d.innerHTML = `<form style="position:fixed;inset:0;z-index:9999;background:radial-gradient(60% 40% at 50% 0%,rgba(120,98,255,.22),transparent 70%),#08090A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;font-family:Geist,system-ui,-apple-system,sans-serif;color:#F4F4F5">
+        <div style="font-size:28px;font-weight:650;letter-spacing:-.025em;background:linear-gradient(180deg,#fff 25%,rgba(255,255,255,.55));-webkit-background-clip:text;background-clip:text;color:transparent">Dziennik treningowy</div>
+        <input id="dz-pw" type="password" autocomplete="current-password" placeholder="Hasło" style="width:min(320px,90vw);font-size:17px;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#F4F4F5;outline:none">
+        <button style="width:min(320px,90vw);font-size:17px;font-weight:600;padding:14px;border:0;border-radius:12px;background:linear-gradient(180deg,#B1A2FF,#7E69F5);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 24px -10px rgba(126,105,245,.7)">Zaloguj</button>
+        <div id="dz-msg" style="color:#FF7B70;min-height:20px;font-size:14px">${msg || ""}</div></form>`;
       document.body.appendChild(d);
       const f = d.querySelector("form");
       setTimeout(() => d.querySelector("#dz-pw").focus(), 100);
