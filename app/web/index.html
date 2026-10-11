@@ -546,6 +546,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .hot b{font-weight:620}
 .hot small{display:block;color:var(--faint);font-size:12px}
 .hot .x{margin-left:auto;font-weight:650;color:var(--warn);white-space:nowrap}
+.wsteps{margin:0 0 6px;padding-left:20px;color:var(--soft);font-size:13.5px;line-height:1.7}
 ::selection{background:color-mix(in oklab,var(--accent) 35%,transparent)}
 body{text-rendering:optimizeLegibility}
 @media (max-width:900px){.duo,.duo.rev{grid-template-columns:minmax(0,1fr)}.fstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -626,6 +627,11 @@ body{text-rendering:optimizeLegibility}
         <button id="add-yt">Dodaj kanał YouTube</button>
         <button id="add-ig">Dodaj konto Instagram</button>
       </div>
+      <h3>Widget na iPhone</h3>
+      <p class="when" style="margin:-4px 0 10px">Obserwujący, wyświetlenia z 28 dni i post, który się rozkręca – na ekranie głównym. Przez darmową aplikację <b>Scriptable</b>.</p>
+      <ol class="wsteps"><li>Zainstaluj <b>Scriptable</b> z App Store.</li><li>Kliknij <b>Kopiuj skrypt</b>.</li><li>W Scriptable: <b>+</b> → wklej → nazwij „Centrum” → Gotowe.</li>
+        <li>Ekran główny: przytrzymaj → <b>+</b> → Scriptable → rozmiar średni → dodaj.</li><li>Przytrzymaj widget → <b>Edytuj widżet</b> → Script: <b>Centrum</b>.</li></ol>
+      <div class="line" style="border:0"><button id="wcopy">Kopiuj skrypt</button><span class="when">Skrypt zawiera Twój klucz – nie udostępniaj go.</span></div>
       <h3>Klucze</h3>
       <p class="when" style="margin:-4px 0 12px">Wspólne dla wszystkich kont – wpisujesz je raz.</p>
       <div class="grid2">
@@ -1178,6 +1184,12 @@ $('#save').onclick = async () => {
   for (const key of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'IG_APP_ID', 'IG_APP_SECRET', 'APIFY_TOKEN', 'TIKTOK_PROFILES']) body[key] = $('#' + key).value;
   await api('/api/social/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   $('#saved').textContent = 'Klucze zapisane'; setTimeout(() => $('#saved').textContent = '', 2500); loadSettings();
+};
+$('#wcopy').onclick = async () => {
+  const b = $('#wcopy');
+  try { const r = await fetch('/api/social/widget-script'); await navigator.clipboard.writeText(await r.text()); b.textContent = '✓ Skopiowano – wklej w Scriptable'; }
+  catch (e) { b.textContent = 'Nie udało się skopiować'; }
+  setTimeout(() => b.textContent = 'Kopiuj skrypt', 3000);
 };
 $('#add-yt').onclick = () => location.href = '/api/social/google/connect?group=' + $('#grp').value;
 $('#add-ig').onclick = () => location.href = '/api/social/instagram/connect?group=' + $('#grp').value;
