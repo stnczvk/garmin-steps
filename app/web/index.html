@@ -1364,7 +1364,7 @@ document.addEventListener("input",ev=>{ if(ev.target.id&&ev.target.id.startsWith
 
 function renderPlan(){ if(MODE==="masa") renderPlanMasa(); else renderPlanRed(); if(state.tab==="set") renderSettings(); }
 function renderSettings(){ const el=document.getElementById("view-set"); if(!el) return; const y=window.scrollY;
-  el.innerHTML=`<div class="sethead"><button class="rnd" data-act="set-back" aria-label="Wróć">‹</button><h2>Ustawienia</h2></div>`+remindersHTML()+(window.dzScale?window.dzScale.html():"")+(window.dzVlog?window.dzVlog.html():"")+(window.dzAi?window.dzAi.html():"")+(window.dzUpdate?window.dzUpdate.html():"")+backupHTML();
+  el.innerHTML=`<div class="sethead"><button class="rnd" data-act="set-back" aria-label="Wróć">‹</button><h2>Ustawienia</h2></div>`+remindersHTML()+(window.dzScale?window.dzScale.html():"")+(window.dzVlog?window.dzVlog.html():"")+(window.dzWidget?window.dzWidget.html():"")+(window.dzAi?window.dzAi.html():"")+(window.dzUpdate?window.dzUpdate.html():"")+backupHTML();
   if(y) window.scrollTo(0,y); }
 function openSettings(){ if(state.tab!=="set") state.prevTab=state.tab; state.tab="set";
   document.querySelectorAll("nav.tabbar button").forEach(x=>x.setAttribute("aria-selected","false"));
@@ -4919,7 +4919,7 @@ if(matchMedia("(hover:hover)").matches)document.addEventListener("pointermove",e
 (()=>{const last={};let timer=0;const pend=new Set();
 function snap(d){
   const items=food[d]||[], ses=sessions.filter(s=>s.date===d);
-  if(!items.length&&!ses.length) return null;
+  if(!items.length&&!ses.length&&d!==today()) return null;
   const G=macroGoals(d), tot=dayTotals(items), R=v=>Math.round(v), rng=g=>g==null?null:Array.isArray(g)?g.map(R):R(g);
   const meals=MEALS.map(m=>{const l=items.filter(x=>x.meal===m);if(!l.length)return null;const t=dayTotals(l);
     return {name:m,kcal:R(t.kcal),p:R(t.p),c:R(t.c),f:R(t.f),items:l.map(x=>{const v=itemVals(x);return {name:x.name,qty:qtyTxt(x),kcal:R(v.kcal)}})}}).filter(Boolean);
@@ -4927,13 +4927,17 @@ function snap(d){
     sets:Object.values(s.ex||{}).reduce((a,l)=>a+l.filter(x=>x.r>0).length,0),vol:R(sessVolume(s)),
     ex:Object.entries(s.ex||{}).map(([id,l])=>({name:exName(id),sets:l.filter(x=>x.r>0||x.w>0).map(x=>[+x.w||0,+x.r||0]),badge:bd[id]||null}))}});
   return {date:d,train:isTrainDay(d),meals,total:{kcal:R(tot.kcal),p:R(tot.p),c:R(tot.c),f:R(tot.f)},
-    goal:{kcal:G.kc?R(G.kc):null,p:rng(G.p),c:rng(G.c),f:rng(G.f)},workout,at:Date.now()};
+    goal:{kcal:G.kc?R(G.kc):null,p:rng(G.p),c:rng(G.c),f:rng(G.f)},workout,at:Date.now(),
+    bw:(()=>{try{const v=smoothBw();return v?Math.round(v*10)/10:null}catch(e){return null}})(),
+    tr:(()=>{try{if(d!==today())return null;const l=ses.at(-1);return l?{done:true,day:l.day,next:NEXT[l.day],nextDate:nextTrainDate(d)}:{done:false,day:plannedDay(),date:isTrainDay(d)?d:nextTrainDate(d)}}catch(e){return null}})()};
 }
 function flush(){timer=0;if(store.mode!=="db")return;for(const d of pend){try{const o=snap(d);if(!o)continue;const k=JSON.stringify({...o,at:0});if(last[d]===k)continue;last[d]=k;store.db.doc("vlog/"+d).set(o).catch(()=>{last[d]=null})}catch(e){}}pend.clear()}
 window.vlogPush=d=>{if(!d)return;pend.add(d);clearTimeout(timer);timer=setTimeout(flush,2500)};
 const _fc=foodChanged;foodChanged=function(){const r=_fc.apply(this,arguments);try{vlogPush(fst.date);vlogPush(today())}catch(e){}return r};
 const _ss=saveSession;saveSession=async function(o){const r=await _ss.apply(this,arguments);try{vlogPush(o.date)}catch(e){}return r};
 setTimeout(()=>{try{vlogPush(today());vlogPush(shiftDate(today(),-1))}catch(e){}},6000);
+setInterval(()=>{try{vlogPush(today())}catch(e){}},10*60*1000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")try{vlogPush(today());flush()}catch(e){}});
 })();
 </script>
 <script>

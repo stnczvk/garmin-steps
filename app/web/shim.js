@@ -224,6 +224,26 @@
     const i = document.getElementById("dz-vlogurl"); try { await navigator.clipboard.writeText(i.value) } catch (e) { i.select(); document.execCommand && document.execCommand("copy") }
     b.textContent = "✓ Skopiowano"; setTimeout(() => b.textContent = "Kopiuj", 2000);
   });
+  async function paintWidget() {
+    const el = document.getElementById("dz-widget"); if (!el) return;
+    el.innerHTML = `<p class="note" style="margin:0">Widget na ekran główny iPhone'a: kalorie dziś, białko, trening i waga. Działa przez darmową aplikację <b>Scriptable</b>.</p>
+      <ol class="steps" style="margin:0">
+        <li>Zainstaluj <b>Scriptable</b> z App Store.</li>
+        <li>Kliknij <b>Kopiuj skrypt</b> poniżej.</li>
+        <li>W Scriptable: <b>+</b> → wklej → nazwij np. „Dziennik” → <b>Gotowe</b>.</li>
+        <li>Na ekranie głównym przytrzymaj puste miejsce → <b>+</b> → Scriptable → wybierz rozmiar (średni najlepszy) → dodaj.</li>
+        <li>Przytrzymaj widget → <b>Edytuj widżet</b> → Script: <b>Dziennik</b>.</li>
+      </ol>
+      <div class="row" style="gap:8px"><button class="btn small" data-dzwidget="copy">Kopiuj skrypt</button></div>
+      <span class="note">Skrypt zawiera Twój klucz – nie udostępniaj go.</span>`;
+  }
+  document.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-dzwidget]"); if (!b) return;
+    try { const r = await fetch("/api/widget-script", {credentials: "same-origin"}); const code = await r.text(); await navigator.clipboard.writeText(code); b.textContent = "✓ Skopiowano – wklej w Scriptable"; }
+    catch (e) { b.textContent = "Nie udało się skopiować"; }
+    setTimeout(() => b.textContent = "Kopiuj skrypt", 3000);
+  });
+  window.dzWidget = { html: () => { setTimeout(paintWidget, 0); return `<div class="card stack"><h2>Widget na iPhone</h2><div id="dz-widget" class="stack" style="gap:10px"></div></div>`; } };
   window.dzVlog = { html: () => { setTimeout(paintVlog, 0); return `<div class="card stack"><h2>Montaż vlogu</h2><div id="dz-vlog" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
   window.dzScale = { html: () => { setTimeout(paintScale, 0); return `<div class="card stack"><h2>Waga Xiaomi</h2><div id="dz-scale" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
 

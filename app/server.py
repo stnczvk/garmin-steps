@@ -95,7 +95,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.middleware("http")
 async def guard(req: Request, call_next):
     p = req.url.path
-    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup") and not authed(req):
+    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/widget") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if p in ("/", "/index.html", "/shim.js", "/sw.js"):
@@ -385,6 +385,24 @@ def hook_info():
     last = kv_get("hook_last")
     return {"url": f"https://{DOMAIN}/api/hook/weight?key={hook_key()}", "vlog": f"https://{DOMAIN}/api/hook/vlog?key={hook_key()}",
             "last": json.loads(last) if last else None}
+
+
+@app.get("/api/hook/widget")
+def hook_widget(key: str = ""):
+    """Dane dla widgetu na iPhonie (Scriptable): ostatni zapis dnia z aplikacji."""
+    if not hmac.compare_digest(key, hook_key()):
+        raise HTTPException(403, "bad key")
+    r = _con.execute("SELECT data FROM docs WHERE coll='vlog' AND data IS NOT NULL ORDER BY path DESC LIMIT 1").fetchone()
+    d = json.loads(r[0]) if r else {}
+    d.pop("meals", None)
+    return d
+
+
+@app.get("/api/widget-script")
+def widget_script():
+    code = (HERE / "widget" / "dziennik.js").read_text()
+    return Response(code.replace("__URL__", f"https://{DOMAIN}/api/hook/widget?key={hook_key()}").replace("__APP__", f"https://{DOMAIN}/"),
+                    media_type="text/plain; charset=utf-8")
 
 
 @app.get("/api/hook/backup")
