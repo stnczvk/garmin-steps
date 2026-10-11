@@ -451,6 +451,7 @@ def _mz_env():
         pass
     env["MONTAZ_MUSIC"] = str(MZ_DIR / "muzyka_tlo.mp3")
     env["MONTAZ_FONT"] = str(MZ_DIR / "Montserrat.ttf")
+    env["DZ_DB"] = str(DB_PATH)
     return env
 
 

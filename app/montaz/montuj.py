@@ -47,7 +47,17 @@ W, H, FPS = 1080, 1920, 30
 
 TITLE_SECONDS = 3.5        # jak długo tytuł jest na ekranie na początku
 TITLE_FONT_SIZE = 78
-TITLE_TOP = 150            # odległość tytułu od górnej krawędzi (px)
+TITLE_TOP = 230            # odległość tytułu od górnej krawędzi (px)
+YELLOW = (255, 214, 0)
+
+NAPISY = True              # napisy z mowy (słowo, które właśnie mówisz, świeci na żółto)
+NAPISY_Y = 1300            # środek napisów (px od góry)
+NAPISY_SIZE = 80
+NAPISY_SLOW = 3            # max słów naraz
+
+ZOOM_NA_CIECIACH = 1.09    # „punch-in” co drugi fragment po wycięciu (1.0 = wyłączone)
+
+PODSUMOWANIE_SECONDS = 4.0 # karta z kaloriami i makro dnia na końcu (z dziennika)
 
 SHOT_SECONDS = 3.0         # jak długo zrzut z Fitatu jest widoczny
 SHOT_WIDTH = 720           # szerokość zrzutu na ekranie (px, cały ekran = 1080)
@@ -116,28 +126,31 @@ def probe(path):
 # GRAFIKI
 # ---------------------------------------------------------------------------
 def draw_title_png(lines, out):
+    """Tytuł na białych/żółtych paskach (wersja bez animacji)."""
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    f = font(TITLE_FONT_SIZE, 650)
-    d = ImageDraw.Draw(img)
+    grad = Image.new("L", (1, 700))
+    for yy in range(700):
+        grad.putpixel((0, yy), int(128 * (1 - yy / 700)))
+    shade = Image.new("RGBA", (W, 700), (0, 0, 0, 255))
+    shade.putalpha(grad.resize((W, 700)))
+    img.alpha_composite(shade)
     y = TITLE_TOP
-    positions = []
-    for line in lines:
-        bb = d.textbbox((0, 0), line, font=f)
+    for i, line in enumerate(lines):
+        f = font(TITLE_FONT_SIZE if i == 0 else int(TITLE_FONT_SIZE * 0.78), 800)
+        bb = ImageDraw.Draw(img).textbbox((0, 0), line, font=f)
         tw, th = bb[2] - bb[0], bb[3] - bb[1]
-        positions.append(((W - tw) / 2 - bb[0], y - bb[1]))
-        y += th + 22
-    # miękki cień pod tekstem (jak w TikToku)
-    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ds = ImageDraw.Draw(shadow)
-    for (x, yy), line in zip(positions, lines):
-        ds.text((x, yy), line, font=f, fill=(0, 0, 0, 200),
-                stroke_width=6, stroke_fill=(0, 0, 0, 200))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(6))
-    img = Image.alpha_composite(img, shadow)
-    d = ImageDraw.Draw(img)
-    for (x, yy), line in zip(positions, lines):
-        d.text((x, yy), line, font=f, fill="white",
-               stroke_width=3, stroke_fill=(20, 20, 20))
+        px, py = (34, 18) if i == 0 else (28, 14)
+        bw, bh = tw + 2 * px, th + 2 * py
+        bar = Image.new("RGBA", (bw + 80, bh + 80), (0, 0, 0, 0))
+        sh = Image.new("RGBA", bar.size, (0, 0, 0, 0))
+        ImageDraw.Draw(sh).rounded_rectangle([40, 52, 40 + bw, 52 + bh], 18, fill=(0, 0, 0, 110))
+        bar.alpha_composite(sh.filter(ImageFilter.GaussianBlur(14)))
+        d = ImageDraw.Draw(bar)
+        d.rounded_rectangle([40, 40, 40 + bw, 40 + bh], 18, fill=YELLOW if "kcal" in line.lower() else (255, 255, 255))
+        d.text((40 + px - bb[0], 40 + py - bb[1]), line, font=f, fill=(17, 17, 17))
+        bar = bar.rotate(-1.2 if i % 2 == 0 else 1.0, resample=Image.BICUBIC, expand=True)
+        img.alpha_composite(bar, ((W - bar.width) // 2, y - 40))
+        y += bh + 16
     img.save(out)
 
 
@@ -237,7 +250,7 @@ def anim_job(png, seconds, style, work):
 
 def title_job(lines, png, work):
     shutil.copy(FONT_PATH, work / "font_tytul.ttf")
-    h = int(TITLE_TOP + len(lines) * (TITLE_FONT_SIZE * 1.2 + 6) + 120)
+    h = int(TITLE_TOP + len(lines) * (TITLE_FONT_SIZE * 1.4 + 20) + 160)
     return {"png": str(png), "dx": 0, "dy": 0, "job": {
         "comp": "Tytul", "out": str(work / "tytul.mov"),
         "props": {"width": W, "height": h, "seconds": TITLE_SECONDS, "lines": lines, "size": TITLE_FONT_SIZE,
@@ -255,6 +268,150 @@ def overlay_input(png, start, x, y, n, last):
 
 
 # ---------------------------------------------------------------------------
+# NAPISY Z MOWY (z transkrypcji Groq) – po 1-3 słowa, aktualne słowo na żółto
+# ---------------------------------------------------------------------------
+def map_words(words, keep, speed, src_dur):
+    """Czas słów z oryginalnego klipu -> czas w zmontowanym fragmencie (po cięciach i przyspieszeniu)."""
+    pieces = keep or [(0.0, src_dur)]
+    out = []
+    for w in words:
+        s0, e0 = float(w["start"]), float(w["end"])
+        off = 0.0
+        for a, b in pieces:
+            if a - 0.05 <= s0 < b:
+                out.append(((off + max(s0, a) - a) / speed, (off + min(e0, b) - a) / speed, w["word"]))
+                break
+            off += b - a
+    return out
+
+
+def _clean(word):
+    return re.sub(r"^[\"'„”(\[]+|[\"'„”)\],.;:…]+$", "", word.strip())
+
+
+def draw_caption(words, active, out, scale=1.0):
+    size = NAPISY_SIZE
+    while True:
+        f = font(int(size * scale), 850)
+        d = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
+        space = d.textlength(" ", font=f)
+        widths = [d.textlength(w, font=f) for w in words]
+        total = sum(widths) + space * (len(words) - 1)
+        if total <= 960 * scale or size < 50:
+            break
+        size -= 4
+    img = Image.new("RGBA", (W, 320), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    x = (W - total) / 2
+    sw = max(4, int(8 * scale))
+    for i, (w, ww) in enumerate(zip(words, widths)):
+        d.text((x, 160), w, font=f, anchor="lm", fill=YELLOW if i == active else (255, 255, 255),
+               stroke_width=sw, stroke_fill=(0, 0, 0))
+        x += ww + space
+    sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    sh.putalpha(img.getchannel("A").point(lambda v: int(v * 0.55)).filter(ImageFilter.GaussianBlur(10)))
+    sh = Image.composite(Image.new("RGBA", img.size, (0, 0, 0, 255)), sh, sh.getchannel("A"))
+    base = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    base.alpha_composite(sh, (0, 6))
+    base.alpha_composite(img)
+    base.save(out)
+
+
+def build_captions(words, hide, work):
+    """words: [(start, end, słowo)] na osi całego filmu. Zwraca plik ffconcat z PNG albo None."""
+    words = [(a, b, _clean(w).upper()) for a, b, w in sorted(words) if _clean(w)]
+    words = [x for x in words if not any(h0 - 0.05 < x[0] < h1 for h0, h1 in hide)]
+    if not words:
+        return None
+    groups, cur = [], []
+    for i, wd in enumerate(words):
+        if cur and (len(cur) >= NAPISY_SLOW or sum(len(x[2]) + 1 for x in cur) + len(wd[2]) > 16
+                    or wd[0] - cur[-1][1] > 0.6 or any(h0 <= wd[0] and cur[-1][0] < h0 for h0, _ in hide)):
+            groups.append(cur); cur = []
+        cur.append(wd)
+    groups.append(cur)
+    events = []                                  # (start, koniec, png)
+    n = 0
+    for gi, g in enumerate(groups):
+        nxt = groups[gi + 1][0][0] if gi + 1 < len(groups) else 1e9
+        g_end = min(g[-1][1] + 0.35, nxt)
+        for h0, h1 in hide:
+            if g[0][0] < h0 < g_end:
+                g_end = h0
+        texts = [x[2] for x in g]
+        for i, (a, b, _) in enumerate(g):
+            st = g[0][0] if i == 0 else a
+            en = g[i + 1][0] if i + 1 < len(g) else g_end
+            if en - st < 0.04:
+                continue
+            if i == 0 and en - st > 0.15:      # „wskoczenie” całej grupy
+                png = work / f"nap_{n}.png"; n += 1
+                draw_caption(texts, i, png, 0.86)
+                events.append((st, st + 0.07, png))
+                st += 0.07
+            png = work / f"nap_{n}.png"; n += 1
+            draw_caption(texts, i, png)
+            events.append((st, en, png))
+    blank = work / "nap_pusty.png"
+    Image.new("RGBA", (W, 320), (0, 0, 0, 0)).save(blank)
+    lines, t = ["ffconcat version 1.0"], 0.0
+    for a, b, png in events:
+        if a < t:
+            a = t
+        if b - a < 0.02:
+            continue
+        if a - t > 0.01:
+            lines += [f"file '{blank}'", f"duration {a - t:.3f}"]
+        lines += [f"file '{png}'", f"duration {b - a:.3f}"]
+        t = b
+    lines += [f"file '{blank}'", "duration 1.0", f"file '{blank}'"]
+    cf = work / "napisy.txt"
+    cf.write_text("\n".join(lines) + "\n")
+    print(f"Napisy: {len(groups)} grup, {len(words)} słów", flush=True)
+    return cf
+
+
+def draw_summary_png(d, out):
+    """Podsumowanie dnia bez animacji."""
+    img = Image.new("RGBA", (W, H), (8, 8, 10, 158))
+    dr = ImageDraw.Draw(img)
+    cy = 560
+    dr.text((W / 2, cy), "PODSUMOWANIE DNIA", font=font(32, 700), fill=(255, 255, 255, 190), anchor="mm")
+    dr.text((W / 2, cy + 90), d["label"], font=font(46, 800), fill="white", anchor="mm")
+    dr.text((W / 2, cy + 270), f"{d['kcal']}", font=font(210, 900), fill=YELLOW, anchor="mm")
+    dr.text((W / 2, cy + 410), "kcal" + (f"  ·  cel {d['goal']}" if d.get("goal") else ""), font=font(48, 700),
+            fill="white", anchor="mm")
+    tw = (W - 140 - 40) / 3
+    for i, (l, v) in enumerate([("BIAŁKO", d["p"]), ("WĘGLE", d["c"]), ("TŁUSZCZ", d["fat"])]):
+        x = 70 + i * (tw + 20)
+        dr.rounded_rectangle([x, cy + 500, x + tw, cy + 700], 28, fill=(16, 16, 18, 215), outline=(255, 255, 255, 40), width=2)
+        dr.text((x + 24, cy + 530), l, font=font(23, 700), fill=(255, 255, 255, 170))
+        dr.text((x + 24, cy + 640), f"{v} g", font=font(70, 900), fill="white", anchor="ls")
+    img.save(out)
+
+
+def summary_job(d, png, work):
+    shutil.copy(FONT_PATH, work / "font_tytul.ttf")
+    return {"png": str(png), "dx": 0, "dy": 0, "job": {
+        "comp": "Podsumowanie", "out": str(work / "podsumowanie.mov"),
+        "props": {"width": W, "height": H, "seconds": PODSUMOWANIE_SECONDS, "font": "font_tytul.ttf",
+                  "cta": "Obserwuj – jutro kolejny dzień", **d}}}
+
+
+def load_summary(day):
+    """podsumowanie.json (zapisuje go zrob_dzien.py z danych dziennika)."""
+    try:
+        d = json.loads((day / "podsumowanie.json").read_text(encoding="utf-8"))
+        if int(d.get("kcal") or 0) <= 0:
+            return None
+        return {"label": str(d.get("label") or "DZIEŃ"), "kcal": int(d["kcal"]), "goal": d.get("goal"),
+                "p": int(d.get("p") or 0), "c": int(d.get("c") or 0), "fat": int(d.get("f") or 0),
+                "gp": d.get("gp"), "gc": d.get("gc"), "gf": d.get("gf"), "train": bool(d.get("train"))}
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------------------
 # WIDEO
 # ---------------------------------------------------------------------------
 def base_filter(transfer):
@@ -267,8 +424,9 @@ def base_filter(transfer):
             f"crop={W}:{H},setsar=1,fps={FPS},unsharp=5:5:{SHARPEN}:5:5:0")
 
 
-def render_segment(video, shots, title_png, workdir, idx, keep=None):
+def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0):
     dur, has_audio, transfer = probe(video)
+    src_dur = dur
     pre = []                                   # filtry wycinające fragmenty (jeśli są)
     vsrc, asrc = "0:v", "0:a"
     if keep:
@@ -293,7 +451,7 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None):
     speed = SPEEDUP if dur > SPEEDUP_ABOVE else 1.0   # dłuższe klipy -> przyspieszenie
     dur = dur / speed
     need = len(shots) * SHOT_SECONDS
-    extra = max(0.0, need + 0.8 - dur)         # za krótki klip -> zamrożenie ostatniej klatki
+    extra = max(0.0, need + 0.8 - dur) + tail  # za krótki klip / podsumowanie -> zamrożenie ostatniej klatki
     total = dur + extra
 
     inputs = ["-i", str(video)]
@@ -301,6 +459,17 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None):
           + (f",tpad=stop_mode=clone:stop_duration={extra:.3f}" if extra > 0 else "")
           + "[v0]"]
     last, n = "v0", 1
+    if keep and len(keep) > 1 and ZOOM_NA_CIECIACH > 1.0:
+        # co drugi fragment po cięciu lekko przybliżony – cięcie wygląda na zamierzone
+        zw, zh = int(W * ZOOM_NA_CIECIACH) // 2 * 2, int(H * ZOOM_NA_CIECIACH) // 2 * 2
+        t, wins = 0.0, []
+        for i, (a, b) in enumerate(keep):
+            if i % 2:
+                wins.append(f"between(t,{t:.3f},{t + (b - a) / speed - 0.001:.3f})")
+            t += (b - a) / speed
+        fc.append(f"[v0]split[za][zb];[zb]scale={zw}:{zh}:flags=bicubic,crop={W}:{H}[zc];"
+                  f"[za][zc]overlay=0:0:enable='{'+'.join(wins)}'[vz]")
+        last = "vz"
 
     if title_png:
         an = overlay_input(title_png, 0.0, 0, 0, n, last)
@@ -311,7 +480,7 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None):
             fc.append(f"[{last}][{n}:v]overlay=0:0:enable='lte(t,{TITLE_SECONDS})'[v{n}]")
         last, n = f"v{n}", n + 1
 
-    start = total - need
+    start = total - need - tail
     for png, (x, y) in shots:
         s, e = start, start + SHOT_SECONDS
         an = overlay_input(png, s, x, y, n, last)
@@ -341,34 +510,52 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None):
          "-map", f"[{last}]", "-map", amap, "-t", f"{total:.3f}",
          "-c:v", "libx264", "-preset", "ultrafast", "-crf", "10", "-pix_fmt", "yuv420p",
          "-c:a", "aac", "-b:a", "256k", "-ar", "44100", "-ac", "2", str(out)])
-    return out, total, speed, keep
+    return out, total, speed, keep, src_dur, total - need - tail
 
 
-def finalize(segments, total, workdir, music, out_path):
+def finalize(segments, total, workdir, music, out_path, captions=None, summary_png=None):
     lst = workdir / "lista.txt"
     lst.write_text("".join(f"file '{s}'\n" for s in segments))
     joined = workdir / "polaczone.mp4"
     run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(joined)])
 
+    inputs, fc, last, n = ["-i", str(joined)], [], "0:v", 1
+    if captions:
+        inputs += ["-f", "concat", "-safe", "0", "-i", str(captions)]
+        fc.append(f"[{last}][{n}:v]overlay=0:{NAPISY_Y - 160}:eof_action=pass[c{n}]")
+        last, n = f"c{n}", n + 1
+    if summary_png:
+        st = max(0.0, total - PODSUMOWANIE_SECONDS)
+        a = ANIM.get(str(summary_png))
+        if a:
+            inputs += ["-i", a[0]]
+            fc.append(f"[{n}:v]setpts=PTS+{st:.3f}/TB[q{n}]")
+            fc.append(f"[{last}][q{n}]overlay=0:0:eof_action=pass[c{n}]")
+        else:
+            inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(summary_png)]
+            fc.append(f"[{n}:v]format=rgba,fade=t=in:st={st:.3f}:d=0.25:alpha=1[q{n}]")
+            fc.append(f"[{last}][q{n}]overlay=0:0:enable='gte(t,{st:.3f})'[c{n}]")
+        last, n = f"c{n}", n + 1
+
     fw = Image.open(workdir / "follow.png").width
     lw = Image.open(workdir / "like.png").width
     f_start = max(0.0, total - FOLLOW_SECONDS - LIKE_SECONDS)
     l_start = total - LIKE_SECONDS
-    inputs, fc = ["-i", str(joined)], []
-    for k, (png, st, en, x, outl) in enumerate([(workdir / "follow.png", f_start, l_start, W - fw - 50, "v1"),
-                                                  (workdir / "like.png", l_start, total, W - lw - 50, "v")], 1):
+    for png, st, en, x in [(workdir / "follow.png", f_start, l_start, W - fw - 50),
+                           (workdir / "like.png", l_start, total, W - lw - 50)]:
         a = ANIM.get(str(png))
-        src = "0:v" if k == 1 else "v1"
         if a:
             inputs += ["-i", a[0]]
-            fc += [f"[{k}:v]setpts=PTS+{st:.3f}/TB[p{k}]",
-                   f"[{src}][p{k}]overlay={x + a[1]}:{230 + a[2]}:eof_action=pass[{outl}]"]
+            fc += [f"[{n}:v]setpts=PTS+{st:.3f}/TB[p{n}]",
+                   f"[{last}][p{n}]overlay={x + a[1]}:{230 + a[2]}:eof_action=pass[c{n}]"]
         else:
             inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(png)]
-            fc.append(f"[{src}][{k}:v]overlay={x}:230:enable='between(t,{st:.3f},{en:.3f})'[{outl}]")
+            fc.append(f"[{last}][{n}:v]overlay={x}:230:enable='between(t,{st:.3f},{en:.3f})'[c{n}]")
+        last, n = f"c{n}", n + 1
+    fc.append(f"[{last}]null[v]")
     if music and Path(music).exists():
         inputs += ["-stream_loop", "-1", "-i", str(music)]
-        fc.append(f"[3:a]volume={MUSIC_VOLUME},aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,"
+        fc.append(f"[{n}:a]volume={MUSIC_VOLUME},aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,"
                   f"afade=t=out:st={max(0, total - 1.5):.3f}:d=1.5[m0]")
         if MUSIC_DUCKING:
             # głos steruje przyciszaniem muzyki (sidechain) - gdy mówisz, muzyka schodzi w dół
@@ -390,8 +577,6 @@ def finalize(segments, total, workdir, music, out_path):
          "-c:v", "libx264", "-preset", "medium", "-crf", str(FINAL_CRF), "-profile:v", "high",
          "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
          "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", str(out_path)])
-
-
 
 
 # ---------------------------------------------------------------------------
@@ -504,17 +689,34 @@ def main():
                 png = work / f"shot_{i}_{j}.png"
                 prepared.append((png, prepare_screenshot(s, png)))
             prepared_all.append(prepared)
+        summary = load_summary(day)
+        summary_png = None
+        if summary:
+            summary_png = work / "podsumowanie.png"
+            draw_summary_png(summary, summary_png)
+        try:
+            trans = json.loads((day / "transkrypcja.json").read_text(encoding="utf-8")) if NAPISY else {}
+        except Exception:
+            trans = {}
         jobs = [title_job(title, title_png, work)]
+        if summary:
+            jobs.append(summary_job(summary, summary_png, work))
         jobs += [anim_job(png, SHOT_SECONDS, "karta", work) for pr in prepared_all for png, _ in pr]
         jobs += [anim_job(work / "follow.png", FOLLOW_SECONDS, "naklejka", work),
                  anim_job(work / "like.png", LIKE_SECONDS, "naklejka", work)]
         animate(jobs, work)
 
-        segments, total = [], 0.0
+        segments, total, cap_words, hide = [], 0.0, [], []
         for i, (video, shots, keep) in enumerate(plan):
             prepared = prepared_all[i]
-            seg, d, speed, keep = render_segment(video, prepared, title_png if i == 0 else None, work, i, keep)
+            tail = PODSUMOWANIE_SECONDS if (summary and i == len(plan) - 1) else 0.0
+            seg, d, speed, keep, src_dur, card_at = render_segment(
+                video, prepared, title_png if i == 0 else None, work, i, keep, tail)
             segments.append(seg)
+            for a, b, w in map_words(trans.get(video.name, {}).get("words", []), keep, speed, src_dur):
+                cap_words.append((total + a, total + b, w))
+            if prepared:
+                hide.append((total + card_at, total + card_at + len(prepared) * SHOT_SECONDS))
             total += d
             info = f" + zrzut: {', '.join(s.name for s in shots)}" if shots else ""
             if keep:
@@ -526,7 +728,11 @@ def main():
         out_dir = day.parent / "gotowe"
         out_dir.mkdir(exist_ok=True)
         out_path = out_dir / f"{args.nazwa or day.name}.mp4"
-        finalize(segments, total, work, None if args.bez_muzyki else args.muzyka, out_path)
+        if summary:
+            hide.append((total - PODSUMOWANIE_SECONDS, total + 1))
+        captions = build_captions(cap_words, hide, work) if cap_words else None
+        finalize(segments, total, work, None if args.bez_muzyki else args.muzyka, out_path,
+                 captions, summary_png)
         print(f"\nGOTOWE ({total:.0f} s): {out_path}")
     finally:
         shutil.rmtree(work, ignore_errors=True)

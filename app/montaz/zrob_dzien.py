@@ -20,6 +20,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -373,6 +374,29 @@ def auto_cuts(info):
     return opts, reasons
 
 
+def day_summary(day_date, n, title):
+    """Kalorie i makro dnia z dziennika (dokument vlog/<data>, który zapisuje aplikacja)."""
+    import sqlite3
+    db = os.environ.get("DZ_DB")
+    if not db or not Path(db).exists():
+        return None
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        row = con.execute("SELECT data FROM docs WHERE path=?", ("vlog/" + day_date.isoformat(),)).fetchone()
+        con.close()
+        d = json.loads(row[0]) if row else None
+    except Exception:
+        return None
+    if not d or not (d.get("total") or {}).get("kcal"):
+        return None
+    t, g = d["total"], d.get("goal") or {}
+    m = re.search(r"dzie[nń]\s*(\d+)", (title or [""])[0], re.I)
+    label = f"DZIEŃ {m.group(1) if m else n}" if (m or n is not None) else day_date.strftime("%d.%m")
+    return {"label": label, "kcal": t["kcal"], "p": t.get("p", 0), "c": t.get("c", 0), "f": t.get("f", 0),
+            "goal": g.get("kcal"), "gp": g.get("p"), "gc": g.get("c"), "gf": g.get("f"),
+            "train": bool(d.get("workout"))}
+
+
 def files_hash(files):
     return hashlib.md5("|".join(f"{p.name}:{p.stat().st_size}" for p in files).encode()).hexdigest()[:10]
 
@@ -516,6 +540,13 @@ def main():
         rep.append(ko.read_text(encoding="utf-8").strip())
 
     nazwa = f"dzien_{n}" if (n is not None and title and str(n) in title[0]) else day.name
+    summ = day_summary(day_date, n, title)
+    if summ:
+        (day / "podsumowanie.json").write_text(json.dumps(summ, ensure_ascii=False), encoding="utf-8")
+        rep.append(f"Podsumowanie na końcu: {summ['kcal']} kcal, B {summ['p']} / W {summ['c']} / T {summ['f']}")
+    else:
+        (day / "podsumowanie.json").unlink(missing_ok=True)
+        rep.append("Podsumowanie na końcu: brak danych z dziennika z tego dnia")
     rep.append(f"Plik wynikowy: gotowe/{nazwa}.mp4")
     print("\n".join(rep), flush=True)
     (day / "raport.txt").write_text("\n".join(rep) + "\n", encoding="utf-8")
