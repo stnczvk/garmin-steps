@@ -95,7 +95,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.middleware("http")
 async def guard(req: Request, call_next):
     p = req.url.path
-    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog") and not authed(req):
+    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if p in ("/", "/index.html", "/shim.js", "/sw.js"):
@@ -385,6 +385,34 @@ def hook_info():
     last = kv_get("hook_last")
     return {"url": f"https://{DOMAIN}/api/hook/weight?key={hook_key()}", "vlog": f"https://{DOMAIN}/api/hook/vlog?key={hook_key()}",
             "last": json.loads(last) if last else None}
+
+
+@app.get("/api/hook/backup")
+def hook_backup(key: str = ""):
+    """Kopia zapasowa (dziennik + centrum) do pobrania przez Maca – ten sam klucz co link do montażu."""
+    if not hmac.compare_digest(key, hook_key()):
+        raise HTTPException(403, "bad key")
+    import tarfile, tempfile
+    from starlette.background import BackgroundTask
+    tmp = Path(tempfile.mkdtemp(prefix="kopia-"))
+    db = tmp / "dziennik.db"
+    with _lock:
+        _con.execute("VACUUM INTO ?", (str(db),))
+    out = tmp / "kopia.tar.gz"
+    with tarfile.open(out, "w:gz") as t:
+        t.add(db, "dziennik/dziennik.db")
+        for f in ROOT.iterdir():   # klucze, tokeny, ustawienia (małe pliki); bez baz z jedzeniem, filmów i logów
+            if f.is_file() and ".db" not in f.name and f.suffix != ".log" and f.stat().st_size < 5_000_000:
+                t.add(f, "dziennik/" + f.name)
+        soc = Path(os.environ.get("SOCIAL_HOME", "/root/social"))
+        if (soc / "dane").is_dir():
+            for f in (soc / "dane").iterdir():
+                if f.is_file() and f.stat().st_size < 50_000_000:
+                    t.add(f, "centrum/dane/" + f.name)
+        if (soc / ".env").is_file():
+            t.add(soc / ".env", "centrum/.env")
+    name = f"kopia-{datetime.now(TZ).strftime('%Y-%m-%d')}.tar.gz"
+    return FileResponse(out, media_type="application/gzip", filename=name, background=BackgroundTask(shutil.rmtree, tmp, True))
 
 
 @app.get("/api/hook/vlog")
