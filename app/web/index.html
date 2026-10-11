@@ -336,17 +336,18 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 ::view-transition-new(root){clip-path:circle(0 at var(--tx,90%) var(--ty,0%))}
 
 /* ---------- okno szczegółów posta (na środku ekranu) ---------- */
-.sheet{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))}
+.sheet{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))}
 .sheet[hidden]{display:none}
 .scrim{position:absolute;inset:0;background:rgba(4,5,7,.6);backdrop-filter:blur(6px) saturate(1.2);-webkit-backdrop-filter:blur(6px) saturate(1.2);opacity:0;transition:opacity 320ms var(--ease)}
-.panel{position:relative;width:min(920px,100%);max-height:min(92dvh,980px);overflow:auto;overscroll-behavior:contain;border-radius:20px;
+.panel{position:relative;width:min(920px,100%);max-height:min(980px,calc(100vh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));max-height:min(980px,calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));overflow:auto;overscroll-behavior:contain;border-radius:20px;
   background:var(--bg);background-image:var(--card-bg);border:1px solid var(--line-hi);box-shadow:0 40px 100px -30px rgba(0,0,0,.75),var(--card-hi);
   opacity:0;transform:translateY(14px) scale(.965);transition:opacity 300ms var(--ease),transform 460ms cubic-bezier(.05,.7,.1,1);padding:22px 28px 28px}
 .sheet.open .scrim{opacity:1}
 .sheet.open .panel{opacity:1;transform:none}
 .sheet.closing .panel{opacity:0;transform:translateY(6px) scale(.98);transition:opacity 200ms var(--ease),transform 220ms cubic-bezier(.3,0,1,1)}
 .sheet.closing .scrim{opacity:0;transition:opacity 220ms}
-.p-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.p-top{display:flex;align-items:center;gap:10px;margin:-22px -28px 16px;padding:16px 28px 12px;position:sticky;top:-22px;z-index:5;background:var(--bg);border-radius:20px 20px 0 0}
+@media (max-width:640px){.p-top{margin:-14px -16px 12px;padding:12px 16px 10px;top:-14px}}
 .p-top .logo{width:26px;height:26px;border-radius:8px}
 .p-top .logo svg{width:14px;height:14px}
 .p-top b{flex:1;font-weight:550}
@@ -389,7 +390,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .sheet.open .p-in > *{opacity:1;transform:none;transition:opacity 360ms var(--ease) calc(100ms + var(--i,0) * 45ms),transform 440ms var(--ease) calc(100ms + var(--i,0) * 45ms)}
 @media (max-width:640px){
   .sheet{padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
-  .panel{padding:14px 16px 18px;max-height:94dvh}
+  .panel{padding:14px 16px 18px;max-height:calc(100vh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
   .p-chart svg{height:190px}
   .p-cell b{font-size:18px}
   .p-head{grid-template-columns:110px minmax(0,1fr);gap:14px}
@@ -896,6 +897,7 @@ function openPost(p) {
   const tall = p.platform !== 'youtube';
   const cells = [cell(p.likes, 'polubień', 0), cell(p.comments, 'komentarzy', 1), cell(p.shares, 'udostępnień', 2), cell(p.saved, 'zapisań', 3),
                  cell(p.reach, 'osób zasięgu', 4), cell(eng != null ? eng.toFixed(1).replace('.', ',') + '%' : null, 'zaangażowania', 5)].join('');
+  $('#panel').scrollTop = 0;
   $('#panel').style.setProperty('--pc', `var(--${VAR[p.platform]})`);
   $('#panel').innerHTML = `
     <div class="p-top"><span class="logo">${ICON[p.platform]}</span><b>${esc(p.acc)}</b><button id="p-close" aria-label="Zamknij"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
