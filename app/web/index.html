@@ -12,11 +12,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Centrum">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#F3F4F7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B0E14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08090A" media="(prefers-color-scheme: dark)">
 <script>
   // motyw ustawiony zanim strona się narysuje (bez mignięcia)
-  try { const t = localStorage.getItem('motyw'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  let t = 'dark'; try { t = localStorage.getItem('motyw') || 'dark'; } catch (e) {} if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,44 +24,61 @@
 <style>
 :root{
   color-scheme:light;
-  --bg:#F3F4F7; --surface:#FFFFFF; --raised:#F7F8FA; --line:#E4E7ED; --line-soft:#EEF0F4;
-  --ink:#0F1320; --soft:#525A6E; --faint:#8790A3; --grid:#EDEFF3;
-  --accent:#3B5BDB; --accent-soft:#EBEFFD;
-  --up:#14804A; --up-bg:#E6F5EC; --down:#C2352A; --down-bg:#FCECEA; --warn:#8A5300; --warn-bg:#FFF4E2;
+  --bg:#FAFAFA; --surface:#FFFFFF; --raised:#F4F4F5; --line:#E6E6E9; --line-soft:#EFEFF1; --line-hi:#D4D4D8;
+  --ink:#09090B; --soft:#52525B; --faint:#8B8B94; --grid:#EFEFF1;
+  --accent:#6E56CF; --accent-2:#3E63DD; --accent-soft:rgba(110,86,207,.10);
+  --up:#15803D; --up-bg:rgba(21,128,61,.09); --down:#C2352A; --down-bg:rgba(194,53,42,.08); --warn:#8A5300; --warn-bg:#FFF6E5;
   --yt:#E0352B; --ig:#8A4BD6; --tt:#0E9488;
-  --shadow:0 1px 2px rgba(15,19,32,.04), 0 12px 32px -18px rgba(15,19,32,.25);
-  --head:rgba(243,244,247,.78);
-  --glow:radial-gradient(120% 90% at 0% 0%, rgba(59,91,219,.08), transparent 60%);
+  --shadow:0 1px 2px rgba(0,0,0,.04);
+  --card-bg:#FFFFFF; --card-hi:inset 0 1px 0 rgba(255,255,255,.9);
+  --head:rgba(250,250,250,.75);
+  --aurora:radial-gradient(60% 50% at 50% -10%, rgba(110,86,207,.12), transparent 70%);
+  --gridline:rgba(9,9,11,.045);
+  --glow:none;
 }
 :root[data-theme=dark]{
   color-scheme:dark;
-  --bg:#0B0E14; --surface:#121621; --raised:#171C29; --line:rgba(255,255,255,.08); --line-soft:rgba(255,255,255,.05);
-  --ink:#E9ECF3; --soft:#A3ABBD; --faint:#6E7790; --grid:rgba(255,255,255,.06);
-  --accent:#7C93F5; --accent-soft:rgba(124,147,245,.14);
-  --up:#4ED48A; --up-bg:rgba(78,212,138,.12); --down:#FF7B70; --down-bg:rgba(255,123,112,.12); --warn:#F5B25A; --warn-bg:rgba(245,178,90,.1);
+  --bg:#08090A; --surface:#0E0F11; --raised:#16171A; --line:rgba(255,255,255,.08); --line-soft:rgba(255,255,255,.055); --line-hi:rgba(255,255,255,.18);
+  --ink:#F4F4F5; --soft:#A1A1AA; --faint:#6B6B75; --grid:rgba(255,255,255,.06);
+  --accent:#9E8CFC; --accent-2:#6E8BFF; --accent-soft:rgba(158,140,252,.12);
+  --up:#4ADE80; --up-bg:rgba(74,222,128,.10); --down:#FF7B70; --down-bg:rgba(255,123,112,.10); --warn:#F5B25A; --warn-bg:rgba(245,178,90,.08);
   --yt:#E8504A; --ig:#9B66E8; --tt:#14A898;
-  --shadow:0 0 0 1px rgba(255,255,255,.06), 0 18px 40px -24px rgba(0,0,0,.8);
-  --head:rgba(11,14,20,.72);
-  --glow:radial-gradient(120% 90% at 0% 0%, rgba(124,147,245,.13), transparent 60%);
+  --shadow:0 0 0 1px rgba(0,0,0,.4), 0 20px 40px -24px rgba(0,0,0,.9);
+  --card-bg:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  --card-hi:inset 0 1px 0 rgba(255,255,255,.06);
+  --head:rgba(8,9,10,.7);
+  --aurora:radial-gradient(55% 45% at 50% -8%, rgba(120,98,255,.22), rgba(62,99,221,.08) 45%, transparent 75%);
+  --gridline:rgba(255,255,255,.035);
+  --glow:none;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme=light]){
     color-scheme:dark;
-    --bg:#0B0E14; --surface:#121621; --raised:#171C29; --line:rgba(255,255,255,.08); --line-soft:rgba(255,255,255,.05);
-    --ink:#E9ECF3; --soft:#A3ABBD; --faint:#6E7790; --grid:rgba(255,255,255,.06);
-    --accent:#7C93F5; --accent-soft:rgba(124,147,245,.14);
-    --up:#4ED48A; --up-bg:rgba(78,212,138,.12); --down:#FF7B70; --down-bg:rgba(255,123,112,.12); --warn:#F5B25A; --warn-bg:rgba(245,178,90,.1);
+    --bg:#08090A; --surface:#0E0F11; --raised:#16171A; --line:rgba(255,255,255,.08); --line-soft:rgba(255,255,255,.055); --line-hi:rgba(255,255,255,.18);
+    --ink:#F4F4F5; --soft:#A1A1AA; --faint:#6B6B75; --grid:rgba(255,255,255,.06);
+    --accent:#9E8CFC; --accent-2:#6E8BFF; --accent-soft:rgba(158,140,252,.12);
+    --up:#4ADE80; --up-bg:rgba(74,222,128,.10); --down:#FF7B70; --down-bg:rgba(255,123,112,.10); --warn:#F5B25A; --warn-bg:rgba(245,178,90,.08);
     --yt:#E8504A; --ig:#9B66E8; --tt:#14A898;
-    --shadow:0 0 0 1px rgba(255,255,255,.06), 0 18px 40px -24px rgba(0,0,0,.8);
-    --head:rgba(11,14,20,.72);
-    --glow:radial-gradient(120% 90% at 0% 0%, rgba(124,147,245,.13), transparent 60%);
+    --shadow:0 0 0 1px rgba(0,0,0,.4), 0 20px 40px -24px rgba(0,0,0,.9);
+    --card-bg:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+    --card-hi:inset 0 1px 0 rgba(255,255,255,.06);
+    --head:rgba(8,9,10,.7);
+    --aurora:radial-gradient(55% 45% at 50% -8%, rgba(120,98,255,.22), rgba(62,99,221,.08) 45%, transparent 75%);
+    --gridline:rgba(255,255,255,.035);
+    --glow:none;
   }
 }
-:root{--ease:cubic-bezier(.2,0,0,1);--quick:140ms;--std:280ms;--slow:560ms;--r:18px}
+:root{--ease:cubic-bezier(.2,0,0,1);--quick:140ms;--std:280ms;--slow:560ms;--r:14px}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{margin:0;min-height:100dvh;background:var(--bg);color:var(--ink);font:400 14.5px/1.5 "Geist",system-ui,-apple-system,sans-serif;
   -webkit-font-smoothing:antialiased;transition:background var(--std) var(--ease),color var(--std) var(--ease)}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:var(--aurora)}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--gridline) 1px,transparent 1px),linear-gradient(90deg,var(--gridline) 1px,transparent 1px);background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(70% 55% at 50% 0%,#000 30%,transparent 75%);mask-image:radial-gradient(70% 55% at 50% 0%,#000 30%,transparent 75%)}
+.head,.wrap,.login{position:relative;z-index:1}
+.head{position:sticky}
 a{color:inherit}
 .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
@@ -75,37 +92,43 @@ a{color:inherit}
 .brand span{color:var(--faint);font-size:13px;margin-left:4px}
 .wrap{max-width:1200px;margin:0 auto;padding:26px 20px 100px}
 
-button{font:500 13.5px "Geist",sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 13px;cursor:pointer;
+button{font:500 13.5px "Geist",sans-serif;border:1px solid var(--line);background:var(--raised);color:var(--ink);border-radius:10px;padding:8px 13px;cursor:pointer;
   display:inline-flex;align-items:center;gap:7px;transition:background var(--quick) var(--ease),border-color var(--quick) var(--ease),transform var(--quick) var(--ease)}
 button:hover{background:var(--raised)}
 button:active{transform:scale(.97)}
 button:disabled{opacity:.5;cursor:default;transform:none}
-button.main{background:var(--ink);color:var(--bg);border-color:transparent}
+button.main{background:var(--ink);color:var(--bg);border-color:transparent;box-shadow:0 0 0 1px var(--line),0 6px 20px -8px color-mix(in oklab,var(--accent) 60%,transparent)}
 button.main:hover{opacity:.9;background:var(--ink)}
 button svg{width:15px;height:15px;flex:none}
 .spin{animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.seg{display:inline-flex;gap:2px;padding:3px;background:var(--raised);border:1px solid var(--line-soft);border-radius:11px;position:relative}
+.seg{display:inline-flex;gap:2px;padding:3px;background:var(--surface);border:1px solid var(--line);border-radius:11px;position:relative}
 .seg button{border:0;background:transparent;color:var(--soft);padding:6px 12px;border-radius:8px;position:relative;z-index:1}
 .seg button:hover{color:var(--ink);background:transparent}
 .seg button[aria-pressed=true]{color:var(--ink)}
-.seg .pill{position:absolute;top:3px;bottom:3px;left:0;border-radius:8px;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.12), 0 0 0 1px var(--line-soft);
+.seg .pill{position:absolute;top:3px;bottom:3px;left:0;border-radius:8px;background:var(--raised);box-shadow:0 1px 2px rgba(0,0,0,.12), 0 0 0 1px var(--line-soft);
   transition:transform var(--std) var(--ease),width var(--std) var(--ease)}
 .seg.icons button{padding:6px 8px}
 .when{color:var(--faint);font-size:12.5px}
 
+/* ---------- tytuł strony ---------- */
+.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 22px}
+.grad{margin:0;font-weight:650;font-size:clamp(34px,5vw,52px);letter-spacing:-.045em;line-height:1;
+  background:linear-gradient(180deg,var(--ink) 20%,color-mix(in oklab,var(--ink) 45%,transparent));-webkit-background-clip:text;background-clip:text;color:transparent}
+
 /* ---------- karty ---------- */
-.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);position:relative;transition:background var(--std) var(--ease)}
+.card{background:var(--card-bg);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--card-hi),var(--shadow);position:relative;transition:background var(--std) var(--ease),border-color var(--std) var(--ease)}
+.card:hover{border-color:var(--line-hi)}
 .card-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:18px 20px 0}
-.card-h h2{margin:0;font-size:14.5px;font-weight:600;letter-spacing:-.005em}
+.card-h h2{margin:0;font-size:14px;font-weight:550;letter-spacing:-.005em;color:var(--ink)}
 .card-h small{color:var(--faint);font-size:12.5px}
 
 /* ---------- wskaźniki ---------- */
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
 .kpi{padding:18px 20px 16px;overflow:hidden}
 .kpi:first-child{background-image:var(--glow)}
-.kpi .k{font-size:13px;color:var(--soft)}
-.kpi .v{font-weight:650;font-size:clamp(26px,3.2vw,36px);letter-spacing:-.03em;line-height:1.1;margin:8px 0 10px}
+.kpi .k{font-size:13px;color:var(--faint)}
+.kpi .v{font-weight:600;font-size:clamp(26px,3.2vw,34px);letter-spacing:-.04em;line-height:1.1;margin:10px 0 12px;background:linear-gradient(180deg,var(--ink) 30%,color-mix(in oklab,var(--ink) 55%,transparent));-webkit-background-clip:text;background-clip:text;color:transparent}
 .chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 8px}
 .chip.up{color:var(--up);background:var(--up-bg)} .chip.down{color:var(--down);background:var(--down-bg)} .chip.flat{color:var(--faint);background:var(--raised)}
 .kpi .sub{font-size:12.5px;color:var(--faint)}
@@ -115,10 +138,10 @@ button svg{width:15px;height:15px;flex:none}
 .chart{padding-bottom:12px}
 .chart-box{position:relative;padding:8px 14px 0 6px;touch-action:pan-y}
 .chart svg{display:block;width:100%;height:260px;overflow:visible}
-.chart .gl{stroke:var(--grid);stroke-width:1}
+.chart .gl{stroke:var(--grid);stroke-width:1;stroke-dasharray:2 4}
 .chart .ax{fill:var(--faint);font:12px "Geist",sans-serif}
 .chart .area{fill:url(#ga)}
-.chart .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .ln{fill:none;stroke:url(#gl);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 4px 12px color-mix(in oklab,var(--accent) 45%,transparent))}
 .chart .xh{stroke:var(--soft);stroke-width:1;stroke-dasharray:3 3;opacity:0;transition:opacity var(--quick)}
 .chart .pt{fill:var(--surface);stroke:var(--accent);stroke-width:2;opacity:0;transition:opacity var(--quick)}
 .chart.hov .xh,.chart.hov .pt{opacity:1}
@@ -245,6 +268,10 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .spot:after{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity var(--std) var(--ease);
   background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),var(--accent-soft),transparent 70%)}
 .spot:hover:after{opacity:1}
+.spot:before{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;z-index:2;padding:1px;opacity:0;transition:opacity var(--std) var(--ease);
+  background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%),color-mix(in oklab,var(--accent) 80%,transparent),transparent 65%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.spot:hover:before{opacity:1}
 .spot > *{position:relative;z-index:1}
 /* kropka „na żywo” przy dacie aktualizacji */
 .live{display:inline-flex;align-items:center;gap:8px}
@@ -336,7 +363,10 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 </header>
 
 <main class="wrap" id="app">
-  <div class="sec-h" style="margin-bottom:16px"><span class="when num live" id="live"><i></i><span id="when"></span></span></div>
+  <div class="intro in" style="--d:0ms">
+    <h1 class="grad">Przegląd</h1>
+    <span class="when num live" id="live"><i></i><span id="when"></span></span>
+  </div>
   <div id="msg"></div>
 
   <section class="kpis" id="kpis" aria-label="Najważniejsze liczby">
@@ -508,7 +538,7 @@ function drawChart(accs) {
   box.innerHTML = `<div class="card-h"><h2>${s.title}</h2><small>${s.note}</small></div>
     <div class="chart-box" tabindex="0" aria-label="${s.title}. Najechanie lub strzałki pokazują wartości dla dni.">
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${s.title}, łącznie ${fmt(sum)}">
-        <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".22"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+        <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient><linearGradient id="gl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--accent-2)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs>
         ${ticks.map(t => `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/><text class="ax num" x="${L - 10}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${short(t)}</text>`).join('')}
         ${xi.map((i, k) => `<text class="ax" x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${k === 0 ? 'start' : k === 2 ? 'end' : 'middle'}">${dayName(series[i].date)}</text>`).join('')}
         <polygon class="area" points="${x(0)},${y(lo)} ${line} ${x(series.length - 1)},${y(lo)}"/>
@@ -686,7 +716,7 @@ addEventListener('scroll', () => $('#head').classList.toggle('scrolled', scrollY
 // motyw: jak w systemie / jasny / ciemny
 function setTheme(t, save) {
   if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
-  if (save) { try { t === 'auto' ? localStorage.removeItem('motyw') : localStorage.setItem('motyw', t); } catch (e) {} }
+  if (save) { try { localStorage.setItem('motyw', t); } catch (e) {} }
   $('#theme').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.t === t));
   movePill($('#theme'));
 }
