@@ -85,12 +85,13 @@ a{color:inherit}
 
 /* ---------- pasek górny ---------- */
 .head{position:sticky;top:0;z-index:20;background:var(--head);backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line-soft)}
-.head-in{max-width:1200px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.head{padding-top:env(safe-area-inset-top)}
+.head-in{max-width:1200px;margin:0 auto;padding:12px max(20px,env(safe-area-inset-right)) 12px max(20px,env(safe-area-inset-left));display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;flex:1;min-width:200px}
 .brand img{width:30px;height:30px;border-radius:8px}
 .brand b{font-weight:650;font-size:15.5px;letter-spacing:-.01em}
 .brand span{color:var(--faint);font-size:13px;margin-left:4px}
-.wrap{max-width:1200px;margin:0 auto;padding:26px 20px 100px}
+.wrap{max-width:1200px;margin:0 auto;padding:26px max(20px,env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
 
 button{font:500 13.5px "Geist",sans-serif;border:1px solid var(--line);background:var(--raised);color:var(--ink);border-radius:10px;padding:8px 13px;cursor:pointer;
   display:inline-flex;align-items:center;gap:7px;transition:background var(--quick) var(--ease),border-color var(--quick) var(--ease),transform var(--quick) var(--ease)}
@@ -244,7 +245,7 @@ input:focus,select:focus{outline:2px solid var(--accent);outline-offset:0;border
 code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:1px 6px;word-break:break-all}
 .note{border-radius:12px;padding:11px 15px;margin-bottom:16px;font-size:13.5px}
 .note.bad{background:var(--down-bg);color:var(--down)} .note.good{background:var(--up-bg);color:var(--up)}
-.login{max-width:380px;margin:16vh auto 0;padding:30px}
+.login{max-width:380px;margin:calc(16vh + env(safe-area-inset-top)) auto 0;padding:30px}
 .login img{width:52px;height:52px;border-radius:14px}
 .login h1{margin:16px 0 4px;font-weight:650;font-size:24px;letter-spacing:-.02em}
 .login p{margin:0 0 18px;color:var(--soft)}
@@ -319,9 +320,9 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   .who b{max-width:140px}
 }
 @media (max-width:560px){
-  .head-in{padding:10px 14px}
+  .head-in{padding:10px max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left))}
   .brand span{display:none}
-  .wrap{padding:18px 14px 90px}
+  .wrap{padding:18px 14px calc(90px + env(safe-area-inset-bottom))}
   .kpi{padding:16px}
   .grid2{grid-template-columns:1fr}
   .tbl th,.tbl td{padding-left:14px;padding-right:14px}
