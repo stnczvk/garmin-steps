@@ -236,6 +236,55 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 @keyframes sw{from{opacity:.25;transform:translateY(5px)}to{opacity:1;transform:none}}
 .loading{opacity:.55;transition:opacity var(--std)}
 
+/* ---------- dodatkowy ruch ---------- */
+/* karty unoszą się lekko pod kursorem, z „reflektorem” na krawędzi */
+.card.lift{transition:transform var(--std) var(--ease),box-shadow var(--std) var(--ease),background var(--std) var(--ease)}
+@media (hover:hover){
+  .card.lift:hover{transform:translateY(-2px);box-shadow:var(--shadow),0 18px 40px -22px rgba(15,19,32,.35)}
+}
+.spot:after{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity var(--std) var(--ease);
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),var(--accent-soft),transparent 70%)}
+.spot:hover:after{opacity:1}
+.spot > *{position:relative;z-index:1}
+/* kropka „na żywo” przy dacie aktualizacji */
+.live{display:inline-flex;align-items:center;gap:8px}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--up);position:relative;flex:none}
+.live i:after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--up);opacity:0;animation:pulse 2.4s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes pulse{0%{transform:scale(.4);opacity:.7}80%,100%{transform:scale(1.5);opacity:0}}
+.live.busy i{background:var(--accent)} .live.busy i:after{border-color:var(--accent);animation-duration:1s}
+/* cień paska po przewinięciu */
+.head{transition:box-shadow var(--std) var(--ease),background var(--std) var(--ease)}
+.head.scrolled{box-shadow:0 8px 24px -16px rgba(0,0,0,.35)}
+/* wykres: punkt z pulsującą obwódką, płynny dymek */
+.chart .ring{fill:none;stroke:var(--accent);stroke-width:2;opacity:0}
+.chart.hov .ring{animation:ring 1.6s var(--ease) infinite}
+@keyframes ring{0%{opacity:.5;r:5}100%{opacity:0;r:14}}
+.tip{transition:opacity var(--quick) var(--ease),transform var(--quick) var(--ease),left 90ms linear}
+.chart .xh,.chart .pt{transition:opacity var(--quick),transform 90ms linear}
+/* wiersze tabeli i posty wchodzą kaskadą */
+.tbl tbody tr.rw{opacity:0;transform:translateX(-8px)}
+.drawn .tbl tbody tr.rw{opacity:1;transform:none;transition:opacity 400ms var(--ease) var(--d,0ms),transform 500ms var(--ease) var(--d,0ms),background var(--quick) var(--ease)}
+.post.rw{opacity:0;transform:translateY(8px)}
+.seen .post.rw{opacity:1;transform:none;transition:opacity 380ms var(--ease) var(--d,0ms),transform 480ms var(--ease) var(--d,0ms),background var(--quick) var(--ease)}
+.post .thumb{transition:transform var(--std) var(--ease)}
+.post:hover .thumb{transform:scale(1.06) rotate(-1.5deg)}
+.post:hover .mbar i{filter:brightness(1.15)}
+.mbar i{transform-origin:left;transform:scaleX(0)}
+.seen .mbar i{transform:none;transition:transform 700ms var(--ease) var(--d,0ms)}
+.plist[style*="1fr"] .post.rw{opacity:1;transform:none}
+/* sekcje niżej pojawiają się przy przewijaniu */
+.reveal{opacity:0;transform:translateY(18px)}
+.reveal.seen{opacity:1;transform:none;transition:opacity 500ms var(--ease),transform 600ms var(--ease)}
+/* zmieniona liczba po odświeżeniu na chwilę się podświetla */
+.flash{animation:flash 1.4s var(--ease)}
+@keyframes flash{0%{background:var(--accent-soft);box-shadow:0 0 0 4px var(--accent-soft)}100%{background:transparent;box-shadow:0 0 0 4px transparent}}
+.v.num,.tbl .v{border-radius:6px}
+/* wciśnięcie przycisku w przełączniku */
+.seg button:active{transform:scale(.94)}
+/* przejście motywu: okrąg rozlewający się od przycisku */
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-new(root){clip-path:circle(0 at var(--tx,90%) var(--ty,0%))}
+
 @media (max-width:980px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .mid{grid-template-columns:1fr} }
 @media (max-width:760px){
   .tbl .hide-m{display:none}
@@ -261,7 +310,8 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   *,*:before{transition:none!important;animation:none!important}
   .in{opacity:1;transform:none}
   .chart .ln,.sline{stroke-dashoffset:0} .chart .area{opacity:1}
-  .track i,.bars i{transform:none}
+  .track i,.bars i,.mbar i{transform:none}
+  .tbl tbody tr.rw,.post.rw,.reveal{opacity:1;transform:none}
 }
 </style>
 </head>
@@ -286,7 +336,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 </header>
 
 <main class="wrap" id="app">
-  <div class="sec-h" style="margin-bottom:16px"><span class="when num" id="when"></span></div>
+  <div class="sec-h" style="margin-bottom:16px"><span class="when num live" id="live"><i></i><span id="when"></span></span></div>
   <div id="msg"></div>
 
   <section class="kpis" id="kpis" aria-label="Najważniejsze liczby">
@@ -297,13 +347,13 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   </section>
 
   <section class="mid">
-    <div class="card chart in" id="chart" style="--d:200ms"></div>
-    <div class="card plat in" id="plat" style="--d:260ms"></div>
+    <div class="card chart in spot" id="chart" style="--d:200ms"></div>
+    <div class="card plat in lift spot" id="plat" style="--d:260ms"></div>
   </section>
 
   <section class="card board in" id="board" style="--d:320ms" aria-label="Konta"></section>
 
-  <div class="sec-h">
+  <div class="sec-h reveal">
     <h2>Najlepsze posty</h2>
     <div class="seg" role="group" aria-label="Okres" id="range">
       <span class="pill"></span>
@@ -311,9 +361,9 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
       <button data-r="0" aria-pressed="false">Cały czas</button>
     </div>
   </div>
-  <section class="card posts" id="posts"></section>
+  <section class="card posts reveal" id="posts"></section>
 
-  <details class="card set" id="settings">
+  <details class="card set reveal" id="settings">
     <summary><svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>Konta i ustawienia</summary>
     <div class="set-body">
       <h3>Połączone konta</h3>
@@ -392,6 +442,7 @@ function countUp(root) {
     const target = el.dataset.n === '' ? NaN : +el.dataset.n;
     const from = +(el.dataset.prev || 0);
     if (reduce || !isFinite(target) || (!first && from === target)) { el.textContent = fmt(target); return; }
+    if (!first && el.dataset.prev !== undefined && from !== 0) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
     const t0 = performance.now(), dur = first ? 1100 : 500;
     const step = t => { const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 4);
       el.textContent = fmt(from + (target - from) * e); if (p < 1) requestAnimationFrame(step); };
@@ -463,6 +514,7 @@ function drawChart(accs) {
         <polygon class="area" points="${x(0)},${y(lo)} ${line} ${x(series.length - 1)},${y(lo)}"/>
         <polyline class="ln" pathLength="1" points="${line}" vector-effect="non-scaling-stroke"/>
         <line class="xh" id="xh" y1="${T}" y2="${H - B}"/>
+        <circle class="ring" id="rg" r="5"/>
         <circle class="pt" id="pt" r="4.5"/>
       </svg>
       <div class="tip" id="tip"></div>
@@ -473,6 +525,7 @@ function drawChart(accs) {
     const px = x(i), py = y(series[i].v), sc = svg.clientWidth / W;
     $('#xh').setAttribute('x1', px); $('#xh').setAttribute('x2', px);
     $('#pt').setAttribute('cx', px); $('#pt').setAttribute('cy', py);
+    $('#rg').setAttribute('cx', px); $('#rg').setAttribute('cy', py);
     const tip = $('#tip');
     tip.innerHTML = `<b class="num"></b><span></span>`;
     tip.firstChild.textContent = fmt(series[i].v);
@@ -502,10 +555,10 @@ function render(changed) {
   const k = (key, n) => `data-n="${n ?? ''}" data-key="${key}" data-prev="${prev[key] || 0}"`;
 
   $('#kpis').innerHTML = `
-    <div class="card kpi in" style="--d:0ms"><div class="k">Obserwujący łącznie</div><div class="v num" ${k('k1', fol)}></div>${chip(dsum)} <span class="sub">w tydzień</span></div>
-    <div class="card kpi in" style="--d:50ms"><div class="k">Wyświetlenia</div><div class="v num" ${k('k2', views)}></div><span class="sub">ostatnie 28 dni</span></div>
-    <div class="card kpi in" style="--d:100ms"><div class="k">Nowe posty</div><div class="v num" ${k('k3', posts28.length)}></div><span class="sub">ostatnie 28 dni</span></div>
-    <div class="card kpi in" style="--d:150ms"><div class="k">Średnio na post</div><div class="v num" ${k('k4', avg != null ? Math.round(avg) : '')}></div><span class="sub">wyświetleń, ostatnie 28 dni</span></div>`;
+    <div class="card kpi in lift spot" style="--d:0ms"><div class="k">Obserwujący łącznie</div><div class="v num" ${k('k1', fol)}></div>${chip(dsum)} <span class="sub">w tydzień</span></div>
+    <div class="card kpi in lift spot" style="--d:50ms"><div class="k">Wyświetlenia</div><div class="v num" ${k('k2', views)}></div><span class="sub">ostatnie 28 dni</span></div>
+    <div class="card kpi in lift spot" style="--d:100ms"><div class="k">Nowe posty</div><div class="v num" ${k('k3', posts28.length)}></div><span class="sub">ostatnie 28 dni</span></div>
+    <div class="card kpi in lift spot" style="--d:150ms"><div class="k">Średnio na post</div><div class="v num" ${k('k4', avg != null ? Math.round(avg) : '')}></div><span class="sub">wyświetleń, ostatnie 28 dni</span></div>`;
 
   drawChart(accs);
 
@@ -523,7 +576,7 @@ function render(changed) {
   // konta
   $('#board').innerHTML = accs.length ? `<table class="tbl">
     <thead><tr><th scope="col">Konto</th><th scope="col">Obserwujący</th><th scope="col" class="hide-s">Zmiana, 7 dni</th><th scope="col" class="hide-m">Wyświetlenia, 28 dni</th><th scope="col" class="trend hide-s">Trend</th></tr></thead>
-    <tbody>${accs.map(([key, a], i) => { const d = weekDelta(a); return `<tr style="--pc:var(--${VAR[a.platform]})">
+    <tbody>${accs.map(([key, a], i) => { const d = weekDelta(a); return `<tr class="rw" style="--pc:var(--${VAR[a.platform]});--d:${380 + i * 60}ms">
       <td><div class="who"><span class="logo">${ICON[a.platform]}</span><span style="min-width:0"><b>${esc(a.name)}</b><small>${NAMES[a.platform]} · ${esc(data.groups?.[a.group] || '')}</small></span></div></td>
       <td><span class="v num" ${k('f-' + key, a.followers)}></span></td>
       <td class="hide-s">${chip(d)}</td>
@@ -536,12 +589,12 @@ function render(changed) {
   const cut = new Date(Date.now() - range * 864e5).toISOString().slice(0, 10);
   const all = allPosts.filter(p => !range || p.date >= cut).sort((x, y) => (y.views || 0) - (x.views || 0)).slice(0, 30);
   const topv = all[0]?.views || 1;
-  const row = (p, i) => `<a class="post" href="${esc(p.url)}" target="_blank" rel="noopener" style="--pc:var(--${VAR[p.platform]})">
+  const row = (p, i) => `<a class="post rw" href="${esc(p.url)}" target="_blank" rel="noopener" style="--pc:var(--${VAR[p.platform]});--d:${Math.min(i, 5) * 50}ms">
       <span class="rank num">${i + 1}</span>
       ${p.thumb ? `<img class="thumb" src="${esc(p.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-p="${p.platform}">` : `<span class="thumb">${ICON[p.platform]}</span>`}
       <span style="min-width:0"><span class="pt">${esc(p.title) || 'Bez opisu'}</span>
         <span class="pm"><span><i class="dot"></i>${esc(p.acc)}</span><span class="num">${dmy(p.date)}</span><span class="num">${fmt(p.likes)} polubień</span><span class="num pc">${fmt(p.comments)} komentarzy</span></span></span>
-      <span class="pv"><b class="num">${fmt(p.views)}</b><small>wyświetleń</small><span class="mbar"><i style="width:${Math.max(3, (p.views || 0) / topv * 100).toFixed(1)}%"></i></span></span></a>`;
+      <span class="pv"><b class="num">${fmt(p.views)}</b><small>wyświetleń</small><span class="mbar"><i style="width:${Math.max(3, (p.views || 0) / topv * 100).toFixed(1)}%;--d:${200 + Math.min(i, 5) * 50}ms"></i></span></span></a>`;
   const TOP = 5;
   $('#posts').innerHTML = all.length ? `<div>${all.slice(0, TOP).map(row).join('')}</div>
     ${all.length > TOP ? `<div class="plist" id="plist" style="grid-template-rows:${showAll ? '1fr' : '0fr'}"><div>${all.slice(TOP).map((p, i) => row(p, i + TOP)).join('')}</div></div>
@@ -572,6 +625,8 @@ function render(changed) {
   $('#when').textContent = data?.refreshing ? 'Pobieram nowe dane…' : u ? 'Ostatnia aktualizacja: ' + u.toLocaleString('pl-PL', {day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'}) : '';
   $('#refresh').disabled = !!data?.refreshing;
   $('#refresh svg').classList.toggle('spin', !!data?.refreshing);
+  $('#live').classList.toggle('busy', !!data?.refreshing);
+  hookSpots();
   app.classList.toggle('loading', !!data?.refreshing);
 }
 
@@ -616,6 +671,18 @@ function seg(box, attr, apply, rerender = true) {
 seg($('#tabs'), 'g', v => group = v);
 seg($('#range'), 'r', v => range = +v);
 
+// reflektor podążający za kursorem na kartach
+function hookSpots() {
+  document.querySelectorAll('.spot').forEach(el => {
+    if (el.dataset.sp) return; el.dataset.sp = 1;
+    el.addEventListener('pointermove', e => { const r = el.getBoundingClientRect(); el.style.setProperty('--mx', (e.clientX - r.left) + 'px'); el.style.setProperty('--my', (e.clientY - r.top) + 'px'); });
+  });
+}
+// sekcje niżej strony wjeżdżają, gdy do nich przewiniesz
+const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('seen'); io.unobserve(e.target); } }), {rootMargin: '0px 0px -8% 0px'}) : null;
+document.querySelectorAll('.reveal').forEach(el => io ? io.observe(el) : el.classList.add('seen'));
+addEventListener('scroll', () => $('#head').classList.toggle('scrolled', scrollY > 8), {passive: true});
+
 // motyw: jak w systemie / jasny / ciemny
 function setTheme(t, save) {
   if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
@@ -623,7 +690,18 @@ function setTheme(t, save) {
   $('#theme').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.t === t));
   movePill($('#theme'));
 }
-seg($('#theme'), 't', t => setTheme(t, true), false);
+$('#theme').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const go = () => setTheme(b.dataset.t, true);
+  if (!document.startViewTransition || reduce) return go();
+  const r = b.getBoundingClientRect();
+  document.documentElement.style.setProperty('--tx', (r.left + r.width / 2) + 'px');
+  document.documentElement.style.setProperty('--ty', (r.top + r.height / 2) + 'px');
+  const vt = document.startViewTransition(go);
+  vt.ready.then(() => document.documentElement.animate(
+    {clipPath: [`circle(0 at ${r.left + r.width / 2}px ${r.top + r.height / 2}px)`, `circle(${Math.hypot(innerWidth, innerHeight)}px at ${r.left + r.width / 2}px ${r.top + r.height / 2}px)`]},
+    {duration: 650, easing: 'cubic-bezier(.2,0,0,1)', pseudoElement: '::view-transition-new(root)'})).catch(() => {});
+};
 setTheme(document.documentElement.dataset.theme || 'auto');
 
 const pills = () => ['#tabs', '#range', '#theme'].forEach(s => movePill($(s)));
