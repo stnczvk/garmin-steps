@@ -403,9 +403,11 @@ async def hook_redakcja(req: Request, key: str = ""):
     r = None
     for _ in range(2):
         try:
-            async with httpx.AsyncClient(timeout=300) as c:
-                r = await c.post(os.environ.get("ANTHROPIC_URL", "https://api.anthropic.com/v1/messages"), json=body,
-                                 headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
+            async with httpx.AsyncClient(timeout=300, trust_env=False, http2=False) as c:
+                r = await c.post(os.environ.get("ANTHROPIC_URL", "https://api.anthropic.com/v1/messages"),
+                                 content=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+                                 headers={"x-api-key": API_KEY.strip(), "anthropic-version": "2023-06-01",
+                                          "content-type": "application/json"})
         except Exception as e:
             r = None; err = f"{e.__class__.__name__}: {e}"
             continue
@@ -419,7 +421,8 @@ async def hook_redakcja(req: Request, key: str = ""):
         diag = {"status": r.status_code, "body": r.text[:300], "model": body["model"], "url": str(r.url),
                 "ctype": h.get("content-type"), "server": h.get("server"), "req_id": h.get("request-id"),
                 "key_typ": (API_KEY[:10] + "…") if API_KEY.startswith("sk-ant-") else f"inny ({len(API_KEY)} zn.)",
-                "key_ws": API_KEY != API_KEY.strip()}
+                "key_ws": API_KEY != API_KEY.strip(),
+                "proxy": [k for k in os.environ if "proxy" in k.lower()], "hdrs": dict(list(h.items())[:8])}
         return JSONResponse({"error": f"AI {r.status_code}", "diag": diag}, status_code=502)
     res = r.json()
     u = res.get("usage", {})
