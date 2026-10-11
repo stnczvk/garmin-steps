@@ -40,7 +40,7 @@ def check_pass(pw):
 
 @app.middleware("http")
 async def guard(req: Request, call_next):
-    if req.url.path.startswith("/api/") and req.url.path not in ("/api/login", "/api/widget") and not authed(req):
+    if req.url.path.startswith("/api/") and req.url.path != "/api/login" and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if req.url.path == "/":
