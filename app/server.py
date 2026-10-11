@@ -400,7 +400,7 @@ async def hook_redakcja(req: Request, key: str = ""):
     body = {"model": MODELS["default"], "max_tokens": 8000,
             "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
             "messages": [{"role": "user", "content": prompt}]}
-    r = None
+    r, err = None, ""
     for _ in range(2):
         try:
             async with httpx.AsyncClient(timeout=300, trust_env=False, http2=False) as c:
@@ -414,6 +414,26 @@ async def hook_redakcja(req: Request, key: str = ""):
         if r.status_code not in (429, 500, 529):
             break
         await asyncio.sleep(5)
+    if r is None or r.status_code != 200:
+        # zapas: Groq (ten sam klucz co do transkrypcji w montażu daily)
+        gk = _mz_env().get("GROQ_API_KEY")
+        if gk:
+            try:
+                async with httpx.AsyncClient(timeout=300, trust_env=False) as c:
+                    g = await c.post("https://api.groq.com/openai/v1/chat/completions",
+                                     json={"model": os.environ.get("GROQ_LLM", "openai/gpt-oss-120b"), "temperature": 0.2,
+                                           "max_completion_tokens": 16000, "response_format": {"type": "json_object"},
+                                           "messages": [{"role": "system", "content": body["system"]},
+                                                        {"role": "user", "content": prompt}]},
+                                     headers={"Authorization": f"Bearer {gk}"})
+                if g.status_code == 200:
+                    txt = g.json()["choices"][0]["message"]["content"] or ""
+                    return {"json": _json_from(txt), "via": "groq"}
+                err = f"groq {g.status_code}: {g.text[:200]}"
+            except Exception as e:
+                err = f"groq {e.__class__.__name__}: {e}"
+        else:
+            err = "brak klucza Groq"
     if r is None:
         return JSONResponse({"error": err[:300]}, status_code=502)
     if r.status_code != 200:
@@ -423,7 +443,7 @@ async def hook_redakcja(req: Request, key: str = ""):
                 "key_typ": (API_KEY[:10] + "…") if API_KEY.startswith("sk-ant-") else f"inny ({len(API_KEY)} zn.)",
                 "key_ws": API_KEY != API_KEY.strip(),
                 "proxy": [k for k in os.environ if "proxy" in k.lower()], "hdrs": dict(list(h.items())[:8])}
-        return JSONResponse({"error": f"AI {r.status_code}", "diag": diag}, status_code=502)
+        return JSONResponse({"error": f"AI {r.status_code}; {err[:200]}", "diag": diag}, status_code=502)
     res = r.json()
     u = res.get("usage", {})
     pi, po = PRICES.get(body["model"], (2.0, 10.0))
