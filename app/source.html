@@ -1,6 +1,6 @@
 <title>Dziennik treningowy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Geist:wght@400..800&display=swap">
 <style>
 :root{
   color-scheme:dark;
@@ -616,6 +616,69 @@ header>div:first-child{padding-right:52px}
 @keyframes shIn{from{background:color-mix(in srgb,var(--accent) 22%,transparent)}to{background:transparent}}
 button:disabled:active,.btn:disabled:active{transform:none;filter:none}
 @media (prefers-reduced-motion:reduce){button:active,.btn:active,[data-act]:active{transform:none}}
+
+/* ================= WYGLĄD 2026 – styl Linear/Vercel (spójny z centrum dowodzenia) ================= */
+:root{
+  --bg:#08090A; --surface:#0F1012; --surface2:#17181C; --line:rgba(255,255,255,.08); --line-hi:rgba(255,255,255,.16);
+  --ink:#F4F4F5; --muted:#A1A1AA; --faint:#6B6B75;
+  --accent:#9E8CFC; --accent-2:#6E8BFF; --accent-ink:#FFFFFF; --accent-soft:rgba(158,140,252,.13);
+  --good:#4ADE80; --warn:#F5B25A; --bad:#FF7B70;
+  --card-bg:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  --card-hi:inset 0 1px 0 rgba(255,255,255,.06);
+  --display:"Geist",system-ui,-apple-system,sans-serif;
+  --body:"Geist",system-ui,-apple-system,sans-serif;
+  --ease:cubic-bezier(.2,0,0,1);
+}
+body{background:var(--bg);font-size:15px;-webkit-font-smoothing:antialiased;letter-spacing:-.003em}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(60% 40% at 50% -6%,rgba(120,98,255,.20),rgba(62,99,221,.06) 45%,transparent 75%)}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:48px 48px;
+  -webkit-mask-image:radial-gradient(80% 40% at 50% 0%,#000 30%,transparent 75%);mask-image:radial-gradient(80% 40% at 50% 0%,#000 30%,transparent 75%)}
+.wrap{position:relative;z-index:1}
+/* nagłówki: zwykła wielkość liter, ciasne, z gradientem */
+h1,h2,h3,.dh-t,.ex-tt b,.fdm-t,.rules dt{font-family:var(--display);text-transform:none!important;letter-spacing:-.025em;font-weight:650}
+h1{font-size:30px;background:linear-gradient(180deg,#fff 25%,rgba(255,255,255,.55));-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-size:21px}
+.card h2{font-size:19px}
+.ex-tt b{font-size:17px;font-weight:600}
+.dh-t{font-size:21px}
+.label,.sets .h,.chead,.wtable th,.sugg-list .src{text-transform:none!important;letter-spacing:0!important;font-size:12.5px;font-weight:500;color:var(--faint)}
+.tag{text-transform:none;letter-spacing:0;font-weight:600;border-radius:6px}
+/* karty jak szklane panele */
+.card,.ex,.meal,.stat,.rules,.plan-card,.hist-item,.qrow-wrap{background:var(--card-bg)!important;border:1px solid var(--line);box-shadow:var(--card-hi);border-radius:16px;transition:border-color .25s var(--ease)}
+.card:hover,.ex:hover,.meal:hover{border-color:var(--line-hi)}
+/* przyciski */
+.btn{font-family:var(--body)!important;text-transform:none!important;letter-spacing:-.005em!important;font-weight:600;font-size:15.5px;border-radius:12px;
+  background:linear-gradient(180deg,#B1A2FF,#7E69F5);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 24px -10px rgba(126,105,245,.7);
+  transition:transform .14s var(--ease),filter .14s var(--ease),box-shadow .2s var(--ease)}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--line);box-shadow:var(--card-hi)}
+.btn.danger{background:linear-gradient(180deg,#FF8E84,#E2554A);color:#fff;box-shadow:0 8px 24px -12px rgba(226,85,74,.7)}
+.btn.small{font-size:13.5px;border-radius:10px}
+/* pola */
+input,select,textarea{background:rgba(255,255,255,.035)!important;border:1px solid var(--line)!important;border-radius:10px!important;transition:border-color .2s var(--ease),box-shadow .2s var(--ease)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-soft);outline:none}
+/* przełączniki i chipy */
+.seg{background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.seg button{font-weight:550;color:var(--muted)}
+.seg button[aria-pressed="true"],.chips button[aria-pressed="true"]{background:var(--surface2);color:var(--ink);border-color:var(--line-hi);box-shadow:0 1px 2px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06)}
+.chips button,.chipsel button{background:rgba(255,255,255,.025);border-color:var(--line);font-weight:550}
+.pill{background:rgba(255,255,255,.04);border:1px solid var(--line);font-weight:500}
+/* dolny pasek: szkło */
+nav.tabbar{background:rgba(10,11,13,.72);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);border-top:1px solid var(--line);box-shadow:none}
+nav.tabbar button{font-weight:500;position:relative;transition:color .2s var(--ease)}
+nav.tabbar button[aria-selected="true"]{color:var(--ink)}
+nav.tabbar button[aria-selected="true"] svg{stroke:var(--accent);filter:drop-shadow(0 0 8px rgba(158,140,252,.55))}
+nav.tabbar button[aria-selected="true"]:before{content:"";position:absolute;top:-6px;left:30%;right:30%;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent-2),var(--accent))}
+@media (min-width:900px){nav.tabbar{border:1px solid var(--line);box-shadow:0 20px 40px -20px rgba(0,0,0,.8)}}
+/* liczby */
+.num{font-feature-settings:"tnum"}
+.stat .v,.lstat .v{letter-spacing:-.03em}
+/* drobny ruch przy przełączaniu zakładek */
+section[id^="view-"]:not([hidden]){animation:vin .38s var(--ease)}
+@keyframes vin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){section[id^="view-"]:not([hidden]){animation:none}.btn{transition:none}}
 </style>
 
 <div class="wrap">
