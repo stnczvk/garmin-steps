@@ -387,6 +387,37 @@ def hook_info():
             "last": json.loads(last) if last else None}
 
 
+@app.post("/api/hook/redakcja")
+async def hook_redakcja(req: Request, key: str = ""):
+    """Redakcja transkrypcji vloga dla montażu na Macu (cięcie pomyłek, poprawa napisów) – ten sam klucz co link do montażu."""
+    if not hmac.compare_digest(key, hook_key()):
+        raise HTTPException(403, "bad key")
+    if not API_KEY:
+        return JSONResponse({"error": "Brak klucza API na serwerze."}, status_code=503)
+    b = await req.json()
+    prompt = str(b.get("prompt", ""))[:80000]
+    day = datetime.now(TZ).strftime("%Y-%m-%d")
+    body = {"model": MODELS["default"], "max_tokens": 12000,
+            "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
+            "messages": [{"role": "user", "content": prompt}]}
+    async with httpx.AsyncClient(timeout=300) as c:
+        r = await c.post("https://api.anthropic.com/v1/messages", json=body,
+                         headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
+    if r.status_code != 200:
+        return JSONResponse({"error": r.text[:300]}, status_code=502)
+    res = r.json()
+    u = res.get("usage", {})
+    pi, po = PRICES.get(body["model"], (2.0, 10.0))
+    cost = (u.get("input_tokens", 0) * pi + u.get("output_tokens", 0) * po) / 1e6
+    _con.execute("INSERT INTO ai_usage(day,n,tin,tout,cost) VALUES(?,?,?,?,?) ON CONFLICT(day) DO UPDATE SET n=n+1, tin=tin+excluded.tin, tout=tout+excluded.tout, cost=cost+excluded.cost",
+                 (day, 1, u.get("input_tokens", 0), u.get("output_tokens", 0), cost))
+    text = "".join(x.get("text", "") for x in res.get("content", []) if x.get("type") == "text")
+    try:
+        return {"json": _json_from(text)}
+    except Exception:
+        return JSONResponse({"error": "zła odpowiedź", "raw": text[:500]}, status_code=502)
+
+
 @app.get("/api/hook/backup")
 def hook_backup(key: str = ""):
     """Kopia zapasowa (dziennik + centrum) do pobrania przez Maca – ten sam klucz co link do montażu."""
