@@ -397,14 +397,25 @@ async def hook_redakcja(req: Request, key: str = ""):
     b = await req.json()
     prompt = str(b.get("prompt", ""))[:80000]
     day = datetime.now(TZ).strftime("%Y-%m-%d")
-    body = {"model": MODELS["default"], "max_tokens": 12000,
+    body = {"model": MODELS["default"], "max_tokens": 8000,
             "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
             "messages": [{"role": "user", "content": prompt}]}
-    async with httpx.AsyncClient(timeout=300) as c:
-        r = await c.post("https://api.anthropic.com/v1/messages", json=body,
-                         headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
+    r = None
+    for _ in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=300) as c:
+                r = await c.post(os.environ.get("ANTHROPIC_URL", "https://api.anthropic.com/v1/messages"), json=body,
+                                 headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
+        except Exception as e:
+            r = None; err = f"{e.__class__.__name__}: {e}"
+            continue
+        if r.status_code not in (429, 500, 529):
+            break
+        await asyncio.sleep(5)
+    if r is None:
+        return JSONResponse({"error": err[:300]}, status_code=502)
     if r.status_code != 200:
-        return JSONResponse({"error": r.text[:300]}, status_code=502)
+        return JSONResponse({"error": f"AI {r.status_code}: {r.text[:300]}"}, status_code=502)
     res = r.json()
     u = res.get("usage", {})
     pi, po = PRICES.get(body["model"], (2.0, 10.0))
