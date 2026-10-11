@@ -90,16 +90,24 @@ def _save_account(key, acc):
         _write("tokens.json", t)
 
 
+def _tiktok():
+    g = _read("groups.json", {})
+    return [("tt:" + h, {"platform": "tiktok", "name": "@" + h, "group": g.get("tt:" + h, "prywatne"), "handle": h})
+            for h in [x.strip().lstrip("@") for x in cfg("TIKTOK_PROFILES").split(",") if x.strip()]]
+
+
 @router.get("/api/social/accounts")
 def accounts():
+    allacc = list(_accounts().items()) + _tiktok()
     return [{"key": k, "platform": a["platform"], "name": a.get("name", ""), "group": a.get("group", "prywatne")}
-            for k, a in _accounts().items()]
+            for k, a in allacc]
 
 
 @router.post("/api/social/accounts/{key}")
 async def account_update(key: str, req: Request):
     body = await req.json()
-    if key not in _accounts():
+    is_tt = key in dict(_tiktok())
+    if key not in _accounts() and not is_tt:
         return JSONResponse({"error": "brak konta"}, status_code=404)
     if body.get("remove"):
         with _lock:
@@ -107,7 +115,14 @@ async def account_update(key: str, req: Request):
             c = _read("cache.json", {}); c.get("accounts", {}).pop(key, None); _write("cache.json", c)
         return {"ok": True}
     if body.get("group") in GROUPS:
-        _save_account(key, {"group": body["group"]})
+        with _lock:
+            if is_tt:
+                g = _read("groups.json", {}); g[key] = body["group"]; _write("groups.json", g)
+            else:
+                t = _read("tokens.json", {}); t[key]["group"] = body["group"]; _write("tokens.json", t)
+            c = _read("cache.json", {})          # od razu widać zmianę, bez czekania na odświeżenie
+            if key in c.get("accounts", {}):
+                c["accounts"][key]["group"] = body["group"]; _write("cache.json", c)
     return {"ok": True}
 
 
@@ -321,8 +336,7 @@ def refresh_all(tiktok=True):
         out = cache.get("accounts", {})
         todo = [(k, a) for k, a in _accounts().items()]
         if tiktok and cfg("APIFY_TOKEN"):
-            for h in [x.strip().lstrip("@") for x in cfg("TIKTOK_PROFILES").split(",") if x.strip()]:
-                todo.append(("tt:" + h, {"platform": "tiktok", "name": "@" + h, "group": "prywatne", "handle": h}))
+            todo += _tiktok()
         for k, a in todo:
             try:
                 if a["platform"] == "youtube":
@@ -341,7 +355,7 @@ def refresh_all(tiktok=True):
                 out.setdefault(k, {"platform": a["platform"], "name": a.get("name"), "group": a.get("group", "prywatne"),
                                    "posts": [], "daily": []})
                 out[k]["error"] = str(e)[:300]
-        live = set(_accounts()) | {k for k, _ in todo}
+        live = set(_accounts()) | {k for k, _ in _tiktok()}
         out = {k: v for k, v in out.items() if k in live}
         _write("cache.json", {"accounts": out, "updated": time.time()})
     finally:
