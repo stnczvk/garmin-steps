@@ -87,7 +87,8 @@ def index():
 
 STATIC = {"manifest.webmanifest": "application/manifest+json", "icon-192.png": "image/png", "icon-512.png": "image/png",
           "icon-maskable-512.png": "image/png", "apple-touch-icon.png": "image/png", "favicon.png": "image/png",
-          "sw.js": "text/javascript"}
+          "sw.js": "text/javascript", "ikona-180.png": "image/png", "ikona-192.png": "image/png", "ikona-512.png": "image/png",
+          "ikona-maskable-512.png": "image/png", "ikona-64.png": "image/png"}
 
 
 @app.get("/{name}")

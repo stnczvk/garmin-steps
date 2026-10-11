@@ -6,8 +6,8 @@
 <title>Centrum dowodzenia</title>
 <meta name="description" content="Statystyki YouTube, Instagrama i TikToka w jednym miejscu.">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/ikona-64.png">
+<link rel="apple-touch-icon" href="/ikona-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Centrum">
@@ -556,7 +556,7 @@ body{text-rendering:optimizeLegibility}
 <body>
 <header class="head" id="head">
   <div class="head-in">
-    <div class="brand"><img src="/icon-192.png" alt=""><b>Centrum dowodzenia</b><span>PozaSkala i konta prywatne</span></div>
+    <div class="brand"><img src="/ikona-192.png" alt=""><b>Centrum dowodzenia</b><span>PozaSkala i konta prywatne</span></div>
     <div class="seg" role="group" aria-label="Grupa kont" id="tabs">
       <span class="pill"></span>
       <button data-g="" aria-pressed="true">Wszystko</button>
@@ -675,7 +675,7 @@ async function api(path, opt) {
 function showLogin() {
   if ($('.login')) return;
   $('#app').hidden = true; $('#head').hidden = true;
-  document.body.insertAdjacentHTML('beforeend', `<form class="card login"><img src="/icon-192.png" alt="">
+  document.body.insertAdjacentHTML('beforeend', `<form class="card login"><img src="/ikona-192.png" alt="">
     <h1>Centrum dowodzenia</h1><p>Zaloguj się, żeby zobaczyć statystyki.</p>
     <label for="pw">Hasło</label><input type="password" id="pw" autocomplete="current-password" required>
     <div class="line" style="border:0;padding-bottom:0"><button class="main" type="submit">Zaloguj się</button><span id="lerr" class="when" style="color:var(--down)"></span></div></form>`);

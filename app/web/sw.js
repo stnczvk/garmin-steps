@@ -5,7 +5,7 @@ self.addEventListener('push', e => {
   let d = {};
   try { d = e.data.json(); } catch (_) { d = {title: 'Centrum dowodzenia', body: e.data ? e.data.text() : ''}; }
   e.waitUntil(self.registration.showNotification(d.title || 'Centrum dowodzenia', {
-    body: d.body || '', icon: '/icon-192.png', badge: '/icon-192.png', data: {url: d.url || '/'}, tag: d.url || 'centrum'}));
+    body: d.body || '', icon: '/ikona-192.png', badge: '/ikona-192.png', data: {url: d.url || '/'}, tag: d.url || 'centrum'}));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
