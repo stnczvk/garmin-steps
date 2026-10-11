@@ -76,6 +76,8 @@ def logout(req: Request):
 
 
 app.include_router(router)
+from extra import router as extra_router  # noqa: E402
+app.include_router(extra_router)
 
 
 @app.get("/")
@@ -84,7 +86,8 @@ def index():
 
 
 STATIC = {"manifest.webmanifest": "application/manifest+json", "icon-192.png": "image/png", "icon-512.png": "image/png",
-          "icon-maskable-512.png": "image/png", "apple-touch-icon.png": "image/png", "favicon.png": "image/png"}
+          "icon-maskable-512.png": "image/png", "apple-touch-icon.png": "image/png", "favicon.png": "image/png",
+          "sw.js": "text/javascript"}
 
 
 @app.get("/{name}")
@@ -92,4 +95,5 @@ def static_file(name: str):
     # ikony i manifest – potrzebne, żeby stronę dało się dodać do Docka / ekranu głównego
     if name not in STATIC:
         return JSONResponse({"error": "nie ma"}, status_code=404)
-    return FileResponse(HERE / "web" / name, media_type=STATIC[name], headers={"Cache-Control": "public, max-age=86400"})
+    cc = "no-cache" if name == "sw.js" else "public, max-age=86400"
+    return FileResponse(HERE / "web" / name, media_type=STATIC[name], headers={"Cache-Control": cc})

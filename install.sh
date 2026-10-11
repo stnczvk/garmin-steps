@@ -17,7 +17,7 @@ else git clone -q --depth 1 -b "$BRANCH" https://github.com/stnczvk/garmin-steps
 say "2/5 Środowisko Pythona"
 [ -d "$HOME_DIR/venv" ] || python3 -m venv "$HOME_DIR/venv"
 "$HOME_DIR/venv/bin/pip" install -q --upgrade pip
-"$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx
+"$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pywebpush
 
 say "3/5 Hasło"
 touch "$HOME_DIR/.env"; chmod 600 "$HOME_DIR/.env"

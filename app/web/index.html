@@ -432,6 +432,123 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   .tbl tbody tr.rw,.post.rw,.reveal,.p-in > *{opacity:1;transform:none}
   .panel{transform:none}
 }
+/* ---------- nowe karty: obserwujący, pora, raport, co działa ---------- */
+.duo{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin-bottom:14px}
+.duo.rev{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.duo.solo{grid-template-columns:minmax(0,1fr)}
+.duo .card{min-width:0}
+.cpad{padding:6px 20px 18px}
+.p-chart.flat{border:0;background:none;padding:6px 0 0}
+.fstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+.fstat{border:1px solid var(--line-soft);border-radius:12px;padding:10px 12px;background:var(--raised)}
+.fstat small{display:block;color:var(--faint);font-size:12px}
+.fstat b{display:block;font-size:18px;font-weight:620;letter-spacing:-.02em;margin-top:2px}
+.fstat b.up{color:var(--up)} .fstat b.down{color:var(--down)}
+.forecast{margin-top:12px;display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;
+  background:linear-gradient(90deg,color-mix(in oklab,var(--accent) 14%,transparent),transparent 80%);border:1px solid color-mix(in oklab,var(--accent) 30%,var(--line))}
+.forecast .fc-i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);flex:none}
+.forecast .fc-i svg{width:18px;height:18px}
+.forecast b{font-weight:620}
+.forecast .prog{height:6px;border-radius:6px;background:var(--raised);margin-top:6px;overflow:hidden}
+.forecast .prog i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent-2),var(--accent));transform-origin:left;transform:scaleX(0);transition:transform 1s var(--ease) .3s}
+.seen .forecast .prog i,.forecast.anim-on .prog i{transform:scaleX(var(--p,0))}
+
+.heatgrid{display:grid;grid-template-columns:34px repeat(7,minmax(0,1fr));gap:4px;margin-top:10px;font-size:11.5px}
+.heatgrid .hl{color:var(--faint);display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.heatgrid .hl.d{justify-content:flex-start}
+.hc{aspect-ratio:1.35;border-radius:7px;background:var(--raised);position:relative;cursor:default;
+  opacity:0;transform:scale(.6);transition:opacity .4s var(--ease) var(--d,0ms),transform .5s cubic-bezier(.34,1.56,.64,1) var(--d,0ms),box-shadow .2s}
+.seen .hc,.heat.anim-on .hc{opacity:1;transform:none}
+.hc.v{background:color-mix(in oklab,var(--hc,var(--accent)) calc(var(--a,0) * 100%),var(--raised))}
+.hc.best{box-shadow:0 0 0 2px var(--ink),0 0 18px -2px var(--hc,var(--accent))}
+.hc:hover{box-shadow:0 0 0 2px var(--line-hi)}
+.hc .n{position:absolute;right:4px;bottom:2px;font-size:9.5px;color:var(--ink);opacity:.55}
+.hbest{margin-top:14px;font-size:13.5px;color:var(--soft);line-height:1.5}
+.hbest b{color:var(--ink);font-weight:620}
+.hleg{display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--faint);font-size:12px}
+.hleg i{height:8px;flex:1;max-width:120px;border-radius:4px;background:linear-gradient(90deg,var(--raised),var(--hc,var(--accent)))}
+.htip{position:fixed;z-index:60;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:12.5px;box-shadow:var(--shadow);
+  opacity:0;transform:translate(-50%,calc(-100% - 8px));transition:opacity .12s}
+.htip.on{opacity:1}
+.htip b{display:block;color:var(--ink)}
+.htip span{color:var(--faint)}
+
+.rhead{display:flex;align-items:center;gap:8px}
+.rhead .seg button{padding:4px 9px}
+.rbig{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.rbig > div{border:1px solid var(--line-soft);border-radius:12px;padding:12px 14px;background:var(--raised)}
+.rbig small{display:block;color:var(--faint);font-size:12px}
+.rbig b{display:block;font-size:22px;font-weight:640;letter-spacing:-.03em;margin-top:2px}
+.rbig em{font-style:normal;font-size:12px;color:var(--faint)}
+.rbest{display:flex;gap:12px;align-items:center;margin-top:12px;padding:12px;border-radius:14px;border:1px solid var(--line);cursor:pointer;text-decoration:none;position:relative;overflow:hidden;
+  background:linear-gradient(110deg,color-mix(in oklab,var(--pc) 12%,transparent),transparent 70%);transition:transform var(--quick) var(--ease),border-color var(--quick)}
+.rbest:hover{border-color:var(--line-hi)} .rbest:active{transform:scale(.99)}
+.rbest .thumb{width:52px;height:52px}
+.rbest .lab{font-size:11.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.rbest .t{font-weight:580;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
+.rbest .g{margin-left:auto;text-align:right;white-space:nowrap}
+.rbest .g b{display:block;font-size:17px;color:var(--up)}
+.rbest .g small{color:var(--faint);font-size:11.5px}
+.racc{margin-top:12px;display:grid;gap:2px}
+.racc .ra{display:grid;grid-template-columns:22px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:7px 2px;border-top:1px solid var(--line-soft);font-size:13px}
+.racc .ra:first-child{border-top:0}
+.racc .logo{width:22px;height:22px;border-radius:7px}.racc .logo svg{width:12px;height:12px}
+.racc .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.racc .vv{color:var(--faint);min-width:84px;text-align:right}
+.tips{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.tips li{display:flex;gap:10px;font-size:13.5px;line-height:1.5;color:var(--soft);padding:10px 12px;border-radius:12px;background:var(--accent-soft)}
+.tips li:before{content:"";flex:none;width:16px;height:16px;margin-top:2px;background:var(--accent);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z'/%3E%3C/svg%3E") center/contain no-repeat}
+
+.fmt{display:grid;gap:10px;margin-top:12px}
+.fmt .fr{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 56px;gap:10px;align-items:center;font-size:13px}
+.fmt .fr span{display:flex;align-items:center;gap:7px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmt .fr small{color:var(--faint)}
+.fmt .bar{height:10px;border-radius:6px;background:var(--raised);position:relative;overflow:hidden}
+.fmt .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--pc);transform-origin:left;transform:scaleX(0);transition:transform .9s var(--ease) var(--d,0ms)}
+.seen .fmt .bar i,.ins.anim-on .fmt .bar i{transform:scaleX(1)}
+.fmt .bar:after{content:"";position:absolute;top:-2px;bottom:-2px;left:var(--mid);width:1px;background:var(--faint);opacity:.6}
+.fmt .x{text-align:right;font-weight:620}
+.fmt .x.up{color:var(--up)} .fmt .x.down{color:var(--down)}
+.isub{margin:18px 0 0;font-size:12.5px;color:var(--faint);font-weight:500}
+.ai{margin-top:12px;border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;border:1px solid color-mix(in oklab,var(--accent) 35%,var(--line));
+  background:radial-gradient(120% 120% at 0% 0%,color-mix(in oklab,var(--accent) 16%,transparent),transparent 60%)}
+.ai .ah{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--accent);font-weight:600;margin-bottom:6px}
+.ai .ah button{margin-left:auto;padding:4px 9px;font-size:12px}
+.ai p{margin:6px 0 0;font-size:13.5px;line-height:1.55;color:var(--ink)}
+.ai.load p{background:linear-gradient(90deg,var(--raised) 30%,var(--line) 50%,var(--raised) 70%) 0 0/200% 100%;color:transparent;border-radius:6px;animation:shim 1.3s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
+.tb{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:8px}
+.tb h4{margin:0 0 6px;font-size:12.5px;font-weight:600}
+.tb h4.up{color:var(--up)} .tb h4.down{color:var(--down)}
+.tbi{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 4px;border-radius:9px;cursor:pointer;font-size:12.5px;transition:background var(--quick)}
+.tbi:hover{background:var(--raised)}
+.tbi .thumb{width:34px;height:34px;border-radius:8px}.tbi .thumb svg{width:14px;height:14px}
+.tbi span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tbi b{font-weight:620}
+
+/* ---------- powiadomienia, alerty ---------- */
+#bell{position:relative}
+#bell.on{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 45%,var(--line))}
+#bell.ring svg{animation:bellring .9s cubic-bezier(.36,.07,.19,.97)}
+@keyframes bellring{10%,90%{transform:rotate(-2deg)}20%,80%{transform:rotate(14deg)}30%,50%,70%{transform:rotate(-14deg)}40%,60%{transform:rotate(14deg)}}
+#bell .bd{position:absolute;top:5px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--bg);transform:scale(0);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+#bell.on .bd{transform:scale(1)}
+.hot{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden;
+  border:1px solid color-mix(in oklab,var(--warn) 40%,var(--line));background:linear-gradient(100deg,color-mix(in oklab,var(--warn) 14%,transparent),transparent 75%);
+  animation:hotin .6s var(--ease) both}
+.hot:after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.18) 50%,transparent 65%);transform:translateX(-100%);animation:shine 3s ease-in-out 1s infinite}
+@keyframes shine{0%{transform:translateX(-100%)}35%,100%{transform:translateX(100%)}}
+@keyframes hotin{from{opacity:0;transform:translateY(-8px)}}
+.hot .fl{font-size:20px;animation:flick 1.6s ease-in-out infinite}
+@keyframes flick{50%{transform:scale(1.15) rotate(-6deg)}}
+.hot b{font-weight:620}
+.hot small{display:block;color:var(--faint);font-size:12px}
+.hot .x{margin-left:auto;font-weight:650;color:var(--warn);white-space:nowrap}
+@media (max-width:900px){.duo,.duo.rev{grid-template-columns:minmax(0,1fr)}.fstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.rbig{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.rbig b{font-size:18px}.tb{grid-template-columns:minmax(0,1fr)}.fmt .fr{grid-template-columns:minmax(0,110px) minmax(0,1fr) 48px}}
+@media (prefers-reduced-motion:reduce){.hc{opacity:1;transform:none;transition:none}.hot,.hot:after,.hot .fl,#bell.ring svg{animation:none}.fmt .bar i,.forecast .prog i{transition:none}}
 </style>
 </head>
 <body>
@@ -450,6 +567,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
       <button data-t="light" aria-pressed="false" title="Jasny motyw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="sr">Jasny</span></button>
       <button data-t="dark" aria-pressed="false" title="Ciemny motyw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg><span class="sr">Ciemny</span></button>
     </div>
+    <button id="bell" title="Powiadomienia" aria-label="Powiadomienia" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 003.4 0"/></svg><i class="bd"></i></button>
     <button class="main" id="refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 11-2.6-6.4M21 4v5h-5"/></svg><span>Odśwież</span></button>
   </div>
 </header>
@@ -474,6 +592,15 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   </section>
 
   <section class="card board in" id="board" style="--d:320ms" aria-label="Konta"></section>
+
+  <section class="duo">
+    <div class="card fol reveal spot" id="fol"></div>
+    <div class="card heat reveal spot" id="heat"></div>
+  </section>
+  <section class="duo rev" id="rwrap" style="margin-bottom:34px">
+    <div class="card rep reveal" id="raport"></div>
+    <div class="card ins reveal" id="ins"></div>
+  </section>
 
   <div class="sec-h reveal">
     <div><h2 id="posts-h">Najlepsze posty</h2><div class="when" style="margin-top:2px">Kliknij post, żeby zobaczyć jego statystyki</div></div>
@@ -798,6 +925,7 @@ function render(changed) {
     app.classList.add('shown', 'drawn');
     if (changed) ['#kpis', '#chart', '#plat', '#board', '#posts'].forEach(s => { const el = $(s); el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap'); });
   }
+  renderExtras(accs);
   countUp(document);
   first = false;
 
@@ -859,18 +987,20 @@ function cell(v, l, i) { return v == null || v === '' ? '' : `<div class="p-cell
 function hoverChart(box, pts, opt) {
   if (!pts || pts.length < 2) { box.innerHTML = `<div class="p-note">${opt.empty}</div>`; return; }
   const W = Math.max(300, box.clientWidth - 28), H = innerWidth < 640 ? 190 : 260, L = 50, R = 8, T = 10, B = 24;
-  const max = Math.max(...pts.map(p => p.v), 1);
-  const raw = max / 3, mag = Math.pow(10, Math.floor(Math.log10(raw))), step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(x => x >= raw);
-  const top = Math.ceil(max / step) * step;
-  const x = i => L + i / (pts.length - 1) * (W - L - R), y = v => T + (1 - v / top) * (H - T - B);
+  const max = Math.max(...pts.map(p => p.v), 1), min = opt.fit ? Math.min(...pts.map(p => p.v)) : 0;
+  const raw = Math.max((max - min) / 3, opt.fit ? 1 : 0) || max / 3, mag = Math.pow(10, Math.floor(Math.log10(raw))), step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(x => x >= raw);
+  const bot = opt.fit ? Math.floor(min / step) * step : 0;
+  let top = Math.ceil(max / step) * step; if (top <= bot) top = bot + step;
+  const gid = 'hg' + Math.random().toString(36).slice(2, 7);
+  const x = i => L + i / (pts.length - 1) * (W - L - R), y = v => T + (1 - (v - bot) / (top - bot)) * (H - T - B);
   const line = pts.map((p, i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
-  const ticks = Array.from({length: Math.round(top / step) + 1}, (_, k) => k * step);
+  const ticks = Array.from({length: Math.round((top - bot) / step) + 1}, (_, k) => bot + k * step);
   const xi = [0, Math.floor((pts.length - 1) / 2), pts.length - 1];
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${opt.aria}">
-      <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pc)" stop-opacity=".3"/><stop offset="1" stop-color="var(--pc)" stop-opacity="0"/></linearGradient></defs>
+      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pc)" stop-opacity=".3"/><stop offset="1" stop-color="var(--pc)" stop-opacity="0"/></linearGradient></defs>
       ${ticks.map(t => `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/><text class="ax num" x="${L - 8}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${short(t)}</text>`).join('')}
       ${xi.map((i, k) => `<text class="ax" x="${x(i).toFixed(1)}" y="${H - 4}" text-anchor="${k === 0 ? 'start' : k === 2 ? 'end' : 'middle'}">${opt.xl(pts[i])}</text>`).join('')}
-      <polygon points="${x(0)},${y(0)} ${line} ${x(pts.length - 1)},${y(0)}" fill="url(#pg)"/>
+      <polygon points="${x(0)},${y(bot)} ${line} ${x(pts.length - 1)},${y(bot)}" fill="url(#${gid})"/>
       <polyline class="sline" pathLength="1" style="--d:250ms" points="${line}" fill="none" stroke="var(--pc)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
       <line class="xh" y1="${T}" y2="${H - B}"/><circle class="pt" r="4"/></svg><div class="tip"></div>`;
   const svg = box.querySelector('svg'), tip = box.querySelector('.tip'), xh = box.querySelector('.xh'), pt = box.querySelector('.pt');
@@ -1050,11 +1180,226 @@ $('#save').onclick = async () => {
 $('#add-yt').onclick = () => location.href = '/api/social/google/connect?group=' + $('#grp').value;
 $('#add-ig').onclick = () => location.href = '/api/social/instagram/connect?group=' + $('#grp').value;
 
+// ================= nowe karty =================
+const WAW = new Intl.DateTimeFormat('en-GB', {timeZone: 'Europe/Warsaw', weekday: 'short', hour: 'numeric', hourCycle: 'h23'});
+const WD = {Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6};
+const DNI = ['poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela'], DK = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd'];
+const SLOTS = [[0, 6, '0–6'], [6, 9, '6–9'], [9, 12, '9–12'], [12, 15, '12–15'], [15, 18, '15–18'], [18, 21, '18–21'], [21, 24, '21–24']];
+const pTime = p => { if (!p.ts) return null; const d = new Date(p.ts.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')); if (isNaN(d)) return null;
+  const parts = Object.fromEntries(WAW.formatToParts(d).map(x => [x.type, x.value])); return {wd: WD[parts.weekday], h: +parts.hour % 24}; };
+const x1 = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
+const segHtml = (id, opts, cur, label) => `<span class="seg mini" role="group" aria-label="${label}" id="${id}"><span class="pill"></span>${opts.map(([v, l, pc]) =>
+  `<button data-v="${esc(v)}" aria-pressed="${String(v) === String(cur)}"${pc ? ` style="--pc:var(--${pc})"` : ''}>${pc ? '<i class="cdot"></i>' : ''}${l}</button>`).join('')}</span>`;
+function miniSeg(id, apply) { const box = $('#' + id); if (!box) return; movePill(box);
+  box.onclick = e => { const b = e.target.closest('button'); if (!b) return; box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); movePill(box); apply(b.dataset.v); }; }
+const thumbHtml = p => p.thumb ? `<img class="thumb" src="${esc(p.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=thumb>${''}</span>'">` : `<span class="thumb">${ICON[p.platform]}</span>`;
+function findPost(key, id) { const a = data?.accounts?.[key]; const p = a?.posts?.find(x => String(x.id) === String(id)); return p ? {...p, platform: a.platform, acc: a.name, key} : null; }
+const go = el => { if (el && reduce) return; el && requestAnimationFrame(() => el.classList.add('anim-on')); };
+
+// ---- obserwujący w czasie
+let folSel = '', folRange = 90;
+function renderFol(accs) {
+  const box = $('#fol'); if (!box) return;
+  if (folSel && !accs.some(([k]) => k === folSel)) folSel = '';
+  const sel = accs.filter(([k]) => !folSel || k === folSel);
+  const dates = [...new Set(sel.flatMap(([, a]) => (a.history || []).map(h => h.date)))].sort();
+  const maps = sel.map(([, a]) => Object.fromEntries((a.history || []).map(h => [h.date, h.followers])));
+  const carry = maps.map(() => null), pts = [];
+  dates.forEach(d => { maps.forEach((m, i) => { if (m[d] != null) carry[i] = m[d]; }); if (carry.every(v => v != null)) pts.push({date: d, v: carry.reduce((a, b) => a + b, 0)}); });
+  const cut = folRange ? new Date(Date.now() - folRange * 864e5).toISOString().slice(0, 10) : '';
+  const shownPts = pts.filter(p => p.date >= cut);
+  const pc = folSel ? `var(--${VAR[sel[0]?.[1].platform]})` : 'var(--up)';
+  const at = days => { const d = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); let v = null; for (const p of pts) if (p.date <= d) v = p.v; return v; };
+  const now = pts.at(-1)?.v, d7 = now != null && at(7) != null ? now - at(7) : null, d30 = now != null && at(30) != null ? now - at(30) : null;
+  const d14 = now != null && at(14) != null ? (now - at(14)) / 14 : (pts.length >= 2 ? (now - pts[0].v) / Math.max(1, (new Date(pts.at(-1).date) - new Date(pts[0].date)) / 864e5) : null);
+  const step = now < 1000 ? 100 : now < 10000 ? 1000 : now < 50000 ? 5000 : 10000;
+  const goal = now != null ? (Math.floor(now / step) + 1) * step : null;
+  const days = goal && d14 > 0 ? Math.ceil((goal - now) / d14) : null;
+  const sgn = v => v == null ? '–' : (v > 0 ? '+' : v < 0 ? '−' : '') + fmt(Math.abs(v));
+  const opts = [['', 'Razem'], ...accs.map(([k, a]) => [k, esc(a.name), VAR[a.platform]])];
+  box.innerHTML = `<div class="card-h"><h2>Obserwujący w czasie</h2>${segHtml('folr', [[30, '30 dni'], [90, '90 dni'], [0, 'Całość']], folRange, 'Zakres')}</div>
+    <div class="cpad" style="--pc:${pc}">
+      ${accs.length > 1 ? `<div style="margin:10px 0 2px;overflow-x:auto">${segHtml('fols', opts, folSel, 'Konto')}</div>` : ''}
+      <div class="p-chart flat" id="folc"></div>
+      <div class="fstats">
+        <div class="fstat"><small>Teraz</small><b class="num" data-n="${now ?? ''}" data-key="fs0" data-prev="0"></b></div>
+        <div class="fstat"><small>7 dni</small><b class="num ${d7 > 0 ? 'up' : d7 < 0 ? 'down' : ''}">${sgn(d7)}</b></div>
+        <div class="fstat"><small>30 dni</small><b class="num ${d30 > 0 ? 'up' : d30 < 0 ? 'down' : ''}">${sgn(d30)}</b></div>
+        <div class="fstat"><small>Średnio dziennie</small><b class="num">${d14 == null ? '–' : (d14 >= 0 ? '+' : '−') + x1(Math.abs(d14))}</b></div>
+      </div>
+      ${goal ? `<div class="forecast"><span class="fc-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20l5-6 4 3 7-9M15 8h5v5"/></svg></span>
+        <div style="flex:1;min-width:0"><div>Następny próg: <b class="num">${fmt(goal)}</b>${days ? ` · przy obecnym tempie za <b>ok. ${days} ${days === 1 ? 'dzień' : 'dni'}</b>` : ' · tempo jest za małe, żeby policzyć'}</div>
+        <div class="prog" style="--p:${Math.min(1, Math.max(0, 1 - (goal - now) / step)).toFixed(3)}"><i></i></div></div></div>` : ''}
+    </div>`;
+  hoverChart($('#folc'), shownPts, {fit: true, empty: 'Wykres zbuduje się sam – centrum zapisuje liczbę obserwujących codziennie.', aria: 'Obserwujący w czasie',
+    xl: q => dayName(q.date), tv: q => fmt(q.v) + ' obserwujących',
+    tl: (q, i) => new Date(q.date + 'T12:00').toLocaleDateString('pl-PL', {weekday: 'short', day: 'numeric', month: 'long'}) + (i ? ` · ${sgn(q.v - shownPts[i - 1].v)}` : '')});
+  miniSeg('folr', v => { folRange = +v; renderFol(accs); countUp(box); });
+  miniSeg('fols', v => { folSel = v; renderFol(accs); countUp(box); });
+  go(box.querySelector('.forecast'));
+}
+
+// ---- najlepsza pora publikacji
+let heatPlat = '';
+const htip = document.createElement('div'); htip.className = 'htip'; document.body.appendChild(htip);
+function renderHeat(accs) {
+  const box = $('#heat'); if (!box) return;
+  const plats = [...new Set(accs.map(([, a]) => a.platform))];
+  if (heatPlat && !plats.includes(heatPlat)) heatPlat = '';
+  const cells = {};
+  let n = 0;
+  accs.filter(([, a]) => !heatPlat || a.platform === heatPlat).forEach(([, a]) => {
+    const med = median((a.posts || []).map(p => p.views || 0)); if (!med) return;
+    (a.posts || []).forEach(p => { const t = pTime(p); if (!t) return; const s = SLOTS.findIndex(([a0, a1]) => t.h >= a0 && t.h < a1);
+      (cells[t.wd + '-' + s] ||= []).push((p.views || 0) / med); n++; });
+  });
+  const val = k => { const v = (cells[k] || []).slice().sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : null; };
+  const all = Object.keys(cells).map(k => ({k, v: val(k), n: cells[k].length}));
+  const cand = all.filter(c => c.n >= 2).sort((a, b) => b.v - a.v);
+  const best = cand[0];
+  const mx = Math.max(...all.map(c => c.v), 1.5);
+  const hc = heatPlat ? `var(--${VAR[heatPlat]})` : 'var(--accent)';
+  // dni tygodnia – łącznie
+  const byDay = DNI.map((_, d) => { const v = Object.entries(cells).filter(([k]) => +k.split('-')[0] === d).flatMap(([, x]) => x).sort((a, b) => a - b); return v.length >= 2 ? v[Math.floor(v.length / 2)] : null; });
+  const bd = byDay.map((v, d) => [v, d]).filter(x => x[0] != null).sort((a, b) => b[0] - a[0])[0];
+  box.innerHTML = `<div class="card-h"><h2>Najlepsza pora publikacji</h2>${plats.length > 1 ? segHtml('heatp', [['', 'Wszystkie'], ...plats.map(p => [p, NAMES[p], VAR[p]])], heatPlat, 'Platforma') : ''}</div>
+    <div class="cpad" style="--hc:${hc}">
+      ${n < 6 ? `<div class="p-note">Za mało postów z godziną publikacji – mapa uzupełni się po najbliższym odświeżeniu danych.</div>` : `
+      <div class="heatgrid" role="table" aria-label="Wyniki postów wg dnia i godziny">
+        <span></span>${SLOTS.map(s => `<span class="hl">${s[2]}</span>`).join('')}
+        ${DK.map((d, wd) => `<span class="hl d">${d}</span>${SLOTS.map((_, s) => { const k = wd + '-' + s, v = val(k), c = (cells[k] || []).length;
+          return `<span class="hc ${v != null ? 'v' : ''} ${best && best.k === k ? 'best' : ''}" data-k="${k}" style="--a:${v != null ? Math.min(1, .15 + v / mx * .85).toFixed(2) : 0};--d:${(wd * 7 + s) * 12}ms">${c ? `<span class="n">${c}</span>` : ''}</span>`; }).join('')}`).join('')}
+      </div>
+      <div class="hleg"><span>słabiej</span><i></i><span>lepiej niż zwykle</span></div>
+      <div class="hbest">${best ? `Najlepiej: <b>${DNI[+best.k.split('-')[0]]}, ${SLOTS[+best.k.split('-')[1]][2]}</b> – posty mają średnio <b>${x1(best.v)}×</b> więcej wyświetleń niż zwykle (${best.n} ${best.n < 5 ? 'posty' : 'postów'}).` : 'Za mało postów w jednym przedziale, żeby wskazać najlepszą porę.'}
+        ${bd ? `<br>Najlepszy dzień: <b>${DNI[bd[1]]}</b> (${x1(bd[0])}× zwykłych wyświetleń).` : ''}</div>`}
+    </div>`;
+  miniSeg('heatp', v => { heatPlat = v; renderHeat(accs); });
+  box.querySelectorAll('.hc').forEach(c => {
+    c.onpointerenter = () => { const k = c.dataset.k, [wd, s] = k.split('-').map(Number), v = val(k), m = (cells[k] || []).length, r = c.getBoundingClientRect();
+      htip.innerHTML = `<b>${DNI[wd]}, ${SLOTS[s][2]}</b><span>${m ? `${m} ${m === 1 ? 'post' : m < 5 ? 'posty' : 'postów'} · ${x1(v)}× zwykłych wyświetleń` : 'brak postów'}</span>`;
+      htip.style.left = r.left + r.width / 2 + 'px'; htip.style.top = r.top + 'px'; htip.classList.add('on'); };
+    c.onpointerleave = () => htip.classList.remove('on');
+  });
+  go(box);
+}
+
+// ---- raport tygodnia
+let rep = null, repWeeks = [], repWeek = '';
+async function loadReport(week) {
+  try { const r = await api('/api/social/report' + (week ? '?week=' + week : '')); rep = r.report; repWeeks = r.weeks || []; repWeek = rep?.week || ''; } catch (e) { rep = null; }
+  renderReport();
+}
+function renderReport() {
+  const box = $('#raport'); if (!box) return;
+  if (!rep) { box.innerHTML = `<div class="card-h"><h2>Raport tygodnia</h2></div><div class="cpad"><div class="p-note">Pierwszy raport pojawi się w poniedziałek rano.</div></div>`; return; }
+  const ra = rep.accounts.filter(a => !group || a.group === group);
+  const t = {fd: ra.reduce((s, a) => s + (a.followers_delta || 0), 0), v: ra.reduce((s, a) => s + (a.views || 0), 0), p: ra.reduce((s, a) => s + (a.posts || 0), 0)};
+  const best = rep.best && (!group || ra.some(a => a.key === rep.best.key)) ? rep.best : null;
+  const f = d => new Date(d + 'T12:00').toLocaleDateString('pl-PL', {day: 'numeric', month: 'short'});
+  const i = repWeeks.indexOf(repWeek);
+  box.innerHTML = `<div class="card-h" id="raport-h"><h2>Raport tygodnia</h2><span class="rhead"><small class="num">${f(rep.week)} – ${f(rep.end)}</small>
+      <button class="ghost" id="rp" ${i <= 0 ? 'disabled' : ''} aria-label="Poprzedni tydzień" style="padding:4px 8px">‹</button><button id="rn" ${i >= repWeeks.length - 1 ? 'disabled' : ''} aria-label="Następny tydzień" style="padding:4px 8px">›</button></span></div>
+    <div class="cpad">
+      <div class="rbig">
+        <div><small>Obserwujący</small><b class="num ${t.fd > 0 ? '' : ''}" style="color:${t.fd > 0 ? 'var(--up)' : t.fd < 0 ? 'var(--down)' : 'inherit'}">${t.fd > 0 ? '+' : t.fd < 0 ? '−' : ''}${fmt(Math.abs(t.fd))}</b></div>
+        <div><small>Wyświetlenia</small><b class="num" data-n="${t.v}" data-key="rv" data-prev="0"></b></div>
+        <div><small>Nowe posty</small><b class="num">${t.p}</b>${!group ? `<em>tydzień wcześniej: ${rep.total.prev_posts}</em>` : ''}</div>
+      </div>
+      ${best ? `<a class="rbest" data-k="${esc(best.key)}" data-id="${esc(best.id)}" style="--pc:var(--${VAR[best.platform]})" href="${esc(best.url || '#')}">
+        ${thumbHtml(best)}<span style="min-width:0"><span class="lab">Najlepszy post tygodnia</span><span class="t">${esc(best.title || 'Bez opisu')}</span><small class="faint">${esc(best.acc)} · ${NAMES[best.platform]}</small></span>
+        <span class="g"><b class="num">+${fmt(best.gain)}</b><small>wyświetleń w tym tyg.</small></span></a>` : ''}
+      <div class="racc">${ra.map(a => `<div class="ra" style="--pc:var(--${VAR[a.platform]})"><span class="logo">${ICON[a.platform]}</span><span class="nm">${esc(a.name)}</span>
+        <span>${chip(a.followers_delta)}</span><span class="vv num">${fmt(a.views)} wyśw.</span></div>`).join('')}</div>
+      ${rep.tips?.length ? `<ul class="tips">${rep.tips.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    </div>`;
+  const nav = d => { if (repWeeks[i + d]) loadReport(repWeeks[i + d]); };
+  $('#rp').onclick = () => nav(-1); $('#rn').onclick = () => nav(1);
+  const b = box.querySelector('.rbest');
+  if (b) b.onclick = e => { const p = findPost(b.dataset.k, b.dataset.id); if (!p || e.metaKey || e.ctrlKey) return; e.preventDefault(); openPost(p); };
+  countUp(box);
+}
+
+// ---- co działa (PozaSkala)
+let ins = null, insLoading = false;
+async function loadInsights(force) {
+  insLoading = true; renderIns();
+  try { ins = await api('/api/social/insights?group=pozaskala' + (force ? '&force=1' : '')); } catch (e) { ins = null; }
+  insLoading = false; renderIns();
+}
+function renderIns() {
+  const box = $('#ins'), wrap = $('#rwrap'); if (!box) return;
+  const show = group !== 'prywatne';
+  box.hidden = !show; wrap.classList.toggle('solo', !show);
+  if (!show) return;
+  if (!ins) { box.innerHTML = `<div class="card-h"><h2>Co działa · PozaSkala</h2></div><div class="cpad"><div class="p-note">${insLoading ? 'Analizuję posty…' : 'Brak danych.'}</div></div>`; return; }
+  if (!ins.ok) { box.innerHTML = `<div class="card-h"><h2>Co działa · PozaSkala</h2></div><div class="cpad"><div class="p-note">${esc(ins.msg)}</div></div>`; return; }
+  const mx = Math.max(...ins.formats.map(f => f.rel), ...ins.lengths.map(l => l.rel), 1.2) * 1.1;
+  const bar = (r, pc, i) => `<span class="bar" style="--mid:${(1 / mx * 100).toFixed(1)}%"><i style="width:${(r / mx * 100).toFixed(1)}%;--pc:${pc};--d:${i * 70}ms"></i></span><span class="x num ${r >= 1.15 ? 'up' : r <= .85 ? 'down' : ''}">${x1(r)}×</span>`;
+  const it = x => `<div class="tbi" data-k="${esc(x.key)}" data-id="${esc(x.id)}" style="--pc:var(--${VAR[x.platform]})">${thumbHtml(x)}<span>${esc(x.title || 'Bez opisu')}</span><b class="num">${x1(x.rel)}×</b></div>`;
+  const aiTxt = ins.ai ? ins.ai.split('\n').map(l => l.replace(/^[•\-*]\s*/, '').trim()).filter(Boolean) : [];
+  box.innerHTML = `<div class="card-h"><h2>Co działa · PozaSkala</h2><small>${ins.n} postów · wynik względem zwykłych wyświetleń konta</small></div>
+    <div class="cpad">
+      ${ins.ai_available ? `<div class="ai ${insLoading ? 'load' : ''}"><div class="ah"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg>Wnioski AI
+        <button id="ai-re" ${insLoading ? 'disabled' : ''}>Odśwież</button></div>${insLoading ? '<p>…………………………</p><p>……………………</p>' : aiTxt.length ? aiTxt.map(l => `<p>${esc(l)}</p>`).join('') : '<p class="faint">Kliknij „Odśwież”, żeby AI porównało najlepsze i najsłabsze posty.</p>'}</div>` : ''}
+      <div class="isub">Formaty</div>
+      <div class="fmt">${ins.formats.map((f, i) => `<div class="fr" style="--pc:var(--${VAR[f.platform]})"><span><i class="cdot" style="opacity:1"></i>${esc(f.kind)} <small>${f.n}</small></span>${bar(f.rel, `var(--${VAR[f.platform]})`, i)}</div>`).join('')}</div>
+      ${ins.lengths.length ? `<div class="isub">Długość filmu</div><div class="fmt">${ins.lengths.map((l, i) => `<div class="fr"><span>${esc(l.label)} <small>${l.n}</small></span>${bar(l.rel, 'var(--accent)', i + 3)}</div>`).join('')}</div>` : ''}
+      <div class="tb"><div><h4 class="up">Top 5</h4>${ins.top.map(it).join('')}</div><div><h4 class="down">Najsłabsze 5</h4>${ins.bottom.map(it).join('')}</div></div>
+    </div>`;
+  const re = $('#ai-re'); if (re) re.onclick = () => loadInsights(true);
+  box.querySelectorAll('.tbi').forEach(el => el.onclick = () => { const p = findPost(el.dataset.k, el.dataset.id); if (p) openPost(p); });
+  go(box);
+}
+
+// ---- alerty „post się rozkręca”
+let alertList = [];
+async function loadAlerts() { try { alertList = await api('/api/social/alerts'); } catch (e) { alertList = []; } renderAlerts(); }
+function renderAlerts() {
+  const fresh = alertList.filter(a => Date.now() / 1000 - a.at < 48 * 3600 && (!group || data?.accounts?.[a.key]?.group === group)).slice(0, 2);
+  let el = $('#hots'); if (!el) { el = document.createElement('div'); el.id = 'hots'; $('#msg').after(el); }
+  el.innerHTML = fresh.map(a => `<div class="hot" data-k="${esc(a.key)}" data-id="${esc(a.id)}"><span class="fl">🔥</span><span style="min-width:0"><b>„${esc((a.title || 'Bez opisu').slice(0, 70))}” się rozkręca</b>
+    <small>${esc(a.acc)} · ${NAMES[a.platform]} · ${fmt(a.views)} wyświetleń</small></span><span class="x num">${x1(a.ratio)}× więcej niż zwykle</span></div>`).join('');
+  el.querySelectorAll('.hot').forEach(h => h.onclick = () => { const p = findPost(h.dataset.k, h.dataset.id); if (p) openPost(p); });
+}
+
+// ---- powiadomienia push
+const b64u = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); s += '='.repeat((4 - s.length % 4) % 4); return Uint8Array.from(atob(s), c => c.charCodeAt(0)); };
+let swReg = null;
+async function bellState() {
+  const bell = $('#bell');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) { bell.title = /iPhone|iPad/.test(navigator.userAgent) ? 'Na iPhonie: dodaj centrum do ekranu głównego i otwórz je stamtąd' : 'Ta przeglądarka nie obsługuje powiadomień'; return; }
+  try { swReg = await navigator.serviceWorker.register('/sw.js'); const sub = await swReg.pushManager.getSubscription(); bell.classList.toggle('on', !!sub); bell.setAttribute('aria-pressed', !!sub); bell.title = sub ? 'Powiadomienia włączone – kliknij, żeby wyłączyć' : 'Włącz powiadomienia (post się rozkręca, raport tygodnia)'; } catch (e) {}
+}
+$('#bell').onclick = async () => {
+  const bell = $('#bell');
+  if (!swReg) { alert(bell.title || 'Powiadomienia nie są dostępne w tej przeglądarce.'); return; }
+  const sub = await swReg.pushManager.getSubscription();
+  if (sub) { await sub.unsubscribe().catch(() => {}); await api('/api/social/push/unsubscribe', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({endpoint: sub.endpoint})}); return bellState(); }
+  if (await Notification.requestPermission() !== 'granted') { alert('Powiadomienia są zablokowane – włącz je w ustawieniach przeglądarki / telefonu.'); return; }
+  const k = await api('/api/social/push/key');
+  if (!k.key) { alert('Serwer nie ma jeszcze obsługi powiadomień – zrób aktualizację (social-update).'); return; }
+  const s = await swReg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64u(k.key)});
+  await api('/api/social/push/subscribe', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({sub: s.toJSON()})});
+  await api('/api/social/push/test', {method: 'POST'});
+  bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring');
+  bellState();
+};
+
+function renderExtras(accs) {
+  renderFol(accs); renderHeat(accs); renderReport(); renderIns(); renderAlerts();
+}
+
 const qs = new URLSearchParams(location.search);
 if (qs.get('blad')) $('#msg').innerHTML = `<div class="note bad">${esc(qs.get('blad'))}</div>`;
 if (qs.get('ok')) $('#msg').innerHTML = `<div class="note good">Konto ${esc(NAMES[qs.get('ok')] || '')} połączone. Statystyki pobierają się w tle.</div>`;
 if (qs.get('blad') || qs.get('ok')) { history.replaceState(null, '', '/'); $('#settings').open = true; }
-load().then(loadSettings).catch(() => {});
+load().then(() => {
+  loadReport(); loadInsights(); loadAlerts(); bellState();
+  const pq = qs.get('post');
+  if (pq) { const [k, id] = pq.split('|'); const p = findPost(k, id); history.replaceState(null, '', '/'); if (p) setTimeout(() => openPost(p), 400); }
+  if (location.hash === '#raport') setTimeout(() => $('#raport').scrollIntoView({behavior: 'smooth', block: 'start'}), 500);
+}).then(loadSettings).catch(() => {});
 </script>
 </body>
 </html>

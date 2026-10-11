@@ -3,7 +3,7 @@
 Konta podpina się na stronie głównej aplikacji (klucze wkleja się tam, logowanie przez Google / Instagram).
 Dane trzymane w ROOT/social: config.json (klucze), tokens.json (połączone konta), cache.json (ostatnie statystyki).
 """
-import json, os, secrets, threading, time, urllib.parse
+import json, os, re, secrets, threading, time, urllib.parse
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -181,6 +181,14 @@ def _google_access(acc):
     return r["access_token"]
 
 
+def _iso_dur(s):
+    m = re.fullmatch(r"P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", s or "")
+    if not m:
+        return None
+    d, h, mi, se = (int(x or 0) for x in m.groups())
+    return d * 86400 + h * 3600 + mi * 60 + se
+
+
 def fetch_youtube(acc):
     h = {"Authorization": f"Bearer {_google_access(acc)}"}
     api = "https://www.googleapis.com/youtube/v3"
@@ -198,6 +206,7 @@ def fetch_youtube(acc):
         for v in vids:
             s = v.get("statistics", {})
             posts.append({"id": v["id"], "title": v["snippet"]["title"], "date": v["snippet"]["publishedAt"][:10],
+                          "ts": v["snippet"]["publishedAt"], "dur": _iso_dur(v.get("contentDetails", {}).get("duration", "")),
                           "url": f"https://youtu.be/{v['id']}",
                           "thumb": (v["snippet"].get("thumbnails", {}).get("medium") or {}).get("url", ""),
                           "views": int(s.get("viewCount", 0)), "likes": int(s.get("likeCount", 0)),
@@ -291,7 +300,7 @@ def fetch_instagram(key, acc):
     for m in media:
         ins = _ig_insights(m["id"], tok)
         posts.append({"id": m["id"], "title": (m.get("caption") or "").split("\n")[0][:90],
-                      "date": m.get("timestamp", "")[:10], "url": m.get("permalink", ""),
+                      "date": m.get("timestamp", "")[:10], "ts": m.get("timestamp", ""), "url": m.get("permalink", ""),
                       "thumb": m.get("thumbnail_url") or (m.get("media_url") if m.get("media_type") == "IMAGE" else ""),
                       "type": m.get("media_product_type") or m.get("media_type"),
                       "views": ins.get("views") or ins.get("reach") or 0, "reach": ins.get("reach"),
@@ -315,6 +324,7 @@ def fetch_tiktok(handle):
         raise RuntimeError(f"TikTok/Apify: brak danych ({r.status_code})")
     author = items[0].get("authorMeta", {})
     posts = [{"id": str(i.get("id")), "title": (i.get("text") or "")[:90], "date": (i.get("createTimeISO") or "")[:10],
+              "ts": i.get("createTimeISO") or "", "dur": (i.get("videoMeta") or {}).get("duration"),
               "url": i.get("webVideoUrl", ""), "thumb": (i.get("videoMeta") or {}).get("coverUrl", ""),
               "views": i.get("playCount", 0), "likes": i.get("diggCount", 0), "comments": i.get("commentCount", 0),
               "shares": i.get("shareCount", 0), "saved": i.get("collectCount")} for i in items]
@@ -349,15 +359,31 @@ def refresh_all(tiktok=True):
                 hist = prev.get("history", [])
                 today = date.today().isoformat()
                 hist = [h for h in hist if h["date"] != today] + [{"date": today, "followers": d.get("followers", 0)}]
+                if a["platform"] == "youtube" and d.get("daily"):
+                    # wstecz z dziennych przyrostów subskrypcji (YouTube Analytics) – wykres obserwujących od razu ma 28 dni
+                    have, run, back = {h["date"] for h in hist}, d.get("followers", 0), []
+                    for x in sorted(d["daily"], key=lambda x: x["date"], reverse=True):
+                        if x["date"] < today and x["date"] not in have:
+                            back.append({"date": x["date"], "followers": run})
+                        run -= x.get("subs", 0)
+                    hist = sorted(hist + back, key=lambda h: h["date"])
                 # historia wyświetleń każdego posta (z kolejnych odświeżeń) – do wykresu w podglądzie posta
                 ph_old, ph = prev.get("post_hist", {}), {}
                 stamp = time.strftime("%Y-%m-%dT%H:%M")
+                cut72 = time.strftime("%Y-%m-%dT%H:%M", time.localtime(time.time() - 72 * 3600))
                 for p in d.get("posts", []):
-                    pts = [x for x in ph_old.get(p["id"], []) if x[0][:13] != stamp[:13]]
-                    ph[p["id"]] = (pts + [[stamp, p.get("views") or 0]])[-80:]
+                    pts = [x for x in ph_old.get(p["id"], []) if x[0][:13] != stamp[:13]] + [[stamp, p.get("views") or 0]]
+                    # ostatnie 72 h – każde odświeżenie; starsze – jeden punkt na dzień (ostatni)
+                    old, recent = {}, []
+                    for x in pts:
+                        if x[0] < cut72:
+                            old[x[0][:10]] = x
+                        else:
+                            recent.append(x)
+                    ph[p["id"]] = (sorted(old.values()) + recent)[-300:]
                 d["post_hist"] = ph
                 out[k] = {**d, "platform": a["platform"], "name": a.get("name"), "group": a.get("group", "prywatne"),
-                          "updated": time.time(), "error": None, "history": hist[-120:]}
+                          "updated": time.time(), "error": None, "history": hist[-400:]}
             except Exception as e:
                 out.setdefault(k, {"platform": a["platform"], "name": a.get("name"), "group": a.get("group", "prywatne"),
                                    "posts": [], "daily": []})
@@ -365,6 +391,8 @@ def refresh_all(tiktok=True):
         live = set(_accounts()) | {k for k, _ in _tiktok()}
         out = {k: v for k, v in out.items() if k in live}
         _write("cache.json", {"accounts": out, "updated": time.time()})
+        from extra import after_refresh
+        after_refresh(out)
     finally:
         _running.clear()
 
@@ -418,16 +446,16 @@ def refresh():
 
 
 def _scheduler():
-    # co 6 godzin; TikTok (płatny Apify) raz dziennie
+    # co godzinę YouTube i Instagram (żeby szybko złapać post, który się rozkręca); TikTok (płatny Apify) raz dziennie
     time.sleep(120)
     n = 0
     while True:
         try:
-            refresh_all(tiktok=(n % 4 == 0))
+            refresh_all(tiktok=(n % 24 == 0))
         except Exception as e:
             print("social refresh error", e, flush=True)
         n += 1
-        time.sleep(6 * 3600)
+        time.sleep(3600)
 
 
 threading.Thread(target=_scheduler, daemon=True).start()
