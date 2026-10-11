@@ -433,7 +433,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   .panel{transform:none}
 }
 /* ---------- nowe karty: obserwujący, pora, raport, co działa ---------- */
-.duo{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin-bottom:14px}
+.duo{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin-bottom:14px;align-items:start}
 .duo.rev{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .duo.solo{grid-template-columns:minmax(0,1fr)}
 .duo .card{min-width:0}
@@ -546,6 +546,8 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .hot b{font-weight:620}
 .hot small{display:block;color:var(--faint);font-size:12px}
 .hot .x{margin-left:auto;font-weight:650;color:var(--warn);white-space:nowrap}
+::selection{background:color-mix(in oklab,var(--accent) 35%,transparent)}
+body{text-rendering:optimizeLegibility}
 @media (max-width:900px){.duo,.duo.rev{grid-template-columns:minmax(0,1fr)}.fstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.rbig{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.rbig b{font-size:18px}.tb{grid-template-columns:minmax(0,1fr)}.fmt .fr{grid-template-columns:minmax(0,110px) minmax(0,1fr) 48px}}
 @media (prefers-reduced-motion:reduce){.hc{opacity:1;transform:none;transition:none}.hot,.hot:after,.hot .fl,#bell.ring svg{animation:none}.fmt .bar i,.forecast .prog i{transition:none}}
@@ -594,12 +596,12 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   <section class="card board in" id="board" style="--d:320ms" aria-label="Konta"></section>
 
   <section class="duo">
-    <div class="card fol reveal spot" id="fol"></div>
-    <div class="card heat reveal spot" id="heat"></div>
+    <div class="card fol reveal spot" id="fol"><div class="card-h"><div class="sk" style="height:14px;width:42%"></div></div><div class="cpad"><div class="sk" style="height:240px;margin-top:16px"></div><div class="sk" style="height:12px;width:70%;margin-top:14px"></div></div></div>
+    <div class="card heat reveal spot" id="heat"><div class="card-h"><div class="sk" style="height:14px;width:42%"></div></div><div class="cpad"><div class="sk" style="height:240px;margin-top:16px"></div><div class="sk" style="height:12px;width:70%;margin-top:14px"></div></div></div>
   </section>
   <section class="duo rev" id="rwrap" style="margin-bottom:34px">
-    <div class="card rep reveal" id="raport"></div>
-    <div class="card ins reveal" id="ins"></div>
+    <div class="card rep reveal" id="raport"><div class="card-h"><div class="sk" style="height:14px;width:42%"></div></div><div class="cpad"><div class="sk" style="height:300px;margin-top:16px"></div><div class="sk" style="height:12px;width:70%;margin-top:14px"></div></div></div>
+    <div class="card ins reveal" id="ins"><div class="card-h"><div class="sk" style="height:14px;width:42%"></div></div><div class="cpad"><div class="sk" style="height:300px;margin-top:16px"></div><div class="sk" style="height:12px;width:70%;margin-top:14px"></div></div></div>
   </section>
 
   <div class="sec-h reveal">

@@ -3,8 +3,8 @@
  "short_name": "Centrum",
  "start_url": "/",
  "display": "standalone",
- "background_color": "#0B0E14",
- "theme_color": "#0B0E14",
+ "background_color": "#08090A",
+ "theme_color": "#08090A",
  "icons": [
   {
    "src": "/icon-192.png",
