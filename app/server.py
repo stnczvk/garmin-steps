@@ -418,20 +418,21 @@ async def hook_redakcja(req: Request, key: str = ""):
         # zapas: Groq (ten sam klucz co do transkrypcji w montażu daily)
         gk = _mz_env().get("GROQ_API_KEY")
         if gk:
-            try:
+            for gm in [m for m in (os.environ.get("GROQ_LLM"), "moonshotai/kimi-k2-instruct-0905", "openai/gpt-oss-120b") if m]:
+              try:
                 async with httpx.AsyncClient(timeout=300, trust_env=False) as c:
                     g = await c.post("https://api.groq.com/openai/v1/chat/completions",
-                                     json={"model": os.environ.get("GROQ_LLM", "openai/gpt-oss-120b"), "temperature": 0.2,
+                                     json={"model": gm, "temperature": 0.2,
                                            "max_completion_tokens": 16000, "response_format": {"type": "json_object"},
                                            "messages": [{"role": "system", "content": body["system"]},
                                                         {"role": "user", "content": prompt}]},
                                      headers={"Authorization": f"Bearer {gk}"})
                 if g.status_code == 200:
                     txt = g.json()["choices"][0]["message"]["content"] or ""
-                    return {"json": _json_from(txt), "via": "groq"}
-                err = f"groq {g.status_code}: {g.text[:200]}"
-            except Exception as e:
-                err = f"groq {e.__class__.__name__}: {e}"
+                    return {"json": _json_from(txt), "via": gm}
+                err = f"groq {gm} {g.status_code}: {g.text[:200]}"
+              except Exception as e:
+                err = f"groq {gm} {e.__class__.__name__}: {e}"
         else:
             err = "brak klucza Groq"
     if r is None:
