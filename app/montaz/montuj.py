@@ -57,6 +57,9 @@ NAPISY_SLOW = 3            # max słów naraz
 
 ZOOM_NA_CIECIACH = 1.09    # „punch-in” co drugi fragment po wycięciu (1.0 = wyłączone)
 
+LICZNIK = True             # licznik kalorii na górze (rośnie przy każdym posiłku, dane z dziennika)
+LICZNIK_Y = 170
+
 PODSUMOWANIE_SECONDS = 4.0 # karta z kaloriami i makro dnia na końcu (z dziennika)
 
 SHOT_SECONDS = 3.0         # jak długo zrzut z Fitatu jest widoczny
@@ -390,6 +393,67 @@ def draw_summary_png(d, out):
     img.save(out)
 
 
+LW, LH = 560, 150
+
+
+def draw_counter(val, goal, out, hot=False):
+    img = Image.new("RGBA", (LW, LH), (0, 0, 0, 0))
+    sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle([20, 26, LW - 20, LH - 14], 34, fill=(0, 0, 0, 120))
+    img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(10)))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([20, 18, LW - 20, LH - 22], 34, fill=(12, 12, 14, 215), outline=(255, 255, 255, 40), width=2)
+    fn, fs = font(66, 900), font(34, 700)
+    num = f"{val}"
+    rest = f" / {goal} kcal" if goal else " kcal"
+    w1, w2 = d.textlength(num, font=fn), d.textlength(rest, font=fs)
+    x = (LW - w1 - w2) / 2
+    d.text((x, 76), num, font=fn, fill=YELLOW if hot else (255, 255, 255), anchor="ls")
+    d.text((x + w1, 76), rest, font=fs, fill=(255, 255, 255, 170), anchor="ls")
+    if goal:
+        d.rounded_rectangle([60, 94, LW - 60, 104], 5, fill=(255, 255, 255, 40))
+        p = max(0.0, min(1.0, val / goal))
+        if p > 0.01:
+            d.rounded_rectangle([60, 94, 60 + (LW - 120) * p, 104], 5, fill=YELLOW)
+    img.save(out)
+
+
+def build_counter(adds, goal, start, end, work):
+    """adds: [(czas, kcal)] – licznik od 0, przy każdym posiłku szybko odlicza w górę."""
+    adds = sorted((t, k) for t, k in adds if start <= t < end)
+    if not adds:
+        return None
+    lines, t, val, n = ["ffconcat version 1.0"], 0.0, 0, 0
+    blank = work / "lic_pusty.png"
+    Image.new("RGBA", (LW, LH), (0, 0, 0, 0)).save(blank)
+
+    def put(png, a, b):
+        nonlocal t
+        if b - a > 0.005:
+            lines.extend([f"file '{png}'", f"duration {b - a:.3f}"])
+            t = b
+
+    put(blank, 0.0, start)
+    cur = work / "lic_0.png"; draw_counter(0, goal, cur)
+    for at, k in adds:
+        put(cur, t, at)
+        steps = 14
+        for i in range(1, steps + 1):
+            v = round(val + k * (1 - (1 - i / steps) ** 3))
+            png = work / f"lic_{n}.png"; n += 1
+            draw_counter(v, goal, png, hot=True)
+            put(png, t, t + 0.045)
+        val += k
+        cur = work / f"lic_{n}.png"; n += 1
+        draw_counter(val, goal, cur)
+    put(cur, t, end)
+    lines += [f"file '{blank}'", "duration 1.0", f"file '{blank}'"]
+    cf = work / "licznik.txt"
+    cf.write_text("\n".join(lines) + "\n")
+    print(f"Licznik kalorii: {len(adds)} posiłków, razem {val} kcal", flush=True)
+    return cf
+
+
 def summary_job(d, png, work):
     shutil.copy(FONT_PATH, work / "font_tytul.ttf")
     return {"png": str(png), "dx": 0, "dy": 0, "job": {
@@ -406,7 +470,8 @@ def load_summary(day):
             return None
         return {"label": str(d.get("label") or "DZIEŃ"), "kcal": int(d["kcal"]), "goal": d.get("goal"),
                 "p": int(d.get("p") or 0), "c": int(d.get("c") or 0), "fat": int(d.get("f") or 0),
-                "gp": d.get("gp"), "gc": d.get("gc"), "gf": d.get("gf"), "train": bool(d.get("train"))}
+                "gp": d.get("gp"), "gc": d.get("gc"), "gf": d.get("gf"), "train": bool(d.get("train")),
+                "licznik": {k: int(v) for k, v in (d.get("licznik") or {}).items() if v}}
     except Exception:
         return None
 
@@ -513,7 +578,7 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0):
     return out, total, speed, keep, src_dur, total - need - tail
 
 
-def finalize(segments, total, workdir, music, out_path, captions=None, summary_png=None):
+def finalize(segments, total, workdir, music, out_path, captions=None, summary_png=None, counter=None):
     lst = workdir / "lista.txt"
     lst.write_text("".join(f"file '{s}'\n" for s in segments))
     joined = workdir / "polaczone.mp4"
@@ -523,6 +588,10 @@ def finalize(segments, total, workdir, music, out_path, captions=None, summary_p
     if captions:
         inputs += ["-f", "concat", "-safe", "0", "-i", str(captions)]
         fc.append(f"[{last}][{n}:v]overlay=0:{NAPISY_Y - 160}:eof_action=pass[c{n}]")
+        last, n = f"c{n}", n + 1
+    if counter:
+        inputs += ["-f", "concat", "-safe", "0", "-i", str(counter)]
+        fc.append(f"[{last}][{n}:v]overlay={(W - LW) // 2}:{LICZNIK_Y}:eof_action=pass[c{n}]")
         last, n = f"c{n}", n + 1
     if summary_png:
         st = max(0.0, total - PODSUMOWANIE_SECONDS)
@@ -706,7 +775,8 @@ def main():
                  anim_job(work / "like.png", LIKE_SECONDS, "naklejka", work)]
         animate(jobs, work)
 
-        segments, total, cap_words, hide = [], 0.0, [], []
+        segments, total, cap_words, hide, adds = [], 0.0, [], [], []
+        licz = (summary or {}).get("licznik") or {}
         for i, (video, shots, keep) in enumerate(plan):
             prepared = prepared_all[i]
             tail = PODSUMOWANIE_SECONDS if (summary and i == len(plan) - 1) else 0.0
@@ -715,6 +785,8 @@ def main():
             segments.append(seg)
             for a, b, w in map_words(trans.get(video.name, {}).get("words", []), keep, speed, src_dur):
                 cap_words.append((total + a, total + b, w))
+            if LICZNIK and licz.get(video.name):
+                adds.append((total + (card_at + 0.3 if prepared else min(1.0, d / 2)), licz[video.name]))
             if prepared:
                 hide.append((total + card_at, total + card_at + len(prepared) * SHOT_SECONDS))
             total += d
@@ -731,8 +803,13 @@ def main():
         if summary:
             hide.append((total - PODSUMOWANIE_SECONDS, total + 1))
         captions = build_captions(cap_words, hide, work) if cap_words else None
+        counter = None
+        if adds:
+            end = total - (PODSUMOWANIE_SECONDS if summary else 0)
+            adds = [(max(t, TITLE_SECONDS + 0.2), k) for t, k in adds]
+            counter = build_counter(adds, summary.get("goal"), TITLE_SECONDS, end, work)
         finalize(segments, total, work, None if args.bez_muzyki else args.muzyka, out_path,
-                 captions, summary_png)
+                 captions, summary_png, counter)
         print(f"\nGOTOWE ({total:.0f} s): {out_path}")
     finally:
         shutil.rmtree(work, ignore_errors=True)
