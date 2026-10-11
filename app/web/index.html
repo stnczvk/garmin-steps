@@ -161,12 +161,13 @@ code{font-size:12px;background:#fff;border:1px solid var(--rule);border-radius:6
       <h3>Połączone konta</h3>
       <div id="list"></div>
       <div class="line" style="border-top:1px solid var(--rule)">
-        <label class="sr" for="grp">Grupa nowego konta</label>
+        <label for="grp" style="margin:0">Nowe konto dodaj do grupy:</label>
         <select id="grp"><option value="pozaskala">PozaSkala</option><option value="prywatne">Prywatne</option></select>
         <button id="add-yt">Dodaj kanał YouTube</button>
         <button id="add-ig">Dodaj konto Instagram</button>
       </div>
       <h3>Klucze</h3>
+      <p class="when" style="margin:-4px 0 12px">Wspólne dla wszystkich kont – wpisujesz je raz.</p>
       <div class="grid2">
         <div><label for="GOOGLE_CLIENT_ID">Google Client ID</label><input id="GOOGLE_CLIENT_ID" autocomplete="off"></div>
         <div><label for="GOOGLE_CLIENT_SECRET">Google Client Secret</label><input id="GOOGLE_CLIENT_SECRET" autocomplete="off"></div>
