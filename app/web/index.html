@@ -461,9 +461,10 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   <section class="card board in" id="board" style="--d:320ms" aria-label="Konta"></section>
 
   <div class="sec-h reveal">
-    <div><h2>Najlepsze posty</h2><div class="when" style="margin-top:2px">Kliknij post, żeby zobaczyć jego statystyki</div></div>
+    <div><h2 id="posts-h">Najlepsze posty</h2><div class="when" style="margin-top:2px">Kliknij post, żeby zobaczyć jego statystyki</div></div>
     <div class="seg" role="group" aria-label="Okres" id="range">
       <span class="pill"></span>
+      <button data-r="new" aria-pressed="false">Ostatnie</button>
       <button data-r="28" aria-pressed="true">28 dni</button>
       <button data-r="0" aria-pressed="false">Cały czas</button>
     </div>
@@ -706,8 +707,12 @@ function render(changed) {
     : `<div class="empty"><b>${group ? 'W tej grupie nie ma jeszcze kont' : 'Nie masz jeszcze podpiętych kont'}</b>Dodasz je w „Konta i ustawienia” na dole strony.</div>`;
 
   // posty
-  const cut = new Date(Date.now() - range * 864e5).toISOString().slice(0, 10);
-  const all = allPosts.filter(p => !range || p.date >= cut).sort((x, y) => (y.views || 0) - (x.views || 0)).slice(0, 30);
+  const cut = new Date(Date.now() - (range === 'new' ? 0 : range) * 864e5).toISOString().slice(0, 10);
+  // „Ostatnie” – od najnowszego; pozostałe – od najwięcej wyświetleń
+  const all = range === 'new'
+    ? allPosts.slice().sort((x, y) => (y.date || '').localeCompare(x.date || '') || (y.views || 0) - (x.views || 0)).slice(0, 30)
+    : allPosts.filter(p => !range || p.date >= cut).sort((x, y) => (y.views || 0) - (x.views || 0)).slice(0, 30);
+  $('#posts-h').textContent = range === 'new' ? 'Ostatnie posty' : 'Najlepsze posty';
   const topv = all[0]?.views || 1;
   shown = all;
   const row = (p, i) => `<a class="post rw" data-i="${i}" href="${esc(p.url)}" target="_blank" rel="noopener" style="--pc:var(--${VAR[p.platform]});--d:${Math.min(i, 5) * 50}ms">
@@ -914,7 +919,7 @@ $('#posts').addEventListener('click', e => {
 });
 
 seg($('#tabs'), 'g', v => group = v);
-seg($('#range'), 'r', v => range = +v);
+seg($('#range'), 'r', v => range = v === 'new' ? 'new' : +v);
 
 // reflektor podążający za kursorem na kartach
 function hookSpots() {
