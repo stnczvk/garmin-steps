@@ -144,9 +144,9 @@ button svg{width:15px;height:15px;flex:none}
 .chart .gl{stroke:var(--grid);stroke-width:1;stroke-dasharray:2 4}
 .chart .ax{fill:var(--faint);font:12px "Geist",sans-serif}
 .chart .area{fill:url(#ga)}
-.chart .ln{fill:none;stroke:url(#gl);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 4px 12px color-mix(in oklab,var(--accent) 45%,transparent))}
+.chart .ln{fill:none;stroke:url(#gl);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 4px 12px color-mix(in oklab,var(--pc) 45%,transparent))}
 .chart .xh{stroke:var(--soft);stroke-width:1;stroke-dasharray:3 3;opacity:0;transition:opacity var(--quick)}
-.chart .pt{fill:var(--surface);stroke:var(--accent);stroke-width:2;opacity:0;transition:opacity var(--quick)}
+.chart .pt{fill:var(--surface);stroke:var(--pc);stroke-width:2;opacity:0;transition:opacity var(--quick)}
 .chart.hov .xh,.chart.hov .pt{opacity:1}
 .tip{position:absolute;top:6px;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 11px;box-shadow:var(--shadow);
   font-size:12.5px;white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity var(--quick) var(--ease),transform var(--quick) var(--ease)}
@@ -157,7 +157,14 @@ button svg{width:15px;height:15px;flex:none}
 .drawn .chart .ln{stroke-dashoffset:0;transition:stroke-dashoffset 1100ms var(--ease) 150ms}
 .chart .area{opacity:0}
 .drawn .chart .area{opacity:1;transition:opacity 700ms var(--ease) 500ms}
-.chart-empty{height:260px;display:grid;place-items:center;color:var(--faint);text-align:center;padding:0 30px}
+.seg.mini{padding:2px;border-radius:9px}
+.seg.mini button{padding:4px 10px;font-size:12.5px;border-radius:7px;gap:6px}
+.seg.mini .pill{top:2px;bottom:2px;border-radius:7px}
+.cdot{width:7px;height:7px;border-radius:2px;background:var(--pc);display:inline-block;opacity:.45;transition:opacity var(--quick)}
+.seg.mini button[aria-pressed=true] .cdot{opacity:1}
+.card-h{flex-wrap:wrap}
+.chart{--pc:var(--accent)}
+.chart-empty{height:260px;display:grid;place-items:center;color:var(--faint);text-align:center;padding:0 30px;max-width:520px;margin:0 auto;line-height:1.6}
 
 .plat{padding-bottom:6px}
 .plat-list{padding:14px 20px 12px;display:grid;gap:16px}
@@ -299,7 +306,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .head{transition:box-shadow var(--std) var(--ease),background var(--std) var(--ease)}
 .head.scrolled{box-shadow:0 8px 24px -16px rgba(0,0,0,.35)}
 /* wykres: punkt z pulsującą obwódką, płynny dymek */
-.chart .ring{fill:none;stroke:var(--accent);stroke-width:2;opacity:0}
+.chart .ring{fill:none;stroke:var(--pc);stroke-width:2;opacity:0}
 .chart.hov .ring{animation:ring 1.6s var(--ease) infinite}
 @keyframes ring{0%{opacity:.5;r:5}100%{opacity:0;r:14}}
 .tip{transition:opacity var(--quick) var(--ease),transform var(--quick) var(--ease),left 90ms linear}
@@ -590,32 +597,68 @@ function miniTrend(a, i) {
 }
 
 // ---------- duży wykres ----------
-function buildSeries(accs) {
-  const byDate = {};
-  accs.forEach(([, a]) => (a.daily || []).forEach(d => byDate[d.date] = (byDate[d.date] || 0) + d.views));
-  let pts = Object.entries(byDate).sort().map(([date, v]) => ({date, v}));
-  if (pts.length >= 2) return {kind: 'views', title: 'Wyświetlenia dziennie', note: 'YouTube · ostatnie 28 dni', pts};
-  const hist = {};
-  accs.forEach(([, a]) => (a.history || []).forEach(h => hist[h.date] = (hist[h.date] || 0) + h.followers));
-  pts = Object.entries(hist).sort().map(([date, v]) => ({date, v}));
-  if (pts.length >= 2) return {kind: 'followers', title: 'Obserwujący łącznie', note: 'dzień po dniu', pts};
-  return null;
+let chartPlat = 'youtube';
+// wyświetlenia dziennie z zapisanej historii postów (Instagram, TikTok): ile przybyło między kolejnymi dniami
+function derivedDaily(accs) {
+  const days = {};
+  accs.forEach(([key, a]) => Object.entries(a.post_hist || {}).forEach(([id, pts]) => pts.forEach(([t, v]) => { (days[t.slice(0, 10)] ||= {})[key + id] = v; })));
+  const carry = {}, totals = Object.keys(days).sort().map(d => { Object.assign(carry, days[d]); return {date: d, total: Object.values(carry).reduce((x, y) => x + y, 0)}; });
+  return totals.slice(1).map((t, i) => ({date: t.date, v: Math.max(0, t.total - totals[i].total)})).slice(-28);
+}
+function buildSeries(accs, plat) {
+  const mine = accs.filter(([, a]) => a.platform === plat);
+  if (plat === 'youtube') {
+    const byDate = {};
+    mine.forEach(([, a]) => (a.daily || []).forEach(d => byDate[d.date] = (byDate[d.date] || 0) + d.views));
+    const pts = Object.entries(byDate).sort().map(([date, v]) => ({date, v}));
+    return {title: 'Wyświetlenia dziennie', note: 'YouTube · ostatnie 28 dni', pts,
+            empty: 'Brak danych dziennych z YouTube – pojawią się po pierwszym odświeżeniu.'};
+  }
+  return {title: 'Wyświetlenia dziennie', note: `${NAMES[plat]} · przyrost na postach`, pts: derivedDaily(mine),
+          empty: `${NAMES[plat]} nie podaje historii dziennej, więc centrum liczy ją samo z kolejnych odświeżeń. Wykres pojawi się po 2–3 dniach.`};
 }
 
 function drawChart(accs) {
   const box = $('#chart');
-  const s = buildSeries(accs);
-  if (!s) {
-    box.innerHTML = `<div class="card-h"><h2>Wyświetlenia dziennie</h2></div><div class="chart-empty"><div><b style="color:var(--ink)">Wykres pojawi się po podpięciu YouTube</b><br>albo po kilku dniach zbierania liczby obserwujących.</div></div>`;
+  const plats = ['youtube', 'instagram', 'tiktok'].filter(p => accs.some(([, a]) => a.platform === p));
+  if (!plats.length) {
+    box.innerHTML = `<div class="card-h"><h2>Wyświetlenia dziennie</h2></div><div class="chart-empty"><div><b style="color:var(--ink)">Brak kont w tej grupie</b></div></div>`;
+    return;
+  }
+  if (!plats.includes(chartPlat)) chartPlat = plats[0];
+  box.style.setProperty('--pc', `var(--${VAR[chartPlat]})`);
+  const s = buildSeries(accs, chartPlat);
+  const switcher = plats.length > 1 ? `<div class="seg mini" role="group" aria-label="Platforma na wykresie" id="cplat"><span class="pill"></span>${plats.map(p =>
+    `<button data-p="${p}" aria-pressed="${p === chartPlat}" style="--pc:var(--${VAR[p]})"><i class="cdot"></i>${NAMES[p]}</button>`).join('')}</div>` : `<small>${s.note}</small>`;
+  const hookSwitch = () => {
+    const sw = $('#cplat'); if (!sw) return;
+    movePill(sw);
+    sw.onclick = e => { const b = e.target.closest('button'); if (!b || b.dataset.p === chartPlat) return; chartPlat = b.dataset.p; redraw(); };
+  };
+  const redraw = () => { drawChart(accs); const c = $('#chart .chart-box, #chart .chart-empty'); if (c) { c.classList.remove('swap'); void c.offsetWidth; c.classList.add('swap'); } };
+  // przesunięcie palcem po wykresie zmienia platformę
+  const swipe = el => {
+    let sx = null, sy = 0;
+    el.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive: true});
+    el.addEventListener('touchend', e => {
+      if (sx == null) return; const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+      if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+      const i = plats.indexOf(chartPlat) + (dx < 0 ? 1 : -1);
+      if (i >= 0 && i < plats.length) { chartPlat = plats[i]; redraw(); }
+    }, {passive: true});
+  };
+  if (!s.pts || s.pts.length < 2) {
+    box.innerHTML = `<div class="card-h"><h2>${s.title}</h2>${switcher}</div><div class="chart-empty"><div>${s.empty}</div></div>`;
+    hookSwitch(); swipe(box.querySelector('.chart-empty'));
     return;
   }
   series = s.pts;
   const W = Math.max(320, box.clientWidth - 20), H = innerWidth < 560 ? 220 : 260, L = 52, R = 10, T = 12, B = 26;
-  const max = Math.max(...series.map(p => p.v)), min0 = Math.min(...series.map(p => p.v)), min = s.kind === 'views' ? 0 : min0;
+  const max = Math.max(...series.map(p => p.v)), min = 0;
   // równe, „okrągłe” podziałki osi (1, 2, 2,5, 5 × 10ⁿ)
   const raw = Math.max(max - min, 1) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
   const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(st => st >= raw);
-  const lo = s.kind === 'views' ? 0 : Math.floor(min / step) * step;
+  const lo = 0;
   const span = Math.ceil((max - lo) / step) * step || step;
   const x = i => L + i / (series.length - 1) * (W - L - R);
   const y = v => T + (1 - (v - lo) / span) * (H - T - B);
@@ -623,10 +666,10 @@ function drawChart(accs) {
   const line = series.map((p, i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
   const xi = [0, Math.floor((series.length - 1) / 2), series.length - 1];
   const sum = series.reduce((a, p) => a + p.v, 0);
-  box.innerHTML = `<div class="card-h"><h2>${s.title}</h2><small>${s.note}</small></div>
+  box.innerHTML = `<div class="card-h"><h2>${s.title}</h2>${switcher}</div>
     <div class="chart-box" tabindex="0" aria-label="${s.title}. Najechanie lub strzałki pokazują wartości dla dni.">
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${s.title}, łącznie ${fmt(sum)}">
-        <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient><linearGradient id="gl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--accent-2)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs>
+        <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--pc);stop-opacity:.28"/><stop offset="1" style="stop-color:var(--pc);stop-opacity:0"/></linearGradient><linearGradient id="gl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color:var(--pc);stop-opacity:.75"/><stop offset="1" style="stop-color:var(--pc)"/></linearGradient></defs>
         ${ticks.map(t => `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/><text class="ax num" x="${L - 10}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${short(t)}</text>`).join('')}
         ${xi.map((i, k) => `<text class="ax" x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${k === 0 ? 'start' : k === 2 ? 'end' : 'middle'}">${dayName(series[i].date)}</text>`).join('')}
         <polygon class="area" points="${x(0)},${y(lo)} ${line} ${x(series.length - 1)},${y(lo)}"/>
@@ -638,6 +681,7 @@ function drawChart(accs) {
       <div class="tip" id="tip"></div>
     </div>`;
   const cb = box.querySelector('.chart-box'), svg = cb.querySelector('svg');
+  hookSwitch(); swipe(cb);
   const show = i => {
     i = Math.max(0, Math.min(series.length - 1, i));
     const px = x(i), py = y(series[i].v), sc = svg.clientWidth / W;
