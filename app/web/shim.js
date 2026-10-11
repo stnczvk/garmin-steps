@@ -212,6 +212,19 @@
       await req("POST", "/hook/newkey", {}); paintScale();
     }
   });
+  async function paintVlog() {
+    const el = document.getElementById("dz-vlog"); if (!el) return;
+    let info; try { info = await req("GET", "/hook/info") } catch (e) { el.innerHTML = `<p class="note" style="margin:0">Nie udało się pobrać ustawień.</p>`; return; }
+    el.innerHTML = `<p class="note" style="margin:0">Montaż na Macu bierze posiłki, kalorie i trening prosto z dziennika – nie musisz robić screenów. Skopiuj link i wklej go raz, gdy montaż o niego zapyta.</p>
+      <div class="row" style="gap:8px;flex-wrap:nowrap"><input id="dz-vlogurl" readonly value="${info.vlog}" style="flex:1;min-width:0;font-size:13px"><button class="btn small" data-dzvlog="copy">Kopiuj</button></div>
+      <span class="note">Link działa jak hasło – nie udostępniaj go. Zmiana linku w sekcji „Waga Xiaomi” zmienia też ten.</span>`;
+  }
+  document.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-dzvlog]"); if (!b) return;
+    const i = document.getElementById("dz-vlogurl"); try { await navigator.clipboard.writeText(i.value) } catch (e) { i.select(); document.execCommand && document.execCommand("copy") }
+    b.textContent = "✓ Skopiowano"; setTimeout(() => b.textContent = "Kopiuj", 2000);
+  });
+  window.dzVlog = { html: () => { setTimeout(paintVlog, 0); return `<div class="card stack"><h2>Montaż vlogu</h2><div id="dz-vlog" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
   window.dzScale = { html: () => { setTimeout(paintScale, 0); return `<div class="card stack"><h2>Waga Xiaomi</h2><div id="dz-scale" class="stack" style="gap:10px"><p class="note" style="margin:0">Ładuję…</p></div></div>`; } };
 
 

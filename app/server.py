@@ -95,7 +95,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.middleware("http")
 async def guard(req: Request, call_next):
     p = req.url.path
-    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight") and not authed(req):
+    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if p in ("/", "/index.html", "/shim.js", "/sw.js"):
@@ -383,7 +383,21 @@ def hook_key():
 @app.get("/api/hook/info")
 def hook_info():
     last = kv_get("hook_last")
-    return {"url": f"https://{DOMAIN}/api/hook/weight?key={hook_key()}", "last": json.loads(last) if last else None}
+    return {"url": f"https://{DOMAIN}/api/hook/weight?key={hook_key()}", "vlog": f"https://{DOMAIN}/api/hook/vlog?key={hook_key()}",
+            "last": json.loads(last) if last else None}
+
+
+@app.get("/api/hook/vlog")
+def hook_vlog(key: str = "", date: str = ""):
+    """Dane dnia do montażu vlogu na Macu (posiłki, cele, trening) – zapisuje je sama aplikacja."""
+    if not hmac.compare_digest(key, hook_key()):
+        raise HTTPException(403, "bad key")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+        raise HTTPException(400, "bad date")
+    d = get_doc("vlog/" + date)
+    if not d:
+        raise HTTPException(404, "brak danych z tego dnia")
+    return d
 
 
 @app.post("/api/hook/newkey")
