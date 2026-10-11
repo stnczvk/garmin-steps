@@ -99,7 +99,11 @@ if ! command -v caddy >/dev/null; then
   apt-get update -qq && apt-get install -y -qq caddy
 fi
 if [ -n "$DOMAIN" ]; then
+  mkdir -p /etc/caddy/sites
   cat > /etc/caddy/Caddyfile <<EOF
+# inne aplikacje na tym serwerze (np. centrum social mediów) dopisują się w /etc/caddy/sites
+import /etc/caddy/sites/*.caddy
+
 $DOMAIN {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:8100

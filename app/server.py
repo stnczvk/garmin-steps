@@ -103,10 +103,6 @@ async def guard(req: Request, call_next):
     return resp
 
 
-from social import router as social_router   # centrum social mediów (/social.html)
-app.include_router(social_router)
-
-
 @app.get("/api/me")
 def me(req: Request):
     return {"ok": authed(req)} if authed(req) else JSONResponse({"ok": False}, status_code=401)
