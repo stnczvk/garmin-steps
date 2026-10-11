@@ -332,9 +332,9 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .sheet{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))}
 .sheet[hidden]{display:none}
 .scrim{position:absolute;inset:0;background:rgba(4,5,7,.6);backdrop-filter:blur(6px) saturate(1.2);-webkit-backdrop-filter:blur(6px) saturate(1.2);opacity:0;transition:opacity 320ms var(--ease)}
-.panel{position:relative;width:min(680px,100%);max-height:min(88dvh,860px);overflow:auto;overscroll-behavior:contain;border-radius:20px;
+.panel{position:relative;width:min(920px,100%);max-height:min(92dvh,980px);overflow:auto;overscroll-behavior:contain;border-radius:20px;
   background:var(--bg);background-image:var(--card-bg);border:1px solid var(--line-hi);box-shadow:0 40px 100px -30px rgba(0,0,0,.75),var(--card-hi);
-  opacity:0;transform:translateY(14px) scale(.965);transition:opacity 300ms var(--ease),transform 460ms cubic-bezier(.05,.7,.1,1);padding:18px 22px 22px}
+  opacity:0;transform:translateY(14px) scale(.965);transition:opacity 300ms var(--ease),transform 460ms cubic-bezier(.05,.7,.1,1);padding:22px 28px 28px}
 .sheet.open .scrim{opacity:1}
 .sheet.open .panel{opacity:1;transform:none}
 .sheet.closing .panel{opacity:0;transform:translateY(6px) scale(.98);transition:opacity 200ms var(--ease),transform 220ms cubic-bezier(.3,0,1,1)}
@@ -344,26 +344,27 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .p-top .logo svg{width:14px;height:14px}
 .p-top b{flex:1;font-weight:550}
 .p-top button{padding:7px 9px}
-.p-head{display:grid;grid-template-columns:180px minmax(0,1fr);gap:20px;align-items:start}
+.p-head{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;align-items:start}
 .p-media{width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:var(--raised);border:1px solid var(--line);display:grid;place-items:center}
 .p-media.tall{aspect-ratio:4/5}
 .p-media img{width:100%;height:100%;object-fit:cover;display:block}
 .p-media svg{width:34px;height:34px;fill:var(--pc);opacity:.8}
-.p-title{font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1.3;margin:0 0 4px}
+.p-title{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.3;margin:0 0 4px}
 .p-date{color:var(--faint);font-size:13px}
-.p-hero{display:flex;align-items:baseline;gap:10px;margin:16px 0 4px}
-.p-hero b{font-size:38px;font-weight:600;letter-spacing:-.045em;line-height:1;background:linear-gradient(180deg,var(--ink) 30%,color-mix(in oklab,var(--ink) 55%,transparent));-webkit-background-clip:text;background-clip:text;color:transparent}
+.p-hero{display:flex;align-items:baseline;gap:10px;margin:22px 0 6px}
+.p-hero b{font-size:52px;font-weight:600;letter-spacing:-.045em;line-height:1;background:linear-gradient(180deg,var(--ink) 30%,color-mix(in oklab,var(--ink) 55%,transparent));-webkit-background-clip:text;background-clip:text;color:transparent}
 .p-hero span{color:var(--faint)}
-.p-cmp{font-size:13px;color:var(--soft)}
+.p-cmp{font-size:14px;color:var(--soft)}
 .p-cmp b{font-weight:600}
 .p-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.p-cell{background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px 9px;box-shadow:var(--card-hi)}
-.p-cell b{display:block;font-size:17px;font-weight:600;letter-spacing:-.02em}
-.p-cell small{color:var(--faint);font-size:12px}
-.p-sec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;font-weight:550;color:var(--soft);margin:22px 0 10px}
+.p-cell{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:16px 16px 13px;box-shadow:var(--card-hi)}
+.p-cell b{display:block;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.p-cell small{color:var(--faint);font-size:12.5px}
+.p-sec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:14px;font-weight:550;color:var(--soft);margin:28px 0 12px}
 .p-sec small{font-weight:400;color:var(--faint)}
-.p-chart{position:relative;border:1px solid var(--line);border-radius:14px;padding:12px 12px 6px;background:var(--card-bg)}
-.p-chart svg{display:block;width:100%;height:170px;overflow:visible}
+.p-react{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:20px}
+.p-chart{position:relative;border:1px solid var(--line);border-radius:16px;padding:16px 14px 8px;background:var(--card-bg)}
+.p-chart svg{display:block;width:100%;height:260px;overflow:visible}
 .p-chart .gl{stroke:var(--grid);stroke-dasharray:2 4}
 .p-chart .ax{fill:var(--faint);font:11.5px "Geist",sans-serif}
 .p-chart .xh{stroke:var(--soft);stroke-dasharray:3 3;opacity:0}
@@ -379,11 +380,15 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .sheet.open .p-in > *{opacity:1;transform:none;transition:opacity 360ms var(--ease) calc(100ms + var(--i,0) * 45ms),transform 440ms var(--ease) calc(100ms + var(--i,0) * 45ms)}
 @media (max-width:640px){
   .sheet{padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
-  .panel{padding:14px 16px 18px;max-height:92dvh}
+  .panel{padding:14px 16px 18px;max-height:94dvh}
+  .p-chart svg{height:190px}
+  .p-cell b{font-size:18px}
   .p-head{grid-template-columns:110px minmax(0,1fr);gap:14px}
-  .p-title{font-size:16px}
-  .p-hero b{font-size:30px}
-  .p-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .p-title{font-size:17px}
+  .p-hero b{font-size:34px}
+  .p-grid,.p-react{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .p-head{grid-template-columns:1fr}
+  .p-media.tall{max-width:180px;margin:0 auto}
 }
 
 @media (max-width:980px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .mid{grid-template-columns:1fr} }
@@ -806,7 +811,7 @@ function cell(v, l, i) { return v == null || v === '' ? '' : `<div class="p-cell
 // wykres z najechaniem (wspólny dla okna posta)
 function hoverChart(box, pts, opt) {
   if (!pts || pts.length < 2) { box.innerHTML = `<div class="p-note">${opt.empty}</div>`; return; }
-  const W = Math.max(300, box.clientWidth - 24), H = 170, L = 46, R = 8, T = 10, B = 22;
+  const W = Math.max(300, box.clientWidth - 28), H = innerWidth < 640 ? 190 : 260, L = 50, R = 8, T = 10, B = 24;
   const max = Math.max(...pts.map(p => p.v), 1);
   const raw = max / 3, mag = Math.pow(10, Math.floor(Math.log10(raw))), step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(x => x >= raw);
   const top = Math.ceil(max / step) * step;
@@ -853,10 +858,10 @@ function openPost(p) {
         <div class="p-media ${tall ? 'tall' : ''}">${p.thumb ? `<img src="${esc(p.thumb)}" alt="" referrerpolicy="no-referrer">` : ICON[p.platform]}</div>
         <div><div class="p-title" id="p-title"></div><div class="p-date">${NAMES[p.platform]} · ${new Date(p.date + 'T12:00').toLocaleDateString('pl-PL', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}</div>
           <div class="p-hero"><b class="num" data-n="${p.views || 0}"></b><span>wyświetleń</span></div>
-          <div class="p-cmp">${diff == null ? '' : (diff === 0 ? 'Tyle, co zwykły post tego konta' : `<b class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '+' : '−'}${Math.abs(diff)}%</b> ${diff > 0 ? 'więcej' : 'mniej'} niż zwykły post tego konta`)}${rank ? ` · ${rank}. miejsce na koncie` : ''}</div></div>
+          <div class="p-cmp">${diff == null ? '' : (diff === 0 ? 'Tyle, co zwykły post tego konta' : `<b class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '+' : '−'}${Math.abs(diff)}%</b> ${diff > 0 ? 'więcej' : 'mniej'} niż zwykły post tego konta`)}${rank ? ` · ${rank}. miejsce na koncie` : ''}</div>
+          <div class="p-grid p-react">${cells}</div></div>
       </div>
-      <div style="--i:1"><div class="p-sec">Jak rosły wyświetlenia <small id="p-chart-note"></small></div><div class="p-chart" id="p-chart"><div class="sk" style="height:170px"></div></div></div>
-      <div style="--i:2"><div class="p-sec">Reakcje</div><div class="p-grid">${cells}</div></div>
+      <div style="--i:1"><div class="p-sec">Jak rosły wyświetlenia <small id="p-chart-note"></small></div><div class="p-chart" id="p-chart"><div class="sk" style="height:260px"></div></div></div>
       <div id="p-extra" style="--i:3"></div>
       <div class="p-cta" style="--i:4"><a href="${esc(p.url)}" target="_blank" rel="noopener">${PLAT_OPEN[p.platform]}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>
     </div>`;
