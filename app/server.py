@@ -415,7 +415,12 @@ async def hook_redakcja(req: Request, key: str = ""):
     if r is None:
         return JSONResponse({"error": err[:300]}, status_code=502)
     if r.status_code != 200:
-        return JSONResponse({"error": f"AI {r.status_code}: {r.text[:300]}"}, status_code=502)
+        h = r.headers
+        diag = {"status": r.status_code, "body": r.text[:300], "model": body["model"], "url": str(r.url),
+                "ctype": h.get("content-type"), "server": h.get("server"), "req_id": h.get("request-id"),
+                "key_typ": (API_KEY[:10] + "…") if API_KEY.startswith("sk-ant-") else f"inny ({len(API_KEY)} zn.)",
+                "key_ws": API_KEY != API_KEY.strip()}
+        return JSONResponse({"error": f"AI {r.status_code}", "diag": diag}, status_code=502)
     res = r.json()
     u = res.get("usage", {})
     pi, po = PRICES.get(body["model"], (2.0, 10.0))
