@@ -319,7 +319,7 @@
     const d = mzDate(), info = mz.info, j = mzJobShown();
     if (!info) { el.innerHTML = `<p class="note" style="margin:0">Ładuję…</p>`; return; }
     let h = "";
-    if (!info.groq) h += `<div class="nb-step" style="margin:0"><b>Brak klucza Groq na serwerze</b> (potrzebny do wycinania pomyłek). Zaloguj się na serwer i wpisz:<br><code style="font-size:12px;word-break:break-all">read -rsp "Klucz Groq: " K &amp;&amp; echo "GROQ_API_KEY=$K" &gt;&gt; /root/dziennik/.env &amp;&amp; unset K</code><br>wklej klucz (nie będzie widoczny) i Enter.</div>`;
+    if (!info.groq) h += `<details class="keynote"><summary><span class="kn-dot"></span>Wycinanie pomyłek wyłączone – brak klucza Groq <span class="kn-more">Jak włączyć</span></summary><div class="kn-body">Zaloguj się na serwer i wpisz:<br><code style="font-size:12px;word-break:break-all">read -rsp "Klucz Groq: " K &amp;&amp; echo "GROQ_API_KEY=$K" &gt;&gt; /root/dziennik/.env &amp;&amp; unset K</code><br>wklej klucz (nie będzie widoczny) i Enter.</div></details>`;
     if (mz.up) {
       const u = mz.up;
       h += `<div class="stack" style="gap:6px"><b>Wysyłam ${mzEsc(u.label)} (${u.i} z ${u.n}) · ${Math.round(u.pct * 100)}%${u.tot ? ` <span class="note num">${mzMB(u.got)} z ${mzMB(u.tot)}</span>` : ""}</b><div class="bar"><i style="width:${Math.round(u.pct * 100)}%"></i></div>${u.pct >= 0.999 ? `<span class="note">Plik wysłany, serwer go zapisuje…</span>` : ""}<span class="note">Nie zamykaj aplikacji, dopóki wysyłanie się nie skończy. Potem możesz.</span></div>`;

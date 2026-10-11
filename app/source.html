@@ -1,7 +1,8 @@
 <title>Dziennik treningowy</title>
 <script>try{if(localStorage.getItem("dz-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Geist:wght@400..800&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
 <style>
 :root{
   color-scheme:dark;
@@ -10,8 +11,8 @@
   --good:#4ADE9B; --warn:#FFB547; --bad:#FF6B5A;
   --m-kcal:#9E8CFC; --m-p:#FF8A73; --m-c:#7FB2FF; --m-f:#FFC857;
   --a:#9E8CFC; --b:#FF8A73; --c:#7FB2FF;
-  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
-  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"Geist",system-ui,sans-serif;
+  --body:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
@@ -809,6 +810,19 @@ section.swl{animation:swl .32s cubic-bezier(.2,0,0,1)}section.swr{animation:swr 
 @keyframes swl{from{opacity:.2;transform:translateX(28px)}}@keyframes swr{from{opacity:.2;transform:translateX(-28px)}}
 @media (prefers-reduced-motion:reduce){.chart.lc .ln{animation:none;stroke-dashoffset:0}.chart.lc .ar,.chart.lc .dt{animation:none;opacity:1}.chart .bg,.slchart .bg,section.enter>*,.done-card,.done-ic,.ex.justdone,.ex.justdone .ex-check,section.swl,section.swr,.empty:before,.prbadge:after{animation:none!important}.done-ic path{stroke-dashoffset:0;animation:none}section.stack:empty:not([hidden]){animation:none}}
 
+
+.keynote{border:1px solid color-mix(in srgb,var(--warn) 30%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--warn) 6%,transparent);font-size:13px}
+.keynote summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 12px;color:var(--muted)}
+.keynote summary::-webkit-details-marker{display:none}
+.keynote .kn-dot{width:7px;height:7px;border-radius:50%;background:var(--warn);flex:none}
+.keynote .kn-more{margin-left:auto;color:var(--accent);font-weight:600;white-space:nowrap}
+.keynote[open] .kn-more{opacity:.6}
+.keynote .kn-body{padding:0 12px 12px;color:var(--muted);line-height:1.55}
+.keynote code{display:block;margin:6px 0;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.25)}
+/* drobne wykończenia */
+::selection{background:color-mix(in srgb,var(--accent) 35%,transparent)}
+.card h2,.ex-tt b{letter-spacing:-.02em}
+body{text-rendering:optimizeLegibility}
 /* ===== jasny motyw ===== */
 [data-theme="light"]{color-scheme:light;
   --bg:#F7F7F8; --surface:#FFFFFF; --surface2:#F0F0F2; --line:rgba(10,10,20,.09); --line-hi:rgba(10,10,20,.16);
@@ -2972,7 +2986,7 @@ function reQuick(){if(fst.qtab==="search")renderQS();else renderFood();if(fst.qo
 /* udostępnianie posiłku i treningu jako grafika (zapis w galerii / wysyłka) */
 function wrapText(cx,t,maxW,maxLines){const words=String(t).split(/\s+/),lines=[];let cur="";for(const w of words){const tr=cur?cur+" "+w:w;if(cx.measureText(tr).width<=maxW)cur=tr;else{if(cur)lines.push(cur);cur=w}}if(cur)lines.push(cur);if(lines.length>maxLines){lines.length=maxLines;let l=lines[maxLines-1];while(l&&cx.measureText(l+"…").width>maxW)l=l.slice(0,-1);lines[maxLines-1]=l+"…"}return lines}
 const SC={bg:"#08090A",card:"#141518",line:"#26272C",ink:"#F4F4F5",mut:"#A1A1AA",acc:"#9E8CFC",p:"#FF8A73",c:"#6EA8FF",f:"#F5B25A",good:"#4ADE80"};
-const SDF='"Barlow Condensed","Arial Narrow",sans-serif',SBF='"Barlow",system-ui,-apple-system,sans-serif',SW=1080,SP=72;
+const SDF='"Geist",system-ui,sans-serif',SBF='"Geist",system-ui,-apple-system,sans-serif',SW=1080,SP=72;
 function svgImage(inner,color){return new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="240" height="240" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`)})}
 /* wspólny początek grafiki: tło, koło z ikoną w prawym górnym rogu, nagłówek; zwraca [canvas, ctx, y] */
 async function shareStart(title,sub,iconSvg,color,titleColor){
@@ -2988,7 +3002,7 @@ async function shareStart(title,sub,iconSvg,color,titleColor){
     if(x1>x0){const bw=x1-x0,bh=y1-y0,k=isz/Math.max(bw,bh);cx.drawImage(t,x0,y0,bw,bh,icx-bw*k/2,icy-bh*k/2,bw*k,bh*k)}}
   let y=SP+30;
   cx.fillStyle=SC.acc;cx.font=`700 30px ${SBF}`;cx.fillText("DZIENNIK TRENINGOWY",SP,y);
-  y+=96;cx.fillStyle=titleColor||SC.ink;cx.font=`800 96px ${SDF}`;cx.fillText(title.toUpperCase(),SP,y);
+  y+=96;cx.fillStyle=titleColor||SC.ink;cx.font=`700 92px ${SDF}`;if("letterSpacing" in cx)cx.letterSpacing="-3px";cx.fillText(title,SP,y);if("letterSpacing" in cx)cx.letterSpacing="0px";
   y+=56;cx.fillStyle=SC.mut;cx.font=`500 36px ${SBF}`;cx.fillText(sub,SP,y);
   return [cv,cx,y];
 }
