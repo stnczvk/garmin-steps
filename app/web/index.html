@@ -313,6 +313,55 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 ::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
 ::view-transition-new(root){clip-path:circle(0 at var(--tx,90%) var(--ty,0%))}
 
+/* ---------- panel szczegółów posta ---------- */
+.sheet{position:fixed;inset:0;z-index:50;display:flex;justify-content:flex-end}
+.sheet[hidden]{display:none}
+.scrim{position:absolute;inset:0;background:rgba(5,6,8,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;transition:opacity 300ms var(--ease)}
+.panel{position:relative;width:min(460px,100%);height:100dvh;overflow:auto;overscroll-behavior:contain;background:var(--bg);border-left:1px solid var(--line);
+  box-shadow:-30px 0 60px -30px rgba(0,0,0,.6);transform:translateX(104%);transition:transform 420ms cubic-bezier(.05,.7,.1,1);
+  padding:calc(16px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom))}
+.sheet.open .scrim{opacity:1}
+.sheet.open .panel{transform:none}
+.sheet.closing .panel{transform:translateX(104%);transition:transform 240ms cubic-bezier(.3,0,1,1)}
+.sheet.closing .scrim{opacity:0;transition:opacity 240ms}
+.p-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.p-top .logo{width:28px;height:28px;border-radius:8px}
+.p-top .logo svg{width:15px;height:15px}
+.p-top b{flex:1;font-weight:550}
+.p-top button{padding:7px 9px}
+.p-media{width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:var(--raised);border:1px solid var(--line);display:grid;place-items:center}
+.p-media.tall{aspect-ratio:4/5;max-height:46vh;width:auto;margin:0 auto}
+.p-media.noimg{aspect-ratio:auto;height:130px;width:100%;max-height:none}
+.p-media img{width:100%;height:100%;object-fit:cover;display:block}
+.p-media svg{width:40px;height:40px;fill:var(--pc);opacity:.8}
+.p-title{font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.3;margin:16px 0 4px}
+.p-date{color:var(--faint);font-size:13px}
+.p-hero{display:flex;align-items:baseline;gap:10px;margin:20px 0 4px}
+.p-hero b{font-size:40px;font-weight:600;letter-spacing:-.04em;line-height:1}
+.p-hero span{color:var(--faint)}
+.p-cmp{font-size:13px;color:var(--soft);margin-bottom:18px}
+.p-cmp b{font-weight:600}
+.p-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.p-cell{background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px;box-shadow:var(--card-hi)}
+.p-cell b{display:block;font-size:18px;font-weight:600;letter-spacing:-.02em}
+.p-cell small{color:var(--faint);font-size:12px}
+.p-sec{font-size:13px;font-weight:550;color:var(--soft);margin:22px 0 10px}
+.p-chart svg{display:block;width:100%;height:110px}
+.p-cta{display:flex;margin-top:22px}
+.p-cta a{flex:1;justify-content:center;text-decoration:none;font:500 14px "Geist",sans-serif;border-radius:10px;padding:11px 14px;display:inline-flex;align-items:center;gap:8px;
+  background:var(--ink);color:var(--bg)}
+.p-in > *{opacity:0;transform:translateY(10px)}
+.sheet.open .p-in > *{opacity:1;transform:none;transition:opacity 380ms var(--ease) calc(120ms + var(--i,0) * 40ms),transform 460ms var(--ease) calc(120ms + var(--i,0) * 40ms)}
+.post{cursor:pointer}
+@media (max-width:640px){
+  .sheet{align-items:flex-end}
+  .panel{width:100%;height:auto;max-height:90dvh;border-left:0;border-top:1px solid var(--line);border-radius:22px 22px 0 0;transform:translateY(104%);
+    padding:10px 18px calc(24px + env(safe-area-inset-bottom))}
+  .panel:before{content:"";display:block;width:40px;height:5px;border-radius:5px;background:var(--line-hi);margin:0 auto 12px}
+  .sheet.closing .panel{transform:translateY(104%)}
+  .p-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
 @media (max-width:980px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .mid{grid-template-columns:1fr} }
 @media (max-width:760px){
   .tbl .hide-m{display:none}
@@ -339,7 +388,8 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   .in{opacity:1;transform:none}
   .chart .ln,.sline{stroke-dashoffset:0} .chart .area{opacity:1}
   .track i,.bars i,.mbar i{transform:none}
-  .tbl tbody tr.rw,.post.rw,.reveal{opacity:1;transform:none}
+  .tbl tbody tr.rw,.post.rw,.reveal,.p-in > *{opacity:1;transform:none}
+  .panel{transform:none}
 }
 </style>
 </head>
@@ -422,6 +472,11 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   </details>
 </main>
 
+<div class="sheet drawn" id="sheet" hidden>
+  <div class="scrim" id="scrim"></div>
+  <aside class="panel" role="dialog" aria-modal="true" aria-labelledby="p-title" id="panel"></aside>
+</div>
+
 <script>
 const $ = s => document.querySelector(s);
 const NAMES = {youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok'};
@@ -431,7 +486,7 @@ const ICON = {
   instagram: '<svg viewBox="0 0 24 24"><path d="M7 3h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7a4 4 0 014-4zm5 5a4 4 0 100 8 4 4 0 000-8zm0 2a2 2 0 110 4 2 2 0 010-4zm5-3.2a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z"/></svg>',
   tiktok: '<svg viewBox="0 0 24 24"><path d="M15 3c.4 2.3 1.9 3.9 4.5 4.1v3.1c-1.6 0-3.1-.5-4.4-1.4v6.4A5.7 5.7 0 119.4 9.5v3.2a2.6 2.6 0 102.5 2.6V3H15z"/></svg>'
 };
-let data = null, group = '', range = 28, showAll = false, first = true, series = [];
+let data = null, group = '', range = 28, showAll = false, first = true, series = [], shown = [];
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmt = n => n == null || n === '' || !isFinite(n) ? '–' : Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1).replace('.', ',') + ' mln' : Math.round(n).toLocaleString('pl-PL');
 const short = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace('.', ',') + ' mln' : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace('.', ',') + ' tys.' : String(Math.round(n));
@@ -580,7 +635,7 @@ function render(changed) {
   const deltas = accs.map(([, a]) => weekDelta(a)).filter(d => d != null);
   const dsum = deltas.length ? deltas.reduce((s, d) => s + d, 0) : null;
   const views = accs.reduce((s, [, a]) => s + (a.views_28d || 0), 0);
-  const allPosts = accs.flatMap(([, a]) => (a.posts || []).map(p => ({...p, platform: a.platform, acc: a.name})));
+  const allPosts = accs.flatMap(([key, a]) => (a.posts || []).map(p => ({...p, platform: a.platform, acc: a.name, key})));
   const posts28 = allPosts.filter(p => p.date >= cut28);
   const avg = posts28.length ? posts28.reduce((s, p) => s + (p.views || 0), 0) / posts28.length : null;
   const k = (key, n) => `data-n="${n ?? ''}" data-key="${key}" data-prev="${prev[key] || 0}"`;
@@ -620,7 +675,8 @@ function render(changed) {
   const cut = new Date(Date.now() - range * 864e5).toISOString().slice(0, 10);
   const all = allPosts.filter(p => !range || p.date >= cut).sort((x, y) => (y.views || 0) - (x.views || 0)).slice(0, 30);
   const topv = all[0]?.views || 1;
-  const row = (p, i) => `<a class="post rw" href="${esc(p.url)}" target="_blank" rel="noopener" style="--pc:var(--${VAR[p.platform]});--d:${Math.min(i, 5) * 50}ms">
+  shown = all;
+  const row = (p, i) => `<a class="post rw" data-i="${i}" href="${esc(p.url)}" target="_blank" rel="noopener" style="--pc:var(--${VAR[p.platform]});--d:${Math.min(i, 5) * 50}ms">
       <span class="rank num">${i + 1}</span>
       ${p.thumb ? `<img class="thumb" src="${esc(p.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-p="${p.platform}">` : `<span class="thumb">${ICON[p.platform]}</span>`}
       <span style="min-width:0"><span class="pt">${esc(p.title) || 'Bez opisu'}</span>
@@ -699,6 +755,81 @@ function seg(box, attr, apply, rerender = true) {
     if (rerender) { showAll = false; render(true); }
   };
 }
+// ---------- panel szczegółów posta ----------
+const PLAT_OPEN = {youtube: 'Otwórz na YouTube', instagram: 'Otwórz na Instagramie', tiktok: 'Otwórz na TikToku'};
+let lastFocus = null;
+const mmss = sec => { sec = Math.round(sec || 0); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
+function median(a) { a = a.filter(x => x > 0).sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : 0; }
+function cell(v, l, i) { return v == null || v === '' ? '' : `<div class="p-cell" style="--i:${i}"><b class="num">${typeof v === 'number' ? fmt(v) : esc(v)}</b><small>${l}</small></div>`; }
+
+function openPost(p) {
+  lastFocus = document.activeElement;
+  const acc = data.accounts[p.key] || {};
+  const med = median((acc.posts || []).map(x => x.views || 0));
+  const diff = med ? Math.round(((p.views || 0) / med - 1) * 100) : null;
+  const eng = p.views ? ((p.likes || 0) + (p.comments || 0) + (p.shares || 0) + (p.saved || 0)) / p.views * 100 : null;
+  const rank = (acc.posts || []).slice().sort((a, b) => (b.views || 0) - (a.views || 0)).findIndex(x => x.id === p.id) + 1;
+  const tall = p.platform !== 'youtube';
+  const cells = [cell(p.likes, 'polubień', 0), cell(p.comments, 'komentarzy', 1), cell(p.shares, 'udostępnień', 2), cell(p.saved, 'zapisań', 3),
+                 cell(p.reach, 'osób zasięgu', 4), cell(eng != null ? eng.toFixed(1).replace('.', ',') + '%' : null, 'zaangażowania', 5)].join('');
+  $('#panel').style.setProperty('--pc', `var(--${VAR[p.platform]})`);
+  $('#panel').innerHTML = `
+    <div class="p-top"><span class="logo">${ICON[p.platform]}</span><b>${esc(p.acc)}</b><button id="p-close" aria-label="Zamknij"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="p-in">
+      <div class="p-media ${tall ? 'tall' : ''} ${p.thumb ? '' : 'noimg'}" style="--i:0">${p.thumb ? `<img src="${esc(p.thumb)}" alt="" referrerpolicy="no-referrer">` : ICON[p.platform]}</div>
+      <div style="--i:1"><div class="p-title" id="p-title"></div><div class="p-date">${NAMES[p.platform]} · ${new Date(p.date + 'T12:00').toLocaleDateString('pl-PL', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}</div></div>
+      <div style="--i:2"><div class="p-hero"><b class="num" data-n="${p.views || 0}"></b><span>wyświetleń</span></div>
+        <div class="p-cmp">${diff == null ? '' : (diff === 0 ? 'Tyle, co zwykły post tego konta' : `<b class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '+' : '−'}${Math.abs(diff)}%</b> ${diff > 0 ? 'więcej' : 'mniej'} niż zwykły post tego konta`) + `${rank ? ` · ${rank}. miejsce na koncie` : ''}`}</div></div>
+      <div class="p-grid" style="--i:3">${cells}</div>
+      <div id="p-extra" style="--i:4">${p.platform === 'youtube' ? '<div class="p-sec">Oglądalność</div><div class="p-grid"><div class="p-cell sk" style="height:62px"></div><div class="p-cell sk" style="height:62px"></div><div class="p-cell sk" style="height:62px"></div></div><div class="sk" style="height:110px"></div>' : ''}</div>
+      <div class="p-cta" style="--i:5"><a href="${esc(p.url)}" target="_blank" rel="noopener">${PLAT_OPEN[p.platform]}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>
+    </div>`;
+  $('#p-title').textContent = p.title || 'Bez opisu';
+  $('#panel').querySelectorAll('.p-media img').forEach(img => img.onerror = () => { img.replaceWith(Object.assign(document.createElement('span'), {innerHTML: ICON[p.platform]})); });
+  const sh = $('#sheet');
+  sh.hidden = false; sh.classList.remove('closing');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => requestAnimationFrame(() => sh.classList.add('open')));
+  const saveFirst = first; first = true; countUp($('#panel')); first = saveFirst;
+  $('#p-close').onclick = closePost; $('#p-close').focus({preventScroll: true});
+  if (p.platform === 'youtube') loadExtra(p);
+}
+
+async function loadExtra(p) {
+  let r;
+  try { r = await api(`/api/social/post?key=${encodeURIComponent(p.key)}&id=${encodeURIComponent(p.id)}`); } catch (e) { return; }
+  const box = $('#p-extra'); if (!box) return;
+  const x = r.extra;
+  if (!x) { box.innerHTML = ''; return; }
+  let chart = '';
+  if (x.daily && x.daily.length > 1) {
+    const v = x.daily.map(d => d.views), mx = Math.max(...v, 1), w = 400, h = 110;
+    const line = v.map((y, k) => `${(k / (v.length - 1) * w).toFixed(1)},${(h - 4 - y / mx * (h - 10)).toFixed(1)}`).join(' ');
+    chart = `<div class="p-sec">Wyświetlenia dzień po dniu</div><div class="p-chart"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="Wyświetlenia dzień po dniu">
+      <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pc)" stop-opacity=".28"/><stop offset="1" stop-color="var(--pc)" stop-opacity="0"/></linearGradient></defs>
+      <polygon points="0,${h} ${line} ${w},${h}" fill="url(#pg)"/><polyline class="sline" pathLength="1" style="--d:100ms" points="${line}" fill="none" stroke="var(--pc)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg></div>
+      <div class="pm"><span>${dayName(x.daily[0].date)}</span><span style="margin-left:auto">${dayName(x.daily[x.daily.length - 1].date)}</span></div>`;
+  }
+  box.innerHTML = `<div class="p-sec">Oglądalność</div><div class="p-grid">
+      ${cell(Math.round((x.minutes || 0) / 60), 'godzin oglądania', 0)}${cell(mmss(x.avg_duration), 'średni czas oglądania', 1)}
+      ${cell(x.avg_percent != null ? Math.round(x.avg_percent) + '%' : null, 'filmu obejrzane średnio', 2)}${cell(x.subs, 'nowych subskrypcji', 3)}</div>${chart}`;
+}
+
+function closePost() {
+  const sh = $('#sheet');
+  if (sh.hidden) return;
+  sh.classList.add('closing'); sh.classList.remove('open');
+  setTimeout(() => { sh.hidden = true; sh.classList.remove('closing'); document.body.style.overflow = ''; lastFocus?.focus?.({preventScroll: true}); }, reduce ? 0 : 250);
+}
+$('#scrim').onclick = closePost;
+addEventListener('keydown', e => { if (e.key === 'Escape') closePost(); });
+$('#posts').addEventListener('click', e => {
+  const a = e.target.closest('a.post'); if (!a) return;
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // z Cmd/Ctrl otwiera się normalnie w nowej karcie
+  e.preventDefault();
+  openPost(shown[+a.dataset.i]);
+});
+
 seg($('#tabs'), 'g', v => group = v);
 seg($('#range'), 'r', v => range = +v);
 

@@ -362,6 +362,39 @@ def refresh_all(tiktok=True):
         _running.clear()
 
 
+_post_cache = {}
+
+
+@router.get("/api/social/post")
+def post_details(key: str, id: str):
+    """Szczegóły jednego posta. YouTube: statystyki z YouTube Analytics (czas oglądania, % obejrzenia, wykres dzienny)."""
+    acc = _accounts().get(key)
+    if not acc or acc.get("platform") != "youtube":
+        return {"extra": None}
+    ck = (key, id)
+    if ck in _post_cache and time.time() - _post_cache[ck][0] < 3600:
+        return _post_cache[ck][1]
+    try:
+        h = {"Authorization": f"Bearer {_google_access(acc)}"}
+        v = httpx.get("https://www.googleapis.com/youtube/v3/videos", params={"part": "snippet,contentDetails", "id": id},
+                      headers=h, timeout=30).json().get("items", [{}])[0]
+        pub = (v.get("snippet", {}).get("publishedAt") or date.today().isoformat())[:10]
+        end = date.today().isoformat()
+        base = {"ids": "channel==MINE", "startDate": pub, "endDate": end, "filters": f"video=={id}"}
+        url = "https://youtubeanalytics.googleapis.com/v2/reports"
+        tot = httpx.get(url, params={**base, "metrics": "views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,shares"},
+                        headers=h, timeout=30).json()
+        row = (tot.get("rows") or [[0, 0, 0, 0, 0, 0]])[0]
+        day = httpx.get(url, params={**base, "metrics": "views", "dimensions": "day", "sort": "day"}, headers=h, timeout=30).json()
+        out = {"extra": {"minutes": row[1], "avg_duration": row[2], "avg_percent": row[3], "subs": row[4], "shares": row[5],
+                         "duration": v.get("contentDetails", {}).get("duration", ""),
+                         "daily": [{"date": r[0], "views": r[1]} for r in day.get("rows", [])][-60:]}}
+    except Exception as e:
+        out = {"extra": None, "error": str(e)[:200]}
+    _post_cache[ck] = (time.time(), out)
+    return out
+
+
 @router.get("/api/social/summary")
 def summary():
     c = _read("cache.json", {})
