@@ -369,6 +369,8 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .p-cell small{color:var(--faint);font-size:12.5px}
 .p-sec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:14px;font-weight:550;color:var(--soft);margin:28px 0 12px}
 .p-sec small{font-weight:400;color:var(--faint)}
+.p-ctl{display:flex;gap:8px;flex-wrap:wrap}
+.p-sec{flex-wrap:wrap;align-items:center}
 .p-react{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:20px}
 .p-chart{position:relative;border:1px solid var(--line);border-radius:16px;padding:16px 14px 8px;background:var(--card-bg)}
 .p-chart svg{display:block;width:100%;height:260px;overflow:visible}
@@ -905,7 +907,10 @@ function openPost(p) {
           <div class="p-cmp">${diff == null ? '' : (diff === 0 ? 'Tyle, co zwykły post tego konta' : `<b class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '+' : '−'}${Math.abs(diff)}%</b> ${diff > 0 ? 'więcej' : 'mniej'} niż zwykły post tego konta`)}${rank ? ` · ${rank}. miejsce na koncie` : ''}</div>
           <div class="p-grid p-react">${cells}</div></div>
       </div>
-      <div style="--i:1"><div class="p-sec">Jak rosły wyświetlenia <small id="p-chart-note"></small></div><div class="p-chart" id="p-chart"><div class="sk" style="height:260px"></div></div></div>
+      <div style="--i:1"><div class="p-sec"><span>Wyświetlenia posta <small id="p-chart-note"></small></span><span class="p-ctl">
+        <span class="seg mini" role="group" aria-label="Rodzaj wykresu" id="p-mode"><span class="pill"></span><button data-v="day" aria-pressed="true">Dziennie</button><button data-v="total" aria-pressed="false">Łącznie</button></span>
+        <span class="seg mini" role="group" aria-label="Zakres" id="p-range"><span class="pill"></span><button data-v="7" aria-pressed="false">7 dni</button><button data-v="28" aria-pressed="true">28 dni</button><button data-v="0" aria-pressed="false">Całość</button></span>
+      </span></div><div class="p-chart" id="p-chart"><div class="sk" style="height:260px"></div></div></div>
       <div id="p-extra" style="--i:3"></div>
       <div class="p-cta" style="--i:4"><a href="${esc(p.url)}" target="_blank" rel="noopener">${PLAT_OPEN[p.platform]}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>
     </div>`;
@@ -918,17 +923,46 @@ function openPost(p) {
   const saveFirst = first; first = true; countUp($('#panel')); first = saveFirst;
   $('#p-close').onclick = closePost; $('#p-close').focus({preventScroll: true});
   // historia z kolejnych odświeżeń centrum (Instagram, TikTok – i zapas dla YouTube)
-  const hist = ((acc.post_hist || {})[p.id] || []).map(([t, v]) => ({t, v}));
+  // seria dzienna posta: {date, day (przybyło tego dnia), total (łącznie)}
+  postSeries = null; postMode = 'day'; postRange = 28;
+  ['#p-mode', '#p-range'].forEach(id => {
+    const box = $(id); movePill(box);
+    box.onclick = e => {
+      const b = e.target.closest('button'); if (!b) return;
+      box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); movePill(box);
+      if (id === '#p-mode') postMode = b.dataset.v; else postRange = +b.dataset.v;
+      renderPostChart();
+    };
+  });
   const fromHist = () => {
-    $('#p-chart-note').textContent = hist.length > 1 ? 'z kolejnych odświeżeń centrum' : '';
-    hoverChart($('#p-chart'), hist, {
-      empty: 'Wykres zbuduje się sam – centrum zapisuje wyświetlenia tego posta przy każdym odświeżeniu.',
-      aria: 'Wyświetlenia posta w czasie',
-      xl: q => new Date(q.t).toLocaleDateString('pl-PL', {day: 'numeric', month: 'short'}),
-      tv: q => fmt(q.v) + ' wyświetleń',
-      tl: q => new Date(q.t).toLocaleString('pl-PL', {day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'})});
+    const byDay = {};
+    ((acc.post_hist || {})[p.id] || []).forEach(([t, v]) => byDay[t.slice(0, 10)] = v);
+    const days = Object.keys(byDay).sort();
+    postSeries = days.map((d, i) => ({date: d, total: byDay[d], day: i ? Math.max(0, byDay[d] - byDay[days[i - 1]]) : null}));
+    postSource = 'z kolejnych odświeżeń centrum';
+    renderPostChart();
   };
   if (p.platform === 'youtube') loadExtra(p, fromHist); else fromHist();
+}
+
+let postSeries = null, postMode = 'day', postRange = 28, postSource = '';
+function renderPostChart() {
+  const box = $('#p-chart'); if (!box) return;
+  $('#p-chart-note').textContent = postSource ? '· ' + postSource : '';
+  if (!postSeries || postSeries.length < 2) {
+    box.innerHTML = `<div class="p-note">Wykres zbuduje się sam – centrum zapisuje wyświetlenia tego posta przy każdym odświeżeniu.</div>`; return;
+  }
+  const cut = postRange ? new Date(Date.now() - postRange * 864e5).toISOString().slice(0, 10) : '';
+  let pts = postSeries.filter(q => q.date >= cut);
+  if (postMode === 'day') pts = pts.filter(q => q.day != null);
+  pts = pts.map(q => ({...q, v: postMode === 'day' ? q.day : q.total}));
+  const dl = q => new Date(q.date + 'T12:00').toLocaleDateString('pl-PL', {weekday: 'short', day: 'numeric', month: 'long'});
+  hoverChart(box, pts, {
+    empty: postRange ? `Za mało danych z ostatnich ${postRange} dni – wybierz „Całość”.` : 'Za mało danych na wykres.',
+    aria: postMode === 'day' ? 'Wyświetlenia posta dzień po dniu' : 'Wyświetlenia posta łącznie',
+    xl: q => dayName(q.date),
+    tv: q => postMode === 'day' ? '+' + fmt(q.v) + ' wyświetleń' : fmt(q.v) + ' łącznie',
+    tl: q => postMode === 'day' ? `${dl(q)} · łącznie ${fmt(q.total)}` : `${dl(q)}${q.day != null ? ` · +${fmt(q.day)} tego dnia` : ''}`});
 }
 
 async function loadExtra(p, fallback) {
@@ -939,13 +973,9 @@ async function loadExtra(p, fallback) {
   if (!x || !x.daily || x.daily.length < 2) { fallback(); }
   else {
     let run = 0;
-    const pts = x.daily.map(d => ({date: d.date, day: d.views, v: (run += d.views)}));
-    $('#p-chart-note').textContent = 'łącznie od publikacji';
-    hoverChart($('#p-chart'), pts, {
-      empty: '', aria: 'Wyświetlenia filmu łącznie od publikacji',
-      xl: q => dayName(q.date),
-      tv: q => fmt(q.v) + ' łącznie',
-      tl: q => `${new Date(q.date + 'T12:00').toLocaleDateString('pl-PL', {weekday: 'short', day: 'numeric', month: 'long'})} · +${fmt(q.day)} tego dnia`});
+    postSeries = x.daily.map(d => ({date: d.date, day: d.views, total: (run += d.views)}));
+    postSource = 'YouTube Analytics';
+    renderPostChart();
   }
   if (x) $('#p-extra').innerHTML = `<div class="p-sec">Oglądalność</div><div class="p-grid">
       ${cell(Math.round((x.minutes || 0) / 60), 'godzin oglądania', 0)}${cell(mmss(x.avg_duration), 'średni czas oglądania', 1)}

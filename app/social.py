@@ -395,7 +395,7 @@ def post_details(key: str, id: str):
         day = httpx.get(url, params={**base, "metrics": "views", "dimensions": "day", "sort": "day"}, headers=h, timeout=30).json()
         out = {"extra": {"minutes": row[1], "avg_duration": row[2], "avg_percent": row[3], "subs": row[4], "shares": row[5],
                          "duration": v.get("contentDetails", {}).get("duration", ""),
-                         "daily": [{"date": r[0], "views": r[1]} for r in day.get("rows", [])][-60:]}}
+                         "daily": [{"date": r[0], "views": r[1]} for r in day.get("rows", [])][-400:]}}
     except Exception as e:
         out = {"extra": None, "error": str(e)[:200]}
     _post_cache[ck] = (time.time(), out)
