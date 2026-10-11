@@ -133,6 +133,8 @@ button svg{width:15px;height:15px;flex:none}
 .chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 8px}
 .chip.up{color:var(--up);background:var(--up-bg)} .chip.down{color:var(--down);background:var(--down-bg)} .chip.flat{color:var(--faint);background:var(--raised)}
 .kpi .sub{font-size:12.5px;color:var(--faint)}
+.kspark{position:absolute;right:16px;bottom:16px;width:42%;height:38px;pointer-events:none}
+.kspark svg{display:block;width:100%;height:100%;overflow:visible}
 
 /* ---------- wykres + platformy ---------- */
 .mid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
@@ -203,20 +205,33 @@ button svg{width:15px;height:15px;flex:none}
 .posts{overflow:hidden}
 .plist{display:grid;transition:grid-template-rows var(--slow) var(--ease)}
 .plist > div{overflow:hidden;min-height:0}
-.post{display:grid;grid-template-columns:24px 56px minmax(0,1fr) auto;gap:16px;align-items:center;padding:12px 20px;border-top:1px solid var(--line-soft);text-decoration:none;
-  transition:background var(--quick) var(--ease)}
+.post{display:grid;grid-template-columns:28px 68px minmax(0,1fr) auto auto 16px;gap:16px;align-items:center;padding:12px 18px 12px 14px;border-top:1px solid var(--line-soft);
+  text-decoration:none;position:relative;transition:background var(--quick) var(--ease)}
 .post:first-child{border-top:0}
-.post:hover{background:var(--raised)}
-.rank{font-weight:600;color:var(--faint);text-align:right}
-.thumb{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--raised);display:grid;place-items:center;border:1px solid var(--line-soft)}
-.thumb svg{width:20px;height:20px;fill:var(--pc)}
-.pt{font-weight:550;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
-.pm{font-size:12.5px;color:var(--faint);margin-top:3px;display:flex;gap:4px 12px;flex-wrap:wrap;align-items:center}
+.post:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;border-radius:2px;background:var(--pc);opacity:0;transform:scaleY(.4);transition:opacity var(--std) var(--ease),transform var(--std) var(--ease)}
+.post:hover{background:linear-gradient(90deg,color-mix(in oklab,var(--pc) 7%,transparent),transparent 60%)}
+.post:hover:before{opacity:1;transform:none}
+.rank{font-weight:600;color:var(--faint);text-align:right;font-size:13px;letter-spacing:.02em}
+.post:nth-child(-n+3) .rank{color:var(--ink)}
+.thumbw{position:relative;width:68px;height:68px}
+.thumb{width:68px;height:68px;border-radius:12px;object-fit:cover;background:var(--raised);display:grid;place-items:center;border:1px solid var(--line)}
+.thumb svg{width:22px;height:22px;fill:var(--pc)}
+.pbadge{position:absolute;right:-5px;bottom:-5px;width:22px;height:22px;border-radius:7px;background:var(--pc);display:grid;place-items:center;border:2px solid var(--bg)}
+.pbadge svg{width:11px;height:11px;fill:#fff}
+.pt{font-weight:550;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;letter-spacing:-.005em}
+.pm{font-size:12.5px;color:var(--faint);margin-top:4px;display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center}
+.pm .sep{width:3px;height:3px;border-radius:50%;background:var(--faint);opacity:.6}
 .dot{width:7px;height:7px;border-radius:2px;display:inline-block;margin-right:6px;background:var(--pc)}
-.pv{text-align:right;min-width:96px}
-.pv b{display:block;font-size:16px;font-weight:650}
+.pstats{display:flex;gap:14px;color:var(--soft);font-size:13px}
+.pstats span{display:inline-flex;align-items:center;gap:5px}
+.pstats svg{width:14px;height:14px;opacity:.7}
+.peng{font-size:12px;font-weight:600;color:var(--soft);background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pv{text-align:right;min-width:92px}
+.pv b{display:block;font-size:17px;font-weight:600;letter-spacing:-.02em}
 .pv small{color:var(--faint);font-size:12px}
 .mbar{display:block;height:3px;border-radius:3px;background:var(--raised);margin-top:6px;overflow:hidden}
+.go{color:var(--faint);opacity:0;transform:translateX(-4px);transition:opacity var(--std) var(--ease),transform var(--std) var(--ease)}
+.post:hover .go{opacity:1;transform:none;color:var(--ink)}
 .mbar i{display:block;height:100%;background:var(--pc);border-radius:3px}
 .more{display:flex;justify-content:center;padding:8px;border-top:1px solid var(--line-soft)}
 .more button{border:0;background:transparent;color:var(--accent)}
@@ -295,7 +310,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 .post.rw{opacity:0;transform:translateY(8px)}
 .seen .post.rw{opacity:1;transform:none;transition:opacity 380ms var(--ease) var(--d,0ms),transform 480ms var(--ease) var(--d,0ms),background var(--quick) var(--ease)}
 .post .thumb{transition:transform var(--std) var(--ease)}
-.post:hover .thumb{transform:scale(1.06) rotate(-1.5deg)}
+.post:hover .thumb{transform:scale(1.04)}
 .post:hover .mbar i{filter:brightness(1.15)}
 .mbar i{transform-origin:left;transform:scaleX(0)}
 .seen .mbar i{transform:none;transition:transform 700ms var(--ease) var(--d,0ms)}
@@ -313,58 +328,67 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 ::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
 ::view-transition-new(root){clip-path:circle(0 at var(--tx,90%) var(--ty,0%))}
 
-/* ---------- panel szczegółów posta ---------- */
-.sheet{position:fixed;inset:0;z-index:50;display:flex;justify-content:flex-end}
+/* ---------- okno szczegółów posta (na środku ekranu) ---------- */
+.sheet{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))}
 .sheet[hidden]{display:none}
-.scrim{position:absolute;inset:0;background:rgba(5,6,8,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;transition:opacity 300ms var(--ease)}
-.panel{position:relative;width:min(460px,100%);height:100dvh;overflow:auto;overscroll-behavior:contain;background:var(--bg);border-left:1px solid var(--line);
-  box-shadow:-30px 0 60px -30px rgba(0,0,0,.6);transform:translateX(104%);transition:transform 420ms cubic-bezier(.05,.7,.1,1);
-  padding:calc(16px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom))}
+.scrim{position:absolute;inset:0;background:rgba(4,5,7,.6);backdrop-filter:blur(6px) saturate(1.2);-webkit-backdrop-filter:blur(6px) saturate(1.2);opacity:0;transition:opacity 320ms var(--ease)}
+.panel{position:relative;width:min(680px,100%);max-height:min(88dvh,860px);overflow:auto;overscroll-behavior:contain;border-radius:20px;
+  background:var(--bg);background-image:var(--card-bg);border:1px solid var(--line-hi);box-shadow:0 40px 100px -30px rgba(0,0,0,.75),var(--card-hi);
+  opacity:0;transform:translateY(14px) scale(.965);transition:opacity 300ms var(--ease),transform 460ms cubic-bezier(.05,.7,.1,1);padding:18px 22px 22px}
 .sheet.open .scrim{opacity:1}
-.sheet.open .panel{transform:none}
-.sheet.closing .panel{transform:translateX(104%);transition:transform 240ms cubic-bezier(.3,0,1,1)}
-.sheet.closing .scrim{opacity:0;transition:opacity 240ms}
+.sheet.open .panel{opacity:1;transform:none}
+.sheet.closing .panel{opacity:0;transform:translateY(6px) scale(.98);transition:opacity 200ms var(--ease),transform 220ms cubic-bezier(.3,0,1,1)}
+.sheet.closing .scrim{opacity:0;transition:opacity 220ms}
 .p-top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.p-top .logo{width:28px;height:28px;border-radius:8px}
-.p-top .logo svg{width:15px;height:15px}
+.p-top .logo{width:26px;height:26px;border-radius:8px}
+.p-top .logo svg{width:14px;height:14px}
 .p-top b{flex:1;font-weight:550}
 .p-top button{padding:7px 9px}
+.p-head{display:grid;grid-template-columns:180px minmax(0,1fr);gap:20px;align-items:start}
 .p-media{width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:var(--raised);border:1px solid var(--line);display:grid;place-items:center}
-.p-media.tall{aspect-ratio:4/5;max-height:46vh;width:auto;margin:0 auto}
-.p-media.noimg{aspect-ratio:auto;height:130px;width:100%;max-height:none}
+.p-media.tall{aspect-ratio:4/5}
 .p-media img{width:100%;height:100%;object-fit:cover;display:block}
-.p-media svg{width:40px;height:40px;fill:var(--pc);opacity:.8}
-.p-title{font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.3;margin:16px 0 4px}
+.p-media svg{width:34px;height:34px;fill:var(--pc);opacity:.8}
+.p-title{font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1.3;margin:0 0 4px}
 .p-date{color:var(--faint);font-size:13px}
-.p-hero{display:flex;align-items:baseline;gap:10px;margin:20px 0 4px}
-.p-hero b{font-size:40px;font-weight:600;letter-spacing:-.04em;line-height:1}
+.p-hero{display:flex;align-items:baseline;gap:10px;margin:16px 0 4px}
+.p-hero b{font-size:38px;font-weight:600;letter-spacing:-.045em;line-height:1;background:linear-gradient(180deg,var(--ink) 30%,color-mix(in oklab,var(--ink) 55%,transparent));-webkit-background-clip:text;background-clip:text;color:transparent}
 .p-hero span{color:var(--faint)}
-.p-cmp{font-size:13px;color:var(--soft);margin-bottom:18px}
+.p-cmp{font-size:13px;color:var(--soft)}
 .p-cmp b{font-weight:600}
-.p-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
-.p-cell{background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px;box-shadow:var(--card-hi)}
-.p-cell b{display:block;font-size:18px;font-weight:600;letter-spacing:-.02em}
+.p-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.p-cell{background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px 9px;box-shadow:var(--card-hi)}
+.p-cell b{display:block;font-size:17px;font-weight:600;letter-spacing:-.02em}
 .p-cell small{color:var(--faint);font-size:12px}
-.p-sec{font-size:13px;font-weight:550;color:var(--soft);margin:22px 0 10px}
-.p-chart svg{display:block;width:100%;height:110px}
-.p-cta{display:flex;margin-top:22px}
+.p-sec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;font-weight:550;color:var(--soft);margin:22px 0 10px}
+.p-sec small{font-weight:400;color:var(--faint)}
+.p-chart{position:relative;border:1px solid var(--line);border-radius:14px;padding:12px 12px 6px;background:var(--card-bg)}
+.p-chart svg{display:block;width:100%;height:170px;overflow:visible}
+.p-chart .gl{stroke:var(--grid);stroke-dasharray:2 4}
+.p-chart .ax{fill:var(--faint);font:11.5px "Geist",sans-serif}
+.p-chart .xh{stroke:var(--soft);stroke-dasharray:3 3;opacity:0}
+.p-chart .pt{fill:var(--bg);stroke:var(--pc);stroke-width:2;opacity:0}
+.p-chart.hov .xh,.p-chart.hov .pt,.p-chart.hov .tip{opacity:1}
+.p-chart.hov .tip{transform:none}
+.p-chart .tip{top:8px}
+.p-note{color:var(--faint);font-size:13px;padding:22px 6px;text-align:center}
+.p-cta{display:flex;gap:8px;margin-top:20px}
 .p-cta a{flex:1;justify-content:center;text-decoration:none;font:500 14px "Geist",sans-serif;border-radius:10px;padding:11px 14px;display:inline-flex;align-items:center;gap:8px;
   background:var(--ink);color:var(--bg)}
 .p-in > *{opacity:0;transform:translateY(10px)}
-.sheet.open .p-in > *{opacity:1;transform:none;transition:opacity 380ms var(--ease) calc(120ms + var(--i,0) * 40ms),transform 460ms var(--ease) calc(120ms + var(--i,0) * 40ms)}
-.post{cursor:pointer}
+.sheet.open .p-in > *{opacity:1;transform:none;transition:opacity 360ms var(--ease) calc(100ms + var(--i,0) * 45ms),transform 440ms var(--ease) calc(100ms + var(--i,0) * 45ms)}
 @media (max-width:640px){
-  .sheet{align-items:flex-end}
-  .panel{width:100%;height:auto;max-height:90dvh;border-left:0;border-top:1px solid var(--line);border-radius:22px 22px 0 0;transform:translateY(104%);
-    padding:10px 18px calc(24px + env(safe-area-inset-bottom))}
-  .panel:before{content:"";display:block;width:40px;height:5px;border-radius:5px;background:var(--line-hi);margin:0 auto 12px}
-  .sheet.closing .panel{transform:translateY(104%)}
+  .sheet{padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
+  .panel{padding:14px 16px 18px;max-height:92dvh}
+  .p-head{grid-template-columns:110px minmax(0,1fr);gap:14px}
+  .p-title{font-size:16px}
+  .p-hero b{font-size:30px}
   .p-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 @media (max-width:980px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .mid{grid-template-columns:1fr} }
 @media (max-width:760px){
-  .tbl .hide-m{display:none}
+  .tbl .hide-m,.pstats{display:none}
   .trend{width:90px} .trend svg{width:90px}
   .who b{max-width:140px}
 }
@@ -376,10 +400,12 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   .grid2{grid-template-columns:1fr}
   .tbl th,.tbl td{padding-left:14px;padding-right:14px}
   .tbl .hide-s{display:none}
-  .post{grid-template-columns:48px minmax(0,1fr) auto;padding:12px 14px;gap:12px}
+  .post{grid-template-columns:52px minmax(0,1fr) auto;padding:12px 14px;gap:14px}
+  .thumbw{width:52px;height:52px}
+  .go,.pm .ms{display:none}
   .rank{display:none}
-  .thumb{width:48px;height:48px}
-  .pm .pc{display:none}
+  .thumb{width:52px;height:52px}
+  .pstats{display:none}
   .pv{min-width:70px}
   .chart svg{height:220px}
 }
@@ -435,7 +461,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
   <section class="card board in" id="board" style="--d:320ms" aria-label="Konta"></section>
 
   <div class="sec-h reveal">
-    <h2>Najlepsze posty</h2>
+    <div><h2>Najlepsze posty</h2><div class="when" style="margin-top:2px">Kliknij post, żeby zobaczyć jego statystyki</div></div>
     <div class="seg" role="group" aria-label="Okres" id="range">
       <span class="pill"></span>
       <button data-r="28" aria-pressed="true">28 dni</button>
@@ -640,9 +666,17 @@ function render(changed) {
   const avg = posts28.length ? posts28.reduce((s, p) => s + (p.views || 0), 0) / posts28.length : null;
   const k = (key, n) => `data-n="${n ?? ''}" data-key="${key}" data-prev="${prev[key] || 0}"`;
 
+  // małe wykresy w kafelkach: obserwujący (historia) i wyświetlenia (dzienne)
+  const sumBy = (field, key) => { const m = {}; accs.forEach(([, a]) => (a[field] || []).forEach(d => m[d.date] = (m[d.date] || 0) + d[key])); return Object.entries(m).sort().map(e => e[1]); };
+  const kspark = (v, col, d) => {
+    if (v.length < 2) return '';
+    const mx = Math.max(...v), mn = Math.min(...v), w = 120, h = 38, sp = (mx - mn) || 1;
+    const line = v.map((y, i) => `${(i / (v.length - 1) * w).toFixed(1)},${(h - 2 - (y - mn) / sp * (h - 6)).toFixed(1)}`).join(' ');
+    return `<div class="kspark" aria-hidden="true"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs><linearGradient id="kg${d}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".25"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs><polygon points="0,${h} ${line} ${w},${h}" fill="url(#kg${d})"/><polyline class="sline" pathLength="1" style="--d:${300 + d * 80}ms" points="${line}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg></div>`;
+  };
   $('#kpis').innerHTML = `
-    <div class="card kpi in lift spot" style="--d:0ms"><div class="k">Obserwujący łącznie</div><div class="v num" ${k('k1', fol)}></div>${chip(dsum)} <span class="sub">w tydzień</span></div>
-    <div class="card kpi in lift spot" style="--d:50ms"><div class="k">Wyświetlenia</div><div class="v num" ${k('k2', views)}></div><span class="sub">ostatnie 28 dni</span></div>
+    <div class="card kpi in lift spot" style="--d:0ms"><div class="k">Obserwujący łącznie</div><div class="v num" ${k('k1', fol)}></div>${chip(dsum)} <span class="sub">w tydzień</span>${kspark(sumBy('history', 'followers'), 'var(--up)', 1)}</div>
+    <div class="card kpi in lift spot" style="--d:50ms"><div class="k">Wyświetlenia</div><div class="v num" ${k('k2', views)}></div><span class="sub">ostatnie 28 dni</span>${kspark(sumBy('daily', 'views'), 'var(--accent)', 2)}</div>
     <div class="card kpi in lift spot" style="--d:100ms"><div class="k">Nowe posty</div><div class="v num" ${k('k3', posts28.length)}></div><span class="sub">ostatnie 28 dni</span></div>
     <div class="card kpi in lift spot" style="--d:150ms"><div class="k">Średnio na post</div><div class="v num" ${k('k4', avg != null ? Math.round(avg) : '')}></div><span class="sub">wyświetleń, ostatnie 28 dni</span></div>`;
 
@@ -677,11 +711,13 @@ function render(changed) {
   const topv = all[0]?.views || 1;
   shown = all;
   const row = (p, i) => `<a class="post rw" data-i="${i}" href="${esc(p.url)}" target="_blank" rel="noopener" style="--pc:var(--${VAR[p.platform]});--d:${Math.min(i, 5) * 50}ms">
-      <span class="rank num">${i + 1}</span>
-      ${p.thumb ? `<img class="thumb" src="${esc(p.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-p="${p.platform}">` : `<span class="thumb">${ICON[p.platform]}</span>`}
+      <span class="rank num">${String(i + 1).padStart(2, '0')}</span>
+      <span class="thumbw">${p.thumb ? `<img class="thumb" src="${esc(p.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-p="${p.platform}">` : `<span class="thumb">${ICON[p.platform]}</span>`}<span class="pbadge">${ICON[p.platform]}</span></span>
       <span style="min-width:0"><span class="pt">${esc(p.title) || 'Bez opisu'}</span>
-        <span class="pm"><span><i class="dot"></i>${esc(p.acc)}</span><span class="num">${dmy(p.date)}</span><span class="num">${fmt(p.likes)} polubień</span><span class="num pc">${fmt(p.comments)} komentarzy</span></span></span>
-      <span class="pv"><b class="num">${fmt(p.views)}</b><small>wyświetleń</small><span class="mbar"><i style="width:${Math.max(3, (p.views || 0) / topv * 100).toFixed(1)}%;--d:${200 + Math.min(i, 5) * 50}ms"></i></span></span></a>`;
+        <span class="pm"><span>${esc(p.acc)}</span><i class="sep"></i><span class="num">${dmy(p.date)}</span><span class="peng num ms">${p.views ? (((p.likes || 0) + (p.comments || 0) + (p.shares || 0) + (p.saved || 0)) / p.views * 100).toFixed(1).replace('.', ',') + '% zaang.' : ''}</span></span></span>
+      <span class="pstats num hide-m"><span title="Polubienia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/></svg>${fmt(p.likes)}</span><span title="Komentarze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/></svg>${fmt(p.comments)}</span></span>
+      <span class="pv"><b class="num">${fmt(p.views)}</b><small>wyświetleń</small><span class="mbar"><i style="width:${Math.max(3, (p.views || 0) / topv * 100).toFixed(1)}%;--d:${200 + Math.min(i, 5) * 50}ms"></i></span></span>
+      <svg class="go" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg></a>`;
   const TOP = 5;
   $('#posts').innerHTML = all.length ? `<div>${all.slice(0, TOP).map(row).join('')}</div>
     ${all.length > TOP ? `<div class="plist" id="plist" style="grid-template-rows:${showAll ? '1fr' : '0fr'}"><div>${all.slice(TOP).map((p, i) => row(p, i + TOP)).join('')}</div></div>
@@ -762,6 +798,38 @@ const mmss = sec => { sec = Math.round(sec || 0); return Math.floor(sec / 60) + 
 function median(a) { a = a.filter(x => x > 0).sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : 0; }
 function cell(v, l, i) { return v == null || v === '' ? '' : `<div class="p-cell" style="--i:${i}"><b class="num">${typeof v === 'number' ? fmt(v) : esc(v)}</b><small>${l}</small></div>`; }
 
+// wykres z najechaniem (wspólny dla okna posta)
+function hoverChart(box, pts, opt) {
+  if (!pts || pts.length < 2) { box.innerHTML = `<div class="p-note">${opt.empty}</div>`; return; }
+  const W = Math.max(300, box.clientWidth - 24), H = 170, L = 46, R = 8, T = 10, B = 22;
+  const max = Math.max(...pts.map(p => p.v), 1);
+  const raw = max / 3, mag = Math.pow(10, Math.floor(Math.log10(raw))), step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(x => x >= raw);
+  const top = Math.ceil(max / step) * step;
+  const x = i => L + i / (pts.length - 1) * (W - L - R), y = v => T + (1 - v / top) * (H - T - B);
+  const line = pts.map((p, i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
+  const ticks = Array.from({length: Math.round(top / step) + 1}, (_, k) => k * step);
+  const xi = [0, Math.floor((pts.length - 1) / 2), pts.length - 1];
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${opt.aria}">
+      <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pc)" stop-opacity=".3"/><stop offset="1" stop-color="var(--pc)" stop-opacity="0"/></linearGradient></defs>
+      ${ticks.map(t => `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/><text class="ax num" x="${L - 8}" y="${(y(t) + 4).toFixed(1)}" text-anchor="end">${short(t)}</text>`).join('')}
+      ${xi.map((i, k) => `<text class="ax" x="${x(i).toFixed(1)}" y="${H - 4}" text-anchor="${k === 0 ? 'start' : k === 2 ? 'end' : 'middle'}">${opt.xl(pts[i])}</text>`).join('')}
+      <polygon points="${x(0)},${y(0)} ${line} ${x(pts.length - 1)},${y(0)}" fill="url(#pg)"/>
+      <polyline class="sline" pathLength="1" style="--d:250ms" points="${line}" fill="none" stroke="var(--pc)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      <line class="xh" y1="${T}" y2="${H - B}"/><circle class="pt" r="4"/></svg><div class="tip"></div>`;
+  const svg = box.querySelector('svg'), tip = box.querySelector('.tip'), xh = box.querySelector('.xh'), pt = box.querySelector('.pt');
+  const show = i => {
+    i = Math.max(0, Math.min(pts.length - 1, i));
+    const px = x(i), sc = svg.clientWidth / W;
+    xh.setAttribute('x1', px); xh.setAttribute('x2', px); pt.setAttribute('cx', px); pt.setAttribute('cy', y(pts[i].v));
+    tip.innerHTML = '<b class="num"></b><span></span>';
+    tip.firstChild.textContent = opt.tv(pts[i], i); tip.lastChild.textContent = opt.tl(pts[i], i);
+    const tw = tip.offsetWidth; tip.style.left = Math.min(Math.max(12 + px * sc - tw / 2, 4), box.clientWidth - tw - 4) + 'px';
+    box.classList.add('hov');
+  };
+  box.onpointermove = e => { const r = svg.getBoundingClientRect(); show(Math.round(((e.clientX - r.left) / r.width * W - L) / (W - L - R) * (pts.length - 1))); };
+  box.onpointerleave = () => box.classList.remove('hov');
+}
+
 function openPost(p) {
   lastFocus = document.activeElement;
   const acc = data.accounts[p.key] || {};
@@ -776,13 +844,16 @@ function openPost(p) {
   $('#panel').innerHTML = `
     <div class="p-top"><span class="logo">${ICON[p.platform]}</span><b>${esc(p.acc)}</b><button id="p-close" aria-label="Zamknij"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="p-in">
-      <div class="p-media ${tall ? 'tall' : ''} ${p.thumb ? '' : 'noimg'}" style="--i:0">${p.thumb ? `<img src="${esc(p.thumb)}" alt="" referrerpolicy="no-referrer">` : ICON[p.platform]}</div>
-      <div style="--i:1"><div class="p-title" id="p-title"></div><div class="p-date">${NAMES[p.platform]} · ${new Date(p.date + 'T12:00').toLocaleDateString('pl-PL', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}</div></div>
-      <div style="--i:2"><div class="p-hero"><b class="num" data-n="${p.views || 0}"></b><span>wyświetleń</span></div>
-        <div class="p-cmp">${diff == null ? '' : (diff === 0 ? 'Tyle, co zwykły post tego konta' : `<b class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '+' : '−'}${Math.abs(diff)}%</b> ${diff > 0 ? 'więcej' : 'mniej'} niż zwykły post tego konta`) + `${rank ? ` · ${rank}. miejsce na koncie` : ''}`}</div></div>
-      <div class="p-grid" style="--i:3">${cells}</div>
-      <div id="p-extra" style="--i:4">${p.platform === 'youtube' ? '<div class="p-sec">Oglądalność</div><div class="p-grid"><div class="p-cell sk" style="height:62px"></div><div class="p-cell sk" style="height:62px"></div><div class="p-cell sk" style="height:62px"></div></div><div class="sk" style="height:110px"></div>' : ''}</div>
-      <div class="p-cta" style="--i:5"><a href="${esc(p.url)}" target="_blank" rel="noopener">${PLAT_OPEN[p.platform]}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>
+      <div class="p-head" style="--i:0">
+        <div class="p-media ${tall ? 'tall' : ''}">${p.thumb ? `<img src="${esc(p.thumb)}" alt="" referrerpolicy="no-referrer">` : ICON[p.platform]}</div>
+        <div><div class="p-title" id="p-title"></div><div class="p-date">${NAMES[p.platform]} · ${new Date(p.date + 'T12:00').toLocaleDateString('pl-PL', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}</div>
+          <div class="p-hero"><b class="num" data-n="${p.views || 0}"></b><span>wyświetleń</span></div>
+          <div class="p-cmp">${diff == null ? '' : (diff === 0 ? 'Tyle, co zwykły post tego konta' : `<b class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? '+' : '−'}${Math.abs(diff)}%</b> ${diff > 0 ? 'więcej' : 'mniej'} niż zwykły post tego konta`)}${rank ? ` · ${rank}. miejsce na koncie` : ''}</div></div>
+      </div>
+      <div style="--i:1"><div class="p-sec">Jak rosły wyświetlenia <small id="p-chart-note"></small></div><div class="p-chart" id="p-chart"><div class="sk" style="height:170px"></div></div></div>
+      <div style="--i:2"><div class="p-sec">Reakcje</div><div class="p-grid">${cells}</div></div>
+      <div id="p-extra" style="--i:3"></div>
+      <div class="p-cta" style="--i:4"><a href="${esc(p.url)}" target="_blank" rel="noopener">${PLAT_OPEN[p.platform]}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17L17 7M9 7h8v8"/></svg></a></div>
     </div>`;
   $('#p-title').textContent = p.title || 'Bez opisu';
   $('#panel').querySelectorAll('.p-media img').forEach(img => img.onerror = () => { img.replaceWith(Object.assign(document.createElement('span'), {innerHTML: ICON[p.platform]})); });
@@ -792,27 +863,39 @@ function openPost(p) {
   requestAnimationFrame(() => requestAnimationFrame(() => sh.classList.add('open')));
   const saveFirst = first; first = true; countUp($('#panel')); first = saveFirst;
   $('#p-close').onclick = closePost; $('#p-close').focus({preventScroll: true});
-  if (p.platform === 'youtube') loadExtra(p);
+  // historia z kolejnych odświeżeń centrum (Instagram, TikTok – i zapas dla YouTube)
+  const hist = ((acc.post_hist || {})[p.id] || []).map(([t, v]) => ({t, v}));
+  const fromHist = () => {
+    $('#p-chart-note').textContent = hist.length > 1 ? 'z kolejnych odświeżeń centrum' : '';
+    hoverChart($('#p-chart'), hist, {
+      empty: 'Wykres zbuduje się sam – centrum zapisuje wyświetlenia tego posta przy każdym odświeżeniu.',
+      aria: 'Wyświetlenia posta w czasie',
+      xl: q => new Date(q.t).toLocaleDateString('pl-PL', {day: 'numeric', month: 'short'}),
+      tv: q => fmt(q.v) + ' wyświetleń',
+      tl: q => new Date(q.t).toLocaleString('pl-PL', {day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'})});
+  };
+  if (p.platform === 'youtube') loadExtra(p, fromHist); else fromHist();
 }
 
-async function loadExtra(p) {
-  let r;
-  try { r = await api(`/api/social/post?key=${encodeURIComponent(p.key)}&id=${encodeURIComponent(p.id)}`); } catch (e) { return; }
-  const box = $('#p-extra'); if (!box) return;
-  const x = r.extra;
-  if (!x) { box.innerHTML = ''; return; }
-  let chart = '';
-  if (x.daily && x.daily.length > 1) {
-    const v = x.daily.map(d => d.views), mx = Math.max(...v, 1), w = 400, h = 110;
-    const line = v.map((y, k) => `${(k / (v.length - 1) * w).toFixed(1)},${(h - 4 - y / mx * (h - 10)).toFixed(1)}`).join(' ');
-    chart = `<div class="p-sec">Wyświetlenia dzień po dniu</div><div class="p-chart"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="Wyświetlenia dzień po dniu">
-      <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pc)" stop-opacity=".28"/><stop offset="1" stop-color="var(--pc)" stop-opacity="0"/></linearGradient></defs>
-      <polygon points="0,${h} ${line} ${w},${h}" fill="url(#pg)"/><polyline class="sline" pathLength="1" style="--d:100ms" points="${line}" fill="none" stroke="var(--pc)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg></div>
-      <div class="pm"><span>${dayName(x.daily[0].date)}</span><span style="margin-left:auto">${dayName(x.daily[x.daily.length - 1].date)}</span></div>`;
+async function loadExtra(p, fallback) {
+  let r = null;
+  try { r = await api(`/api/social/post?key=${encodeURIComponent(p.key)}&id=${encodeURIComponent(p.id)}`); } catch (e) {}
+  const x = r?.extra;
+  if (!$('#p-chart')) return;
+  if (!x || !x.daily || x.daily.length < 2) { fallback(); }
+  else {
+    let run = 0;
+    const pts = x.daily.map(d => ({date: d.date, day: d.views, v: (run += d.views)}));
+    $('#p-chart-note').textContent = 'łącznie od publikacji';
+    hoverChart($('#p-chart'), pts, {
+      empty: '', aria: 'Wyświetlenia filmu łącznie od publikacji',
+      xl: q => dayName(q.date),
+      tv: q => fmt(q.v) + ' łącznie',
+      tl: q => `${new Date(q.date + 'T12:00').toLocaleDateString('pl-PL', {weekday: 'short', day: 'numeric', month: 'long'})} · +${fmt(q.day)} tego dnia`});
   }
-  box.innerHTML = `<div class="p-sec">Oglądalność</div><div class="p-grid">
+  if (x) $('#p-extra').innerHTML = `<div class="p-sec">Oglądalność</div><div class="p-grid">
       ${cell(Math.round((x.minutes || 0) / 60), 'godzin oglądania', 0)}${cell(mmss(x.avg_duration), 'średni czas oglądania', 1)}
-      ${cell(x.avg_percent != null ? Math.round(x.avg_percent) + '%' : null, 'filmu obejrzane średnio', 2)}${cell(x.subs, 'nowych subskrypcji', 3)}</div>${chart}`;
+      ${cell(x.avg_percent != null ? Math.round(x.avg_percent) + '%' : null, 'filmu obejrzane średnio', 2)}${cell(x.subs, 'nowych subskrypcji', 3)}</div>`;
 }
 
 function closePost() {

@@ -349,6 +349,13 @@ def refresh_all(tiktok=True):
                 hist = prev.get("history", [])
                 today = date.today().isoformat()
                 hist = [h for h in hist if h["date"] != today] + [{"date": today, "followers": d.get("followers", 0)}]
+                # historia wyświetleń każdego posta (z kolejnych odświeżeń) – do wykresu w podglądzie posta
+                ph_old, ph = prev.get("post_hist", {}), {}
+                stamp = time.strftime("%Y-%m-%dT%H:%M")
+                for p in d.get("posts", []):
+                    pts = [x for x in ph_old.get(p["id"], []) if x[0][:13] != stamp[:13]]
+                    ph[p["id"]] = (pts + [[stamp, p.get("views") or 0]])[-80:]
+                d["post_hist"] = ph
                 out[k] = {**d, "platform": a["platform"], "name": a.get("name"), "group": a.get("group", "prywatne"),
                           "updated": time.time(), "error": None, "history": hist[-120:]}
             except Exception as e:
