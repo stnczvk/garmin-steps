@@ -372,6 +372,33 @@ def ai_fix_words(trans, day):
     return trans
 
 
+# słowa, które rozpoznawanie mowy notorycznie przekręca (końcówka słowa po normalizacji -> poprawka)
+STALE_POPRAWKI = {"owszanymi": "owsianymi", "owszanych": "owsianych", "owszana": "owsiana", "owszanka": "owsianka",
+                  "owszankę": "owsiankę", "rozdzika": "dzika", "zdzika": "z dzika", "skyrem": "skyrem"}
+HALUCYNACJE = {"dzięki", "dziękuję", "dziękujemy", "napisy", "subskrybuj"}
+
+
+def clean_words(trans):
+    """Stałe poprawki słów + usuwanie „dzięki” wymyślonego przez rozpoznawanie mowy w ciszy."""
+    nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", w.lower())
+    for v in trans.values():
+        ws = v.get("words", [])
+        for i, w in enumerate(ws):
+            k = nrm(w["word"])
+            if k in STALE_POPRAWKI:
+                fix = STALE_POPRAWKI[k]
+                # „z rozdzika” -> „z dzika”, ale „sos rozdzika” -> „sos z dzika”
+                if k == "rozdzika" and not (i and nrm(ws[i - 1]["word"]) == "z"):
+                    fix = "z dzika"
+                w["word"] = fix
+            if k in HALUCYNACJE:
+                gap_before = w["start"] - ws[i - 1]["end"] if i else 9
+                gap_after = ws[i + 1]["start"] - w["end"] if i + 1 < len(ws) else 9
+                if gap_before > 0.6 and gap_after > 0.6:      # samotne „dzięki” w ciszy = wymyślone
+                    w["word"] = ""
+    return trans
+
+
 def user_subs(trans, day):
     """Zamiany słów w napisach wpisane w aplikacji (uwagi do montażu) – napisy_zamiany.json."""
     try:
@@ -511,7 +538,7 @@ def build_counter(adds, goal, start, end, work):
             t = b
 
     put(blank, 0.0, start)
-    cur = work / "lic_0.png"; draw_counter(0, goal, cur)
+    cur = work / "lic_start.png"; draw_counter(0, goal, cur)   # osobna nazwa – lic_0 to pierwsza klatka odliczania
     for at, k in adds:
         put(cur, t, at)
         steps = 14
@@ -846,6 +873,7 @@ def main():
             trans = {}
         trans = ai_fix_words(trans, day)
         trans = user_subs(trans, day)
+        trans = clean_words(trans)
         jobs = [title_job(title, title_png, work)]
         if summary:
             jobs.append(summary_job(summary, summary_png, work))
