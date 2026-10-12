@@ -95,7 +95,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.middleware("http")
 async def guard(req: Request, call_next):
     p = req.url.path
-    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/redakcja") and not authed(req):
+    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/redakcja", "/api/hook/montaz_log") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if p in ("/", "/index.html", "/shim.js", "/sw.js"):
@@ -456,6 +456,33 @@ async def hook_redakcja(req: Request, key: str = ""):
         return {"json": _json_from(text)}
     except Exception:
         return JSONResponse({"error": "zła odpowiedź", "raw": text[:500]}, status_code=502)
+
+
+@app.get("/api/hook/montaz_log")
+def hook_montaz_log(key: str = ""):
+    """Ostatni montaż daily – log i pliki pomocnicze (do sprawdzania błędów, ten sam klucz co link do montażu)."""
+    if not hmac.compare_digest(key, hook_key()):
+        raise HTTPException(403, "bad key")
+    jobs = sorted(d for d in MZ_JOBS.iterdir() if d.is_dir() and MZ_ID.match(d.name)) if MZ_JOBS.is_dir() else []
+    if not jobs:
+        return {}
+    d = jobs[-1]
+    out = {"id": d.name}
+    for f in ["log.txt", "job_err.txt", "status.json"]:
+        p = d / f
+        out[f] = p.read_text(encoding="utf-8", errors="replace")[-20000:] if p.exists() else None
+    day = next(d.glob("dzien_*"), None)
+    if day:
+        for f in ["kolejnosc.txt", "podsumowanie.json", "napisy_poprawki.json", "raport.txt"]:
+            p = day / f
+            out[f] = p.read_text(encoding="utf-8", errors="replace")[-20000:] if p.exists() else None
+        try:
+            tr = json.loads((day / "transkrypcja.json").read_text(encoding="utf-8"))
+            out["tekst"] = {k: v.get("text", "") for k, v in tr.items()}
+        except Exception:
+            pass
+    out["env_klucz"] = bool(_mz_env().get("ANTHROPIC_API_KEY"))
+    return out
 
 
 @app.get("/api/hook/backup")
