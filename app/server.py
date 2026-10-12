@@ -95,7 +95,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.middleware("http")
 async def guard(req: Request, call_next):
     p = req.url.path
-    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/redakcja", "/api/hook/montaz_log") and not authed(req):
+    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/redakcja", "/api/hook/montaz_log", "/api/hook/asr") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if p in ("/", "/index.html", "/shim.js", "/sw.js"):
@@ -476,7 +476,35 @@ async def hook_redakcja(req: Request, key: str = ""):
                             status_code=502)
 
 
-@app.get("/api/hook/montaz_log")
+@app.post("/api/hook/asr")
+async def hook_asr(req: Request, key: str = ""):
+    """Rozpoznawanie mowy (Groq Whisper large-v3) dla montażu vloga na Macu – plik audio w treści zapytania."""
+    if not hmac.compare_digest(key, hook_key()):
+        raise HTTPException(403, "bad key")
+    gk = _mz_env().get("GROQ_API_KEY")
+    if not gk:
+        return JSONResponse({"error": "Brak klucza Groq na serwerze."}, status_code=503)
+    audio = await req.body()
+    if not audio or len(audio) > 24 * 1024 * 1024:
+        return JSONResponse({"error": "Brak dźwięku albo plik za duży."}, status_code=400)
+    prompt = req.query_params.get("prompt", "")[:800]
+    files = {"file": ("a.mp3", audio, "audio/mpeg")}
+    data = {"model": "whisper-large-v3", "language": "pl", "response_format": "json", "temperature": "0"}
+    if prompt:
+        data["prompt"] = prompt
+    async with httpx.AsyncClient(timeout=180, trust_env=False) as c:
+        for _ in range(3):
+            r = await c.post("https://api.groq.com/openai/v1/audio/transcriptions", data=data, files=files,
+                             headers={"Authorization": f"Bearer {gk}"})
+            if r.status_code != 429:
+                break
+            await asyncio.sleep(8)
+    if r.status_code != 200:
+        return JSONResponse({"error": f"Groq {r.status_code}: {r.text[:200]}"}, status_code=502)
+    return {"text": (r.json().get("text") or "").strip()}
+
+
+@app.get("/api/hook/montaz_log", "/api/hook/asr")
 def hook_montaz_log(key: str = ""):
     """Ostatni montaż daily – log i pliki pomocnicze (do sprawdzania błędów, ten sam klucz co link do montażu)."""
     if not hmac.compare_digest(key, hook_key()):
