@@ -794,8 +794,10 @@ Zasady:
 - Cięcia stawiaj na granicach słów (z listy czasów), z zapasem ok. 0,1 s, nie w środku słowa.
 - Zwracane cięcia dla klipu ZASTĘPUJĄ obecne, więc przepisz też obecne cięcia, które mają zostać.
 - Nie wycinaj całego klipu, chyba że użytkownik wyraźnie każe go usunąć – wtedy ustaw "usun": true.
+- Jeśli uwaga dotyczy błędnych słów w NAPISACH (np. „zamiast owszanymi ma być owsianymi”), dodaj zamianę do "napisy":
+  "z" = słowo/słowa dokładnie tak, jak są w transkrypcji, "na" = poprawna wersja. Cięć wtedy nie zmieniaj (pomiń klip w "klipy").
 Odpowiedz wyłącznie JSON:
-{"klipy":[{"klip":"nazwa pliku","od":liczba|null,"do":liczba|null,"wytnij":[[A,B],...],"usun":false}],"opis":"jedno zdanie po polsku co zmieniłeś"}
+{"klipy":[{"klip":"nazwa pliku","od":liczba|null,"do":liczba|null,"wytnij":[[A,B],...],"usun":false}],"napisy":[{"z":"...","na":"..."}],"opis":"jedno zdanie po polsku co zmieniłeś"}
 """
 
 
@@ -849,7 +851,19 @@ async def montaz_fix(jid: str, req: Request):
     except Exception:
         return JSONResponse({"error": "Nie udało się odczytać odpowiedzi AI."}, status_code=502)
     changes = {x.get("klip"): x for x in (ans.get("klipy") or []) if isinstance(x, dict)}
-    out, changed = [f"# RĘCZNY – poprawki z uwag: {comment[:120].replace(chr(10), ' ')}", ""], 0
+    # poprawki słów w napisach – zapamiętane dla tego dnia, montaż podmienia je w napisach
+    subs = [{"z": str(x.get("z", "")).strip(), "na": str(x.get("na", "")).strip()} for x in (ans.get("napisy") or [])
+            if isinstance(x, dict) and str(x.get("z", "")).strip() and str(x.get("na", "")).strip()]
+    if subs:
+        zf = day / "napisy_zamiany.json"
+        try:
+            old = json.loads(zf.read_text(encoding="utf-8"))
+        except Exception:
+            old = []
+        old = [o for o in old if o["z"].lower() not in {s["z"].lower() for s in subs}] + subs
+        zf.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
+    # nagłówek „# POPRAWKI” – przy ponownym montażu cięcia zostają (nie są liczone od nowa)
+    out, changed = [f"# POPRAWKI – z uwag: {comment[:120].replace(chr(10), ' ')}", ""], len(subs)
     for r in rows:
         ch = changes.get(r["clip"])
         dur = float(tr.get(r["clip"], {}).get("duration") or 1e6)

@@ -372,6 +372,31 @@ def ai_fix_words(trans, day):
     return trans
 
 
+def user_subs(trans, day):
+    """Zamiany słów w napisach wpisane w aplikacji (uwagi do montażu) – napisy_zamiany.json."""
+    try:
+        subs = json.loads((day / "napisy_zamiany.json").read_text(encoding="utf-8"))
+    except Exception:
+        return trans
+    nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", w.lower())
+    n = 0
+    for s in subs:
+        z = [nrm(x) for x in s["z"].split() if nrm(x)]
+        if not z:
+            continue
+        for v in trans.values():
+            ws = v.get("words", [])
+            for i in range(len(ws) - len(z) + 1):
+                if [nrm(ws[i + k]["word"]) for k in range(len(z))] == z:
+                    ws[i]["word"] = s["na"]
+                    for k in range(1, len(z)):
+                        ws[i + k]["word"] = ""
+                    n += 1
+    if n:
+        print(f"Zamiany słów z aplikacji: {n}", flush=True)
+    return trans
+
+
 def build_captions(words, hide, work):
     """words: [(start, end, słowo)] na osi całego filmu. Zwraca plik ffconcat z PNG albo None."""
     words = [(a, b, _clean(w).upper()) for a, b, w in sorted(words) if _clean(w)]
@@ -820,6 +845,7 @@ def main():
         except Exception:
             trans = {}
         trans = ai_fix_words(trans, day)
+        trans = user_subs(trans, day)
         jobs = [title_job(title, title_png, work)]
         if summary:
             jobs.append(summary_job(summary, summary_png, work))
