@@ -395,14 +395,14 @@ def day_summary(day_date, n, title):
     return {"label": label, "kcal": t["kcal"], "p": t.get("p", 0), "c": t.get("c", 0), "f": t.get("f", 0),
             "goal": g.get("kcal"), "gp": g.get("p"), "gc": g.get("c"), "gf": g.get("f"),
             "train": bool(d.get("workout")),
-            "meals": {m["name"]: m["kcal"] for m in d.get("meals", []) if m.get("kcal")}}
+            "meals": {m["name"]: m for m in d.get("meals", []) if m.get("kcal")}}
 
 
 DIARY_MEAL = {"sniadanie": "Śniadanie", "drugie": "II śniadanie", "obiad": "Obiad", "podwieczorek": "Przekąski",
               "przekaska": "Przekąski", "kolacja": "Kolacja"}
 
 
-def counter_plan(ko, meals):
+def counter_plan(ko, meals, trans=None):
     """Licznik kalorii na górze: klip -> kcal posiłku z dziennika (wg karty albo opisu w kolejnosc.txt)."""
     out, used = {}, set()
     for line in ko.read_text(encoding="utf-8").splitlines():
@@ -416,6 +416,8 @@ def counter_plan(ko, meals):
         key = meal_from_file(names[1]) if len(names) > 1 else None
         if key is None and "#" in line:
             key = next((k for k, pat in MEAL_FILE if pat in ascii_low(line.split("#", 1)[1])), None)
+        if key is None and trans:                       # posiłek z tego, co mówisz w klipie
+            key = meal_from_speech((trans.get(names[0]) or {}).get("text", ""))
         name = DIARY_MEAL.get(key or "")
         if name and name in meals and name not in used:
             used.add(name)
@@ -568,7 +570,9 @@ def main():
     nazwa = f"dzien_{n}" if (n is not None and title and str(n) in title[0]) else day.name
     summ = day_summary(day_date, n, title)
     if summ:
-        summ["licznik"] = counter_plan(ko, summ.pop("meals"))
+        karty = counter_plan(ko, summ.pop("meals"), trans)
+        summ["licznik"] = {c: m["kcal"] for c, m in karty.items()}
+        summ["karty"] = {c: {k: m.get(k) for k in ("name", "kcal", "p", "c", "f", "items")} for c, m in karty.items()}
         (day / "podsumowanie.json").write_text(json.dumps(summ, ensure_ascii=False), encoding="utf-8")
         rep.append(f"Podsumowanie na końcu: {summ['kcal']} kcal, B {summ['p']} / W {summ['c']} / T {summ['f']}")
     else:

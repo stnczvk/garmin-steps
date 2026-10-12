@@ -60,6 +60,12 @@ ZOOM_NA_CIECIACH = 1.09    # „punch-in” co drugi fragment po wycięciu (1.0 
 LICZNIK = True             # licznik kalorii na górze (rośnie przy każdym posiłku, dane z dziennika)
 LICZNIK_Y = 170
 
+KARTY_Z_DZIENNIKA = True  # karta posiłku rysowana z danych dziennika (zamiast screena)
+KOLORY = True              # delikatna korekcja kolorów (kontrast, nasycenie, ciepło) – jedzenie apetyczniej
+EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy liczniku
+PASEK_POSTEPU = True       # cienki żółty pasek na górze, rośnie przez cały film
+KONIEC_SECONDS = 2.0       # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
+
 PODSUMOWANIE_SECONDS = 4.0 # karta z kaloriami i makro dnia na końcu (z dziennika)
 
 SHOT_SECONDS = 3.0         # jak długo zrzut z Fitatu jest widoczny
@@ -572,6 +578,85 @@ def build_counter(adds, goal, start, end, work):
     return cf
 
 
+def draw_meal_card(meal, out):
+    """Karta posiłku z danych dziennika: nazwa, kalorie, produkty, B/W/T. Zwraca (x, y) na ekranie."""
+    cw, pad = 880, 46
+    items = [i for i in (meal.get("items") or []) if i.get("name")][:5]
+    ch = pad + 76 + 22 + len(items) * 52 + (18 if items else 0) + 120 + pad
+    img = Image.new("RGBA", (cw + 80, ch + 80), (0, 0, 0, 0))
+    sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle([40, 52, 40 + cw, 52 + ch], 44, fill=(0, 0, 0, 150))
+    img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(22)))
+    d = ImageDraw.Draw(img)
+    x0, y0 = 40, 40
+    d.rounded_rectangle([x0, y0, x0 + cw, y0 + ch], 44, fill=(16, 16, 18, 238), outline=(255, 255, 255, 34), width=2)
+    y = y0 + pad
+    d.text((x0 + pad, y + 60), str(meal.get("name") or "Posiłek"), font=font(60, 800), fill="white", anchor="ls")
+    kc = f"{int(meal.get('kcal') or 0)}"
+    fk, fu = font(70, 900), font(32, 700)
+    wu = d.textlength(" kcal", font=fu)
+    d.text((x0 + cw - pad - wu, y + 60), kc, font=fk, fill=YELLOW, anchor="rs")
+    d.text((x0 + cw - pad, y + 60), " kcal", font=fu, fill=(255, 255, 255, 210), anchor="rs")
+    y += 76 + 22
+    fi = font(34, 500)
+    for it in items:
+        name = str(it["name"])
+        while d.textlength(name, font=fi) > cw - 2 * pad - 140 and len(name) > 4:
+            name = name[:-2]
+        if name != str(it["name"]):
+            name = name.rstrip() + "…"
+        d.text((x0 + pad, y + 38), name, font=fi, fill=(255, 255, 255, 220), anchor="ls")
+        d.text((x0 + cw - pad, y + 38), str(int(it.get("kcal") or 0)), font=font(34, 700), fill=(255, 255, 255, 235), anchor="rs")
+        y += 52
+    if items:
+        y += 18
+    tw = (cw - 2 * pad - 2 * 18) / 3
+    for k, (lab, key) in enumerate([("B", "p"), ("W", "c"), ("T", "f")]):
+        tx = x0 + pad + k * (tw + 18)
+        d.rounded_rectangle([tx, y, tx + tw, y + 100], 24, fill=(36, 36, 40, 245))
+        d.text((tx + 24, y + 66), lab, font=font(30, 700), fill=(255, 255, 255, 150), anchor="ls")
+        d.text((tx + 66, y + 70), f"{int(meal.get(key) or 0)}", font=font(56, 900), fill="white", anchor="ls")
+        vw = d.textlength(f"{int(meal.get(key) or 0)}", font=font(56, 900))
+        d.text((tx + 72 + vw, y + 70), "g", font=font(28, 700), fill=(255, 255, 255, 190), anchor="ls")
+    img.save(out)
+    return (W - img.width) // 2, (H - img.height) // 2 - 60
+
+
+def koniec_job(nxt, png, work):
+    shutil.copy(FONT_PATH, work / "font_tytul.ttf")
+    return {"png": str(png), "dx": 0, "dy": 0, "job": {
+        "comp": "Koniec", "out": str(work / "koniec.mov"),
+        "props": {"width": W, "height": H, "seconds": KONIEC_SECONDS, "font": "font_tytul.ttf", "next": nxt}}}
+
+
+def draw_koniec_png(nxt, out):
+    img = Image.new("RGBA", (W, H), (8, 8, 10, 150))
+    d = ImageDraw.Draw(img)
+    d.text((W / 2, 780), "JUTRO", font=font(36, 700), fill=(255, 255, 255, 200), anchor="mm")
+    t = f"Dzień {nxt}" if nxt else "Kolejny dzień"
+    f = font(100, 900)
+    tw = d.textlength(t, font=f)
+    d.rounded_rectangle([W / 2 - tw / 2 - 42, 850, W / 2 + tw / 2 + 42, 990], 22, fill="white")
+    d.text((W / 2, 922), t, font=f, fill=(17, 17, 17), anchor="mm")
+    c = "Obserwuj, żeby nie przegapić"
+    fc_ = font(44, 800)
+    cw_ = d.textlength(c, font=fc_)
+    d.rounded_rectangle([W / 2 - cw_ / 2 - 42, 1060, W / 2 + cw_ / 2 + 42, 1150], 45, fill=YELLOW)
+    d.text((W / 2, 1106), c, font=fc_, fill=(17, 17, 17), anchor="mm")
+    img.save(out)
+
+
+def make_sfx(work):
+    """Krótkie efekty dźwiękowe generowane na miejscu (bez plików z internetu)."""
+    wh, pop = work / "sfx_whoosh.wav", work / "sfx_pop.wav"
+    run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "anoisesrc=color=pink:duration=0.45:amplitude=0.6",
+         "-af", "highpass=f=500,lowpass=f=5000,afade=t=in:d=0.18,afade=t=out:st=0.2:d=0.25,volume=0.35",
+         "-ar", "44100", "-ac", "2", str(wh)])
+    run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=1150:duration=0.09",
+         "-af", "afade=t=out:st=0.0:d=0.09,volume=0.30", "-ar", "44100", "-ac", "2", str(pop)])
+    return wh, pop
+
+
 def summary_job(d, png, work):
     shutil.copy(FONT_PATH, work / "font_tytul.ttf")
     return {"png": str(png), "dx": 0, "dy": 0, "job": {
@@ -588,7 +673,7 @@ def load_summary(day):
             return None
         return {"label": str(d.get("label") or "DZIEŃ"), "kcal": int(d["kcal"]), "goal": d.get("goal"),
                 "p": int(d.get("p") or 0), "c": int(d.get("c") or 0), "fat": int(d.get("f") or 0),
-                "gp": d.get("gp"), "gc": d.get("gc"), "gf": d.get("gf"), "train": bool(d.get("train")),
+                "gp": d.get("gp"), "gc": d.get("gc"), "gf": d.get("gf"), "train": bool(d.get("train")), "karty": d.get("karty") or {},
                 "licznik": {k: int(v) for k, v in (d.get("licznik") or {}).items() if v}}
     except Exception:
         return None
@@ -604,7 +689,8 @@ def base_filter(transfer):
         hdr = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
                "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,")
     return (f"{hdr}scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,"
-            f"crop={W}:{H},setsar=1,fps={FPS},unsharp=5:5:{SHARPEN}:5:5:0")
+            f"crop={W}:{H},setsar=1,fps={FPS},unsharp=5:5:{SHARPEN}:5:5:0"
+            + (",eq=contrast=1.05:saturation=1.16,colorbalance=rm=0.025:bm=-0.025:rh=0.015:bh=-0.02" if KOLORY else ""))
 
 
 def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0):
@@ -696,7 +782,8 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0):
     return out, total, speed, keep, src_dur, total - need - tail
 
 
-def finalize(segments, total, workdir, music, out_path, captions=None, summary_png=None, counter=None):
+def finalize(segments, total, workdir, music, out_path, captions=None, summary_png=None, counter=None,
+             koniec_png=None, sfx=()):
     lst = workdir / "lista.txt"
     lst.write_text("".join(f"file '{s}'\n" for s in segments))
     joined = workdir / "polaczone.mp4"
@@ -712,7 +799,7 @@ def finalize(segments, total, workdir, music, out_path, captions=None, summary_p
         fc.append(f"[{last}][{n}:v]overlay={(W - LW) // 2}:{LICZNIK_Y}:eof_action=pass[c{n}]")
         last, n = f"c{n}", n + 1
     if summary_png:
-        st = max(0.0, total - PODSUMOWANIE_SECONDS)
+        st = max(0.0, total - PODSUMOWANIE_SECONDS - (KONIEC_SECONDS if koniec_png else 0))
         a = ANIM.get(str(summary_png))
         if a:
             inputs += ["-i", a[0]]
@@ -722,6 +809,23 @@ def finalize(segments, total, workdir, music, out_path, captions=None, summary_p
             inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(summary_png)]
             fc.append(f"[{n}:v]format=rgba,fade=t=in:st={st:.3f}:d=0.25:alpha=1[q{n}]")
             fc.append(f"[{last}][q{n}]overlay=0:0:enable='gte(t,{st:.3f})'[c{n}]")
+        last, n = f"c{n}", n + 1
+    if koniec_png:
+        st = max(0.0, total - KONIEC_SECONDS)
+        a = ANIM.get(str(koniec_png))
+        if a:
+            inputs += ["-i", a[0]]
+            fc.append(f"[{n}:v]setpts=PTS+{st:.3f}/TB[q{n}]")
+            fc.append(f"[{last}][q{n}]overlay=0:0:eof_action=pass[c{n}]")
+        else:
+            inputs += ["-loop", "1", "-t", f"{total:.3f}", "-i", str(koniec_png)]
+            fc.append(f"[{n}:v]format=rgba,fade=t=in:st={st:.3f}:d=0.2:alpha=1[q{n}]")
+            fc.append(f"[{last}][q{n}]overlay=0:0:enable='gte(t,{st:.3f})'[c{n}]")
+        last, n = f"c{n}", n + 1
+    if PASEK_POSTEPU:
+        inputs += ["-f", "lavfi", "-i", f"color=c=0xFFD600:s={W}x10:r={FPS}:d={total + 1:.3f}"]
+        fc.append(f"[{last}]drawbox=x=0:y=0:w=iw:h=10:color=black@0.35:t=fill[pb{n}]")
+        fc.append(f"[pb{n}][{n}:v]overlay=x='-w+w*t/{total:.3f}':y=0:shortest=1[c{n}]")
         last, n = f"c{n}", n + 1
 
     fw = Image.open(workdir / "follow.png").width
@@ -756,8 +860,21 @@ def finalize(segments, total, workdir, music, out_path, captions=None, summary_p
         # czysta suma głos + muzyka (bez przyciszania głosu) - działa tak samo w każdej wersji ffmpeg
         fc.append(f"{voice}[m]amerge=inputs=2,pan=stereo|c0=c0+c2|c1=c1+c3[a]")
         amap = "[a]"
+        n += 1
     else:
         amap = "0:a"
+    if sfx:      # efekty dźwiękowe: [(czas, plik)]
+        labels = []
+        for k, (t, f) in enumerate(sfx):
+            inputs += ["-i", str(f)]
+            ms = int(max(0, t) * 1000)
+            fc.append(f"[{n}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,"
+                      f"adelay={ms}|{ms}[sx{k}]")
+            labels.append(f"[sx{k}]"); n += 1
+        base = amap if amap.startswith("[") else f"[{amap}]"
+        fc.append(f"{base}aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[ab]")
+        fc.append(f"[ab]{''.join(labels)}amix=inputs={len(labels) + 1}:duration=first:normalize=0[asfx]")
+        amap = "[asfx]"
 
     run(["ffmpeg", "-y", "-threads", "0", *inputs, "-filter_complex", ";".join(fc),
          "-map", "[v]", "-map", amap, "-t", f"{total:.3f}",
@@ -881,6 +998,17 @@ def main():
         if summary:
             summary_png = work / "podsumowanie.png"
             draw_summary_png(summary, summary_png)
+            if KARTY_Z_DZIENNIKA:       # karty posiłków z danych dziennika zamiast screenów
+                for i, (video, shots, keep) in enumerate(plan):
+                    meal = summary["karty"].get(video.name)
+                    if meal:
+                        png = work / f"karta_dz_{i}.png"
+                        prepared_all[i] = [(png, draw_meal_card(meal, png))]
+        m_n = re.search(r"dzie[nń]\s*(\d+)", " ".join(title), re.I)
+        koniec_png = None
+        if KONIEC_SECONDS > 0:
+            koniec_png = work / "koniec.png"
+            draw_koniec_png(int(m_n.group(1)) + 1 if m_n else None, koniec_png)
         try:
             trans = json.loads((day / "transkrypcja.json").read_text(encoding="utf-8")) if NAPISY else {}
         except Exception:
@@ -890,17 +1018,20 @@ def main():
         trans = clean_words(trans)
         jobs = [title_job(title, title_png, work)]
         if summary:
-            jobs.append(summary_job(summary, summary_png, work))
+            jobs.append(summary_job(dict(summary, cta="Zapisz, jeśli też redukujesz"), summary_png, work))
+        if koniec_png:
+            jobs.append(koniec_job(int(m_n.group(1)) + 1 if m_n else None, koniec_png, work))
         jobs += [anim_job(png, SHOT_SECONDS, "karta", work) for pr in prepared_all for png, _ in pr]
         jobs += [anim_job(work / "follow.png", FOLLOW_SECONDS, "naklejka", work),
                  anim_job(work / "like.png", LIKE_SECONDS, "naklejka", work)]
         animate(jobs, work)
 
-        segments, total, cap_words, hide, adds = [], 0.0, [], [], []
+        segments, total, cap_words, hide, adds, sfx_at = [], 0.0, [], [], [], []
         licz = (summary or {}).get("licznik") or {}
         for i, (video, shots, keep) in enumerate(plan):
             prepared = prepared_all[i]
-            tail = PODSUMOWANIE_SECONDS if (summary and i == len(plan) - 1) else 0.0
+            tail = ((PODSUMOWANIE_SECONDS if summary else 0.0) + (KONIEC_SECONDS if koniec_png else 0.0)) \
+                if i == len(plan) - 1 else 0.0
             seg, d, speed, keep, src_dur, card_at = render_segment(
                 video, prepared, title_png if i == 0 else None, work, i, keep, tail)
             segments.append(seg)
@@ -909,6 +1040,8 @@ def main():
             if LICZNIK and licz.get(video.name):
                 if prepared:     # licznik rośnie tylko razem z kartą posiłku
                     adds.append((total + card_at + 0.3, licz[video.name]))
+            if prepared and EFEKTY_DZWIEKOWE:
+                sfx_at.append((total + card_at, "whoosh"))
             if prepared:
                 hide.append((total + card_at, total + card_at + len(prepared) * SHOT_SECONDS))
             total += d
@@ -922,16 +1055,23 @@ def main():
         out_dir = day.parent / "gotowe"
         out_dir.mkdir(exist_ok=True)
         out_path = out_dir / f"{args.nazwa or day.name}.mp4"
+        end_extra = KONIEC_SECONDS if koniec_png else 0.0
         if summary:
-            hide.append((total - PODSUMOWANIE_SECONDS, total + 1))
+            hide.append((total - PODSUMOWANIE_SECONDS - end_extra, total + 1))
+        if koniec_png:
+            hide.append((total - end_extra, total + 1))
         captions = build_captions(cap_words, hide, work) if cap_words else None
         counter = None
         if adds:
-            end = total - (PODSUMOWANIE_SECONDS if summary else 0)
+            end = total - (PODSUMOWANIE_SECONDS if summary else 0) - end_extra
             adds = [(max(t, TITLE_SECONDS + 0.2), k) for t, k in adds]
             counter = build_counter(adds, summary.get("goal"), TITLE_SECONDS, end, work)
+        sfx = []
+        if sfx_at:
+            wh, pop = make_sfx(work)
+            sfx = [(t, wh) for t, _ in sfx_at] + [(t, pop) for t, _ in adds if t < total - end_extra]
         finalize(segments, total, work, None if args.bez_muzyki else args.muzyka, out_path,
-                 captions, summary_png, counter)
+                 captions, summary_png, counter, koniec_png, sfx)
         print(f"\nGOTOWE ({total:.0f} s): {out_path}")
     finally:
         shutil.rmtree(work, ignore_errors=True)

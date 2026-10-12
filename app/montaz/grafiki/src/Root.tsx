@@ -144,6 +144,31 @@ const Obraz: React.FC<ObrazProps> = ({src, style, imgW, imgH}) => {
   );
 };
 
+// karta końcowa: zapowiedź jutrzejszego dnia + obserwuj
+type KoniecProps = Size & {font: string; next: number | null};
+const Koniec: React.FC<KoniecProps> = ({font, next}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const sp = (s: number, d = 12) => spring({frame: f - s, fps, config: {damping: d, stiffness: 160}});
+  const a = sp(0), b = sp(7), c = sp(14, 10);
+  const pulse = 1 + 0.04 * Math.sin(Math.max(0, f - 24) / 4);
+  return (
+    <AbsoluteFill style={{fontFamily: 'T'}}>
+      <style>{`@font-face{font-family:T;src:url(${staticFile(font)});font-weight:100 900}`}</style>
+      <AbsoluteFill style={{background: 'rgba(8,8,10,0.6)', opacity: interpolate(f, [0, 8], [0, 1], clamp)}} />
+      <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center', gap: 22}}>
+        <div style={{fontWeight: 700, fontSize: 36, letterSpacing: 10, color: 'rgba(255,255,255,0.8)', opacity: a,
+          transform: `translateY(${(1 - a) * 30}px)`}}>JUTRO</div>
+        <div style={{background: '#fff', color: '#111', fontWeight: 900, fontSize: 100, padding: '10px 42px 16px', borderRadius: 22,
+          opacity: Math.min(1, b * 1.6), transform: `scale(${0.55 + 0.45 * b}) rotate(${-1.5 * b}deg)`}}>
+          {next ? `Dzień ${next}` : 'Kolejny dzień'}</div>
+        <div style={{marginTop: 30, background: YEL, color: '#111', fontWeight: 800, fontSize: 44, padding: '18px 42px', borderRadius: 999,
+          opacity: c, transform: `scale(${(0.8 + 0.2 * c) * pulse})`}}>Obserwuj, żeby nie przegapić</div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
 const meta = ({props}: {props: Size}) => ({
   width: props.width, height: props.height, durationInFrames: Math.max(10, Math.round(props.seconds * 30)),
 });
@@ -156,6 +181,8 @@ export const Root: React.FC = () => (
     <Composition id="Obraz" component={Obraz as any} width={800} height={1200} fps={30} durationInFrames={90}
       defaultProps={{width: 800, height: 1200, imgW: 700, imgH: 1100, seconds: 3, src: 'karta.png', style: 'karta'}}
       calculateMetadata={meta as any} />
+    <Composition id="Koniec" component={Koniec as any} width={1080} height={1920} fps={30} durationInFrames={60}
+      defaultProps={{width: 1080, height: 1920, seconds: 2, font: 'Montserrat.ttf', next: 34}} calculateMetadata={meta as any} />
     <Composition id="Podsumowanie" component={Podsumowanie as any} width={1080} height={1920} fps={30} durationInFrames={120}
       defaultProps={{width: 1080, height: 1920, seconds: 4, font: 'Montserrat.ttf', label: 'DZIEŃ 33', kcal: 2087, goal: 2100,
         p: 162, c: 220, fat: 61, gp: [150, 170], gc: 230, gf: 65, train: true, cta: 'Obserwuj – jutro kolejny dzień'}}
