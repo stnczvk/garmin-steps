@@ -60,7 +60,7 @@ ZOOM_NA_CIECIACH = 1.09    # „punch-in” co drugi fragment po wycięciu (1.0 
 LICZNIK = True             # licznik kalorii na górze (rośnie przy każdym posiłku, dane z dziennika)
 LICZNIK_Y = 170
 
-KARTY_Z_DZIENNIKA = True  # karta posiłku rysowana z danych dziennika (zamiast screena)
+KARTY_Z_DZIENNIKA = False # karta posiłku rysowana z danych dziennika (zamiast screena)
 KOLORY = True              # delikatna korekcja kolorów (kontrast, nasycenie, ciepło) – jedzenie apetyczniej
 EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy liczniku
 PASEK_POSTEPU = True       # cienki żółty pasek na górze, rośnie przez cały film
