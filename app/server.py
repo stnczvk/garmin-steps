@@ -504,7 +504,7 @@ async def hook_asr(req: Request, key: str = ""):
     return {"text": (r.json().get("text") or "").strip()}
 
 
-@app.get("/api/hook/montaz_log", "/api/hook/asr")
+@app.get("/api/hook/montaz_log")
 def hook_montaz_log(key: str = ""):
     """Ostatni montaż daily – log i pliki pomocnicze (do sprawdzania błędów, ten sam klucz co link do montażu)."""
     if not hmac.compare_digest(key, hook_key()):
