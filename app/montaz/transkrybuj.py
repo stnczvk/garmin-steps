@@ -66,6 +66,9 @@ def transcribe(audio_path, key):
         "language": "pl",
         "response_format": "verbose_json",
         "temperature": "0",
+        # słownictwo z filmów jedzeniowych – Whisper rzadziej przekręca te słowa
+        "prompt": "Redukcja, kalorie, kcal, białko. Owsianka z płatkami owsianymi, skyr, twaróg, "
+                  "sos z dzika, kurczak, ryż, omlet, serek kanapkowy, dżem z Łowicza.",
     }
     body = b""
     for k, v in fields.items():

@@ -320,6 +320,58 @@ def draw_caption(words, active, out, scale=1.0):
     base.save(out)
 
 
+def ai_fix_words(trans, day):
+    """Poprawia przekręcone słowa w napisach (np. „owszanymi” → „owsianymi”, „rozdzika” → „z dzika”) przez Claude.
+    Czasy słów zostają. Wynik zapamiętany w napisy_poprawki.json. Bez klucza / sieci – napisy bez zmian."""
+    import urllib.request, hashlib
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    clips = {n: [w["word"] for w in v.get("words", [])] for n, v in trans.items() if v.get("words")}
+    if not key or not clips:
+        return trans
+    h = hashlib.sha1(json.dumps(clips, ensure_ascii=False).encode()).hexdigest()[:12]
+    cf = day / "napisy_poprawki.json"
+    fixes = None
+    try:
+        c = json.loads(cf.read_text(encoding="utf-8"))
+        fixes = c["fixes"] if c.get("hash") == h else None
+    except Exception:
+        pass
+    if fixes is None:
+        prompt = ("Napisy do polskiego filmu o jedzeniu na redukcji (posiłki, kalorie, makro). Automatyczne rozpoznawanie mowy "
+                  "przekręca słowa. Popraw TYLKO słowa źle rozpoznane (np. „owszanymi” → „owsianymi”, „rozdzika” → „z dzika”), "
+                  "biorąc pod uwagę sens zdania. Nie zmieniaj poprawnych słów, liczb ani stylu mówienia. Jedno słowo może "
+                  "zostać zastąpione krótką frazą, jeśli rozpoznawanie skleiło słowa.\n"
+                  'Odpowiedz wyłącznie JSON-em: {"NAZWA_KLIPU": {"NUMER_SŁOWA": "poprawione"}} – tylko zmienione słowa.\n\n'
+                  + "\n".join(f"### {n}\n" + " ".join(f"{i}:{w}" for i, w in enumerate(ws)) for n, ws in clips.items()))
+        body = {"model": os.environ.get("MODEL_DEFAULT", "claude-sonnet-5"), "max_tokens": 3000,
+                "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
+                "messages": [{"role": "user", "content": prompt}]}
+        try:
+            req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
+                                         headers={"x-api-key": key, "anthropic-version": "2023-06-01",
+                                                  "content-type": "application/json"})
+            with urllib.request.urlopen(req, timeout=120) as r:
+                res = json.loads(r.read().decode())
+            txt = "".join(b.get("text", "") for b in res.get("content", []) if b.get("type") == "text")
+            fixes = json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+            cf.write_text(json.dumps({"hash": h, "fixes": fixes}, ensure_ascii=False), encoding="utf-8")
+        except Exception as e:
+            print(f"Poprawki napisów (AI): pominięte ({e.__class__.__name__})", flush=True)
+            return trans
+    n = 0
+    for name, fx in (fixes or {}).items():
+        ws = trans.get(name, {}).get("words", [])
+        for i, new in (fx or {}).items():
+            try:
+                i = int(i)
+            except ValueError:
+                continue
+            if 0 <= i < len(ws) and str(new).strip() and str(new).strip() != ws[i]["word"]:
+                ws[i]["word"] = str(new).strip(); n += 1
+    print(f"Poprawki napisów (AI): {n} słów", flush=True)
+    return trans
+
+
 def build_captions(words, hide, work):
     """words: [(start, end, słowo)] na osi całego filmu. Zwraca plik ffconcat z PNG albo None."""
     words = [(a, b, _clean(w).upper()) for a, b, w in sorted(words) if _clean(w)]
@@ -767,6 +819,7 @@ def main():
             trans = json.loads((day / "transkrypcja.json").read_text(encoding="utf-8")) if NAPISY else {}
         except Exception:
             trans = {}
+        trans = ai_fix_words(trans, day)
         jobs = [title_job(title, title_png, work)]
         if summary:
             jobs.append(summary_job(summary, summary_png, work))
@@ -786,7 +839,8 @@ def main():
             for a, b, w in map_words(trans.get(video.name, {}).get("words", []), keep, speed, src_dur):
                 cap_words.append((total + a, total + b, w))
             if LICZNIK and licz.get(video.name):
-                adds.append((total + (card_at + 0.3 if prepared else min(1.0, d / 2)), licz[video.name]))
+                if prepared:     # licznik rośnie tylko razem z kartą posiłku
+                    adds.append((total + card_at + 0.3, licz[video.name]))
             if prepared:
                 hide.append((total + card_at, total + card_at + len(prepared) * SHOT_SECONDS))
             total += d
