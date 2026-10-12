@@ -397,7 +397,7 @@ async def hook_redakcja(req: Request, key: str = ""):
     b = await req.json()
     prompt = str(b.get("prompt", ""))[:80000]
     day = datetime.now(TZ).strftime("%Y-%m-%d")
-    body = {"model": MODELS["default"], "max_tokens": 8000,
+    body = {"model": MODELS["default"], "max_tokens": 20000,
             "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
             "messages": [{"role": "user", "content": prompt}]}
     r, err = None, ""
@@ -455,7 +455,25 @@ async def hook_redakcja(req: Request, key: str = ""):
     try:
         return {"json": _json_from(text)}
     except Exception:
-        return JSONResponse({"error": "zła odpowiedź", "raw": text[:500]}, status_code=502)
+        # pusta / ucięta odpowiedź (np. limit długości) – zapas przez Groq
+        gk = _mz_env().get("GROQ_API_KEY")
+        if gk:
+            for gm in ("moonshotai/kimi-k2-instruct-0905", "openai/gpt-oss-120b"):
+                try:
+                    async with httpx.AsyncClient(timeout=300, trust_env=False) as c:
+                        g = await c.post("https://api.groq.com/openai/v1/chat/completions",
+                                         json={"model": gm, "temperature": 0.2, "max_completion_tokens": 16000,
+                                               "response_format": {"type": "json_object"},
+                                               "messages": [{"role": "system", "content": body["system"]},
+                                                            {"role": "user", "content": prompt}]},
+                                         headers={"Authorization": f"Bearer {gk}"})
+                    if g.status_code == 200:
+                        return {"json": _json_from(g.json()["choices"][0]["message"]["content"] or ""), "via": gm}
+                except Exception:
+                    pass
+        return JSONResponse({"error": "zła odpowiedź", "raw": text[:500], "stop": res.get("stop_reason"),
+                             "types": [x.get("type") for x in res.get("content", [])], "usage": res.get("usage")},
+                            status_code=502)
 
 
 @app.get("/api/hook/montaz_log")
