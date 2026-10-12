@@ -376,6 +376,9 @@ def ai_fix_words(trans, day):
 STALE_POPRAWKI = {"owszanymi": "owsianymi", "owszanych": "owsianych", "owszana": "owsiana", "owszanka": "owsianka",
                   "owszankę": "owsiankę", "rozdzika": "dzika", "zdzika": "z dzika", "skyrem": "skyrem"}
 HALUCYNACJE = {"dzięki", "dziękuję", "dziękujemy", "napisy", "subskrybuj"}
+# całe zwroty, które Whisper dopisuje w ciszy (zwykle na końcu klipu)
+HALUCYNACJE_ZWROTY = [["dzięki", "za", "uwagę"], ["dziękuję", "za", "uwagę"], ["dzięki", "za", "obejrzenie"],
+                      ["dziękuję", "za", "obejrzenie"], ["dziękuję", "bardzo"], ["dzięki", "za", "oglądanie"]]
 
 
 def clean_words(trans):
@@ -396,6 +399,17 @@ def clean_words(trans):
                 gap_after = ws[i + 1]["start"] - w["end"] if i + 1 < len(ws) else 9
                 if gap_before > 0.6 and gap_after > 0.6:      # samotne „dzięki” w ciszy = wymyślone
                     w["word"] = ""
+        # zwroty-halucynacje: na końcu klipu albo po pauzie – usuwamy całe
+        norm_ws = [nrm(w["word"]) for w in ws]
+        for z in HALUCYNACJE_ZWROTY:
+            for i in range(len(ws) - len(z) + 1):
+                if norm_ws[i:i + len(z)] == z:
+                    end = i + len(z)
+                    gap_before = ws[i]["start"] - ws[i - 1]["end"] if i else 9
+                    at_end = end >= len(ws) or all(not norm_ws[j] for j in range(end, len(ws)))
+                    if at_end or gap_before > 0.5:
+                        for j in range(i, end):
+                            ws[j]["word"] = ""
     return trans
 
 

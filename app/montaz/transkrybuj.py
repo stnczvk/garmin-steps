@@ -103,7 +103,7 @@ def transcribe(audio_path, key):
 
 SILENCE_DB = -38          # poniżej tej głośności = cisza
 SILENCE_MIN = 0.35        # przerwa w mówieniu musi trwać co najmniej tyle sekund
-HALLUCINATIONS = ("dziękuję", "dzięki za obejrzenie", "napisy", "subskryb", "zapraszam na kanał",
+HALLUCINATIONS = ("dziękuję", "dzięki za obejrzenie", "dzięki za uwagę", "dziękuję za uwagę", "napisy", "subskryb", "zapraszam na kanał",
                   "do zobaczenia", "amara.org")
 
 
