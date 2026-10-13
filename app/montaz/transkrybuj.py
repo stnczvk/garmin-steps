@@ -59,7 +59,45 @@ def extract_audio(video, out):
     return r.returncode == 0 and out.exists() and out.stat().st_size > 0
 
 
+SCRIBE_USED = False
+
+
+def scribe(audio_path):
+    """ElevenLabs Scribe (gdy jest klucz) – wynik w tym samym kształcie co Groq: {text, words:[{word,start,end}]}."""
+    ek = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    if not ek:
+        return None
+    for model in ("scribe_v2", "scribe_v1"):
+        boundary = uuid.uuid4().hex
+        body = b""
+        for k, v in {"model_id": model, "language_code": "pol", "tag_audio_events": "false",
+                     "timestamps_granularity": "word"}.items():
+            body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n").encode()
+        body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{audio_path.name}\"\r\n"
+                 f"Content-Type: audio/mpeg\r\n\r\n").encode() + audio_path.read_bytes() + f"\r\n--{boundary}--\r\n".encode()
+        req = urllib.request.Request("https://api.elevenlabs.io/v1/speech-to-text", data=body, method="POST", headers={
+            "xi-api-key": ek, "User-Agent": "DailyContent-montaz/1.0", "Content-Type": f"multipart/form-data; boundary={boundary}"})
+        try:
+            with urllib.request.urlopen(req, timeout=180) as r:
+                d = json.loads(r.read().decode("utf-8"))
+            ws = [{"word": w["text"], "start": float(w["start"]), "end": float(w["end"])}
+                  for w in d.get("words", []) if w.get("type", "word") == "word" and w.get("text", "").strip()]
+            global SCRIBE_USED
+            SCRIBE_USED = True
+            return {"text": d.get("text", ""), "words": ws}
+        except urllib.error.HTTPError as e:
+            if e.code in (400, 404, 422):
+                continue
+            return None
+        except Exception:
+            return None
+    return None
+
+
 def transcribe(audio_path, key):
+    s = scribe(audio_path)
+    if s is not None:
+        return s
     boundary = uuid.uuid4().hex
     fields = {
         "model": MODEL,
@@ -230,6 +268,8 @@ def main():
     (day / "transkrypcja.json").write_text(json.dumps(wynik, ensure_ascii=False, indent=1),
                                            encoding="utf-8")
     (day / "transkrypcja.txt").write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    if SCRIBE_USED:
+        (day / ".scribe").write_text("1")      # znacznik: transkrypcja z ElevenLabs Scribe
     print(f"\nZapisano: {day / 'transkrypcja.txt'}")
 
 

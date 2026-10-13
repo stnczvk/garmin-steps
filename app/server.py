@@ -486,6 +486,41 @@ async def hook_redakcja(req: Request, key: str = ""):
                             status_code=502)
 
 
+async def _scribe(audio: bytes, key: str, fname="a.mp3", mime="audio/mpeg"):
+    """ElevenLabs Scribe – rozpoznawanie mowy (najdokładniejsze dla polskiego). Zwraca JSON odpowiedzi albo None."""
+    async with httpx.AsyncClient(timeout=300, trust_env=False) as c:
+        for model in ("scribe_v2", "scribe_v1"):
+            r = await c.post("https://api.elevenlabs.io/v1/speech-to-text", headers={"xi-api-key": key},
+                             data={"model_id": model, "language_code": "pol", "tag_audio_events": "false",
+                                   "timestamps_granularity": "word"},
+                             files={"file": (fname, audio, mime)})
+            if r.status_code == 200:
+                return r.json()
+            if r.status_code not in (400, 404, 422):
+                break
+    return None
+
+
+@app.get("/api/settings/elevenlabs")
+def el_get():
+    k = _mz_env().get("ELEVENLABS_API_KEY") or ""
+    return {"set": bool(k), "hint": (k[:4] + "…" + k[-3:]) if len(k) > 10 else ""}
+
+
+@app.post("/api/settings/elevenlabs")
+async def el_set(req: Request):
+    k = str((await req.json()).get("key", "")).strip()
+    if k and not re.fullmatch(r"[A-Za-z0-9_\-]{20,200}", k):
+        return JSONResponse({"error": "To nie wygląda na klucz ElevenLabs."}, status_code=400)
+    if k:   # szybki test klucza
+        async with httpx.AsyncClient(timeout=20, trust_env=False) as c:
+            r = await c.get("https://api.elevenlabs.io/v1/user/subscription", headers={"xi-api-key": k})
+        if r.status_code == 401:
+            return JSONResponse({"error": "ElevenLabs odrzucił ten klucz."}, status_code=400)
+    kv_set("elevenlabs_key", k)
+    return el_get()
+
+
 @app.post("/api/hook/asr")
 async def hook_asr(req: Request, key: str = ""):
     """Rozpoznawanie mowy (Groq Whisper large-v3) dla montażu vloga na Macu – plik audio w treści zapytania."""
@@ -498,6 +533,11 @@ async def hook_asr(req: Request, key: str = ""):
     if not audio or len(audio) > 24 * 1024 * 1024:
         return JSONResponse({"error": "Brak dźwięku albo plik za duży."}, status_code=400)
     prompt = req.query_params.get("prompt", "")[:800]
+    ek = _mz_env().get("ELEVENLABS_API_KEY")
+    if ek:
+        res = await _scribe(audio, ek)
+        if res and res.get("text"):
+            return {"text": res["text"].strip(), "via": "scribe"}
     files = {"file": ("a.mp3", audio, "audio/mpeg")}
     data = {"model": "whisper-large-v3", "language": "pl", "response_format": "json", "temperature": "0"}
     if prompt:
@@ -601,8 +641,12 @@ def _mz_env():
         for line in (ROOT / ".env").read_text().splitlines():
             if line.startswith("GROQ_API_KEY="):
                 env["GROQ_API_KEY"] = line.split("=", 1)[1].strip()
+            if line.startswith("ELEVENLABS_API_KEY=") and line.split("=", 1)[1].strip():
+                env["ELEVENLABS_API_KEY"] = line.split("=", 1)[1].strip()
     except Exception:
         pass
+    if kv_get("elevenlabs_key"):          # klucz wpisany w aplikacji (Ustawienia → Montaż)
+        env["ELEVENLABS_API_KEY"] = kv_get("elevenlabs_key")
     env["MONTAZ_MUSIC"] = str(MZ_DIR / "muzyka_tlo.mp3")
     env["MONTAZ_FONT"] = str(MZ_DIR / "Montserrat.ttf")
     env["DZ_DB"] = str(DB_PATH)

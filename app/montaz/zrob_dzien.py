@@ -457,7 +457,8 @@ def main():
     # --- 1. transkrypcja (jeśli brak albo dotyczy innych klipów) ---
     tj = day / "transkrypcja.json"
     trans = json.loads(tj.read_text(encoding="utf-8")) if tj.exists() else {}
-    if not all(v.name in trans and "chunks" in trans[v.name] for v in videos):
+    redo = os.environ.get("ELEVENLABS_API_KEY") and not (day / ".scribe").exists()   # lepszy model – od nowa
+    if redo or not all(v.name in trans and "chunks" in trans[v.name] for v in videos):
         print("Transkrypcja...", flush=True)
         r = subprocess.run([sys.executable, str(HERE / "transkrybuj.py"), str(day)], text=True,
                            capture_output=True)

@@ -217,8 +217,23 @@
     let info; try { info = await req("GET", "/hook/info") } catch (e) { el.innerHTML = `<p class="note" style="margin:0">Nie udało się pobrać ustawień.</p>`; return; }
     el.innerHTML = `<p class="note" style="margin:0">Montaż na Macu bierze posiłki, kalorie i trening prosto z dziennika – nie musisz robić screenów. Skopiuj link i wklej go raz, gdy montaż o niego zapyta.</p>
       <div class="row" style="gap:8px;flex-wrap:nowrap"><input id="dz-vlogurl" readonly value="${info.vlog}" style="flex:1;min-width:0;font-size:13px"><button class="btn small" data-dzvlog="copy">Kopiuj</button></div>
-      <span class="note">Link działa jak hasło – nie udostępniaj go. Ten link jest niezależny od linku do wagi – zmiana tamtego go nie rusza.</span>`;
+      <span class="note">Link działa jak hasło – nie udostępniaj go. Ten link jest niezależny od linku do wagi – zmiana tamtego go nie rusza.</span>
+      <div class="stack" style="gap:6px;margin-top:6px"><span class="label">Rozpoznawanie mowy – klucz ElevenLabs</span>
+        <span class="note" id="dz-el-st">Sprawdzam…</span>
+        <div class="row" style="gap:8px;flex-wrap:nowrap"><input id="dz-el-key" type="password" autocomplete="off" placeholder="Wklej klucz API z elevenlabs.io" style="flex:1;min-width:0;font-size:13px"><button class="btn small" data-dzel="save">Zapisz</button></div>
+        <span class="note">Dokładniejsze napisy we wszystkich montażach (daily, vlog, przepisy). Bez klucza działa jak dotąd (Whisper).</span></div>`;
+    try { const st = await req("GET", "/settings/elevenlabs"); const e = document.getElementById("dz-el-st");
+      if (e) e.textContent = st.set ? `✓ Klucz zapisany (${st.hint})` : "Brak klucza – używany jest Whisper."; } catch (e) {}
   }
+  document.addEventListener("click", async ev => {
+    const b = ev.target.closest("[data-dzel]"); if (!b) return;
+    const i = document.getElementById("dz-el-key"), st = document.getElementById("dz-el-st");
+    b.disabled = true; b.textContent = "…";
+    try { const r = await req("POST", "/settings/elevenlabs", { key: i.value.trim() });
+      st.textContent = r.set ? `✓ Klucz zapisany (${r.hint})` : "Klucz usunięty."; i.value = ""; }
+    catch (e) { st.textContent = "✗ " + (e.message || "Nie udało się zapisać klucza."); }
+    b.disabled = false; b.textContent = "Zapisz";
+  });
   document.addEventListener("click", async ev => {
     const b = ev.target.closest("[data-dzvlog]"); if (!b) return;
     const i = document.getElementById("dz-vlogurl"); try { await navigator.clipboard.writeText(i.value) } catch (e) { i.select(); document.execCommand && document.execCommand("copy") }
