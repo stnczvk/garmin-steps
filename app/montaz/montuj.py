@@ -342,8 +342,14 @@ def ai_fix_words(trans, day):
         fixes = c["fixes"] if c.get("hash") == h else None
     except Exception:
         pass
+    try:
+        known = json.loads(Path(os.environ.get("MONTAZ_SLOWNIK", "")).read_text(encoding="utf-8"))
+    except Exception:
+        known = []
+    znane = ("Znane, wcześniej poprawione błędy (stosuj tak samo): "
+             + "; ".join(f"„{k['z']}” → „{k['na']}”" for k in known[-80:]) + "\n") if known else ""
     if fixes is None:
-        prompt = ("Napisy do polskiego filmu o jedzeniu na redukcji (posiłki, kalorie, makro). Automatyczne rozpoznawanie mowy "
+        prompt = znane + ("Napisy do polskiego filmu o jedzeniu na redukcji (posiłki, kalorie, makro). Automatyczne rozpoznawanie mowy "
                   "przekręca słowa. Popraw TYLKO słowa źle rozpoznane (np. „owszanymi” → „owsianymi”, „rozdzika” → „z dzika”, "
                   "„kaszę mannow” → „kasza manna”, „orki” → „orkisz”), "
                   "biorąc pod uwagę sens zdania. Nie zmieniaj poprawnych słów, liczb ani stylu mówienia. Jedno słowo może "
@@ -427,9 +433,13 @@ def clean_words(trans):
 
 def user_subs(trans, day):
     """Zamiany słów w napisach wpisane w aplikacji (uwagi do montażu) – napisy_zamiany.json."""
-    try:
-        subs = json.loads((day / "napisy_zamiany.json").read_text(encoding="utf-8"))
-    except Exception:
+    subs = []
+    for f in [os.environ.get("MONTAZ_SLOWNIK"), day / "napisy_zamiany.json"]:   # stały słownik + poprawki z tego dnia
+        try:
+            subs += json.loads(Path(f).read_text(encoding="utf-8")) if f else []
+        except Exception:
+            pass
+    if not subs:
         return trans
     nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", w.lower())
     n = 0

@@ -95,7 +95,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.middleware("http")
 async def guard(req: Request, call_next):
     p = req.url.path
-    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/redakcja", "/api/hook/montaz_log", "/api/hook/asr") and not authed(req):
+    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/redakcja", "/api/hook/montaz_log", "/api/hook/asr", "/api/hook/slownik") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if p in ("/", "/index.html", "/shim.js", "/sw.js"):
@@ -556,6 +556,14 @@ async def hook_asr(req: Request, key: str = ""):
     return {"text": (r.json().get("text") or "").strip()}
 
 
+@app.get("/api/hook/slownik")
+def hook_slownik(key: str = ""):
+    """Zapamiętane poprawki słów – Mac (vlog, przepisy) używa ich tak samo jak montaż daily."""
+    if not hmac.compare_digest(key, vlog_key()):
+        raise HTTPException(403, "bad key")
+    return _slownik()
+
+
 @app.get("/api/hook/montaz_log")
 def hook_montaz_log(key: str = ""):
     """Ostatni montaż daily – log i pliki pomocnicze (do sprawdzania błędów, ten sam klucz co link do montażu)."""
@@ -637,6 +645,23 @@ MZ_ID = re.compile(r"^[0-9]{8}-[0-9]{6}-[a-z0-9]{4}$")
 MZ_KIND = {"clip": {".mov", ".mp4", ".m4v"}, "card": {".png", ".jpg", ".jpeg"}}
 
 
+SLOWNIK = MZ_DIR / "slownik.json"      # poprawki słów zapamiętane na stałe (uczą się z uwag w aplikacji)
+
+
+def _slownik():
+    try:
+        return json.loads(SLOWNIK.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+
+def _slownik_add(subs):
+    cur = [x for x in _slownik() if x["z"].lower() not in {s["z"].lower() for s in subs}]
+    cur += [{"z": s["z"], "na": s["na"]} for s in subs]
+    MZ_DIR.mkdir(parents=True, exist_ok=True)
+    SLOWNIK.write_text(json.dumps(cur[-500:], ensure_ascii=False, indent=1), encoding="utf-8")
+
+
 def _mz_env():
     env = dict(os.environ)
     try:
@@ -652,6 +677,7 @@ def _mz_env():
     env["MONTAZ_MUSIC"] = str(MZ_DIR / "muzyka_tlo.mp3")
     env["MONTAZ_FONT"] = str(MZ_DIR / "Montserrat.ttf")
     env["DZ_DB"] = str(DB_PATH)
+    env["MONTAZ_SLOWNIK"] = str(SLOWNIK)
     return env
 
 
@@ -964,6 +990,7 @@ async def montaz_fix(jid: str, req: Request):
             old = []
         old = [o for o in old if o["z"].lower() not in {s["z"].lower() for s in subs}] + subs
         zf.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
+        _slownik_add(subs)
     # nagłówek „# POPRAWKI” – przy ponownym montażu cięcia zostają (nie są liczone od nowa)
     out, changed = [f"# POPRAWKI – z uwag: {comment[:120].replace(chr(10), ' ')}", ""], len(subs)
     for r in rows:
