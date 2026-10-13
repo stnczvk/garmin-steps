@@ -564,6 +564,22 @@ def hook_slownik(key: str = ""):
     return _slownik()
 
 
+@app.post("/api/hook/slownik")
+async def hook_slownik_set(req: Request, key: str = ""):
+    """Zmiana słownika poprawek: {"dodaj": [{"z","na"}], "usun": ["z", ...]}."""
+    if not hmac.compare_digest(key, vlog_key()):
+        raise HTTPException(403, "bad key")
+    b = await req.json()
+    usun = {str(x).lower() for x in b.get("usun", [])}
+    cur = [x for x in _slownik() if x["z"].lower() not in usun]
+    MZ_DIR.mkdir(parents=True, exist_ok=True)
+    SLOWNIK.write_text(json.dumps(cur, ensure_ascii=False, indent=1), encoding="utf-8")
+    dod = [{"z": str(x["z"]).strip(), "na": str(x["na"]).strip()} for x in b.get("dodaj", []) if x.get("z") and x.get("na")]
+    if dod:
+        _slownik_add(dod)
+    return _slownik()
+
+
 @app.get("/api/hook/montaz_log")
 def hook_montaz_log(key: str = ""):
     """Ostatni montaż daily – log i pliki pomocnicze (do sprawdzania błędów, ten sam klucz co link do montażu)."""
