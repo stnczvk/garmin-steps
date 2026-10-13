@@ -217,7 +217,7 @@
     let info; try { info = await req("GET", "/hook/info") } catch (e) { el.innerHTML = `<p class="note" style="margin:0">Nie udało się pobrać ustawień.</p>`; return; }
     el.innerHTML = `<p class="note" style="margin:0">Montaż na Macu bierze posiłki, kalorie i trening prosto z dziennika – nie musisz robić screenów. Skopiuj link i wklej go raz, gdy montaż o niego zapyta.</p>
       <div class="row" style="gap:8px;flex-wrap:nowrap"><input id="dz-vlogurl" readonly value="${info.vlog}" style="flex:1;min-width:0;font-size:13px"><button class="btn small" data-dzvlog="copy">Kopiuj</button></div>
-      <span class="note">Link działa jak hasło – nie udostępniaj go. Zmiana linku w sekcji „Waga Xiaomi” zmienia też ten.</span>`;
+      <span class="note">Link działa jak hasło – nie udostępniaj go. Ten link jest niezależny od linku do wagi – zmiana tamtego go nie rusza.</span>`;
   }
   document.addEventListener("click", async ev => {
     const b = ev.target.closest("[data-dzvlog]"); if (!b) return;

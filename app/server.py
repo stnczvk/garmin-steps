@@ -372,6 +372,16 @@ def watcher():
 threading.Thread(target=watcher, daemon=True).start()
 
 # ---------- waga z Apple Health (skrót iPhone) ----------
+def vlog_key():
+    """Osobny klucz do montażu na Macu (vlog, kopia, redakcja, rozpoznawanie mowy, log) – zmiana linku
+    do wagi go nie rusza. Na start taki sam jak dotychczasowy, żeby zapisany na Macu link dalej działał."""
+    k = kv_get("vlog_key")
+    if not k:
+        k = hook_key()
+        kv_set("vlog_key", k)
+    return k
+
+
 def hook_key():
     k = kv_get("hook_key")
     if not k:
@@ -383,14 +393,14 @@ def hook_key():
 @app.get("/api/hook/info")
 def hook_info():
     last = kv_get("hook_last")
-    return {"url": f"https://{DOMAIN}/api/hook/weight?key={hook_key()}", "vlog": f"https://{DOMAIN}/api/hook/vlog?key={hook_key()}",
+    return {"url": f"https://{DOMAIN}/api/hook/weight?key={hook_key()}", "vlog": f"https://{DOMAIN}/api/hook/vlog?key={vlog_key()}",
             "last": json.loads(last) if last else None}
 
 
 @app.post("/api/hook/redakcja")
 async def hook_redakcja(req: Request, key: str = ""):
     """Redakcja transkrypcji vloga dla montażu na Macu (cięcie pomyłek, poprawa napisów) – ten sam klucz co link do montażu."""
-    if not hmac.compare_digest(key, hook_key()):
+    if not hmac.compare_digest(key, vlog_key()):
         raise HTTPException(403, "bad key")
     if not API_KEY:
         return JSONResponse({"error": "Brak klucza API na serwerze."}, status_code=503)
@@ -479,7 +489,7 @@ async def hook_redakcja(req: Request, key: str = ""):
 @app.post("/api/hook/asr")
 async def hook_asr(req: Request, key: str = ""):
     """Rozpoznawanie mowy (Groq Whisper large-v3) dla montażu vloga na Macu – plik audio w treści zapytania."""
-    if not hmac.compare_digest(key, hook_key()):
+    if not hmac.compare_digest(key, vlog_key()):
         raise HTTPException(403, "bad key")
     gk = _mz_env().get("GROQ_API_KEY")
     if not gk:
@@ -507,7 +517,7 @@ async def hook_asr(req: Request, key: str = ""):
 @app.get("/api/hook/montaz_log")
 def hook_montaz_log(key: str = ""):
     """Ostatni montaż daily – log i pliki pomocnicze (do sprawdzania błędów, ten sam klucz co link do montażu)."""
-    if not hmac.compare_digest(key, hook_key()):
+    if not hmac.compare_digest(key, vlog_key()):
         raise HTTPException(403, "bad key")
     jobs = sorted(d for d in MZ_JOBS.iterdir() if d.is_dir() and MZ_ID.match(d.name)) if MZ_JOBS.is_dir() else []
     if not jobs:
@@ -534,7 +544,7 @@ def hook_montaz_log(key: str = ""):
 @app.get("/api/hook/backup")
 def hook_backup(key: str = ""):
     """Kopia zapasowa (dziennik + centrum) do pobrania przez Maca – ten sam klucz co link do montażu."""
-    if not hmac.compare_digest(key, hook_key()):
+    if not hmac.compare_digest(key, vlog_key()):
         raise HTTPException(403, "bad key")
     import tarfile, tempfile
     from starlette.background import BackgroundTask
@@ -562,7 +572,7 @@ def hook_backup(key: str = ""):
 @app.get("/api/hook/vlog")
 def hook_vlog(key: str = "", date: str = ""):
     """Dane dnia do montażu vlogu na Macu (posiłki, cele, trening) – zapisuje je sama aplikacja."""
-    if not hmac.compare_digest(key, hook_key()):
+    if not hmac.compare_digest(key, vlog_key()):
         raise HTTPException(403, "bad key")
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
         raise HTTPException(400, "bad date")
