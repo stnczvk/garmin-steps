@@ -515,8 +515,10 @@ async def el_set(req: Request):
     if k:   # szybki test klucza
         async with httpx.AsyncClient(timeout=20, trust_env=False) as c:
             r = await c.get("https://api.elevenlabs.io/v1/user/subscription", headers={"xi-api-key": k})
-        if r.status_code == 401:
-            return JSONResponse({"error": "ElevenLabs odrzucił ten klucz."}, status_code=400)
+        # klucz tylko z uprawnieniem „Speech to Text” nie może czytać danych konta (też 401) – to jest OK;
+        # odrzucamy tylko, gdy ElevenLabs mówi wprost, że klucz jest zły
+        if r.status_code == 401 and "invalid_api_key" in r.text:
+            return JSONResponse({"error": "ElevenLabs odrzucił ten klucz (nieprawidłowy) – skopiuj go jeszcze raz."}, status_code=400)
     kv_set("elevenlabs_key", k)
     return el_get()
 
