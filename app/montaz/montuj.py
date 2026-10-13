@@ -344,7 +344,8 @@ def ai_fix_words(trans, day):
         pass
     if fixes is None:
         prompt = ("Napisy do polskiego filmu o jedzeniu na redukcji (posiłki, kalorie, makro). Automatyczne rozpoznawanie mowy "
-                  "przekręca słowa. Popraw TYLKO słowa źle rozpoznane (np. „owszanymi” → „owsianymi”, „rozdzika” → „z dzika”), "
+                  "przekręca słowa. Popraw TYLKO słowa źle rozpoznane (np. „owszanymi” → „owsianymi”, „rozdzika” → „z dzika”, "
+                  "„kaszę mannow” → „kasza manna”, „orki” → „orkisz”), "
                   "biorąc pod uwagę sens zdania. Nie zmieniaj poprawnych słów, liczb ani stylu mówienia. Jedno słowo może "
                   "zostać zastąpione krótką frazą, jeśli rozpoznawanie skleiło słowa.\n"
                   'Odpowiedz wyłącznie JSON-em: {"NAZWA_KLIPU": {"NUMER_SŁOWA": "poprawione"}} – tylko zmienione słowa.\n\n'
@@ -380,7 +381,9 @@ def ai_fix_words(trans, day):
 
 # słowa, które rozpoznawanie mowy notorycznie przekręca (końcówka słowa po normalizacji -> poprawka)
 STALE_POPRAWKI = {"owszanymi": "owsianymi", "owszanych": "owsianych", "owszana": "owsiana", "owszanka": "owsianka",
-                  "owszankę": "owsiankę", "rozdzika": "dzika", "zdzika": "z dzika", "skyrem": "skyrem"}
+                  "owszankę": "owsiankę", "rozdzika": "dzika", "zdzika": "z dzika", "skyrem": "skyrem",
+                  "mannow": "manna", "mannowa": "manna", "mannową": "manną", "mannowej": "mannej",
+                  "orki": "orkisz", "orkiż": "orkisz", "orkis": "orkisz"}
 HALUCYNACJE = {"dzięki", "dziękuję", "dziękujemy", "napisy", "subskrybuj"}
 # całe zwroty, które Whisper dopisuje w ciszy (zwykle na końcu klipu)
 HALUCYNACJE_ZWROTY = [["dzięki", "za", "uwagę"], ["dziękuję", "za", "uwagę"], ["dzięki", "za", "obejrzenie"],
@@ -400,6 +403,9 @@ def clean_words(trans):
                 if k == "rozdzika" and not (i and nrm(ws[i - 1]["word"]) == "z"):
                     fix = "z dzika"
                 w["word"] = fix
+                # „kaszę mannow” -> „kasza manna”
+                if fix == "manna" and i and nrm(ws[i - 1]["word"]) in ("kaszę", "kaszy", "kasze"):
+                    ws[i - 1]["word"] = "kasza"
             if k in HALUCYNACJE:
                 gap_before = w["start"] - ws[i - 1]["end"] if i else 9
                 gap_after = ws[i + 1]["start"] - w["end"] if i + 1 < len(ws) else 9

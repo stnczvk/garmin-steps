@@ -68,7 +68,7 @@ def transcribe(audio_path, key):
         "temperature": "0",
         # słownictwo z filmów jedzeniowych – Whisper rzadziej przekręca te słowa
         "prompt": "Redukcja, kalorie, kcal, białko. Owsianka z płatkami owsianymi, skyr, twaróg, "
-                  "sos z dzika, kurczak, ryż, omlet, serek kanapkowy, dżem z Łowicza.",
+                  "sos z dzika, kurczak, ryż, omlet, serek kanapkowy, dżem z Łowicza, kasza manna, orkisz, borówki.",
     }
     body = b""
     for k, v in fields.items():
