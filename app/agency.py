@@ -21,9 +21,20 @@ from extra import _ai_key, insights, push_all
 
 router = APIRouter()
 TZ = ZoneInfo("Europe/Warsaw")
-SMART = os.environ.get("AGENCY_MODEL_SMART", "claude-sonnet-5-5")
-FAST = os.environ.get("AGENCY_MODEL_FAST", "claude-haiku-4-5-20251001")
+# dostawca AI: OpenAI gdy jest OPENAI_API_KEY (albo AGENCY_PROVIDER=openai), inaczej Claude
+def provider():
+    p = os.environ.get("AGENCY_PROVIDER", "").lower()
+    return p if p in ("openai", "claude") else ("openai" if os.environ.get("OPENAI_API_KEY") else "claude")
+
+
+MODELS = {"openai": (os.environ.get("AGENCY_MODEL_SMART", "gpt-4.1"), os.environ.get("AGENCY_MODEL_FAST", "gpt-4.1-mini")),
+          "claude": (os.environ.get("AGENCY_MODEL_SMART", "claude-sonnet-5-5"), os.environ.get("AGENCY_MODEL_FAST", "claude-haiku-4-5-20251001"))}
+SMART, FAST = "smart", "fast"
 FALLBACK = "claude-haiku-4-5-20251001"
+
+
+def ai_ready():
+    return bool(os.environ.get("OPENAI_API_KEY")) if provider() == "openai" else bool(_ai_key()[0])
 _lock = threading.Lock()
 _busy = {}  # agent -> opis bieżącej pracy
 
@@ -63,6 +74,12 @@ def save_topics(t):
 
 # ---------- Claude ----------
 def claude(prompt, model=FAST, max_tokens=1500, system="", web=False):
+    """Wywołanie modelu agencji (OpenAI albo Claude – patrz provider())."""
+    prov = provider()
+    if model in (SMART, FAST):
+        model = MODELS[prov][0 if model == SMART else 1]
+    if prov == "openai":
+        return _openai(prompt, model, max_tokens, system, web)
     key, url = _ai_key()
     if not key:
         raise RuntimeError("Brak ANTHROPIC_API_KEY (dziennik/.env albo social/.env)")
@@ -80,6 +97,23 @@ def claude(prompt, model=FAST, max_tokens=1500, system="", web=False):
             return claude(prompt, FALLBACK, max_tokens, system)
         raise RuntimeError(j["error"].get("message", str(j))[:200])
     return "".join(b.get("text", "") for b in j.get("content", []) if b.get("type") == "text")
+
+
+def _openai(prompt, model, max_tokens, system="", web=False):
+    body = {"model": model, "input": prompt, "max_output_tokens": max_tokens}
+    if system:
+        body["instructions"] = system
+    if web:
+        body["tools"] = [{"type": "web_search"}]
+    r = httpx.post("https://api.openai.com/v1/responses", json=body, timeout=180,
+                   headers={"Authorization": "Bearer " + os.environ.get("OPENAI_API_KEY", "")})
+    j = r.json()
+    if r.status_code >= 400:
+        if web:
+            return _openai(prompt, model, max_tokens, system, web=False)
+        raise RuntimeError("OpenAI: " + str((j.get("error") or {}).get("message", j))[:200])
+    return "".join(c.get("text", "") for o in j.get("output", []) if o.get("type") == "message"
+                   for c in o.get("content", []) if c.get("type") == "output_text")
 
 
 def as_json(txt):
@@ -273,7 +307,7 @@ def state():
     reviews = [e["extra"] for e in L if e["agent"] == "qa" and e.get("extra")][-20:]
     return {"settings": {k: v for k, v in s.items() if k != "token"}, "token": s["token"], "busy": _busy,
             "queue": [x for x in t if x["status"] == "queued"], "used": [x for x in t if x["status"] == "used"][-15:][::-1],
-            "log": L[-60:][::-1], "last": last, "reviews": reviews[::-1], "ai": bool(_ai_key()[0]),
+            "log": L[-60:][::-1], "last": last, "reviews": reviews[::-1], "ai": ai_ready(), "provider": provider(), "models": dict(zip(("smart", "fast"), MODELS[provider()])),
             "avg_score": round(sum(r["score"] for r in reviews) / len(reviews), 1) if reviews else None}
 
 
@@ -403,7 +437,7 @@ def _loop():
             s = settings()
             now = datetime.now(TZ)
             q = [x for x in topics() if x["status"] == "queued"]
-            if s["autopilot"] and _ai_key()[0] and done != now.date() and (now.hour == s["research_hour"] or len(q) < 2):
+            if s["autopilot"] and ai_ready() and done != now.date() and (now.hour == s["research_hour"] or len(q) < 2):
                 done = now.date()  # najwyżej raz dziennie z harmonogramu (next-topic sam dopełnia kolejkę)
                 if len(q) < s["queue_target"]:
                     if research(max(4, s["queue_target"] - len(q) + 2)):

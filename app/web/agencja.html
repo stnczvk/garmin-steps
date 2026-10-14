@@ -243,7 +243,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
   const L=LINK;h+=`<div class="sec"><h3>Autopilot</h3>
    <label class="sw"><input type="checkbox" id="ap" ${A?.settings.autopilot?'checked':''}><span></span>Agencja steruje generatorem</label>
    <label class="row">Próg jakości <input type="number" id="ms" min="1" max="10" value="${A?.settings.min_score||7}"> /10</label>
-   ${A&&!A.ai?'<p class="warn">Brak klucza Claude (ANTHROPIC_API_KEY) – agenci nie mają mózgu.</p>':''}
+   ${A&&!A.ai?'<p class="warn">Brak klucza AI (OPENAI_API_KEY w /root/social/.env) – agenci nie mają mózgu.</p>':''}
    <h3>Generator n8n</h3>${!L?'<p class="mut">Sprawdzam…</p>':!L.ok?`<p class="warn">${esc(L.error||'Nie znalazłem generatora')}</p>`:
    `<p>${esc(L.generator)}: ${L.connected?'<b style="color:var(--ok)">podpięty do agencji</b>':'<b>niepodpięty</b>'}</p>
    <div class="btns"><button class="btn" id="lk">${L.connected?'Odepnij agencję':'Podepnij agencję'}</button>${L.connected?'<button class="btn" id="run">▶ Uruchom generator teraz</button>':''}</div>`}
@@ -270,12 +270,13 @@ addEventListener('keydown',e=>{if(e.key==='Escape')$('px').onclick()});
 function log(i,t,when){const d=DEPTS[i],e=document.createElement('div');e.className='ev';e.style.setProperty('--c',d.color);
  const tm=when?new Date(when*1000):new Date();e.innerHTML=`<small>${tm.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}</small>${esc(t)}`;
  const f=$('feed');f.prepend(e);while(f.children.length>4)f.lastChild.remove()}
-['Wszystkie','Sonnet','Haiku','GPT','n8n'].forEach(m=>{const c=document.createElement('button');c.className='chip'+(m===filter?' on':'');c.textContent=m;
+['Wszystkie','GPT','n8n'].forEach(m=>{const c=document.createElement('button');c.className='chip'+(m===filter?' on':'');c.textContent=m;
  c.onclick=()=>{filter=m;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));refresh()};$('models').appendChild(c)});
 
 // prawdziwy stan agencji + n8n
 async function poll(){
  try{A=await api('/api/agency/state')}catch(e){}
+ if(A?.models)DEPTS.forEach(d=>d.agents.forEach(x=>{x.tier=x.tier||({Sonnet:'smart',Haiku:'fast'})[x.m];if(x.tier)x.m=A.models[x.tier]}));
  try{P=await api('/api/pozaskala/status')}catch(e){}
  if(A){const L=A.log.slice().reverse();L.forEach(e=>{const k=e.t+e.agent;if(seenLog.has(k))return;seenLog.add(k);
   if(!firstLog||L.indexOf(e)>=L.length-4)log(AG_DEPT[e.agent]??6,`${AG_NAMES[e.agent]||e.agent}: ${e.text}`,e.t)})}
