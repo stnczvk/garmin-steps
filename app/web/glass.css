@@ -58,3 +58,10 @@
   background:linear-gradient(145deg,var(--lg-1),var(--lg-2));-webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
   box-shadow:inset 0 1px 0 var(--lg-hi);color:inherit;font:inherit;cursor:pointer;text-decoration:none}
 .lg .lg-btn:hover{border-color:var(--lg-hi)}
+
+/* dolny margines bezpieczny (pasek gestów iPhone'a) – wartość --sab ustawia centrum dla zakładek w ramce */
+body.lg{padding-bottom:var(--sab,0px)}
+.lg #mini{bottom:calc(12px + var(--sab,0px)) !important}
+.lg #models{bottom:calc(12px + var(--sab,0px)) !important}
+.lg #feed{bottom:calc(52px + var(--sab,0px)) !important}
+.lg #panel{bottom:calc(12px + var(--sab,0px))}

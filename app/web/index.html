@@ -585,10 +585,12 @@ body.lg{padding-left:var(--sw);transition:padding-left .35s cubic-bezier(.2,.8,.
 @media (max-width:900px){body,body.s-mini{--sw:0px}.side,body.s-mini .side{width:250px;transform:translateX(-120%)}
  body.s-mini .side span,body.s-mini .s-brand b,body.s-mini .s-foot{display:revert}body.s-mini .s-grp{font-size:11px;padding:14px 12px 4px;border:0}
  body.s-open .side{transform:none}body.s-open .s-dim{opacity:1;pointer-events:auto}.burger{display:grid;place-items:center}.s-col{display:none}}
-.vframe{position:fixed;left:var(--sw);transition:left .35s cubic-bezier(.2,.8,.2,1);padding-bottom:env(safe-area-inset-bottom);right:0;bottom:0;top:var(--hh,64px);z-index:15;display:none;background:transparent}
+.vframe{position:relative;z-index:15;display:none;background:transparent;flex:1;min-height:0}
 .vframe iframe{width:100%;height:100%;border:0;display:none}
 body.v-ext .vframe{display:block}body.v-ext #app,body.v-ext #tabs,body.v-ext #refresh{display:none!important}
-body.v-ext{overflow:hidden}
+/* zakładki w ramce: cała strona = nagłówek + ramka do samego dołu ekranu (bez position:fixed – na iPhonie w trybie apki fixed zostawiał pasek) */
+body.v-ext{overflow:hidden;display:flex;flex-direction:column;height:var(--vh,100dvh);min-height:0}
+body.v-ext .head{position:relative;flex:none}
 </style>
 </head>
 <body>
@@ -1246,6 +1248,20 @@ try { if (localStorage.getItem('menu-mini') === '1') document.body.classList.add
 $('#s-col').onclick = () => { const m = document.body.classList.toggle('s-mini'); try { localStorage.setItem('menu-mini', m ? '1' : '0'); } catch (e) {} setTimeout(() => pills(), 360); };
 // wysokość nagłówka śledzona na bieżąco (zawijanie na telefonie, fonty, pasek statusu)
 if ('ResizeObserver' in window) new ResizeObserver(() => document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px')).observe($('#head'));
+// prawdziwa wysokość ekranu (iOS w trybie apki potrafi zaniżać viewport) + dolny margines bezpieczny przekazywany do zakładek
+function sizeApp() {
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  const portrait = matchMedia('(orientation: portrait)').matches;
+  const h = standalone && /iPhone|iPad/.test(navigator.userAgent) ? (portrait ? Math.max(screen.height, screen.width) : Math.min(screen.height, screen.width)) : innerHeight;
+  document.documentElement.style.setProperty('--vh', h + 'px');
+  const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom);visibility:hidden';
+  document.body.appendChild(pr); const sab = pr.offsetHeight; pr.remove();
+  document.querySelectorAll('#vframe iframe').forEach(f => { try { f.contentDocument.documentElement.style.setProperty('--sab', sab + 'px'); } catch (e) {} });
+  return sab;
+}
+addEventListener('resize', sizeApp); addEventListener('orientationchange', () => setTimeout(sizeApp, 300));
+$('#vframe').addEventListener('load', sizeApp, true);
+sizeApp();
 addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.go) setView(e.data.go, true); });
 document.body.classList.add('lg');
 setView(location.hash.slice(1));
