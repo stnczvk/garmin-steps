@@ -2,7 +2,7 @@
 Wymaga w /root/social/.env:  N8N_API_KEY=...  (n8n → Settings → n8n API → Create API key)
 opcjonalnie:                  N8N_URL=http://127.0.0.1:5678
 """
-import os, time
+import os, re, threading, time
 
 import httpx
 from fastapi import APIRouter
@@ -55,3 +55,49 @@ def status(force: int = 0):
     data = {"ok": True, "workflows": workflows, "executions": execs, "fetched": time.time()}
     _cache.update(t=time.time(), data=data)
     return data
+
+
+# ---------- powiadomienia push z n8n (zamiast Telegrama) ----------
+def _notify(e):
+    """Treść powiadomienia dla zakończonego uruchomienia albo None (bez powiadomienia)."""
+    wf, st = e["workflow"], e["status"]
+    if st in ("error", "crashed"):
+        return "❌ Błąd w n8n", f"{wf} – uruchomienie nie powiodło się. Szczegóły w zakładce Pipeline."
+    if st != "success":
+        return None
+    if re.search(r"generator", wf, re.I):
+        return "🎬 Nowy film gotowy", f"{wf}: materiały wygenerowane, montaż w drodze."
+    if re.search(r"monta", wf, re.I):
+        return "✅ Film zmontowany", "final.mp4 jest w kolejce do publikacji."
+    if re.search(r"publish", wf, re.I):
+        return "🚀 Opublikowano", "Film poszedł na YouTube i Instagram."
+    if re.search(r"analytic", wf, re.I):
+        return "📊 Analityka gotowa", "Zaktualizowano listę FAVOR / REDUCE."
+    return None
+
+
+def _watch():
+    from extra import push_all
+    from social import _read, _write
+    while True:
+        try:
+            s = status(force=1)
+            if s.get("ok"):
+                done = [e for e in s["executions"] if e["status"] not in ("running", "waiting", "new")]
+                seen = set(_read("n8n_seen.json", []))
+                first = not seen
+                for e in reversed(done):
+                    if str(e["id"]) in seen:
+                        continue
+                    seen.add(str(e["id"]))
+                    msg = None if first else _notify(e)
+                    if msg:
+                        push_all(*msg, url="/#pozaskala")
+                _write("n8n_seen.json", sorted(seen, key=lambda x: int(x) if x.isdigit() else 0)[-300:])
+        except Exception:
+            pass
+        time.sleep(60)
+
+
+if os.environ.get("N8N_API_KEY"):
+    threading.Thread(target=_watch, daemon=True).start()
