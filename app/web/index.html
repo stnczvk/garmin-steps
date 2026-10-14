@@ -558,11 +558,11 @@ body.lg{background:transparent;min-height:100dvh}
 .lg .head{background:#06070c !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;box-shadow:0 1px 0 rgba(255,255,255,.06) !important}
 :root[data-theme=light] .lg .head{background:#eef0f8 !important}
 .b-short{display:none}
-.s-theme{display:none;align-items:center;gap:4px;padding:8px 10px 0;font-size:12px;color:var(--faint)}.s-theme span{flex:1}
+.s-theme{display:none;margin-top:auto;align-items:center;gap:4px;padding:8px 10px 0;font-size:12px;color:var(--faint)}.s-theme span{flex:1}
 .s-theme button{border:1px solid var(--lg-b);background:transparent;color:var(--soft);border-radius:9px;padding:5px 8px;font:500 12px Geist,system-ui;cursor:pointer}
 .s-theme button.on{background:rgba(255,255,255,.14);color:var(--ink)}
 @media (max-width:640px){.head-in{flex-wrap:nowrap;gap:10px}.brand{min-width:0;flex:1}.brand b{font-size:17px}.brand>span{display:none}
- .b-long{display:none}.b-short{display:inline}#theme{display:none!important}.s-theme{display:flex}#bell{flex:none}}
+ .brand b .b-long{display:none!important}.brand b .b-short{display:inline!important;color:inherit;font-size:inherit;margin:0}#theme{display:none!important}.s-theme{display:flex}.s-theme~.s-foot{margin-top:6px}.side{background:linear-gradient(145deg,rgba(28,30,44,.94),rgba(14,15,24,.94)) !important}:root[data-theme=light] .side{background:linear-gradient(145deg,rgba(255,255,255,.95),rgba(240,242,250,.95)) !important}#bell{flex:none}}
 
 body.needs-login .side,body.needs-login .vframe,body.needs-login .s-dim{display:none!important}
 .side{position:fixed;left:12px;top:calc(12px + env(safe-area-inset-top));bottom:calc(12px + env(safe-area-inset-bottom));width:232px;z-index:40;display:flex;flex-direction:column;gap:6px;padding:14px 10px;border-radius:24px;
@@ -1215,6 +1215,10 @@ function setTheme(t, save) {
   if (save) { try { localStorage.setItem('motyw', t); } catch (e) {} }
   $('#theme').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.t === t));
   movePill($('#theme'));
+  // ten sam motyw od razu w zakładkach (ekran główny, statystyki skanera…)
+  document.querySelectorAll('#vframe iframe').forEach(f => { try { const d = f.contentDocument.documentElement; if (d.classList.contains('lg-dark')) return;
+    if (t === 'auto') delete d.dataset.theme; else d.dataset.theme = t; f.contentWindow.postMessage({theme: t}, location.origin); } catch (e) {} });
+  if (typeof sTheme === 'function') sTheme();
 }
 $('#theme').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -1250,7 +1254,7 @@ $('#snav').onclick = e => { const b = e.target.closest('button[data-v]'); if (b)
 $('#burger').onclick = () => document.body.classList.toggle('s-open');
 $('#sdim').onclick = () => document.body.classList.remove('s-open');
 // motyw w menu bocznym (na telefonie zamiast przełącznika w nagłówku)
-const sTheme = () => { let t = 'auto'; try { t = localStorage.getItem('motyw') || 'auto'; } catch (e) {} document.querySelectorAll('.s-theme button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); };
+function sTheme() { let t = 'auto'; try { t = localStorage.getItem('motyw') || 'auto'; } catch (e) {} document.querySelectorAll('.s-theme button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); }
 document.querySelectorAll('.s-theme button').forEach(b => b.onclick = () => { setTheme(b.dataset.t, true); sTheme(); });
 sTheme();
 try { if (localStorage.getItem('menu-mini') === '1') document.body.classList.add('s-mini'); } catch (e) {}
@@ -1271,7 +1275,7 @@ function sizeApp() {
 addEventListener('resize', sizeApp); addEventListener('orientationchange', () => setTimeout(sizeApp, 300));
 $('#vframe').addEventListener('load', sizeApp, true);
 sizeApp();
-addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.go) setView(e.data.go, true); });
+addEventListener('message', e => { if (e.origin !== location.origin || !e.data) return; if (e.data.go) setView(e.data.go, true); if (e.data.setTheme) setTheme(e.data.setTheme, true); });
 document.body.classList.add('lg');
 setView(location.hash.slice(1));
 const pills = () => ['#tabs', '#range', '#theme'].forEach(s => movePill($(s)));
