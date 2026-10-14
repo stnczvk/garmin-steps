@@ -54,6 +54,24 @@ header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align
 .ag .m{font:11px 'JetBrains Mono',monospace;color:var(--mut)}
 .ag button{grid-column:1/4;margin-top:4px;padding:6px;border-radius:7px;border:1px solid var(--line);background:#232838;color:var(--txt);cursor:pointer;font:600 12px Inter}
 .ag.run button{background:transparent;color:var(--mut)}
+.ag.soon{opacity:.45}
+.sec{border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+.sec h3{font-size:13px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn{font:600 12px Inter;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#232838;color:var(--txt);cursor:pointer}
+.btn:disabled{opacity:.5}.btns{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.tp{display:flex;gap:8px;justify-content:space-between;padding:8px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px}
+.tp b{font-size:13px;display:block}.tp small{display:block;color:var(--mut);font-size:11.5px}.tp .why{color:var(--acc)}
+.tp.used{opacity:.7}.acts{display:flex;flex-direction:column;gap:4px}
+.acts button{background:#232838;border:1px solid var(--line);color:var(--txt);border-radius:6px;width:26px;height:24px;cursor:pointer}
+.rv{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.rv b{font-size:13px;display:block}.rv small{display:block;font-size:11.5px}
+.rv .hk{color:var(--acc)}.sc{min-width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font:700 14px 'JetBrains Mono'}
+.sc.ok{background:rgba(61,220,132,.15);color:var(--ok)}.sc.bad{background:rgba(255,123,112,.15);color:#ff7b70}
+.mut{color:var(--mut);font-size:12px}.warn{color:#f5b25a;font-size:12.5px;margin:6px 0}
+.sw{display:flex;align-items:center;gap:10px;font-size:13px;margin:7px 0;cursor:pointer}
+.sw input{display:none}.sw span{width:34px;height:20px;border-radius:20px;background:#343a4d;position:relative;flex:none;transition:.2s}
+.sw span:after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+span{background:var(--ok)}.sw input:checked+span:after{left:17px}
+.row{display:flex;align-items:center;gap:8px;font-size:13px;margin:7px 0}.row input{width:54px;background:#232838;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:4px}
 @media(max-width:700px){
  .stats{margin-left:0;width:100%;justify-content:space-between}
  #panel{top:auto;left:12px;right:12px;width:auto;height:62vh;transform:translateY(calc(100% + 24px))}
@@ -69,7 +87,7 @@ header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align
 <div id="labels"></div>
 <header>
  <div class="logo"><i>✦</i>Agencja AI <span style="color:var(--mut);font-weight:400">· social media</span></div>
- <div class="stats"><span><b id="sA">0</b>agentów</span><span><b id="sR">0</b>pracuje</span><span><b id="sT">0</b>zadań dziś</span></div>
+ <div class="stats"><span><b id="sA">0</b>aktywnych agentów</span><span><b id="sR">0</b>pracuje</span><span>autopilot <b id="sT">–</b></span></div>
 </header>
 <div id="feed"></div>
 <div id="models"></div>
@@ -78,33 +96,30 @@ header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ===== DANE: działy i agenci (podmień na dane z backendu) =====
+// ===== DANE: działy i agenci =====
+// id: agent backendu (scout/qa/op) albo wf:<regex nazwy workflow n8n>; soon = jeszcze nie działa
 const DEPTS=[
- {name:'Research',sub:'Trendy, tematy i konkurencja',color:'#4f6fe0',icon:'🔍',agents:[
-  {n:'Trend Scout',m:'Sonnet',s:'trend-analyst',st:1},{n:'SEO Hunter',m:'Haiku',s:'social-seo-researcher',st:1},{n:'Konkurencja',m:'Haiku',s:'web-search',st:0}],
-  msg:['znalazł 3 nowe trendy na TikToku','zebrał hashtagi pod #space','przeanalizował 12 filmów konkurencji']},
- {name:'Skrypty',sub:'Hooki, scenariusze, opisy',color:'#e0a92e',icon:'✍️',agents:[
-  {n:'Hook Master',m:'Sonnet',s:'hook-generator',st:1},{n:'Scenarzysta',m:'Sonnet',s:'story-reel-scriptwriter',st:1},{n:'Copywriter',m:'Haiku',s:'caption-writer',st:0}],
-  msg:['napisał 5 hooków','skończył scenariusz 32s','dodał opis i CTA']},
- {name:'Publikacja',sub:'Kalendarz i wrzutki na kanały',color:'#c94fc0',icon:'📲',agents:[
-  {n:'Planer',m:'Sonnet',s:'monthly-content-planner',st:1},{n:'Publisher',m:'Haiku',s:'n8n · Publisher',st:0},{n:'Repurposer',m:'Haiku',s:'content-repurposer',st:1}],
-  msg:['zaplanował posty na tydzień','opublikował Reel na IG','przerobił film na karuzelę']},
- {name:'Kreacja',sub:'Grafika, wideo, montaż',color:'#7a5ce0',icon:'🎨',agents:[
-  {n:'Grafik',m:'Sonnet',s:'image-gen',st:1},{n:'Montażysta',m:'Haiku',s:'ffmpeg-renderer',st:1},{n:'Motion',m:'Sonnet',s:'motion-design',st:0},{n:'Miniatury',m:'Haiku',s:'thumbnail',st:0}],
-  msg:['wyrenderował final.mp4','wygenerował 4 kadry','zrobił miniaturę']},
+ {name:'Research',sub:'Trendy i kolejka tematów dla PozaSkali',color:'#4f6fe0',icon:'🔍',panel:'research',agents:[
+  {n:'Trend Scout',m:'Sonnet',s:'trend-analyst + web search',id:'scout'},{n:'SEO Hunter',m:'Haiku',s:'social-seo-researcher',soon:1}]},
+ {name:'Skrypty',sub:'Scenariusz w generatorze n8n',color:'#e0a92e',icon:'✍️',agents:[
+  {n:'Scenarzysta',m:'GPT-4.1',s:'n8n · Message a model',id:'wf:^generator$'},{n:'Sędzia n8n',m:'GPT-4.1-mini',s:'n8n · Judge Script',id:'wf:^generator$'}]},
+ {name:'Publikacja',sub:'YouTube + Instagram',color:'#c94fc0',icon:'📲',agents:[
+  {n:'Publisher',m:'n8n',s:'n8n · Publisher',id:'wf:^publisher$'},{n:'Planer',m:'Sonnet',s:'monthly-content-planner',soon:1}]},
+ {name:'Kreacja',sub:'Lektor, kadry, scena wideo, montaż',color:'#7a5ce0',icon:'🎨',agents:[
+  {n:'Lektor',m:'OpenAI TTS',s:'n8n · lektor',id:'wf:^generator$'},{n:'Grafik',m:'OpenAI',s:'n8n · zdjęcie',id:'wf:^generator$'},
+  {n:'Kling',m:'Kling',s:'n8n · scena wideo',id:'wf:^generator$'},{n:'Montażysta',m:'FFmpeg',s:'n8n · Montaż film',id:'wf:^montaż film$'}]},
  {name:'Analityka',sub:'Wyniki i pętla zwrotna',color:'#2fb3a5',icon:'📊',agents:[
-  {n:'Analityk',m:'Sonnet',s:'performance-analyst',st:1},{n:'Raporty',m:'Haiku',s:'weekly-report',st:0}],
-  msg:['zaktualizował FAVOR/REDUCE','policzył zaangażowanie 7 dni','wysłał raport na Telegram']},
- {name:'Strategia',sub:'Kampanie i plan treści',color:'#d94b4b',icon:'🎯',agents:[
-  {n:'Strateg',m:'Sonnet',s:'campaign-strategist',st:1},{n:'Content Lead',m:'Sonnet',s:'social-content',st:0}],
-  msg:['przygotował plan kampanii','ustalił filary treści']},
- {name:'Automatyzacje',sub:'n8n, VPS, błędy',color:'#3fae5a',icon:'⚙️',agents:[
-  {n:'n8n Operator',m:'Haiku',s:'n8n · generator',st:1},{n:'Error Watch',m:'Haiku',s:'telegram-notifier',st:1},{n:'Dev',m:'Sonnet',s:'code',st:0}],
-  msg:['uruchomił generator 8:00','sprawdził kolejkę _queue','retry: Kling OK']},
+  {n:'Analityk',m:'n8n',s:'Analytics Collector',id:'wf:^analytics collector$'},{n:'Raporty',m:'Haiku',s:'centrum · raport tygodnia',id:'on'}]},
+ {name:'Kontrola jakości',sub:'Ocena i poprawki scenariusza przed nagraniem',color:'#d94b4b',icon:'🛡️',panel:'qa',agents:[
+  {n:'Kontroler',m:'Sonnet',s:'ocena 1–10 + fakty',id:'qa'},{n:'Hook Master',m:'Sonnet',s:'hook-generator',id:'qa'}]},
+ {name:'Automatyzacje',sub:'Sterowanie n8n i autopilot',color:'#3fae5a',icon:'⚙️',panel:'ops',agents:[
+  {n:'n8n Operator',m:'Haiku',s:'workflow on/off, start',id:'op'},{n:'Error Watch',m:'push',s:'powiadomienia z apki',id:'on'}]},
  {name:'Inbox',sub:'Komentarze i wiadomości',color:'#e07a2e',icon:'💬',agents:[
-  {n:'Komentarze',m:'Haiku',s:'reply-comments',st:0},{n:'DM',m:'Haiku',s:'reply-dm',st:0}],
-  msg:['odpowiedział na 8 komentarzy','posortował DM-y']}
+  {n:'Komentarze',m:'Haiku',s:'reply-comments',soon:1},{n:'DM',m:'Haiku',s:'reply-dm',soon:1}]}
 ];
+DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
+const AG_NAMES={scout:'Trend Scout',qa:'Kontroler',op:'n8n Operator',n8n:'n8n'};
+const AG_DEPT={scout:0,qa:5,op:6,n8n:6};
 
 // ===== SCENA =====
 const el=document.getElementById('scene'),W=()=>innerWidth,H=()=>innerHeight;
@@ -182,45 +197,92 @@ const pl=new THREE.PointLight(0x9fd8ff,1.6,26);pl.position.y=3.2;scene.add(pl);
 
 // ===== UI =====
 const $=id=>document.getElementById(id),lblBox=$('labels'),labels=[];
+const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 DEPTS.forEach((d,i)=>{const e=document.createElement('div');e.className='lbl';e.style.setProperty('--c',d.color);e.onclick=()=>openPanel(i);lblBox.appendChild(e);labels.push(e)});
 const brain=document.createElement('div');brain.className='lbl brain';lblBox.appendChild(brain);
-let notes=1642,tasks=0,filter='Wszystkie',openI=-1;
+let filter='Wszystkie',openI=-1,A=null,P=null,LINK=null,seenLog=new Set(),firstLog=true;
+const api=async(u,o)=>{const r=await fetch(u,o);if(!r.ok)throw new Error(r.status);return r.json()};
+const post=(u,b)=>api(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+
+function agentState(a){ // 2 = pracuje, 1 = gotowy, 0 = wyłączony/wkrótce
+ if(a.soon)return 0;if(a.id==='on')return 1;
+ if(a.id?.startsWith('wf:')){if(!P?.ok)return 0;const re=new RegExp(a.id.slice(3),'i'),w=P.workflows.filter(w=>re.test(w.name));
+  if(P.executions.some(e=>e.status==='running'&&w.some(x=>x.id===e.workflowId)))return 2;return w.some(x=>x.active)?1:0}
+ if(!A)return 0;if(A.busy[a.id])return 2;return A.settings.autopilot&&A.ai?1:0}
 function refresh(){
- DEPTS.forEach((d,i)=>{const r=d.agents.filter(a=>a.st).length;
-  labels[i].innerHTML=`<span class="ic">${d.icon}</span><div><b>${d.name}</b><small><i></i>${d.agents.length} ag. · ${r} pracuje</small></div>`});
- brain.innerHTML=`MÓZG<span>${notes.toLocaleString('pl')} notatek · wspólna pamięć</span>`;
- const all=agents.length,run=agents.filter(o=>o.a.st).length;$('sA').textContent=all;$('sR').textContent=run;$('sT').textContent=tasks;
- agents.forEach(o=>{o.sm.color.copy(o.a.st?tint(o.c,.45):new THREE.Color(0x222633));
-  const hit=filter!=='Wszystkie'&&o.a.m===filter;o.f.bm.emissive.set(hit?0xffffff:0x000000);o.f.bm.emissiveIntensity=hit?.45:0});
+ DEPTS.forEach(d=>d.agents.forEach(a=>a.st=agentState(a)));
+ DEPTS.forEach((d,i)=>{const r=d.agents.filter(a=>a.st===2).length,on=d.agents.filter(a=>a.st).length;
+  labels[i].innerHTML=`<span class="ic">${d.icon}</span><div><b>${d.name}</b><small>${r?'<i></i>':''}${on}/${d.agents.length} aktywnych${r?' · '+r+' pracuje':''}</small></div>`});
+ const q=A?A.queue.length:0;
+ brain.innerHTML=`MÓZG<span>${q} tematów w kolejce · ${A?.avg_score?'śr. ocena '+A.avg_score+'/10':'pamięć wspólna'}</span>`;
+ $('sA').textContent=agents.filter(o=>o.a.st).length+'/'+agents.length;$('sR').textContent=agents.filter(o=>o.a.st===2).length;
+ $('sT').textContent=A?(A.settings.autopilot?'ON':'OFF'):'–';
+ agents.forEach(o=>{o.sm.color.copy(o.a.st===2?tint(o.c,.45):o.a.st===1?tint(o.c,.15,0x000000).multiplyScalar(.6):new THREE.Color(0x1a1c25));
+  o.f.bm.color.copy(o.a.st?tint(o.c,.3,0x222222):new THREE.Color(0x555a6a));
+  const hit=filter!=='Wszystkie'&&o.a.m.toLowerCase().includes(filter.toLowerCase());o.f.bm.emissive.set(hit?0xffffff:0x000000);o.f.bm.emissiveIntensity=hit?.45:0});
  if(openI>=0)renderPanel(openI);
 }
+const ago=t=>{const s=Date.now()/1000-t;return s<90?'teraz':s<3600?Math.round(s/60)+' min':s<86400?Math.round(s/3600)+' godz.':Math.round(s/86400)+' dni'};
+const agRow=a=>`<div class="ag ${a.st===2?'run':''} ${a.st?'':'soon'}"><span class="d"></span><b>${a.n}</b><span class="m">${a.m}</span><code>${esc(a.s)}${a.soon?' · wkrótce':''}</code></div>`;
 function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.color);
  $('pt').innerHTML=`${d.icon} ${d.name}`;$('pd').textContent=d.sub;
- $('pl').innerHTML=d.agents.map((a,k)=>`<div class="ag ${a.st?'run':''}"><span class="d"></span><b>${a.n}</b><span class="m">${a.m}</span><code>skill: ${a.s}</code><button data-k="${k}">${a.st?'Zatrzymaj':'Zleć zadanie'}</button></div>`).join('');
- $('pl').querySelectorAll('button').forEach(b=>b.onclick=()=>{const a=d.agents[b.dataset.k];a.st=a.st?0:1;log(i,`${a.n} ${a.st?'startuje':'zatrzymany'}`);refresh()});
+ let h=d.agents.map(agRow).join('');
+ if(d.panel==='research'&&A){
+  h+=`<div class="sec"><h3>Kolejka tematów (${A.queue.length})<button class="btn" id="go-res">${A.busy.scout?'Szuka…':'Szukaj teraz'}</button></h3>`+
+   (A.queue.map(t=>`<div class="tp"><div><b>${esc(t.topic)}</b><small>${esc(t.pillar||t.category)} · ${esc(t.hook)}</small><small class="why">${esc(t.why)}</small></div>
+    <span class="acts"><button title="Następny" data-t="${t.id}" data-a="top">⬆</button><button title="Pomiń" data-t="${t.id}" data-a="skip">✕</button></span></div>`).join('')||'<p class="mut">Pusto – Trend Scout dorzuci tematy rano albo gdy generator poprosi.</p>')+
+   (A.used.length?`<h3>Ostatnio użyte</h3>`+A.used.slice(0,6).map(t=>`<div class="tp used"><div><b>${esc(t.topic)}</b><small>${t.used?ago(t.used)+' temu':''}</small></div></div>`).join(''):'')+'</div>';
+ }
+ if(d.panel==='qa'&&A){
+  h+=`<div class="sec"><h3>Ostatnie oceny${A.avg_score?' · średnio '+A.avg_score+'/10':''}</h3>`+
+   (A.reviews.map(r=>`<div class="rv"><span class="sc ${r.score>=A.settings.min_score?'ok':'bad'}">${Math.round(r.score)}</span><div><b>${esc(r.topic)}</b>
+    ${r.changed?.length?`<small>poprawił: ${esc(r.changed.join(', '))}</small>`:'<small>bez zmian</small>'}${r.before&&r.after&&r.before!==r.after?`<small class="hk">„${esc(r.before)}” → „${esc(r.after)}”</small>`:''}
+    ${(r.issues||[]).slice(0,3).map(x=>`<small class="mut">• ${esc(x)}</small>`).join('')}</div></div>`).join('')||'<p class="mut">Jeszcze nic nie oceniał – pierwsza ocena przy najbliższym generatorze.</p>')+'</div>';
+ }
+ if(d.panel==='ops'){
+  const L=LINK;h+=`<div class="sec"><h3>Autopilot</h3>
+   <label class="sw"><input type="checkbox" id="ap" ${A?.settings.autopilot?'checked':''}><span></span>Agencja steruje generatorem</label>
+   <label class="row">Próg jakości <input type="number" id="ms" min="1" max="10" value="${A?.settings.min_score||7}"> /10</label>
+   ${A&&!A.ai?'<p class="warn">Brak klucza Claude (ANTHROPIC_API_KEY) – agenci nie mają mózgu.</p>':''}
+   <h3>Generator n8n</h3>${!L?'<p class="mut">Sprawdzam…</p>':!L.ok?`<p class="warn">${esc(L.error||'Nie znalazłem generatora')}</p>`:
+   `<p>${esc(L.generator)}: ${L.connected?'<b style="color:var(--ok)">podpięty do agencji</b>':'<b>niepodpięty</b>'}</p>
+   <div class="btns"><button class="btn" id="lk">${L.connected?'Odepnij agencję':'Podepnij agencję'}</button>${L.connected?'<button class="btn" id="run">▶ Uruchom generator teraz</button>':''}</div>`}
+   <h3>Workflow</h3>${P?.ok?P.workflows.filter(w=>!/clip|kopia|\d$/i.test(w.name)).map(w=>`<label class="sw"><input type="checkbox" data-w="${w.id}" ${w.active?'checked':''}><span></span>${esc(w.name)}</label>`).join(''):'<p class="mut">Brak danych z n8n.</p>'}</div>`;
+ }
+ if(!d.panel&&P?.ok){const ids=d.agents.filter(a=>a.id?.startsWith('wf:')).map(a=>new RegExp(a.id.slice(3),'i'));
+  const ex=P.executions.filter(e=>ids.some(r=>r.test(e.workflow))).slice(0,6);
+  if(ex.length)h+=`<div class="sec"><h3>Ostatnie uruchomienia</h3>`+ex.map(e=>`<div class="tp used"><div><b>${esc(e.workflow)} · ${({success:'sukces',error:'błąd',running:'działa'})[e.status]||e.status}</b><small>${new Date(e.startedAt).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small></div></div>`).join('')+'</div>'}
+ $('pl').innerHTML=h;
+ const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
+ on('go-res',async()=>{await post('/api/agency/research');setTimeout(poll,1500)});
+ $('pl').querySelectorAll('[data-t]').forEach(b=>b.onclick=async()=>{await post('/api/agency/topics/'+b.dataset.t,{action:b.dataset.a});poll()});
+ const ap=$('ap');if(ap)ap.onchange=async()=>{await post('/api/agency/settings',{autopilot:ap.checked});poll()};
+ const ms=$('ms');if(ms)ms.onchange=async()=>{await post('/api/agency/settings',{min_score:+ms.value});poll()};
+ on('lk',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/'+(LINK.connected?'disconnect':'connect')).catch(()=>({ok:false,error:'błąd sieci'}));
+  if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
+ on('run',async e=>{if(!confirm('Uruchomić generator teraz? Powstanie dodatkowy film (koszt API).'))return;e.target.disabled=true;const r=await post('/api/agency/run/generator');e.target.textContent=r.ok?'Wystartował ✓':'Nie udało się';poll()});
+ $('pl').querySelectorAll('[data-w]').forEach(c=>c.onchange=async()=>{await post(`/api/agency/n8n/${c.dataset.w}/${c.checked?'activate':'deactivate'}`);setTimeout(poll,800)});
 }
-function openPanel(i){openI=i;renderPanel(i);$('panel').classList.add('open');const r=rooms[i];target.set(r.p.x,0,r.p.z);placeCam()}
+async function loadLink(){try{LINK=await api('/api/agency/link')}catch(e){LINK={ok:false,error:'Brak połączenia'}}if(openI>=0)renderPanel(openI)}
+function openPanel(i){openI=i;renderPanel(i);$('panel').classList.add('open');const r=rooms[i];target.set(r.p.x,0,r.p.z);placeCam();if(DEPTS[i].panel==='ops')loadLink()}
 $('px').onclick=()=>{$('panel').classList.remove('open');openI=-1};
 addEventListener('keydown',e=>{if(e.key==='Escape')$('px').onclick()});
-function log(i,t){const d=DEPTS[i],e=document.createElement('div');e.className='ev';e.style.setProperty('--c',d.color);
- const now=new Date();e.innerHTML=`<small>${now.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}</small>${t}`;
+function log(i,t,when){const d=DEPTS[i],e=document.createElement('div');e.className='ev';e.style.setProperty('--c',d.color);
+ const tm=when?new Date(when*1000):new Date();e.innerHTML=`<small>${tm.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}</small>${esc(t)}`;
  const f=$('feed');f.prepend(e);while(f.children.length>4)f.lastChild.remove()}
-['Wszystkie','Sonnet','Haiku','Opus'].forEach(m=>{const c=document.createElement('button');c.className='chip'+(m===filter?' on':'');c.textContent=m;
+['Wszystkie','Sonnet','Haiku','GPT','n8n'].forEach(m=>{const c=document.createElement('button');c.className='chip'+(m===filter?' on':'');c.textContent=m;
  c.onclick=()=>{filter=m;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));refresh()};$('models').appendChild(c)});
 
-// symulacja pracy (do zastąpienia prawdziwymi zdarzeniami z n8n/API)
-setInterval(()=>{const o=agents[Math.random()*agents.length|0],d=DEPTS[o.d];
- if(o.a.st){log(o.d,`${o.a.n}: ${d.msg[Math.random()*d.msg.length|0]}`);tasks++;notes+=1+(Math.random()*4|0);if(Math.random()<.25)o.a.st=0}
- else if(Math.random()<.5){o.a.st=1;log(o.d,`${o.a.n} bierze zadanie`)}
- refresh()},3200);
-
-// prawdziwe zdarzenia z n8n (PozaSkala) trafiają do działu Automatyzacje
-const seen=new Set(),AUTO=DEPTS.findIndex(d=>d.name==='Automatyzacje');
-async function n8nFeed(){try{const r=await fetch('/api/pozaskala/status');if(!r.ok)return;const s=await r.json();if(!s.ok)return;
- const first=!seen.size;s.executions.slice(0,first?3:20).reverse().forEach(e=>{const k=e.id+e.status;if(seen.has(k))return;seen.add(k);
-  const st={success:'✓ sukces',error:'✗ błąd',running:'▶ działa',waiting:'⏳ czeka'}[e.status]||e.status;log(AUTO,`n8n · ${e.workflow}: ${st}`)});
- const run=s.executions.some(e=>e.status==='running');DEPTS[AUTO].agents[0].st=run||DEPTS[AUTO].agents[0].st;refresh()}catch(e){}}
-n8nFeed();setInterval(n8nFeed,60000);
+// prawdziwy stan agencji + n8n
+async function poll(){
+ try{A=await api('/api/agency/state')}catch(e){}
+ try{P=await api('/api/pozaskala/status')}catch(e){}
+ if(A){const L=A.log.slice().reverse();L.forEach(e=>{const k=e.t+e.agent;if(seenLog.has(k))return;seenLog.add(k);
+  if(!firstLog||L.indexOf(e)>=L.length-4)log(AG_DEPT[e.agent]??6,`${AG_NAMES[e.agent]||e.agent}: ${e.text}`,e.t)})}
+ if(P?.ok)P.executions.slice(0,firstLog?2:15).reverse().forEach(e=>{const k='x'+e.id+e.status;if(seenLog.has(k))return;seenLog.add(k);
+  log(6,`n8n · ${e.workflow}: ${({success:'✓ sukces',error:'✗ błąd',running:'▶ działa'})[e.status]||e.status}`,Date.parse(e.startedAt)/1000)});
+ firstLog=false;refresh()}
+poll();setInterval(poll,15000);
 
 // ===== STEROWANIE =====
 const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=null,hover=-1;

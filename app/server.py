@@ -40,7 +40,8 @@ def check_pass(pw):
 
 @app.middleware("http")
 async def guard(req: Request, call_next):
-    if req.url.path.startswith("/api/") and req.url.path != "/api/login" and not authed(req):
+    # /api/agency/hook/* woła n8n – tam sprawdzany jest token agencji, nie sesja
+    if req.url.path.startswith("/api/") and req.url.path != "/api/login" and not req.url.path.startswith("/api/agency/hook/") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if req.url.path == "/":
@@ -82,6 +83,8 @@ app.include_router(extra_router)
 
 from pozaskala import router as pozaskala_router  # noqa: E402
 app.include_router(pozaskala_router)
+from agency import router as agency_router  # noqa: E402
+app.include_router(agency_router)
 
 
 @app.get("/")
