@@ -486,14 +486,35 @@ async def hook_redakcja(req: Request, key: str = ""):
                             status_code=502)
 
 
+KEYTERMS_BAZA = ["kcal", "białko", "makro", "węglowodany", "tłuszcze", "redukcja", "siłownia", "odcinek",
+                 "WNBF", "Daily WNBF Vlog", "Lublin", "owsianka", "płatki owsiane", "skyr", "twaróg", "sos z Dzika",
+                 "Dzik", "kurczak", "ryż", "omlet", "serek kanapkowy", "dżem z Łowicza", "kasza manna", "orkisz",
+                 "borówki", "gyros"]
+
+
+def _keyterms():
+    """Słowa, które Scribe ma wyłapywać: stała lista + poprawne słowa ze słownika poprawek (uczy się z uwag)."""
+    out, seen = [], set()
+    for t in KEYTERMS_BAZA + [x.get("na", "") for x in _slownik()]:
+        t = str(t).strip()
+        if t and len(t) <= 50 and t.lower() not in seen:
+            seen.add(t.lower()); out.append(t)
+    return out[:1000]
+
+
 async def _scribe(audio: bytes, key: str, fname="a.mp3", mime="audio/mpeg"):
-    """ElevenLabs Scribe – rozpoznawanie mowy (najdokładniejsze dla polskiego). Zwraca JSON odpowiedzi albo None."""
+    """ElevenLabs Scribe – rozpoznawanie mowy (najdokładniejsze dla polskiego). Zwraca JSON odpowiedzi albo None.
+    scribe_v2 dostaje listę słów kluczowych; gdy ich nie przyjmie – ponowna próba bez nich."""
+    base = {"language_code": "pol", "tag_audio_events": "false", "timestamps_granularity": "word"}
+    kt = _keyterms()
+    tries = ([("scribe_v2", kt)] if kt else []) + [("scribe_v2", None), ("scribe_v1", None)]
     async with httpx.AsyncClient(timeout=300, trust_env=False) as c:
-        for model in ("scribe_v2", "scribe_v1"):
+        for model, terms in tries:
+            data = {**base, "model_id": model}
+            if terms:
+                data["keyterms"] = terms
             r = await c.post("https://api.elevenlabs.io/v1/speech-to-text", headers={"xi-api-key": key},
-                             data={"model_id": model, "language_code": "pol", "tag_audio_events": "false",
-                                   "timestamps_granularity": "word"},
-                             files={"file": (fname, audio, mime)})
+                             data=data, files={"file": (fname, audio, mime)})
             if r.status_code == 200:
                 return r.json()
             if r.status_code not in (400, 404, 422):

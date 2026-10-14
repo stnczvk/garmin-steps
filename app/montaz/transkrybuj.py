@@ -62,16 +62,38 @@ def extract_audio(video, out):
 SCRIBE_USED = False
 
 
+KEYTERMS_BAZA = ["kcal", "białko", "makro", "węglowodany", "tłuszcze", "redukcja", "siłownia", "owsianka",
+                 "płatki owsiane", "skyr", "twaróg", "sos z Dzika", "Dzik", "kurczak", "ryż", "omlet",
+                 "serek kanapkowy", "dżem z Łowicza", "kasza manna", "orkisz", "borówki", "gyros"]
+
+
+def keyterms():
+    """Słowa kluczowe dla Scribe: stała lista + poprawne słowa ze słownika poprawek (MONTAZ_SLOWNIK)."""
+    extra = []
+    try:
+        extra = [x.get("na", "") for x in json.loads(open(os.environ["MONTAZ_SLOWNIK"], encoding="utf-8").read())]
+    except Exception:
+        pass
+    out, seen = [], set()
+    for t in KEYTERMS_BAZA + extra:
+        t = str(t).strip()
+        if t and len(t) <= 50 and t.lower() not in seen:
+            seen.add(t.lower()); out.append(t)
+    return out[:1000]
+
+
 def scribe(audio_path):
     """ElevenLabs Scribe (gdy jest klucz) – wynik w tym samym kształcie co Groq: {text, words:[{word,start,end}]}."""
     ek = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     if not ek:
         return None
-    for model in ("scribe_v2", "scribe_v1"):
+    kt = keyterms()
+    for model, terms in ([("scribe_v2", kt)] if kt else []) + [("scribe_v2", None), ("scribe_v1", None)]:
         boundary = uuid.uuid4().hex
         body = b""
-        for k, v in {"model_id": model, "language_code": "pol", "tag_audio_events": "false",
-                     "timestamps_granularity": "word"}.items():
+        fields = [("model_id", model), ("language_code", "pol"), ("tag_audio_events", "false"),
+                  ("timestamps_granularity", "word")] + [("keyterms", t) for t in (terms or [])]
+        for k, v in fields:
             body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n").encode()
         body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{audio_path.name}\"\r\n"
                  f"Content-Type: audio/mpeg\r\n\r\n").encode() + audio_path.read_bytes() + f"\r\n--{boundary}--\r\n".encode()
