@@ -530,6 +530,70 @@ async def inbox_send(cid: str, req: Request):
     return {"ok": True}
 
 
+# ---------- Analityk kont prywatnych: raport tygodniowy z Twoich prywatnych kont ----------
+def private_report(force=False):
+    from social import _read as sread
+    if _busy.get("private"):
+        return 0
+    _busy["private"] = "analizuje konta prywatne"
+    try:
+        accs = {k: a for k, a in sread("cache.json", {}).get("accounts", {}).items() if a.get("group") == "prywatne"}
+        if not accs:
+            log("private", "Brak połączonych kont w grupie Prywatne", "warn")
+            return 0
+        try:
+            ins = insights("prywatne")
+        except Exception:
+            ins = {"ok": False}
+        posts = []
+        for a in accs.values():
+            for p in (a.get("posts") or [])[:20]:
+                posts.append(f"- [{a.get('platform')}/{a.get('name')}] {p.get('date', '')} „{(p.get('title') or 'bez opisu')[:90]}” "
+                             f"wyśw. {p.get('views') or 0}, polub. {p.get('likes') or 0}, kom. {p.get('comments') or 0}, "
+                             f"zapis. {p.get('saved') or 0}, udost. {p.get('shares') or 0}{', ' + str(int(p['dur'])) + ' s' if p.get('dur') else ''}")
+        acc_txt = "\n".join(f"- {a.get('name')} ({a.get('platform')}): {a.get('followers')} obserwujących, zmiana 28 dni {a.get('followers_28d')}, "
+                            f"wyświetlenia 28 dni {a.get('views_28d')}" for a in accs.values())
+        extra_txt = ""
+        if ins.get("ok"):
+            extra_txt = ("Formaty (wynik względem mediany konta): " + ", ".join(f"{f['kind']}/{f['platform']} {f['rel']}× (n={f['n']})" for f in ins["formats"]) +
+                         ("\nDługości: " + ", ".join(f"{l['label']} {l['rel']}×" for l in ins["lengths"]) if ins.get("lengths") else "") +
+                         (f"\nNajlepszy moment publikacji: {ins['slot']}" if ins.get("slot") else ""))
+        txt = claude(f"""Jesteś analitykiem social media agencji. Analizujesz PRYWATNE konta właściciela (jego własne nagrania, po polsku).
+KONTA:
+{acc_txt}
+
+OSTATNIE POSTY:
+{chr(10).join(posts[:60]) or 'brak'}
+
+{extra_txt}
+
+Napisz po polsku zwięzły raport tygodniowy:
+1. Wynik w skrócie (2 zdania z liczbami).
+2. Co działa – 3 punkty (tematy, format, długość, hook, pora) oparte na danych powyżej.
+3. Co nie działa – 2 punkty.
+4. Plan na najbliższy tydzień: 3 konkretne pomysły na posty (temat + hook na pierwsze 2 s + format) dopasowane do tego, co działa.
+Każdy punkt od „• ”. Bez wstępu, bez ogólników, nie wymyślaj liczb spoza danych.""", SMART, 1400)
+        rep = {"at": time.time(), "text": txt.strip(), "accounts": [{"name": a.get("name"), "platform": a.get("platform"),
+               "followers": a.get("followers"), "followers_28d": a.get("followers_28d"), "views_28d": a.get("views_28d")} for a in accs.values()]}
+        hist = _read("agency_private.json", [])
+        hist.append(rep)
+        _write("agency_private.json", hist[-8:])
+        log("private", f"Raport kont prywatnych gotowy ({len(accs)} kont, {len(posts)} postów)", "ok")
+        push_all("👤 Raport Twoich kont", "Analityk przygotował wnioski i plan postów na tydzień.", "/#agencja")
+        return 1
+    except Exception as e:
+        log("private", f"Raport prywatny nie zadziałał: {e}", "error")
+        return 0
+    finally:
+        _busy.pop("private", None)
+
+
+@router.post("/api/agency/private")
+def do_private():
+    threading.Thread(target=private_report, kwargs={"force": True}, daemon=True).start()
+    return {"ok": True}
+
+
 # ---------- n8n Operator ----------
 def n8n(method, path, **kw):
     base = os.environ.get("N8N_URL", "http://127.0.0.1:5678").rstrip("/")
@@ -608,7 +672,7 @@ def state():
     return {"settings": {k: v for k, v in s.items() if k != "token"}, "token": s["token"], "busy": _busy,
             "queue": [x for x in t if x["status"] == "queued"], "used": [x for x in t if x["status"] == "used"][-15:][::-1],
             "log": L[-60:][::-1], "last": last,
-            "lessons": _read("agency_lessons.json", {}), "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
+            "lessons": _read("agency_lessons.json", {}), "private": _read("agency_private.json", [])[-3:][::-1], "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
             "inbox": I["items"][-25:][::-1], "tech": [e["extra"] for e in L if e["agent"] == "tech" and e.get("extra")][-8:][::-1], "reviews": reviews[::-1], "ai": ai_ready(), "provider": provider(), "models": dict(zip(("smart", "fast"), MODELS[provider()])),
             "avg_score": round(sum(r["score"] for r in reviews) / len(reviews), 1) if reviews else None}
 
@@ -741,7 +805,7 @@ def link(action: str):
 # ---------- harmonogram: codziennie rano dopełnia kolejkę ----------
 def _loop():
     time.sleep(90)
-    done = done_ret = None
+    done = done_ret = done_priv = None
     last_inbox = 0
     while True:
         try:
@@ -756,6 +820,9 @@ def _loop():
         except Exception as e:
             print("agency loop", e, flush=True)
         try:
+            if ai_ready() and now.weekday() == 0 and now.hour == 8 and done_priv != now.date():
+                done_priv = now.date()
+                private_report()
             if ai_ready() and now.hour == 7 and done_ret != now.date():
                 done_ret = now.date()
                 retention()

@@ -288,3 +288,62 @@ def _watch():
 
 import threading as _th  # noqa: E402
 _th.Thread(target=_watch, daemon=True).start()
+
+
+# ---------- notowania OKX do wykresu świecowego i paska kursów (publiczne API, bez klucza) ----------
+_okx = {}
+
+
+def _inst(sym):
+    """'BTC/USDT:USDT' albo 'BTC' -> 'BTC-USDT-SWAP'."""
+    base = sym.split("/")[0].split("-")[0].upper()
+    return f"{base}-USDT-SWAP"
+
+
+@router.get("/api/scanner/candles")
+def candles(symbol: str = "BTC", bar: str = "1H", limit: int = 120):
+    if bar not in ("15m", "1H", "4H", "1D"):
+        bar = "1H"
+    inst, key = _inst(symbol), f"{symbol}|{bar}"
+    c = _okx.get(key)
+    if c and time.time() - c[0] < 20:
+        return c[1]
+    try:
+        r = httpx.get("https://www.okx.com/api/v5/market/candles", params={"instId": inst, "bar": bar, "limit": max(20, min(limit, 300))},
+                      timeout=10).json()
+        rows = [{"t": int(x[0]), "o": float(x[1]), "h": float(x[2]), "l": float(x[3]), "c": float(x[4]), "v": float(x[5])} for x in r.get("data", [])][::-1]
+        out = {"ok": bool(rows), "symbol": inst.split("-")[0], "inst": inst, "bar": bar, "candles": rows, "error": r.get("msg") if not rows else None}
+    except Exception as e:
+        out = {"ok": False, "symbol": inst.split("-")[0], "error": str(e)[:120], "candles": []}
+    # poziomy z otwartej (prawdziwej) pozycji na tym symbolu
+    try:
+        if os.path.exists(DB):
+            p = _q("SELECT direction, entry, stop_loss, tp1, tp2, elite_score, status FROM trade_signals WHERE is_shadow=0 AND result IS NULL "
+                   "AND symbol LIKE ? ORDER BY id DESC LIMIT 1", (inst.split("-")[0] + "/%",))
+            out["position"] = p[0] if p else None
+    except Exception:
+        out["position"] = None
+    _okx[key] = (time.time(), out)
+    return out
+
+
+@router.get("/api/scanner/tickers")
+def tickers():
+    c = _okx.get("tickers")
+    if c and time.time() - c[0] < 30:
+        return c[1]
+    want = ["BTC", "ETH", "SOL", "XRP", "BNB", "TAO", "HYPE", "AVAX", "LINK", "SUI", "XAU", "NVDA", "MSTR", "SPY", "QQQ"]
+    try:
+        if os.path.exists(DB):
+            want = list(dict.fromkeys([r["s"].split("/")[0] for r in _q("SELECT DISTINCT symbol AS s FROM trade_signals ORDER BY id DESC LIMIT 40")] + want))[:24]
+    except Exception:
+        pass
+    try:
+        data = httpx.get("https://www.okx.com/api/v5/market/tickers", params={"instType": "SWAP"}, timeout=10).json().get("data", [])
+        m = {d["instId"].split("-")[0]: d for d in data if d["instId"].endswith("-USDT-SWAP")}
+        out = {"ok": True, "items": [{"s": s, "last": float(m[s]["last"]), "chg": round((float(m[s]["last"]) / float(m[s]["open24h"]) - 1) * 100, 2)}
+                                     for s in want if s in m and float(m[s]["open24h"] or 0)]}
+    except Exception as e:
+        out = {"ok": False, "items": [], "error": str(e)[:120]}
+    _okx["tickers"] = (time.time(), out)
+    return out

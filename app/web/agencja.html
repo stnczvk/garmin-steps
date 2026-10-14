@@ -78,6 +78,7 @@ header{position:fixed;top:12px;left:12px;right:12px;border-radius:18px;z-index:3
 .rt b{font:600 12px 'JetBrains Mono';text-align:right}.rt b.g{color:var(--ok)}.rt b.r{color:#ff7b70}
 .cm{border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:8px}.cm p{font-size:13px;margin:4px 0}
 .cm textarea{width:100%;min-height:58px;background:#1b1f2c;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:6px;font:12.5px Inter;resize:vertical}
+details{margin:6px 0}summary{cursor:pointer;font-size:12.5px;color:var(--mut);margin:6px 0}
 @media(max-width:700px){
  .stats{margin-left:0;width:100%;justify-content:space-between}
  #panel{top:auto;left:12px;right:12px;width:auto;height:62vh;transform:translateY(calc(100% + 24px))}
@@ -122,11 +123,13 @@ const DEPTS=[
  {name:'Automatyzacje',sub:'Sterowanie n8n i autopilot',color:'#3fae5a',icon:'⚙️',panel:'ops',agents:[
   {n:'n8n Operator',m:'Haiku',s:'workflow on/off, start',id:'op'},{n:'Error Watch',m:'push',s:'powiadomienia z apki',id:'on'}]},
  {name:'Inbox',sub:'Odpowiedzi na komentarze YouTube i Instagram',color:'#e07a2e',icon:'💬',panel:'inbox',agents:[
-  {n:'Komentarze YT',m:'Haiku',s:'odpowiada sam (max 40/dzień)',id:'inbox'},{n:'Komentarze IG',m:'Haiku',s:'odpowiada sam',id:'inbox'}]}
+  {n:'Komentarze YT',m:'Haiku',s:'odpowiada sam (max 40/dzień)',id:'inbox'},{n:'Komentarze IG',m:'Haiku',s:'odpowiada sam',id:'inbox'}]},
+ {name:'Konta prywatne',sub:'Analiza Twoich kont i plan postów (pon. 8:00)',color:'#e6538a',icon:'👤',panel:'private',agents:[
+  {n:'Analityk prywatnych',m:'Sonnet',s:'performance-analyst',id:'private'},{n:'Doradca treści',m:'Sonnet',s:'social-content + hook-generator',id:'private'}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
-const AG_NAMES={scout:'Trend Scout',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox'};
-const AG_DEPT={scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7};
+const AG_NAMES={scout:'Trend Scout',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox',private:'Analityk prywatnych'};
+const AG_DEPT={scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7,private:8};
 
 // ===== SCENA =====
 const el=document.getElementById('scene'),W=()=>innerWidth,H=()=>innerHeight;
@@ -260,6 +263,14 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
     <textarea data-c="${esc(x.id)}">${esc(x.reply)}</textarea><div class="btns"><button class="btn" data-send="${esc(x.id)}">Wyślij</button><button class="btn" data-skip="${esc(x.id)}">Pomiń</button></div></div>`).join('')||'<p class="mut">Brak nowych komentarzy do odpowiedzi. Sprawdza co 30 min.</p>')+
    (A.inbox.some(x=>x.status==='sent')?`<h3>Wysłane</h3>`+A.inbox.filter(x=>x.status==='sent').slice(0,8).map(x=>`<div class="tp used"><div><b>${esc(x.reply)}</b><small>do ${esc(x.author)}: „${esc(x.text.slice(0,80))}”</small></div></div>`).join(''):'')+'</div>';
  }
+ if(d.panel==='private'&&A){const P0=A.private?.[0];
+  h+=`<div class="sec"><h3>Raport tygodniowy<button class="btn" id="go-priv">${A.busy.private?'Analizuje…':'Analizuj teraz'}</button></h3>`+
+   (P0?`<div class="rt" style="grid-template-columns:minmax(0,1fr) 70px 60px 70px"><span>konto</span><span>obserw.</span><span>28 dni</span><span>wyśw. 28d</span>`+
+     P0.accounts.map(a=>`<a>${esc(a.name)}</a><b>${a.followers??'–'}</b><b class="${(a.followers_28d||0)>=0?'g':'r'}">${a.followers_28d==null?'–':(a.followers_28d>=0?'+':'')+a.followers_28d}</b><b>${a.views_28d??'–'}</b>`).join('')+`</div>
+     <div class="lessons" style="margin-top:8px">${esc(P0.text).replace(/\n/g,'<br>')}</div><small class="mut">${ago(P0.at)} temu</small>`+
+     A.private.slice(1).map(r=>`<details><summary>${new Date(r.at*1000).toLocaleDateString('pl')}</summary><div class="lessons">${esc(r.text).replace(/\n/g,'<br>')}</div></details>`).join('')
+   :'<p class="mut">Jeszcze nie było raportu. Kliknij „Analizuj teraz” – potrzebne połączone konta w grupie Prywatne.</p>')+'</div>';
+ }
  if(d.panel==='ops'){
   const L=LINK;h+=`<div class="sec"><h3>Autopilot</h3>
    <label class="sw"><input type="checkbox" id="ap" ${A?.settings.autopilot?'checked':''}><span></span>Agencja steruje generatorem</label>
@@ -284,6 +295,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  on('lk',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/'+(LINK.connected?'disconnect':'connect')).catch(()=>({ok:false,error:'błąd sieci'}));
   if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
  on('lk-up',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/connect').catch(()=>({ok:false}));if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
+ on('go-priv',async()=>{await post('/api/agency/private');setTimeout(poll,2000)});
  on('go-ret',async()=>{await post('/api/agency/retention');setTimeout(poll,1500)});
  on('go-inb',async()=>{await post('/api/agency/inbox-run');setTimeout(poll,2000)});
  const inba=$('inba');if(inba)inba.onchange=async()=>{await post('/api/agency/settings',{inbox_auto:inba.checked});poll()};
