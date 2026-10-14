@@ -120,8 +120,8 @@ const DEPTS=[
   {n:'Kontroler',m:'Sonnet',s:'ocena 1–10 + fakty',id:'qa'},{n:'Hook Master',m:'Sonnet',s:'hook-generator',id:'qa'},{n:'Technik',m:'FFmpeg',s:'czarne klatki, cisza, długość',id:'tech'}]},
  {name:'Automatyzacje',sub:'Sterowanie n8n i autopilot',color:'#3fae5a',icon:'⚙️',panel:'ops',agents:[
   {n:'n8n Operator',m:'Haiku',s:'workflow on/off, start',id:'op'},{n:'Error Watch',m:'push',s:'powiadomienia z apki',id:'on'}]},
- {name:'Inbox',sub:'Odpowiedzi na komentarze (zatwierdzasz jednym kliknięciem)',color:'#e07a2e',icon:'💬',panel:'inbox',agents:[
-  {n:'Komentarze YT',m:'Haiku',s:'szkice odpowiedzi',id:'inbox'},{n:'Komentarze IG',m:'Haiku',s:'reply-comments',soon:1}]}
+ {name:'Inbox',sub:'Odpowiedzi na komentarze YouTube i Instagram',color:'#e07a2e',icon:'💬',panel:'inbox',agents:[
+  {n:'Komentarze YT',m:'Haiku',s:'odpowiada sam (max 40/dzień)',id:'inbox'},{n:'Komentarze IG',m:'Haiku',s:'odpowiada sam',id:'inbox'}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
 const AG_NAMES={scout:'Trend Scout',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox'};
@@ -255,9 +255,9 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  if(d.panel==='inbox'&&A){
   const dr=A.inbox.filter(x=>x.status==='draft');
   h+=`<div class="sec"><h3>Do zatwierdzenia (${dr.length})<button class="btn" id="go-inb">${A.busy.inbox?'Czyta…':'Sprawdź komentarze'}</button></h3>`+
-   (dr.map(x=>`<div class="cm"><small class="mut">${esc(x.author)} · ${esc(x.video)}</small><p>„${esc(x.text)}”</p>
+   (dr.map(x=>`<div class="cm"><small class="mut">${x.platform==='instagram'?'IG':'YT'} · ${esc(x.author)} · ${esc(x.video)}</small><p>„${esc(x.text)}”</p>${x.why?`<small class="warn">${esc(x.why)}</small>`:''}
     <textarea data-c="${esc(x.id)}">${esc(x.reply)}</textarea><div class="btns"><button class="btn" data-send="${esc(x.id)}">Wyślij</button><button class="btn" data-skip="${esc(x.id)}">Pomiń</button></div></div>`).join('')||'<p class="mut">Brak nowych komentarzy do odpowiedzi. Sprawdza co 30 min.</p>')+
-   (A.inbox.some(x=>x.status==='sent')?`<h3>Wysłane</h3>`+A.inbox.filter(x=>x.status==='sent').slice(0,5).map(x=>`<div class="tp used"><div><b>${esc(x.reply)}</b><small>do ${esc(x.author)}: „${esc(x.text.slice(0,80))}”</small></div></div>`).join(''):'')+'</div>';
+   (A.inbox.some(x=>x.status==='sent')?`<h3>Wysłane</h3>`+A.inbox.filter(x=>x.status==='sent').slice(0,8).map(x=>`<div class="tp used"><div><b>${esc(x.reply)}</b><small>do ${esc(x.author)}: „${esc(x.text.slice(0,80))}”</small></div></div>`).join(''):'')+'</div>';
  }
  if(d.panel==='ops'){
   const L=LINK;h+=`<div class="sec"><h3>Autopilot</h3>
@@ -267,7 +267,8 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
    <h3>Generator n8n</h3>${!L?'<p class="mut">Sprawdzam…</p>':!L.ok?`<p class="warn">${esc(L.error||'Nie znalazłem generatora')}</p>`:
    `<p>${esc(L.generator)}: ${L.connected?'<b style="color:var(--ok)">podpięty</b>':'<b>niepodpięty</b>'}${L.montage?` · ${esc(L.montage)}: ${L.montage_connected?'<b style="color:var(--ok)">kontrola techniczna</b>':'<b>bez kontroli</b>'}`:''}</p>
    <div class="btns">${L.connected&&L.montage&&!L.montage_connected?'<button class="btn" id="lk-up">Zaktualizuj podpięcie</button>':''}<button class="btn" id="lk">${L.connected?'Odepnij agencję':'Podepnij agencję'}</button>${L.connected?'<button class="btn" id="run">▶ Uruchom generator teraz</button>':''}</div>`}
-   <label class="sw"><input type="checkbox" id="inb" ${A?.settings.inbox!==false?'checked':''}><span></span>Inbox przygotowuje odpowiedzi na komentarze</label>
+   <label class="sw"><input type="checkbox" id="inb" ${A?.settings.inbox!==false?'checked':''}><span></span>Inbox czyta komentarze</label>
+   <label class="sw"><input type="checkbox" id="inba" ${A?.settings.inbox_auto!==false?'checked':''}><span></span>…i odpowiada sam (inaczej szkice)</label>
    <h3>Workflow</h3>${P?.ok?P.workflows.filter(w=>!/clip|kopia|\d$/i.test(w.name)).map(w=>`<label class="sw"><input type="checkbox" data-w="${w.id}" ${w.active?'checked':''}><span></span>${esc(w.name)}</label>`).join(''):'<p class="mut">Brak danych z n8n.</p>'}</div>`;
  }
  if(!d.panel&&P?.ok){const ids=d.agents.filter(a=>a.id?.startsWith('wf:')).map(a=>new RegExp(a.id.slice(3),'i'));
@@ -284,6 +285,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  on('lk-up',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/connect').catch(()=>({ok:false}));if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
  on('go-ret',async()=>{await post('/api/agency/retention');setTimeout(poll,1500)});
  on('go-inb',async()=>{await post('/api/agency/inbox-run');setTimeout(poll,2000)});
+ const inba=$('inba');if(inba)inba.onchange=async()=>{await post('/api/agency/settings',{inbox_auto:inba.checked});poll()};
  const inb=$('inb');if(inb)inb.onchange=async()=>{await post('/api/agency/settings',{inbox:inb.checked});poll()};
  $('pl').querySelectorAll('[data-send]').forEach(b=>b.onclick=async()=>{b.disabled=true;const id=b.dataset.send,t=$('pl').querySelector(`textarea[data-c="${id}"]`).value;
   const r=await post('/api/agency/inbox/'+id,{reply:t});if(!r.ok){alert(r.error||'Nie wysłano');b.disabled=false}poll()});

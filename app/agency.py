@@ -45,7 +45,7 @@ człowiek/auto/Everest/Ziemia) → FIRST ESCALATION → BIG REVEAL (jedyna scena
 Filary (pillar): cosmic_scale, earth_scale, animal_scale, mega_scale.
 Kategorie (category): space, ocean, geology, biology, physics, technology, human_body, extreme_weather."""
 
-DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True}
+DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True, "inbox_auto": True}
 
 
 # ---------- stan ----------
@@ -362,51 +362,146 @@ def retention(force=False):
         _busy.pop("retention", None)
 
 
-# ---------- Inbox: szkice odpowiedzi na komentarze YouTube (wysyłasz jednym kliknięciem) ----------
-def inbox():
+# ---------- Inbox: odpowiedzi na komentarze YouTube i Instagram (autopilot wysyła sam, limit dzienny) ----------
+DAILY_REPLIES = 40
+
+
+def _pz_account(platform):
+    from social import _accounts
+    for k, a in _accounts().items():
+        if a.get("platform") == platform and a.get("group") == "pozaskala":
+            return k, a
+    return None, None
+
+
+def _reply_text(video, comment):
+    return claude(f"""Jesteś autorem kanału „Poza Skala” (Shorts/Reels o niewyobrażalnej skali rzeczy, EN). Komentarz pod filmem „{video}”:
+"{comment[:500]}"
+Napisz krótką (max 2 zdania), naturalną odpowiedź w języku komentarza: podziękuj, odpowiedz rzeczowo na pytanie albo dorzuć ciekawy fakt,
+czasem zadaj pytanie, żeby rozkręcić dyskusję. Bez linków, bez emoji-spamu, bez proszenia o suba.
+Jeśli to spam, hejt, coś obraźliwego, prowokacja polityczna albo nie ma na co odpowiedzieć – odpowiedz dokładnie: SKIP""", FAST, 150).strip()
+
+
+def _send(item, text):
+    """Wysyła odpowiedź na platformę. Zwraca (ok, błąd)."""
+    from social import _google_access, _ig_token
+    try:
+        if item.get("platform") == "instagram":
+            k, acc = _pz_account("instagram")
+            r = httpx.post(f"https://graph.instagram.com/{item['id']}/replies", timeout=30,
+                           params={"message": text, "access_token": _ig_token(k, acc)})
+        else:
+            _, acc = _pz_youtube()
+            r = httpx.post("https://www.googleapis.com/youtube/v3/comments", params={"part": "snippet"}, timeout=30,
+                           headers={"Authorization": "Bearer " + _google_access(acc)},
+                           json={"snippet": {"parentId": item["id"], "textOriginal": text}})
+        if r.status_code < 300:
+            return True, ""
+        if r.status_code in (400, 403) and ("scope" in r.text.lower() or "permission" in r.text.lower() or r.status_code == 403):
+            return False, "brak uprawnień – połącz konto ponownie w ustawieniach centrum"
+        return False, r.text[:150]
+    except Exception as e:
+        return False, str(e)[:150]
+
+
+def _yt_new_comments(I, done):
     from social import _google_access
     key, acc = _pz_youtube()
-    if not acc or _busy.get("inbox") or not settings().get("inbox", True):
+    if not acc:
+        return []
+    h = {"Authorization": "Bearer " + _google_access(acc)}
+    th = httpx.get("https://www.googleapis.com/youtube/v3/commentThreads", headers=h, timeout=30, params={
+        "part": "snippet", "allThreadsRelatedToChannelId": acc["channel_id"], "maxResults": 40, "order": "time"}).json()
+    if "error" in th:
+        raise RuntimeError("YouTube: " + th["error"].get("message", "")[:150])
+    titles = {p["id"]: p.get("title") for p in (_read("cache.json", {}).get("accounts", {}).get(key) or {}).get("posts", [])}
+    out = []
+    for t in th.get("items", []):
+        sn = t["snippet"]
+        c = sn["topLevelComment"]["snippet"]
+        if t["id"] in done or sn.get("totalReplyCount", 0) or c.get("authorChannelId", {}).get("value") == acc["channel_id"]:
+            continue
+        if time.time() - datetime.fromisoformat(c["publishedAt"].replace("Z", "+00:00")).timestamp() > 7 * 86400:
+            continue
+        out.append({"id": t["id"], "platform": "youtube", "video": titles.get(sn.get("videoId"), ""),
+                    "author": c.get("authorDisplayName"), "text": c.get("textOriginal", "")})
+    return out
+
+
+def _ig_new_comments(I, done):
+    from social import _ig_token
+    key, acc = _pz_account("instagram")
+    if not acc:
+        return []
+    tok = _ig_token(key, acc)
+    me = acc.get("name", "").lstrip("@").lower()
+    media = httpx.get("https://graph.instagram.com/me/media", timeout=30,
+                      params={"fields": "id,caption,timestamp", "limit": 10, "access_token": tok}).json()
+    if "error" in media:
+        raise RuntimeError("Instagram: " + media["error"].get("message", "")[:150])
+    out = []
+    for m in media.get("data", []):
+        cs = httpx.get(f"https://graph.instagram.com/{m['id']}/comments", timeout=30, params={
+            "fields": "id,text,username,timestamp,replies{username}", "limit": 30, "access_token": tok}).json()
+        if "error" in cs:
+            raise RuntimeError("Instagram komentarze: " + cs["error"].get("message", "")[:150])
+        for c in cs.get("data", []):
+            replied = any((r.get("username") or "").lower() == me for r in (c.get("replies") or {}).get("data", []))
+            if c["id"] in done or replied or (c.get("username") or "").lower() == me:
+                continue
+            try:
+                if time.time() - datetime.fromisoformat(c["timestamp"].replace("+0000", "+00:00")).timestamp() > 7 * 86400:
+                    continue
+            except Exception:
+                pass
+            out.append({"id": c["id"], "platform": "instagram", "video": (m.get("caption") or "")[:60],
+                        "author": "@" + (c.get("username") or "?"), "text": c.get("text", "")})
+    return out
+
+
+def inbox():
+    s = settings()
+    if _busy.get("inbox") or not s.get("inbox", True):
         return 0
     _busy["inbox"] = "czyta komentarze"
     try:
-        h = {"Authorization": "Bearer " + _google_access(acc)}
-        th = httpx.get("https://www.googleapis.com/youtube/v3/commentThreads", headers=h, timeout=30, params={
-            "part": "snippet", "allThreadsRelatedToChannelId": acc["channel_id"], "maxResults": 40, "order": "time"}).json()
-        if "error" in th:
-            raise RuntimeError(th["error"].get("message", "")[:150])
         I = _read("agency_inbox.json", {"done": [], "items": []})
         done = set(I["done"])
-        titles = {p["id"]: p.get("title") for p in (_read("cache.json", {}).get("accounts", {}).get(key) or {}).get("posts", [])}
-        n = 0
-        for t in th.get("items", []):
-            sn = t["snippet"]
-            c = sn["topLevelComment"]["snippet"]
-            if t["id"] in done or sn.get("totalReplyCount", 0) or c.get("authorChannelId", {}).get("value") == acc["channel_id"]:
-                continue
-            if time.time() - datetime.fromisoformat(c["publishedAt"].replace("Z", "+00:00")).timestamp() > 7 * 86400:
-                continue
-            done.add(t["id"])
-            vid = titles.get(sn.get("videoId"), "")
-            txt = claude(f"""Jesteś autorem kanału „Poza Skala” (Shorts o niewyobrażalnej skali rzeczy, EN). Komentarz pod filmem „{vid}”:
-"{c.get('textOriginal', '')[:500]}"
-Napisz krótką (max 2 zdania), naturalną odpowiedź w języku komentarza: podziękuj, odpowiedz rzeczowo na pytanie albo dorzuć ciekawy fakt,
-czasem zadaj pytanie, żeby rozkręcić dyskusję. Bez linków, bez emoji-spamu, bez proszenia o suba.
-Jeśli to spam, hejt, coś obraźliwego albo nie ma na co odpowiedzieć – odpowiedz dokładnie: SKIP""", FAST, 150).strip()
-            I["items"].append({"id": t["id"], "t": time.time(), "video": vid, "author": c.get("authorDisplayName"),
-                               "text": c.get("textOriginal", "")[:300], "reply": "" if txt == "SKIP" else txt[:400],
-                               "status": "skip" if txt == "SKIP" else "draft"})
+        today = datetime.now(TZ).date().isoformat()
+        sent_today = sum(1 for x in I["items"] if x.get("day") == today and x.get("status") == "sent")
+        new, errs = [], []
+        for fetch in (_yt_new_comments, _ig_new_comments):
+            try:
+                new += fetch(I, done)
+            except Exception as e:
+                errs.append(str(e)[:120])
+        auto = s.get("autopilot") and s.get("inbox_auto", True)
+        n = sent = 0
+        for c in new[:20]:
+            done.add(c["id"])
+            txt = _reply_text(c["video"], c["text"])
+            item = {**c, "day": today, "t": time.time(), "text": c["text"][:300],
+                    "reply": "" if txt == "SKIP" else txt[:400], "status": "skip" if txt == "SKIP" else "draft"}
+            if item["reply"] and auto and sent_today < DAILY_REPLIES:
+                ok, why = _send(item, item["reply"])
+                if ok:
+                    item["status"] = "sent"
+                    sent_today += 1
+                    sent += 1
+                else:
+                    item["why"] = why
+            I["items"].append(item)
             n += 1
-            if n >= 15:
-                break
-        I["done"] = list(done)[-2000:]
+        I["done"] = list(done)[-3000:]
         I["items"] = I["items"][-200:]
         _write("agency_inbox.json", I)
         drafts = sum(1 for x in I["items"][-n:] if x["status"] == "draft") if n else 0
         if n:
-            log("inbox", f"Nowe komentarze: {n}, przygotował {drafts} odpowiedzi do zatwierdzenia", "ok")
+            log("inbox", f"Nowe komentarze: {n}, odpowiedział na {sent}" + (f", {drafts} czeka na Ciebie" if drafts else ""), "ok")
             if drafts:
-                push_all("💬 Odpowiedzi do zatwierdzenia", f"{drafts} nowych komentarzy na YouTube – szkice czekają w Agencji.", "/#agencja")
+                push_all("💬 Odpowiedzi do zatwierdzenia", f"{drafts} komentarzy czeka w Agencji (autopilot nie mógł wysłać).", "/#agencja")
+        for e in errs:
+            log("inbox", e, "error")
         return n
     except Exception as e:
         log("inbox", f"Inbox nie zadziałał: {e}", "error")
@@ -417,8 +512,7 @@ Jeśli to spam, hejt, coś obraźliwego albo nie ma na co odpowiedzieć – odpo
 
 @router.post("/api/agency/inbox/{cid}")
 async def inbox_send(cid: str, req: Request):
-    """Wysyłka zatwierdzonego przez Ciebie szkicu (albo pominięcie)."""
-    from social import _google_access
+    """Ręczna wysyłka szkicu (albo pominięcie)."""
     b = await req.json()
     I = _read("agency_inbox.json", {"done": [], "items": []})
     it = next((x for x in I["items"] if x["id"] == cid), None)
@@ -427,13 +521,10 @@ async def inbox_send(cid: str, req: Request):
     if b.get("action") == "skip":
         it["status"] = "skip"
     else:
-        _, acc = _pz_youtube()
         text = str(b.get("reply") or it["reply"])[:500]
-        r = httpx.post("https://www.googleapis.com/youtube/v3/comments", params={"part": "snippet"}, timeout=30,
-                       headers={"Authorization": "Bearer " + _google_access(acc)},
-                       json={"snippet": {"parentId": cid, "textOriginal": text}})
-        if r.status_code >= 300:
-            return {"ok": False, "error": "YouTube nie pozwala odpowiadać – kanał połączony tylko do odczytu" if r.status_code == 403 else r.text[:150]}
+        ok, why = _send(it, text)
+        if not ok:
+            return {"ok": False, "error": why}
         it.update(status="sent", reply=text)
     _write("agency_inbox.json", I)
     return {"ok": True}
@@ -546,7 +637,7 @@ async def topic_action(tid: str, req: Request):
 async def set_settings(req: Request):
     b = await req.json()
     s = settings()
-    for k in ("autopilot", "min_score", "queue_target", "inbox"):
+    for k in ("autopilot", "min_score", "queue_target", "inbox", "inbox_auto"):
         if k in b:
             s[k] = type(DEFAULT[k])(b[k])
     if b.get("new_token"):

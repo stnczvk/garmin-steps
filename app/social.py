@@ -136,7 +136,8 @@ def _new_state(provider, group):
 
 
 # ---- Google / YouTube
-G_SCOPES = "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly"
+# youtube.force-ssl – Agencja (Inbox) odpowiada na komentarze (zgoda użytkownika 2026-10-14)
+G_SCOPES = "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.force-ssl"
 
 
 @router.get("/api/social/google/connect")
@@ -231,7 +232,7 @@ def fetch_youtube(acc):
 
 
 # ---- Instagram (Instagram API z logowaniem przez Instagram – konta firmowe i twórcy)
-IG_SCOPES = "instagram_business_basic,instagram_business_manage_insights"
+IG_SCOPES = "instagram_business_basic,instagram_business_manage_insights,instagram_business_manage_comments"
 IG = "https://graph.instagram.com"
 
 
