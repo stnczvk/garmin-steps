@@ -17,6 +17,7 @@ Użycie:
 """
 
 import argparse
+import difflib
 import datetime as dt
 import hashlib
 import json
@@ -274,7 +275,9 @@ def _auto_cuts(info):
             n = 0
             while n < min(len(w1), len(w2)) and w1[n] == w2[n]:
                 n += 1
-            if n >= 2 or (w1 and len(w1) <= 3 and w2[:len(w1)] == w1):
+            # powtórka = drugie podejście mówi prawie to samo (nie tylko zaczyna się tak samo)
+            sim = difflib.SequenceMatcher(None, w1, w2[:len(w1) + 2]).ratio() if w1 else 0
+            if (n >= 2 and sim >= 0.6) or (w1 and len(w1) <= 3 and w2[:len(w1)] == w1):
                 last_j = j
         if last_j is not None:
             a, b = max(0.0, c1["start"] - 0.15), chunks[last_j]["start"] - 0.2
