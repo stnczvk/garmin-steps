@@ -566,6 +566,7 @@ body.v-ext{overflow:hidden}
       <button data-v="stats" aria-pressed="true">Statystyki</button>
       <button data-v="agencja" aria-pressed="false">Agencja AI</button>
       <button data-v="pozaskala" aria-pressed="false" title="Pipeline PozaSkala z n8n">Pipeline</button>
+      <button data-v="skaner" aria-pressed="false" title="Market Scanner (OKX)">Skaner</button>
     </div>
     <div class="seg" role="group" aria-label="Grupa kont" id="tabs">
       <span class="pill"></span>
@@ -1180,7 +1181,7 @@ setTheme(document.documentElement.dataset.theme || 'auto');
 
 // zakładki: Statystyki / Agencja AI / Pipeline PozaSkala (osobne strony w iframe, ładowane raz)
 function setView(v, push) {
-  v = ['agencja', 'pozaskala'].includes(v) ? v : 'stats';
+  v = ['agencja', 'pozaskala', 'skaner'].includes(v) ? v : 'stats';
   $('#views').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v));
   document.body.classList.toggle('v-ext', v !== 'stats');
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');

@@ -85,6 +85,8 @@ from pozaskala import router as pozaskala_router  # noqa: E402
 app.include_router(pozaskala_router)
 from agency import router as agency_router  # noqa: E402
 app.include_router(agency_router)
+from scanner import router as scanner_router  # noqa: E402
+app.include_router(scanner_router)
 
 
 @app.get("/")
@@ -98,6 +100,13 @@ def agencja(req: Request):
     if not authed(req):
         return RedirectResponse("/")
     return FileResponse(HERE / "web" / "agencja.html", headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/skaner")
+def skaner(req: Request):
+    if not authed(req):
+        return RedirectResponse("/")
+    return FileResponse(HERE / "web" / "skaner.html", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/pozaskala")
