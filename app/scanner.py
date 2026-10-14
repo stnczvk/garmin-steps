@@ -42,9 +42,27 @@ def _docker():
         out["symbols"] = list(dict.fromkeys(reversed(syms)))[:15]
         out["cycles"] = sum("WORKFLOW RUN START" in l for l in lines)
         out["errors"] = [l[31:200] for l in lines if re.search(r"ERROR|Traceback|Exception", l)][-3:]
+        txt = "\n".join(lines)
+        out["hits"] = {k: len(re.findall(rx, txt, re.I)) for k, rx in KW.items()}
     except Exception as e:
         out["errors"] = [f"docker: {e}"[:150]]
+    if not out["running"]:
+        # brak dostępu do dockera (np. inne uprawnienia) – sprawdzamy, czy odpowiada API skanera
+        try:
+            out["running"] = httpx.get(URL + "/market-context", timeout=4).status_code < 500
+            out["via"] = "api"
+        except Exception:
+            pass
     return out
+
+
+# słowa kluczowe w logach skanera → który moduł właśnie pracował (ostatnie 4 min)
+KW = {"scan": r"WORKFLOW RUN|scan_market|Skanuj|scanning", "watch": r"watchlist|priorytet", "elite": r"elite",
+      "mods": r"Modifier", "calib": r"calibration|kalibrac", "macro": r"macro|VIX|DXY|SPY", "regime": r"regime|re[zż]im",
+      "news": r"news|sentiment", "smart": r"smart.?money|order.?block|liquidity|premium|discount", "funding": r"funding|open.?interest|\bOI\b",
+      "pattern": r"pattern|formac", "risk": r"portfolio|exposure|ekspozycj", "sizing": r"position.?size|sizing|wielko",
+      "shadow": r"shadow", "audit": r"self.?audit|audyt", "report": r"report|raport|performance", "trade": r"\bTP\d|\bSL\b|trade|break.?even|INVALIDATED",
+      "telegram": r"telegram|wys[łl]ano"}
 
 
 def _rate(rows):
@@ -306,7 +324,7 @@ def candles(symbol: str = "BTC", bar: str = "1H", limit: int = 120):
         bar = "1H"
     inst, key = _inst(symbol), f"{symbol}|{bar}"
     c = _okx.get(key)
-    if c and time.time() - c[0] < 20:
+    if c and time.time() - c[0] < 4:
         return c[1]
     try:
         r = httpx.get("https://www.okx.com/api/v5/market/candles", params={"instId": inst, "bar": bar, "limit": max(20, min(limit, 300))},
@@ -347,3 +365,73 @@ def tickers():
         out = {"ok": False, "items": [], "error": str(e)[:120]}
     _okx["tickers"] = (time.time(), out)
     return out
+
+
+# ---------- statystyki skanera (zakładka „Statystyki skanera”) ----------
+@router.get("/api/scanner/stats")
+def stats(days: int = 30, shadow: int = 0):
+    if not os.path.exists(DB):
+        return {"ok": False, "error": f"Nie widzę bazy skanera: {DB}"}
+    days = max(1, min(days, 3650))
+    since = (datetime.utcnow() - timedelta(days=days)).isoformat(" ")
+    rows = _q("SELECT created_at, closed_at, symbol, direction, result, exit_reason, pnl, elite_score, market_regime, is_shadow, "
+              "position_size_percent FROM trade_signals WHERE created_at >= ? AND is_shadow = ? ORDER BY created_at", (since, 1 if shadow else 0))
+    closed = [r for r in rows if r["result"]]
+    wins = [r for r in closed if r["result"] in WIN]
+    losses = [r for r in closed if r["result"] == "LOSS"]
+    gp = sum(r["pnl"] or 0 for r in closed if (r["pnl"] or 0) > 0)
+    gl = -sum(r["pnl"] or 0 for r in closed if (r["pnl"] or 0) < 0)
+
+    def hours(r):
+        try:
+            return (datetime.fromisoformat(str(r["closed_at"])) - datetime.fromisoformat(str(r["created_at"]))).total_seconds() / 3600
+        except Exception:
+            return None
+    hold = [h for h in (hours(r) for r in closed) if h is not None]
+    # seria strat/wygranych i obsunięcie kapitału
+    eq, peak, dd, streak, best_s, worst_s = 0.0, 0.0, 0.0, 0, 0, 0
+    curve = []
+    for r in sorted(closed, key=lambda r: str(r["closed_at"])):
+        eq += r["pnl"] or 0
+        peak = max(peak, eq)
+        dd = min(dd, eq - peak)
+        streak = (streak + 1 if streak >= 0 else 1) if r["result"] in WIN else (streak - 1 if streak <= 0 else -1)
+        best_s, worst_s = max(best_s, streak), min(worst_s, streak)
+        curve.append({"t": str(r["closed_at"])[:16], "eq": round(eq, 2), "sym": r["symbol"].split("/")[0], "pnl": r["pnl"]})
+
+    def group(key):
+        g = defaultdict(list)
+        for r in rows:
+            g[key(r)].append(r)
+        return sorted([{"k": k, **_rate(v)} for k, v in g.items()], key=lambda x: -(x["pnl"] or 0))
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo("Europe/Warsaw")
+
+    def local(ts):
+        try:
+            return datetime.fromisoformat(str(ts)).replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
+        except Exception:
+            return None
+    heat = defaultdict(lambda: {"n": 0, "w": 0, "pnl": 0.0})
+    for r in closed:
+        d = local(r["created_at"])
+        if d:
+            c = heat[f"{d.weekday()}-{d.hour // 4}"]
+            c["n"] += 1
+            c["w"] += r["result"] in WIN
+            c["pnl"] += r["pnl"] or 0
+    return {"ok": True, "days": days, "shadow": bool(shadow),
+            "kpi": {**_rate(rows), "avg_win": round(sum(r["pnl"] or 0 for r in wins) / len(wins), 2) if wins else None,
+                    "avg_loss": round(sum(r["pnl"] or 0 for r in losses) / len(losses), 2) if losses else None,
+                    "pf": round(gp / gl, 2) if gl else None, "max_dd": round(dd, 2), "best_streak": best_s, "worst_streak": -worst_s,
+                    "hold_h": round(sum(hold) / len(hold), 1) if hold else None,
+                    "avg_size": round(sum(r["position_size_percent"] or 0 for r in rows) / len(rows), 2) if rows else None,
+                    "open": sum(1 for r in rows if not r["result"])},
+            "curve": curve,
+            "by_symbol": [{**x, "k": x["k"].split("/")[0]} for x in group(lambda r: r["symbol"])],
+            "by_direction": group(lambda r: r["direction"] or "?"),
+            "by_regime": group(lambda r: r["market_regime"] or "?"),
+            "by_exit": group(lambda r: r["exit_reason"] or ("otwarta" if not r["result"] else r["result"])),
+            "heat": {k: {**v, "pnl": round(v["pnl"], 2)} for k, v in heat.items()},
+            "recent": [{k: r[k] for k in ("created_at", "closed_at", "symbol", "direction", "result", "exit_reason", "pnl", "elite_score")}
+                       for r in rows[::-1][:40]]}

@@ -79,6 +79,29 @@ header{position:fixed;top:12px;left:12px;right:12px;border-radius:18px;z-index:3
 .cm{border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:8px}.cm p{font-size:13px;margin:4px 0}
 .cm textarea{width:100%;min-height:58px;background:#1b1f2c;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:6px;font:12.5px Inter;resize:vertical}
 details{margin:6px 0}summary{cursor:pointer;font-size:12.5px;color:var(--mut);margin:6px 0}
+#vt{display:flex;gap:2px;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+#vt button{border:0;background:transparent;color:var(--mut);font:600 12.5px Inter;padding:6px 11px;border-radius:8px;cursor:pointer}
+#vt button.on{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.07));color:var(--txt);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+#dash{position:fixed;inset:76px 0 0 0;z-index:3;overflow:auto;padding:12px 12px 40px;display:none}
+body.dash #dash{display:block}body.dash #scene,body.dash #labels,body.dash #mini,body.dash #feed,body.dash #models,body.dash #chartbtn{display:none!important}
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;max-width:1500px;margin:0 auto}
+.dc{position:relative;border-radius:20px;padding:16px;background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.13);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 18px 40px -22px rgba(0,0,0,.8);backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px);cursor:pointer;transition:transform .25s,border-color .25s;overflow:hidden}
+.dc:hover{transform:translateY(-2px);border-color:var(--c)}
+.dc:before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:var(--c)}
+.dc:after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:var(--c);opacity:.13;filter:blur(30px)}
+.dh{display:flex;align-items:center;gap:10px}.dh .ic{width:34px;height:34px;border-radius:10px;background:var(--c);display:grid;place-items:center;font-size:17px;flex:none}
+.dh b{font-size:15px;display:block}.dh small{color:var(--mut);font-size:12px}
+.dh .bd{margin-left:auto;font:600 11px 'JetBrains Mono';padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.08);white-space:nowrap}
+.dh .bd.run{background:rgba(61,220,132,.18);color:var(--ok)}
+.dm{margin:12px 0 8px;font:700 22px 'JetBrains Mono';letter-spacing:-.02em}.dm small{display:block;font:500 11.5px Inter;color:var(--mut);letter-spacing:0;margin-top:2px}
+.dl{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.dl div{display:grid;grid-template-columns:9px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:12.5px}
+.dl i{width:8px;height:8px;border-radius:50%;background:#4a5068}.dl i.s1{background:#8a93ad}.dl i.s2{background:var(--ok);box-shadow:0 0 8px var(--ok);animation:bl 1.4s infinite}
+.dl span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dl em{font:normal 11px 'JetBrains Mono';color:var(--mut)}
+.dx{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes bl{50%{opacity:.4}}
+@media(max-width:700px){#dash{inset:118px 0 0 0}.dg{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:700px){
  .stats{margin-left:0;width:100%;justify-content:space-between}
  #panel{top:auto;left:12px;right:12px;width:auto;height:62vh;transform:translateY(calc(100% + 24px))}
@@ -95,11 +118,12 @@ details{margin:6px 0}summary{cursor:pointer;font-size:12.5px;color:var(--mut);ma
 <div id="labels"></div>
 <header>
  <div class="logo"><i>✦</i>Agencja AI <span style="color:var(--mut);font-weight:400">· social media</span></div>
- <div class="stats"><span><b id="sA">0</b>aktywnych agentów</span><span><b id="sR">0</b>pracuje</span><span>autopilot <b id="sT">–</b></span></div>
+ <div id="vt"><button data-m="office" class="on">🏢 Biuro</button><button data-m="dash">▦ Dashboard</button></div><div class="stats"><span><b id="sA">0</b>aktywnych agentów</span><span><b id="sR">0</b>pracuje</span><span>autopilot <b id="sT">–</b></span></div>
 </header>
 <div id="feed"></div>
 <div id="models"></div>
 <div id="mini"><div class="t"><span>MAPA</span><span id="zl">100%</span></div><canvas id="mc" width="150" height="100"></canvas><div class="z"><button id="zo">−</button><button id="zi">+</button><button id="zr">⤢</button></div></div>
+<div id="dash"><div class="dg" id="dg"></div></div>
 <aside id="panel"><div class="ph"><button class="x" id="px">×</button><h2 id="pt"></h2><p id="pd"></p></div><div class="list" id="pl"></div></aside>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -231,6 +255,7 @@ function refresh(){
   o.f.bm.color.copy(o.a.st?tint(o.c,.3,0x222222):new THREE.Color(0x555a6a));
   const hit=filter!=='Wszystkie'&&o.a.m.toLowerCase().includes(filter.toLowerCase());o.f.bm.emissive.set(hit?0xffffff:0x000000);o.f.bm.emissiveIntensity=hit?.45:0});
  if(openI>=0)renderPanel(openI);
+ if(typeof renderDash==="function")renderDash();
 }
 const ago=t=>{const s=Date.now()/1000-t;return s<90?'teraz':s<3600?Math.round(s/60)+' min':s<86400?Math.round(s/3600)+' godz.':Math.round(s/86400)+' dni'};
 const agRow=a=>`<div class="ag ${a.st===2?'run':''} ${a.st?'':'soon'}"><span class="d"></span><b>${a.n}</b><span class="m">${a.m}</span><code>${esc(a.s)}${a.soon?' · wkrótce':''}</code></div>`;
@@ -319,7 +344,7 @@ function log(i,t,when){const d=DEPTS[i],e=document.createElement('div');e.classN
 // prawdziwy stan agencji + n8n
 async function poll(){
  try{A=await api('/api/agency/state')}catch(e){}
- if(A?.models)DEPTS.forEach(d=>d.agents.forEach(x=>{x.tier=x.tier||({Sonnet:'smart',Haiku:'fast'})[x.m];if(x.tier)x.m=A.models[x.tier]}));
+ if(A?.models)DEPTS.forEach(d=>d.agents.forEach(x=>{x.tier=x.tier||({Sonnet:'smart',Haiku:'fast'})[x.m];if(x.tier)x.m=String(A.models[x.tier]).replace(/^claude-/,'').replace(/-\d{8}$/,'')}));
  try{P=await api('/api/pozaskala/status')}catch(e){}
  if(A){const L=A.log.slice().reverse();L.forEach(e=>{const k=e.t+e.agent;if(seenLog.has(k))return;seenLog.add(k);
   if(!firstLog||L.indexOf(e)>=L.length-4)log(AG_DEPT[e.agent]??6,`${AG_NAMES[e.agent]||e.agent}: ${e.text}`,e.t)})}
@@ -327,6 +352,35 @@ async function poll(){
   log(6,`n8n · ${e.workflow}: ${({success:'✓ sukces',error:'✗ błąd',running:'▶ działa'})[e.status]||e.status}`,Date.parse(e.startedAt)/1000)});
  firstLog=false;refresh()}
 poll();setInterval(poll,15000);
+
+
+function deptMetric(i){const d=DEPTS[i],L=(A?.log||[]).find(e=>(AG_DEPT[e.agent]??6)===i),x=L?`${ago(L.t)} temu · ${L.text}`:'';
+ const lastEx=re=>{const e=P?.executions?.find(e=>re.test(e.workflow));return e?{v:({success:'✓ sukces',error:'✗ błąd',running:'▶ działa'})[e.status]||e.status,l:`${e.workflow} · ${new Date(e.startedAt).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`}:{}};
+ const today=new Date().toDateString();
+ switch(d.panel||d.name){
+  case 'research':return{v:A?A.queue.length:'–',l:'tematów w kolejce'+(A?.queue?.[0]?' · następny: '+A.queue[0].topic.slice(0,40):''),x};
+  case 'Skrypty':return{...lastEx(/^generator$/i),x};
+  case 'Publikacja':return{...lastEx(/^publisher$/i),x};
+  case 'Kreacja':return{...lastEx(/monta/i),x};
+  case 'analytics':return{v:A?.retention?.length?Math.round(A.retention.reduce((s,r)=>s+r.hold3s,0)/A.retention.length)+'%':'–',l:'średnio zostaje po 3 s',x};
+  case 'qa':return{v:A?.avg_score!=null?A.avg_score+'/10':'–',l:'średnia ocena scenariuszy'+(A?.tech?.[0]?' · technika: '+(A.tech[0].ok?'OK':'błąd'):''),x};
+  case 'ops':return{v:A?(A.settings.autopilot?'ON':'OFF'):'–',l:'autopilot · '+(P?.ok?P.workflows.filter(w=>w.active).length+' workflow aktywnych':'n8n offline'),x};
+  case 'inbox':{const it=A?.inbox||[],sent=it.filter(c=>c.status==='sent'&&new Date(c.t*1000).toDateString()===today).length,dr=it.filter(c=>c.status==='draft').length;return{v:sent,l:`odpowiedzi dziś${dr?' · '+dr+' czeka':''}`,x}}
+  case 'private':{const r=A?.private?.[0];return{v:r?r.accounts.reduce((s,a)=>s+(a.followers||0),0).toLocaleString('pl'):'–',l:r?'obserwujących · raport '+ago(r.at)+' temu':'brak raportu',x}}
+ }return{x}}
+// ===== DASHBOARD agentów (widok kart zamiast biura 3D) =====
+let MODE='office';try{MODE=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}
+function setMode(m){MODE=m;document.body.classList.toggle('dash',m==='dash');document.querySelectorAll('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+ try{localStorage.setItem('view-'+location.pathname,m)}catch(e){}if(m==='dash')renderDash()}
+document.querySelectorAll('#vt button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+function renderDash(){if(MODE!=='dash')return;
+ $('dg').innerHTML=DEPTS.map((d,i)=>{const run=d.agents.filter(a=>a.st===2).length,on=d.agents.filter(a=>a.st).length,m=deptMetric(i)||{};
+  return `<div class="dc" data-i="${i}" style="--c:${d.color}"><div class="dh"><span class="ic">${d.icon}</span><div><b>${esc(d.name)}</b><small>${esc(d.sub)}</small></div>
+   <span class="bd ${run?'run':''}">${run?run+' pracuje':on+'/'+d.agents.length+' aktywnych'}</span></div>
+   ${m.v!=null?`<div class="dm">${m.v}<small>${esc(m.l||'')}</small></div>`:''}
+   <div class="dl">${d.agents.map(a=>`<div><i class="s${a.st}"></i><span>${esc(a.n)}</span><em>${esc(a.m||'')}</em></div>`).join('')}</div>
+   ${m.x?`<div class="dx">${esc(m.x)}</div>`:''}</div>`}).join('');
+ $('dg').querySelectorAll('.dc').forEach(c=>c.onclick=()=>openPanel(+c.dataset.i))}
 
 // ===== STEROWANIE =====
 const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=null,hover=-1;
@@ -372,7 +426,8 @@ function project(p,e){v.copy(p).project(camera);e.style.left=(v.x+1)/2*W()+'px';
  packets.forEach(p=>{const k=(t*.25+p.o)%1;p.pk.position.lerpVectors(p.from,p.to,k);p.pk.position.y=.45});
  rings.forEach((r,k)=>r.rotation.z=t*(k%2?-.3:.4));orbits.forEach((o,k)=>{o.rotation.y=t*.5+k;o.rotation.x+=.003});
  core.scale.setScalar(1+Math.sin(t*2)*.04);pl.intensity=1.4+Math.sin(t*2)*.3;
- mini();renderer.render(scene,camera);requestAnimationFrame(loop)})();
+ if(MODE!=="dash"){mini();renderer.render(scene,camera)}requestAnimationFrame(loop)})();
+setMode(MODE);
 </script>
 </body>
 </html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pl" class="lg-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Statystyki skanera</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/glass.css">
+<style>
+:root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--pos:#3DDC84;--neg:#FF6B6B;--acc:#9FB3FF;--line:rgba(255,255,255,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;color:var(--ink);font:14px/1.45 Geist,system-ui,sans-serif;background:transparent}
+.wrap{max-width:1300px;margin:0 auto;padding:22px 20px 60px}
+.glass{position:relative;border-radius:20px;padding:16px 18px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.02em}h1 small{display:block;font-size:13px;color:var(--soft);font-weight:400;letter-spacing:0;margin-top:2px}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;color:var(--soft);font:600 12.5px Geist;padding:7px 12px;border-radius:9px;cursor:pointer}
+.seg button.on{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.07));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.kpi small{color:var(--faint);font-size:12px;display:block}.kpi b{display:block;font-size:24px;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}.kpi span{font-size:12px;color:var(--soft)}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.g2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+h2{font-size:14.5px;font-weight:650;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}h2 small{color:var(--faint);font-weight:400;font-size:12px}
+.ch{position:relative;height:280px}.ch canvas{width:100%;height:100%;display:block}
+.tip{position:absolute;pointer-events:none;display:none;background:rgba(10,12,22,.94);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:12px 'JetBrains Mono',monospace;white-space:nowrap;z-index:2}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar{display:grid;grid-template-columns:62px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:12.5px}
+.bar em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar b{font:600 12px 'JetBrains Mono';text-align:right}
+.track{height:14px;position:relative}.track i{position:absolute;top:0;bottom:0;border-radius:4px}.track:before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;border-left:1px solid rgba(255,255,255,.18)}
+.tb{width:100%;border-collapse:collapse;font-size:12.5px}.tb th{text-align:left;font-weight:500;color:var(--faint);font-size:11.5px;padding:5px 6px;border-bottom:1px solid var(--line)}
+.tb td{padding:6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}.tb td.r,.tb th.r{text-align:right}
+.heat{display:grid;grid-template-columns:34px repeat(6,minmax(0,1fr));gap:3px;font-size:11px}
+.heat span{color:var(--faint);display:grid;place-items:center}.heat div{height:30px;border-radius:6px;display:grid;place-items:center;font:600 11px 'JetBrains Mono';cursor:default}
+.empty{color:var(--faint);font-size:13px;padding:12px 0}
+.scroll{max-height:380px;overflow:auto}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.g2,.g3{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:16px 14px 50px}.ch{height:220px}}
+</style>
+</head>
+<body class="lg">
+<div class="lg-bg" aria-hidden="true"></div>
+<div class="wrap">
+ <div class="top">
+  <h1>Statystyki skanera<small id="sub">Market Scanner · OKX</small></h1>
+  <div class="ctl">
+   <div class="seg" id="kind"><button data-v="0" class="on">Prawdziwe</button><button data-v="1">Shadow</button></div>
+   <div class="seg" id="range"><button data-v="7">7 dni</button><button data-v="30" class="on">30 dni</button><button data-v="90">90 dni</button><button data-v="3650">Wszystko</button></div>
+  </div>
+ </div>
+ <div class="kpis" id="kpis"></div>
+ <div class="g2">
+  <section class="glass"><h2>Krzywa kapitału <small>skumulowany PnL zamkniętych transakcji, %</small></h2><div class="ch" id="eqw"><canvas id="eq"></canvas><div class="tip" id="eqt"></div></div></section>
+  <section class="glass"><h2>PnL wg symbolu <small>najedź, by zobaczyć liczbę sygnałów</small></h2><div class="bars scroll" id="sym"></div></section>
+ </div>
+ <div class="g3">
+  <section class="glass"><h2>Kierunek</h2><div id="dir"></div></section>
+  <section class="glass"><h2>Reżim rynku</h2><div id="reg"></div></section>
+  <section class="glass"><h2>Sposób zamknięcia</h2><div id="exit"></div></section>
+ </div>
+ <div class="g2">
+  <section class="glass"><h2>Ostatnie transakcje</h2><div class="scroll"><table class="tb" id="rec"></table></div></section>
+  <section class="glass"><h2>Kiedy sygnały wygrywają <small>dzień × pora (czas PL), PnL %</small></h2><div class="heat" id="heat"></div><p class="empty" id="heatn" style="padding-bottom:0"></p></section>
+ </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(v,d=2)=>v==null||isNaN(v)?'–':(+v).toLocaleString('pl',{maximumFractionDigits:d});
+const sg=v=>v==null?'–':(v>0?'+':'')+fmt(v)+'%';
+const cls=v=>v>0?'pos':v<0?'neg':'';
+let days=30,shadow=0,D=null;
+function seg(id,fn){$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;$(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v);load()}}
+seg('kind',v=>shadow=+v);seg('range',v=>days=+v);
+
+function kpis(k){const t=(l,v,s,c='')=>`<div class="glass kpi"><small>${l}</small><b class="${c}">${v}</b><span>${s}</span></div>`;
+ $('kpis').innerHTML=t('Win rate',k.wr==null?'–':k.wr+'%',`${k.wins}/${k.closed} zamkniętych · ${k.open} otwartych`)+
+  t('PnL łącznie',sg(k.pnl),`${k.n} sygnałów`,cls(k.pnl))+
+  t('Profit factor',k.pf==null?'–':fmt(k.pf),'zyski / straty')+
+  t('Śr. wygrana / strata',`${sg(k.avg_win)} <small class="neg" style="font-size:15px">${sg(k.avg_loss)}</small>`,'na transakcję')+
+  t('Maks. obsunięcie',sg(k.max_dd),`seria: ${k.best_streak} wygr. / ${k.worst_streak} strat`,k.max_dd<0?'neg':'')+
+  t('Śr. czas trwania',k.hold_h==null?'–':fmt(k.hold_h,1)+' h',`śr. wielkość ${fmt(k.avg_size)}%`)}
+
+function equity(c){const cv=$('eq'),w=$('eqw'),dpr=devicePixelRatio||1,r=w.getBoundingClientRect();cv.width=r.width*dpr;cv.height=r.height*dpr;
+ const x=cv.getContext('2d');x.scale(dpr,dpr);const W=r.width,H=r.height,P={l:52,r:12,t:12,b:24};
+ if(!c.length){x.fillStyle='#7A7A86';x.font='13px Geist';x.fillText('Brak zamkniętych transakcji w tym okresie.',P.l,H/2);cv.onmousemove=null;return}
+ const pts=[{eq:0,t:'start'},...c],v=pts.map(p=>p.eq),mn=Math.min(0,...v),mx=Math.max(0,...v),rg=(mx-mn)||1;
+ const X=i=>P.l+i/(pts.length-1||1)*(W-P.l-P.r),Y=val=>P.t+(mx-val)/rg*(H-P.t-P.b);
+ x.font='11px JetBrains Mono';for(let k=0;k<=4;k++){const val=mn+rg*k/4,y=Y(val);x.strokeStyle='rgba(255,255,255,.06)';x.beginPath();x.moveTo(P.l,y);x.lineTo(W-P.r,y);x.stroke();x.fillStyle='#7A7A86';x.fillText((val>0?'+':'')+val.toFixed(1),4,y+4)}
+ x.strokeStyle='rgba(255,255,255,.25)';x.setLineDash([3,4]);x.beginPath();x.moveTo(P.l,Y(0));x.lineTo(W-P.r,Y(0));x.stroke();x.setLineDash([]);
+ const up=pts.at(-1).eq>=0,col=up?'#3DDC84':'#FF6B6B',g=x.createLinearGradient(0,P.t,0,H-P.b);g.addColorStop(0,up?'rgba(61,220,132,.28)':'rgba(255,107,107,.05)');g.addColorStop(1,up?'rgba(61,220,132,0)':'rgba(255,107,107,.25)');
+ x.fillStyle=g;x.beginPath();x.moveTo(X(0),Y(0));pts.forEach((p,i)=>x.lineTo(X(i),Y(p.eq)));x.lineTo(X(pts.length-1),Y(0));x.fill();
+ x.strokeStyle=col;x.lineWidth=2;x.lineJoin='round';x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(i),Y(p.eq)):x.moveTo(X(i),Y(p.eq)));x.stroke();
+ x.fillStyle='#7A7A86';x.fillText(c[0].t.slice(5,10),P.l,H-6);x.fillText(c.at(-1).t.slice(5,10),W-P.r-36,H-6);
+ const snap=x.getImageData(0,0,cv.width,cv.height);
+ cv.onmousemove=e=>{const b=cv.getBoundingClientRect(),mxp=e.clientX-b.left;let i=Math.round((mxp-P.l)/(W-P.l-P.r)*(pts.length-1));i=Math.max(1,Math.min(pts.length-1,i));
+  x.putImageData(snap,0,0);x.strokeStyle='rgba(255,255,255,.35)';x.beginPath();x.moveTo(X(i),P.t);x.lineTo(X(i),H-P.b);x.stroke();
+  x.fillStyle=col;x.beginPath();x.arc(X(i),Y(pts[i].eq),4.5,0,7);x.fill();x.strokeStyle='#0b0d16';x.lineWidth=2;x.stroke();x.lineWidth=2;
+  const p=pts[i],t=$('eqt');t.style.display='block';t.style.left=Math.min(W-170,X(i)+10)+'px';t.style.top='8px';
+  t.innerHTML=`${esc(p.t)}<br>${esc(p.sym)} <span class="${cls(p.pnl)}">${sg(p.pnl)}</span><br>razem <b class="${cls(p.eq)}">${sg(p.eq)}</b>`};
+ cv.onmouseleave=()=>{x.putImageData(snap,0,0);$('eqt').style.display='none'}}
+
+function bars(list){if(!list.length)return'<p class="empty">Brak danych.</p>';const m=Math.max(...list.map(r=>Math.abs(r.pnl||0)))||1;
+ return list.map(r=>{const v=r.pnl||0,w=Math.abs(v)/m*50;return`<div class="bar" title="${esc(r.k)}: ${r.n} sygnałów, ${r.closed} zamkniętych"><em>${esc(r.k)}</em>
+  <div class="track"><i style="${v>=0?`left:50%;width:${w}%;background:var(--pos)`:`right:50%;width:${w}%;background:var(--neg)`}"></i></div><b class="${cls(v)}">${sg(v)}</b></div>`}).join('')}
+function table(list){if(!list.length)return'<p class="empty">Brak danych.</p>';
+ return`<table class="tb"><tr><th></th><th class="r">sygn.</th><th class="r">WR</th><th class="r">PnL</th></tr>${list.map(r=>`<tr><td>${esc(r.k)}</td><td class="r">${r.n}</td><td class="r">${r.wr==null?'–':r.wr+'%'}</td><td class="r ${cls(r.pnl)}">${sg(r.pnl)}</td></tr>`).join('')}</table>`}
+function heat(h){const DN=['pn','wt','śr','cz','pt','sb','nd'],SL=['0–4','4–8','8–12','12–16','16–20','20–24'];
+ const vals=Object.values(h).map(c=>Math.abs(c.pnl)),m=Math.max(1,...vals);let out='<span></span>'+SL.map(s=>`<span>${s}</span>`).join('');
+ DN.forEach((d,wd)=>{out+=`<span>${d}</span>`;SL.forEach((_,b)=>{const c=h[`${wd}-${b}`];if(!c){out+='<div style="background:rgba(255,255,255,.03)"></div>';return}
+  const a=.15+.75*Math.abs(c.pnl)/m;out+=`<div title="${d} ${SL[b]}: ${c.n} transakcji, ${c.w} wygranych, PnL ${sg(c.pnl)}" style="background:${c.pnl>=0?`rgba(61,220,132,${a})`:`rgba(255,107,107,${a})`};color:${a>.55?'#0b0d16':'var(--ink)'}">${c.n}</div>`})});
+ $('heat').innerHTML=out;$('heatn').textContent=Object.keys(h).length?'Liczba w kratce = transakcje; kolor = zysk (zielony) lub strata (czerwony), mocniejszy = większy.':'Brak zamkniętych transakcji.'}
+
+async function load(){let r;try{r=await (await fetch(`/api/scanner/stats?days=${days}&shadow=${shadow}`)).json()}catch(e){r={ok:false,error:'Brak połączenia'}}
+ D=r;if(!r.ok){$('kpis').innerHTML=`<div class="glass" style="grid-column:1/-1"><p class="empty">${esc(r.error)}</p></div>`;return}
+ $('sub').textContent=`${shadow?'Sygnały odrzucone (shadow)':'Sygnały wysłane'} · ${days>=3650?'cała historia':'ostatnie '+days+' dni'}`;
+ kpis(r.kpi);equity(r.curve);$('sym').innerHTML=bars(r.by_symbol);$('dir').innerHTML=table(r.by_direction);$('reg').innerHTML=table(r.by_regime);$('exit').innerHTML=table(r.by_exit);heat(r.heat);
+ $('rec').innerHTML='<tr><th>data</th><th>symbol</th><th>wynik</th><th class="r">elite</th><th class="r">PnL</th></tr>'+r.recent.map(t=>`<tr><td>${esc(String(t.created_at).slice(5,16))}</td><td>${esc(t.symbol.split('/')[0])} ${t.direction==='LONG'?'↑':'↓'}</td><td>${esc(t.result||'otwarta')}</td><td class="r">${fmt(t.elite_score,0)}</td><td class="r ${cls(t.pnl)}">${t.result?sg(t.pnl):'–'}</td></tr>`).join('')}
+load();setInterval(load,120000);addEventListener('resize',()=>D?.ok&&equity(D.curve));
+</script>
+</body>
+</html>
