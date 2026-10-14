@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipeline PozaSkala</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{--bg:#08090A;--card:rgba(255,255,255,.03);--line:rgba(255,255,255,.08);--ink:#F4F4F5;--soft:#A1A1AA;--faint:#6B6B75;
+ --ok:#4ADE80;--err:#FF7B70;--run:#6E8BFF;--wait:#F5B25A;--off:#52525B}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font:14px/1.45 Geist,system-ui,sans-serif}
+body{background:radial-gradient(55% 40% at 50% -5%,rgba(120,98,255,.18),transparent 70%),var(--bg);min-height:100vh}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 16px 60px}
+h1{font-size:22px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h1 small{font:12px 'JetBrains Mono',monospace;color:var(--faint);font-weight:400}
+.mono{font-family:'JetBrains Mono',monospace}
+#msg{margin:14px 0;padding:12px 14px;border:1px solid rgba(245,178,90,.35);background:rgba(245,178,90,.07);border-radius:12px;color:#f6d7a8;display:none}
+#msg code{background:rgba(0,0,0,.35);padding:1px 6px;border-radius:5px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.kpi small{color:var(--faint);font-size:12px}
+.kpi b{display:block;font-size:24px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--soft)}
+.stage{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow-x:auto;position:relative}
+svg{display:block;min-width:960px;width:100%;height:auto}
+.node rect{fill:#121318;stroke:rgba(255,255,255,.1);transition:stroke .3s}
+.node text{fill:var(--ink)}
+.node .sub{fill:var(--faint);font:10px 'JetBrains Mono',monospace}
+.lane.running .node rect{animation:pulse 2.4s ease-in-out infinite;animation-delay:calc(var(--i)*.3s)}
+@keyframes pulse{0%,100%{stroke:rgba(255,255,255,.1)}40%{stroke:var(--c);filter:drop-shadow(0 0 8px var(--c))}}
+.edge{fill:none;stroke:rgba(255,255,255,.12);stroke-width:2}
+.flow{fill:none;stroke:var(--c);stroke-width:2;stroke-dasharray:6 10;animation:dash 1.2s linear infinite;opacity:.55}
+.lane.off .flow,.lane.off circle.pk{opacity:.08}
+.lane.error .flow{stroke:var(--err)}
+@keyframes dash{to{stroke-dashoffset:-32}}
+.loop{fill:none;stroke:#14A898;stroke-width:1.6;stroke-dasharray:3 7;animation:dash 2s linear infinite;opacity:.6}
+.lhead{cursor:pointer}
+.lhead rect{fill:rgba(255,255,255,.025);stroke:var(--line)}
+.lhead:hover rect,.lhead.sel rect{stroke:var(--c)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:12px;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.card h2{font-size:14px;font-weight:650;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.card h2 button{font:12px Geist;color:var(--soft);background:none;border:1px solid var(--line);border-radius:7px;padding:3px 8px;cursor:pointer}
+.ex{display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 4px;border-top:1px solid var(--line);font-size:13px}
+.ex:first-of-type{border-top:0}
+.ex time,.ex .d{font:11.5px 'JetBrains Mono',monospace;color:var(--faint)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--off)}
+.success{--s:var(--ok)}.error{--s:var(--err)}.running{--s:var(--run)}.waiting{--s:var(--wait)}
+.dot.success,.dot.error,.dot.running,.dot.waiting{background:var(--s);box-shadow:0 0 8px var(--s)}
+.dot.running{animation:blink 1s infinite}@keyframes blink{50%{opacity:.3}}
+.wf{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 4px;border-top:1px solid var(--line);font-size:13px}
+.wf:first-of-type{border-top:0}
+.wf small{grid-column:1/3;color:var(--faint);font:11px 'JetBrains Mono',monospace}
+.tag{font:11px 'JetBrains Mono',monospace;padding:2px 7px;border-radius:6px;background:rgba(74,222,128,.1);color:var(--ok)}
+.tag.no{background:rgba(255,255,255,.05);color:var(--faint)}
+.empty{color:var(--faint);font-size:13px;padding:10px 4px}
+@media(max-width:820px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.flow,.loop,.lane.running .node rect,.dot.running{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <h1>Pipeline PozaSkala <small id="upd">łączę z n8n…</small></h1>
+ <div id="msg"></div>
+ <div class="kpis">
+  <div class="kpi"><small>Aktywne workflow</small><b id="k1">–</b><span id="k1s"></span></div>
+  <div class="kpi"><small>Uruchomienia 24h</small><b id="k2">–</b><span id="k2s"></span></div>
+  <div class="kpi"><small>Błędy 24h</small><b id="k3">–</b><span id="k3s"></span></div>
+  <div class="kpi"><small>Następny start</small><b id="k4">–</b><span id="k4s"></span></div>
+ </div>
+ <div class="stage"><svg id="svg" viewBox="0 0 1200 640" role="img" aria-label="Schemat pipeline'u PozaSkala"></svg></div>
+ <div class="grid2">
+  <div class="card"><h2><span id="exT">Ostatnie uruchomienia</span><button id="all" hidden>pokaż wszystkie</button></h2><div id="exl"><div class="empty">Ładuję…</div></div></div>
+  <div class="card"><h2>Workflow w n8n</h2><div id="wfl"><div class="empty">Ładuję…</div></div></div>
+ </div>
+</div>
+<script>
+const LANES=[
+ {key:'gen',match:/generator/i,title:'Generator',color:'#6E8BFF',nodes:[['⏰','Start','harmonogram'],['🧠','Temat','insights + AI'],['✍️','Scenariusz','OpenAI'],['🎙️','Lektor','TTS'],['🖼️','Kadry','OpenAI img'],['🎬','Scena','Kling / fal.ai'],['🏷️','SEO + okładka','seo.json'],['☁️','Drive','folder filmu']]},
+ {key:'mont',match:/monta/i,title:'Montaż film',color:'#9E8CFC',nodes:[['📥','Pobranie','z Drive'],['🎞️','Render','FFmpeg 1080×1920'],['💬','Napisy','Whisper karaoke'],['🎵','Muzyka','pod lektorem'],['✅','final.mp4','gotowy film'],['📦','Kolejka','_queue']]},
+ {key:'pub',match:/publish/i,title:'Publisher',color:'#E8504A',nodes:[['⏰','Start','harmonogram'],['📦','Z kolejki','_queue'],['▶️','YouTube','publishAt'],['📸','Instagram','Reels'],['📨','Telegram','powiadomienie']]},
+ {key:'ana',match:/analytic/i,title:'Analityka',color:'#14A898',nodes:[['⏰','Start','niedziela'],['📊','Statystyki','YT + IG'],['⚖️','Scoring','po kategoriach'],['📝','Insights','FAVOR / REDUCE']]}
+];
+const NW=122,NH=58,X0=250,X1=1140,Y0=95,DY=145,$=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+LANES.forEach((L,li)=>{const n=L.nodes.length,step=(X1-X0)/(n-1);L.y=Y0+li*DY;L.pts=L.nodes.map((_,i)=>[X0+i*step,L.y])});
+let state=null,sel=null;
+
+function laneStatus(L){
+ if(!state||!state.ok)return{st:'off',wf:null,last:null};
+ const wfs=state.workflows.filter(w=>L.match.test(w.name)&&!/error/i.test(w.name));
+ const wf=wfs.find(w=>w.active)||wfs[0];if(!wf)return{st:'off',wf:null,last:null};
+ const ids=new Set(wfs.map(w=>w.id)),last=state.executions.find(e=>ids.has(e.workflowId));
+ return{st:!wf.active?'off':last?last.status:'idle',wf,wfs,last};
+}
+const ago=t=>{if(!t)return'–';const s=(Date.now()-new Date(t))/1000;if(s<90)return'przed chwilą';if(s<3600)return Math.round(s/60)+' min temu';if(s<86400)return Math.round(s/3600)+' godz. temu';return Math.round(s/86400)+' dni temu'};
+const ST={success:'sukces',error:'błąd',running:'działa',waiting:'czeka',off:'wyłączony',idle:'bez uruchomień',canceled:'przerwany',crashed:'awaria'};
+
+function draw(){
+ let h=`<defs><filter id="gl"><feGaussianBlur stdDeviation="3"/></filter></defs>`;
+ // przejścia między etapami
+ const link=(a,b,c)=>`<path class="edge" d="M${a[0]},${a[1]+NH/2} C${a[0]},${a[1]+DY/2+10} ${b[0]},${b[1]-DY/2-10} ${b[0]},${b[1]-NH/2}"/><path class="flow" style="--c:${c}" d="M${a[0]},${a[1]+NH/2} C${a[0]},${a[1]+DY/2+10} ${b[0]},${b[1]-DY/2-10} ${b[0]},${b[1]-NH/2}"/>`;
+ h+=link(LANES[0].pts.at(-1),LANES[1].pts[0],LANES[1].color);
+ h+=link(LANES[1].pts.at(-1),LANES[2].pts[1],LANES[2].color);
+ // pętla zwrotna: Insights -> Temat
+ const a=LANES[3].pts.at(-1),b=LANES[0].pts[1];
+ h+=`<path class="loop" d="M${a[0]+NW/2},${a[1]} H1185 V28 H${b[0]} V${b[1]-NH/2}"/><text x="1178" y="300" fill="#14A898" font-size="11" font-family="JetBrains Mono" transform="rotate(90 1178 300)" text-anchor="middle">pętla zwrotna: co działa → nowe tematy</text>`;
+ LANES.forEach((L,li)=>{
+  const s=laneStatus(L),c=L.color,d=`M${L.pts.map(p=>p.join(',')).join(' L')}`;
+  const cls=s.st==='running'?'running':s.st==='error'?'error':s.st==='off'?'off':'';
+  h+=`<g class="lane ${cls}" style="--c:${c}">`;
+  h+=`<path class="edge" d="${d}"/><path class="flow" d="${d}"/>`;
+  const dur=s.st==='running'?3:8;
+  for(let k=0;k<3;k++)h+=`<circle class="pk" r="3.5" fill="${c}" filter="url(#gl)"><animateMotion dur="${dur}s" begin="${-k*dur/3}s" repeatCount="indefinite" path="${d}"/></circle><circle class="pk" r="2" fill="#fff"><animateMotion dur="${dur}s" begin="${-k*dur/3}s" repeatCount="indefinite" path="${d}"/></circle>`;
+  L.nodes.forEach(([ic,t,sub],i)=>{const [x,y]=L.pts[i];
+   h+=`<g class="node" style="--i:${i}" transform="translate(${x-NW/2},${y-NH/2})"><rect width="${NW}" height="${NH}" rx="12"/><text x="12" y="25" font-size="15">${ic}</text><text x="36" y="25" font-size="13" font-weight="600">${esc(t)}</text><text class="sub" x="12" y="45">${esc(sub)}</text></g>`});
+  // nagłówek etapu
+  const dc={success:'#4ADE80',error:'#FF7B70',running:'#6E8BFF',waiting:'#F5B25A'}[s.st]||'#52525B';
+  const sch=s.wf?.schedules?.map(x=>x.time||x.cron||x.every).filter(Boolean).join(', ')||'';
+  h+=`<g class="lhead ${sel===li?'sel':''}" data-l="${li}" style="--c:${c}" transform="translate(16,${L.y-46})"><rect width="170" height="92" rx="14"/>
+   <rect x="0" y="16" width="3" height="60" rx="1.5" fill="${c}" stroke="none"/>
+   <text x="16" y="26" fill="#F4F4F5" font-size="14" font-weight="650">${L.title}</text>
+   <circle cx="20" cy="45" r="4" fill="${dc}"${s.st==='running'?'><animate attributeName="opacity" values="1;.2;1" dur="1s" repeatCount="indefinite"/></circle>':'/>'}
+   <text x="30" y="49" fill="#A1A1AA" font-size="12">${ST[s.st]||s.st}</text>
+   <text x="16" y="67" fill="#6B6B75" font-size="11" font-family="JetBrains Mono">${s.last?ago(s.last.startedAt):'–'}</text>
+   <text x="16" y="82" fill="#6B6B75" font-size="11" font-family="JetBrains Mono">${sch?'⏰ '+esc(sch):''}</text></g></g>`;
+ });
+ $('svg').innerHTML=h;
+ $('svg').querySelectorAll('.lhead').forEach(g=>g.onclick=()=>{sel=sel===+g.dataset.l?null:+g.dataset.l;draw();list()});
+}
+
+function nextStart(){
+ const now=new Date();let best=null;
+ (state?.workflows||[]).filter(w=>w.active).forEach(w=>w.schedules.forEach(s=>{if(!s.time||s.every==='weeks')return;
+  const [hh,mm]=s.time.split(':').map(Number),d=new Date(now);d.setHours(hh,mm,0,0);if(d<=now)d.setDate(d.getDate()+1);
+  if(!best||d<best.d)best={d,w:w.name}}));
+ return best;
+}
+
+function list(){
+ if(!state||!state.ok)return;
+ let ex=state.executions;const L=sel!=null?LANES[sel]:null;
+ if(L){const ids=new Set(state.workflows.filter(w=>L.match.test(w.name)).map(w=>w.id));ex=ex.filter(e=>ids.has(e.workflowId))}
+ $('exT').textContent=L?`Uruchomienia: ${L.title}`:'Ostatnie uruchomienia';$('all').hidden=!L;
+ $('exl').innerHTML=ex.slice(0,14).map(e=>{const dur=e.stoppedAt?Math.round((new Date(e.stoppedAt)-new Date(e.startedAt))/1000):null;
+  return`<div class="ex"><span class="dot ${e.status}"></span><span>${esc(e.workflow)} <span style="color:var(--faint)">· ${ST[e.status]||e.status}</span></span><span class="d">${dur==null?'…':dur<120?dur+' s':Math.round(dur/60)+' min'}</span><time>${new Date(e.startedAt).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time></div>`}).join('')||'<div class="empty">Brak uruchomień.</div>';
+ $('wfl').innerHTML=state.workflows.slice().sort((a,b)=>b.active-a.active||a.name.localeCompare(b.name)).map(w=>
+  `<div class="wf"><span>${esc(w.name)}</span><span class="tag ${w.active?'':'no'}">${w.active?'aktywny':'wyłączony'}</span><small>${w.nodes} node'ów${w.schedules.length?' · ⏰ '+esc(w.schedules.map(s=>s.time||s.cron||s.every).join(', ')):''}</small></div>`).join('');
+}
+
+function kpis(){
+ const W=state.workflows,E=state.executions,day=Date.now()-864e5,e24=E.filter(e=>new Date(e.startedAt)>day);
+ const ok=e24.filter(e=>e.status==='success').length,er=e24.filter(e=>['error','crashed'].includes(e.status));
+ $('k1').textContent=`${W.filter(w=>w.active).length}/${W.length}`;$('k1s').textContent='włączone w n8n';
+ $('k2').textContent=e24.length;$('k2s').textContent=e24.length?Math.round(ok/e24.length*100)+'% udanych':'brak w ostatniej dobie';
+ $('k3').textContent=er.length;$('k3').style.color=er.length?'var(--err)':'var(--ok)';$('k3s').textContent=er[0]?`ostatni: ${er[0].workflow}`:'wszystko gra';
+ const n=nextStart();$('k4').textContent=n?n.d.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'}):'–';$('k4s').textContent=n?n.w:'brak harmonogramu';
+}
+
+async function load(force){
+ try{const r=await fetch('/api/pozaskala/status'+(force?'?force=1':''));
+  if(r.status===401){$('msg').style.display='block';$('msg').textContent='Sesja wygasła – odśwież centrum i zaloguj się.';return}
+  state=await r.json()}catch(e){state={ok:false,error:'Brak połączenia z centrum.'}}
+ if(!state.ok){$('msg').style.display='block';
+  $('msg').innerHTML=`<b>Pipeline nie ma jeszcze danych z n8n.</b> ${esc(state.error)}<br>Na VPS: n8n → Settings → <b>n8n API</b> → utwórz klucz, potem dopisz do <code>/root/social/.env</code> linię <code>N8N_API_KEY=…</code> i zrób <code>systemctl restart social</code>.`;
+  $('upd').textContent='offline';$('exl').innerHTML=$('wfl').innerHTML='<div class="empty">Czekam na połączenie z n8n.</div>'}
+ else{$('msg').style.display='none';$('upd').textContent='aktualizacja '+new Date().toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'});kpis();list()}
+ draw();
+}
+$('all').onclick=()=>{sel=null;draw();list()};
+load();setInterval(load,30000);
+</script>
+</body>
+</html>

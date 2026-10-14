@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agencja AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#161925;--panel:rgba(22,25,38,.92);--line:rgba(255,255,255,.09);--txt:#e8ebf5;--mut:#8b91a8;--acc:#9fd8ff;--ok:#3ddc84;--idle:#6b7088}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font:14px/1.4 Inter,system-ui,sans-serif}
+#stars{position:fixed;inset:0;z-index:0}
+#scene{position:fixed;inset:0;z-index:1;cursor:grab}
+#scene.drag{cursor:grabbing}#scene.hov{cursor:pointer}
+#labels{position:fixed;inset:0;z-index:2;pointer-events:none}
+.lbl{position:absolute;display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;white-space:nowrap;pointer-events:auto;cursor:pointer;transform:translate(-50%,-100%);backdrop-filter:blur(6px);transition:border-color .2s}
+.lbl:hover{border-color:var(--c)}
+.lbl .ic{width:26px;height:26px;border-radius:7px;background:var(--c);display:grid;place-items:center;font-size:14px}
+.lbl b{font-size:12.5px;display:block}
+.lbl small{font:11px 'JetBrains Mono',monospace;color:var(--mut)}
+.lbl small i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:4px;box-shadow:0 0 6px var(--ok)}
+.brain{text-align:center;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.12em;padding:6px 12px;cursor:default}
+.brain span{display:block;font-weight:400;letter-spacing:0;color:var(--mut)}
+header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(8px)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700}
+.logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6b8cff,#c94fc0);display:grid;place-items:center;font-style:normal}
+.stats{display:flex;gap:18px;margin-left:auto;font:12px 'JetBrains Mono',monospace;color:var(--mut)}
+.stats b{color:var(--txt);font-size:14px;margin-right:4px}
+#models{position:fixed;left:12px;bottom:12px;z-index:3;display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:12px 'JetBrains Mono',monospace;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--mut);cursor:pointer}
+.chip.on{color:#111;background:var(--acc);border-color:var(--acc)}
+#feed{position:fixed;left:12px;bottom:52px;z-index:3;width:min(340px,calc(100vw - 24px));display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.ev{font-size:12px;padding:6px 10px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:8px;animation:in .35s ease}
+.ev small{color:var(--mut);font-family:'JetBrains Mono',monospace;margin-right:6px}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+#mini{position:fixed;right:12px;bottom:12px;z-index:3;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+#mini .t{display:flex;justify-content:space-between;font:10px 'JetBrains Mono',monospace;color:var(--mut);margin-bottom:4px}
+#mini canvas{display:block;cursor:pointer}
+#mini .z{display:flex;gap:4px;margin-top:6px}
+#mini .z button{flex:1;background:#232838;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:3px 0;cursor:pointer}
+#panel{position:fixed;top:84px;right:12px;bottom:12px;z-index:4;width:360px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);transform:translateX(calc(100% + 24px));transition:transform .35s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;overflow:hidden}
+#panel.open{transform:none}
+.ph{padding:16px;border-bottom:1px solid var(--line);position:relative}
+.ph:before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:var(--c)}
+.ph h2{font-size:18px;display:flex;align-items:center;gap:8px}
+.ph p{color:var(--mut);font-size:13px;margin-top:4px}
+.x{position:absolute;right:12px;top:12px;background:none;border:0;color:var(--mut);font-size:22px;cursor:pointer}
+.list{overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+.ag{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.02)}
+.ag .d{width:9px;height:9px;border-radius:50%;background:var(--idle)}
+.ag.run .d{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.ag b{font-size:13.5px}
+.ag code{grid-column:2/4;font:11.5px 'JetBrains Mono',monospace;color:var(--acc)}
+.ag .m{font:11px 'JetBrains Mono',monospace;color:var(--mut)}
+.ag button{grid-column:1/4;margin-top:4px;padding:6px;border-radius:7px;border:1px solid var(--line);background:#232838;color:var(--txt);cursor:pointer;font:600 12px Inter}
+.ag.run button{background:transparent;color:var(--mut)}
+@media(max-width:700px){
+ .stats{margin-left:0;width:100%;justify-content:space-between}
+ #panel{top:auto;left:12px;right:12px;width:auto;height:62vh;transform:translateY(calc(100% + 24px))}
+ #panel.open{transform:none}
+ #feed{display:none}
+ #mini canvas{width:110px;height:74px}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="scene"></div>
+<div id="labels"></div>
+<header>
+ <div class="logo"><i>✦</i>Agencja AI <span style="color:var(--mut);font-weight:400">· social media</span></div>
+ <div class="stats"><span><b id="sA">0</b>agentów</span><span><b id="sR">0</b>pracuje</span><span><b id="sT">0</b>zadań dziś</span></div>
+</header>
+<div id="feed"></div>
+<div id="models"></div>
+<div id="mini"><div class="t"><span>MAPA</span><span id="zl">100%</span></div><canvas id="mc" width="150" height="100"></canvas><div class="z"><button id="zo">−</button><button id="zi">+</button><button id="zr">⤢</button></div></div>
+<aside id="panel"><div class="ph"><button class="x" id="px">×</button><h2 id="pt"></h2><p id="pd"></p></div><div class="list" id="pl"></div></aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ===== DANE: działy i agenci (podmień na dane z backendu) =====
+const DEPTS=[
+ {name:'Research',sub:'Trendy, tematy i konkurencja',color:'#4f6fe0',icon:'🔍',agents:[
+  {n:'Trend Scout',m:'Sonnet',s:'trend-analyst',st:1},{n:'SEO Hunter',m:'Haiku',s:'social-seo-researcher',st:1},{n:'Konkurencja',m:'Haiku',s:'web-search',st:0}],
+  msg:['znalazł 3 nowe trendy na TikToku','zebrał hashtagi pod #space','przeanalizował 12 filmów konkurencji']},
+ {name:'Skrypty',sub:'Hooki, scenariusze, opisy',color:'#e0a92e',icon:'✍️',agents:[
+  {n:'Hook Master',m:'Sonnet',s:'hook-generator',st:1},{n:'Scenarzysta',m:'Sonnet',s:'story-reel-scriptwriter',st:1},{n:'Copywriter',m:'Haiku',s:'caption-writer',st:0}],
+  msg:['napisał 5 hooków','skończył scenariusz 32s','dodał opis i CTA']},
+ {name:'Publikacja',sub:'Kalendarz i wrzutki na kanały',color:'#c94fc0',icon:'📲',agents:[
+  {n:'Planer',m:'Sonnet',s:'monthly-content-planner',st:1},{n:'Publisher',m:'Haiku',s:'n8n · Publisher',st:0},{n:'Repurposer',m:'Haiku',s:'content-repurposer',st:1}],
+  msg:['zaplanował posty na tydzień','opublikował Reel na IG','przerobił film na karuzelę']},
+ {name:'Kreacja',sub:'Grafika, wideo, montaż',color:'#7a5ce0',icon:'🎨',agents:[
+  {n:'Grafik',m:'Sonnet',s:'image-gen',st:1},{n:'Montażysta',m:'Haiku',s:'ffmpeg-renderer',st:1},{n:'Motion',m:'Sonnet',s:'motion-design',st:0},{n:'Miniatury',m:'Haiku',s:'thumbnail',st:0}],
+  msg:['wyrenderował final.mp4','wygenerował 4 kadry','zrobił miniaturę']},
+ {name:'Analityka',sub:'Wyniki i pętla zwrotna',color:'#2fb3a5',icon:'📊',agents:[
+  {n:'Analityk',m:'Sonnet',s:'performance-analyst',st:1},{n:'Raporty',m:'Haiku',s:'weekly-report',st:0}],
+  msg:['zaktualizował FAVOR/REDUCE','policzył zaangażowanie 7 dni','wysłał raport na Telegram']},
+ {name:'Strategia',sub:'Kampanie i plan treści',color:'#d94b4b',icon:'🎯',agents:[
+  {n:'Strateg',m:'Sonnet',s:'campaign-strategist',st:1},{n:'Content Lead',m:'Sonnet',s:'social-content',st:0}],
+  msg:['przygotował plan kampanii','ustalił filary treści']},
+ {name:'Automatyzacje',sub:'n8n, VPS, błędy',color:'#3fae5a',icon:'⚙️',agents:[
+  {n:'n8n Operator',m:'Haiku',s:'n8n · generator',st:1},{n:'Error Watch',m:'Haiku',s:'telegram-notifier',st:1},{n:'Dev',m:'Sonnet',s:'code',st:0}],
+  msg:['uruchomił generator 8:00','sprawdził kolejkę _queue','retry: Kling OK']},
+ {name:'Inbox',sub:'Komentarze i wiadomości',color:'#e07a2e',icon:'💬',agents:[
+  {n:'Komentarze',m:'Haiku',s:'reply-comments',st:0},{n:'DM',m:'Haiku',s:'reply-dm',st:0}],
+  msg:['odpowiedział na 8 komentarzy','posortował DM-y']}
+];
+
+// ===== SCENA =====
+const el=document.getElementById('scene'),W=()=>innerWidth,H=()=>innerHeight;
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(W(),H());
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+el.appendChild(renderer.domElement);
+const scene=new THREE.Scene(),FR=44,camera=new THREE.OrthographicCamera(-1,1,1,-1,1,500);
+const target=new THREE.Vector3(0,0,0),OFF=new THREE.Vector3(60,60,60);
+function setFrustum(){const a=W()/H();camera.left=-FR*a/2;camera.right=FR*a/2;camera.top=FR/2;camera.bottom=-FR/2;camera.updateProjectionMatrix()}
+function placeCam(){camera.position.copy(target).add(OFF);camera.lookAt(target)}
+const Z0=W()<700?.55:1;camera.zoom=Z0;setFrustum();placeCam();
+
+scene.add(new THREE.AmbientLight(0xb8c4ff,.55));
+const sun=new THREE.DirectionalLight(0xffffff,.85);sun.position.set(25,45,15);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-35,right:35,top:35,bottom:-35});scene.add(sun);
+scene.add(new THREE.HemisphereLight(0x9fb4ff,0x1a1d2b,.35));
+
+const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.8,...o});
+function box(w,h,d,m,x,y,z,p){const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);me.position.set(x,y,z);me.castShadow=me.receiveShadow=true;p.add(me);return me}
+const tint=(c,k,to=0xffffff)=>new THREE.Color(c).lerp(new THREE.Color(to),k);
+const S2=Math.SQRT2,S6=Math.sqrt(6),R=17,N=DEPTS.length;
+const toWorld=(mx,my)=>({x:(mx*S2+my*S6)/2,z:(my*S6-mx*S2)/2}); // ekran-iso -> grunt
+const toMap=(x,z)=>({x:(x-z)/S2,y:(x+z)/S6});
+
+const rooms=[],agents=[],floors=[],walkers=[],packets=[];
+const DESKS=[[-1.4,-1.4],[1.6,-1.4],[-1.4,1.4],[1.6,1.4]];
+
+function figure(color,s=1){const g=new THREE.Group(),bm=mat(color);
+ const b=new THREE.Mesh(new THREE.CylinderGeometry(.22*s,.3*s,.75*s,12),bm);b.position.y=.38*s;
+ const h=new THREE.Mesh(new THREE.SphereGeometry(.22*s,16,12),mat(0xf1c9a5));h.position.y=.98*s;
+ const hr=new THREE.Mesh(new THREE.SphereGeometry(.23*s,16,8,0,Math.PI*2,0,Math.PI/2),mat(0x2b2230));hr.position.y=1.02*s;
+ [b,h,hr].forEach(m=>{m.castShadow=true;g.add(m)});return{g,head:h,bm}}
+
+DEPTS.forEach((d,i)=>{
+ const a=-Math.PI/2+i*Math.PI*2/N,sx=Math.cos(a)*R,sy=Math.sin(a)*R*.62;
+ const p=toWorld(sx,sy),g=new THREE.Group();g.position.set(p.x,0,p.z);scene.add(g);
+ const c=new THREE.Color(d.color);
+ const fl=box(7.2,.5,7.2,mat(c),0,.25,0,g);fl.userData.i=i;floors.push(fl);
+ box(4.6,.02,4.6,mat(tint(c,.55)),0,.51,0,g);
+ const wm=mat(tint(c,.15,0x000000));box(.3,3.2,7.2,wm,-3.45,2.1,0,g);box(7.2,3.2,.3,wm,0,2.1,-3.45,g);
+ box(2.6,1.1,.06,mat(0x1d2130),.4,2.5,-3.28,g);                         // tablica
+ box(.06,.08,2.2,mat(0xffffff),-3.28,2.6,.8,g);                          // półka
+ [0xe05a5a,0x5a9be0,0xf0c050].forEach((bc,k)=>box(.2,.45,.14,mat(bc),-3.2,2.88,.2+k*.3,g));
+ const lamp=new THREE.Mesh(new THREE.SphereGeometry(.16,12,8),new THREE.MeshBasicMaterial({color:0xfff2c4}));lamp.position.set(-3.2,3.3,-3.2);g.add(lamp);
+ const pot=box(.45,.45,.45,mat(0xf2f2f2),2.9,.73,2.9,g);
+ const leaf=new THREE.Mesh(new THREE.SphereGeometry(.42,10,8),mat(0x3f9a55));leaf.position.set(2.9,1.25,2.9);leaf.castShadow=true;g.add(leaf);
+ d.agents.forEach((ag,k)=>{
+  const [dx,dz]=DESKS[k],white=mat(0xf4f5f8);
+  box(1.7,.1,.8,white,dx,1.25,dz,g);box(.08,.72,.7,white,dx-.78,.87,dz,g);box(.08,.72,.7,white,dx+.78,.87,dz,g);
+  box(.8,.5,.06,mat(0x15171f),dx,1.62,dz-.22,g);box(.08,.2,.08,mat(0x15171f),dx,1.38,dz-.22,g);
+  const sm=new THREE.MeshBasicMaterial({color:0x222633});
+  const scr=new THREE.Mesh(new THREE.PlaneGeometry(.72,.42),sm);scr.position.set(dx,1.62,dz-.185);g.add(scr);
+  const ch=mat(0x2a2d3a);box(.55,.1,.55,ch,dx,.85,dz+.85,g);box(.55,.6,.08,ch,dx,1.15,dz+1.12,g);
+  const f=figure(tint(c,.3,0x222222),.95);f.g.position.set(dx,.62,dz+.8);f.g.rotation.y=Math.PI;g.add(f.g);
+  agents.push({d:i,a:ag,f,sm,c,ph:Math.random()*6});
+ });
+ // ścieżka do mózgu
+ const L=R*.62*0+Math.hypot(p.x,p.z)-9.6,mid=new THREE.Vector3(p.x,0,p.z).normalize().multiplyScalar(5.6+L/2);
+ const path=box(1,.08,L,mat(0x2a2e40),mid.x,.06,mid.z,scene);path.rotation.y=Math.atan2(p.x,p.z);
+ const from=new THREE.Vector3(p.x,0,p.z).normalize().multiplyScalar(5.8),to=new THREE.Vector3(p.x,0,p.z).normalize().multiplyScalar(5.6+L);
+ const w=figure(tint(c,.2),.6);scene.add(w.g);walkers.push({w,from,to,sp:.05+Math.random()*.05,o:Math.random()});
+ for(let k=0;k<3;k++){const pk=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),new THREE.MeshBasicMaterial({color:tint(c,.5)}));scene.add(pk);packets.push({pk,from:to,to:from,o:k/3})}
+ rooms.push({g,p,lift:0});
+});
+
+// mózg
+const base=new THREE.Mesh(new THREE.CylinderGeometry(5.2,5.6,.5,64),mat(0x23273a));base.position.y=.25;base.receiveShadow=true;scene.add(base);
+const plate=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.54,64),mat(0x2f3550,{metalness:.3,roughness:.4}));plate.position.y=.27;scene.add(plate);
+const rings=[4.6,3.3,2.2].map((r,k)=>{const t=new THREE.Mesh(new THREE.TorusGeometry(r,.05,8,128),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.8-k*.15}));t.rotation.x=Math.PI/2;t.position.y=.56;scene.add(t);return t});
+const core=new THREE.Mesh(new THREE.SphereGeometry(1.1,32,24),new THREE.MeshStandardMaterial({color:0xcfefff,emissive:0x9fdcff,emissiveIntensity:1.3}));core.position.y=3.2;scene.add(core);
+const orbits=[0,1,2].map(k=>{const t=new THREE.Mesh(new THREE.TorusGeometry(1.9,.025,6,96),new THREE.MeshBasicMaterial({color:0xbfe6ff,transparent:true,opacity:.55}));t.position.y=3.2;t.rotation.set(k*1.05,k*.6,0);scene.add(t);return t});
+const beam=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,16,12,1,true),new THREE.MeshBasicMaterial({color:0xcfefff,transparent:true,opacity:.35}));beam.position.y=8;scene.add(beam);
+const pl=new THREE.PointLight(0x9fd8ff,1.6,26);pl.position.y=3.2;scene.add(pl);
+
+// ===== UI =====
+const $=id=>document.getElementById(id),lblBox=$('labels'),labels=[];
+DEPTS.forEach((d,i)=>{const e=document.createElement('div');e.className='lbl';e.style.setProperty('--c',d.color);e.onclick=()=>openPanel(i);lblBox.appendChild(e);labels.push(e)});
+const brain=document.createElement('div');brain.className='lbl brain';lblBox.appendChild(brain);
+let notes=1642,tasks=0,filter='Wszystkie',openI=-1;
+function refresh(){
+ DEPTS.forEach((d,i)=>{const r=d.agents.filter(a=>a.st).length;
+  labels[i].innerHTML=`<span class="ic">${d.icon}</span><div><b>${d.name}</b><small><i></i>${d.agents.length} ag. · ${r} pracuje</small></div>`});
+ brain.innerHTML=`MÓZG<span>${notes.toLocaleString('pl')} notatek · wspólna pamięć</span>`;
+ const all=agents.length,run=agents.filter(o=>o.a.st).length;$('sA').textContent=all;$('sR').textContent=run;$('sT').textContent=tasks;
+ agents.forEach(o=>{o.sm.color.copy(o.a.st?tint(o.c,.45):new THREE.Color(0x222633));
+  const hit=filter!=='Wszystkie'&&o.a.m===filter;o.f.bm.emissive.set(hit?0xffffff:0x000000);o.f.bm.emissiveIntensity=hit?.45:0});
+ if(openI>=0)renderPanel(openI);
+}
+function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.color);
+ $('pt').innerHTML=`${d.icon} ${d.name}`;$('pd').textContent=d.sub;
+ $('pl').innerHTML=d.agents.map((a,k)=>`<div class="ag ${a.st?'run':''}"><span class="d"></span><b>${a.n}</b><span class="m">${a.m}</span><code>skill: ${a.s}</code><button data-k="${k}">${a.st?'Zatrzymaj':'Zleć zadanie'}</button></div>`).join('');
+ $('pl').querySelectorAll('button').forEach(b=>b.onclick=()=>{const a=d.agents[b.dataset.k];a.st=a.st?0:1;log(i,`${a.n} ${a.st?'startuje':'zatrzymany'}`);refresh()});
+}
+function openPanel(i){openI=i;renderPanel(i);$('panel').classList.add('open');const r=rooms[i];target.set(r.p.x,0,r.p.z);placeCam()}
+$('px').onclick=()=>{$('panel').classList.remove('open');openI=-1};
+addEventListener('keydown',e=>{if(e.key==='Escape')$('px').onclick()});
+function log(i,t){const d=DEPTS[i],e=document.createElement('div');e.className='ev';e.style.setProperty('--c',d.color);
+ const now=new Date();e.innerHTML=`<small>${now.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}</small>${t}`;
+ const f=$('feed');f.prepend(e);while(f.children.length>4)f.lastChild.remove()}
+['Wszystkie','Sonnet','Haiku','Opus'].forEach(m=>{const c=document.createElement('button');c.className='chip'+(m===filter?' on':'');c.textContent=m;
+ c.onclick=()=>{filter=m;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));refresh()};$('models').appendChild(c)});
+
+// symulacja pracy (do zastąpienia prawdziwymi zdarzeniami z n8n/API)
+setInterval(()=>{const o=agents[Math.random()*agents.length|0],d=DEPTS[o.d];
+ if(o.a.st){log(o.d,`${o.a.n}: ${d.msg[Math.random()*d.msg.length|0]}`);tasks++;notes+=1+(Math.random()*4|0);if(Math.random()<.25)o.a.st=0}
+ else if(Math.random()<.5){o.a.st=1;log(o.d,`${o.a.n} bierze zadanie`)}
+ refresh()},3200);
+
+// prawdziwe zdarzenia z n8n (PozaSkala) trafiają do działu Automatyzacje
+const seen=new Set(),AUTO=DEPTS.findIndex(d=>d.name==='Automatyzacje');
+async function n8nFeed(){try{const r=await fetch('/api/pozaskala/status');if(!r.ok)return;const s=await r.json();if(!s.ok)return;
+ const first=!seen.size;s.executions.slice(0,first?3:20).reverse().forEach(e=>{const k=e.id+e.status;if(seen.has(k))return;seen.add(k);
+  const st={success:'✓ sukces',error:'✗ błąd',running:'▶ działa',waiting:'⏳ czeka'}[e.status]||e.status;log(AUTO,`n8n · ${e.workflow}: ${st}`)});
+ const run=s.executions.some(e=>e.status==='running');DEPTS[AUTO].agents[0].st=run||DEPTS[AUTO].agents[0].st;refresh()}catch(e){}}
+n8nFeed();setInterval(n8nFeed,60000);
+
+// ===== STEROWANIE =====
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=null,hover=-1;
+function pick(e){mv.set(e.clientX/W()*2-1,-(e.clientY/H())*2+1);ray.setFromCamera(mv,camera);const h=ray.intersectObjects(floors);return h.length?h[0].object.userData.i:-1}
+el.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,m:0};el.setPointerCapture(e.pointerId)});
+el.addEventListener('pointermove',e=>{
+ if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.m+=Math.abs(dx)+Math.abs(dy);drag.x=e.clientX;drag.y=e.clientY;
+  if(drag.m>4){el.classList.add('drag');const k=(camera.top-camera.bottom)/(camera.zoom*H()),w=toWorld(-dx*k,-dy*k);target.x+=w.x;target.z+=w.z;placeCam()}return}
+ hover=pick(e);el.classList.toggle('hov',hover>=0)});
+el.addEventListener('pointerup',e=>{el.classList.remove('drag');if(drag&&drag.m<=4){const i=pick(e);if(i>=0)openPanel(i)}drag=null});
+const setZoom=z=>{camera.zoom=Math.min(3,Math.max(.35,z));camera.updateProjectionMatrix()};
+el.addEventListener('wheel',e=>{e.preventDefault();setZoom(camera.zoom*(e.deltaY<0?1.1:.9))},{passive:false});
+$('zi').onclick=()=>setZoom(camera.zoom*1.2);$('zo').onclick=()=>setZoom(camera.zoom/1.2);
+$('zr').onclick=()=>{target.set(0,0,0);placeCam();setZoom(Z0)};
+addEventListener('resize',()=>{renderer.setSize(W(),H());setFrustum();stars()});
+
+// minimapa
+const mc=$('mc'),mx=mc.getContext('2d'),MS=150/52;
+function mini(){mx.clearRect(0,0,150,100);
+ rooms.forEach((r,i)=>{const m=toMap(r.p.x,r.p.z);mx.fillStyle=DEPTS[i].color;mx.fillRect(75+m.x*MS-7,50+m.y*MS*1.6-4,14,8)});
+ mx.fillStyle='#cfefff';mx.beginPath();mx.arc(75,50,3,0,7);mx.fill();
+ const t=toMap(target.x,target.z),vw=(camera.right-camera.left)/camera.zoom*MS,vh=(camera.top-camera.bottom)/camera.zoom*MS*1.6;
+ mx.strokeStyle='rgba(255,255,255,.6)';mx.strokeRect(75+t.x*MS-vw/2,50+t.y*MS*1.6-vh/2,vw,vh);
+ $('zl').textContent=Math.round(camera.zoom/Z0*100)+'%'}
+mc.onclick=e=>{const b=mc.getBoundingClientRect(),sx=(e.clientX-b.left)*150/b.width,sy=(e.clientY-b.top)*100/b.height;
+ const w=toWorld((sx-75)/MS,(sy-50)/(MS*1.6));target.set(w.x,0,w.z);placeCam()};
+
+// gwiazdy
+function stars(){const c=$('stars'),x=c.getContext('2d');c.width=W();c.height=H();
+ const gr=x.createRadialGradient(W()/2,H()/2,0,W()/2,H()/2,Math.max(W(),H())*.7);gr.addColorStop(0,'#2a2f45');gr.addColorStop(1,'#141722');
+ x.fillStyle=gr;x.fillRect(0,0,W(),H());for(let i=0;i<220;i++){x.fillStyle=`rgba(255,255,255,${Math.random()*.6})`;x.fillRect(Math.random()*W(),Math.random()*H(),1.2,1.2)}}
+stars();refresh();
+
+// ===== PĘTLA =====
+const clock=new THREE.Clock(),v=new THREE.Vector3();
+function project(p,e){v.copy(p).project(camera);e.style.left=(v.x+1)/2*W()+'px';e.style.top=(1-v.y)/2*H()+'px'}
+(function loop(){const t=clock.getElapsedTime();
+ rooms.forEach((r,i)=>{r.lift+=((i===hover?.35:0)-r.lift)*.15;r.g.position.y=r.lift;v.set(r.p.x-1.2,4.6+r.lift,r.p.z-1.2);project(v,labels[i])});
+ project(new THREE.Vector3(0,5.6,0),brain);
+ agents.forEach(o=>{o.f.head.position.y=.98*.95+(o.a.st?Math.sin(t*6+o.ph)*.04:0);if(o.a.st)o.sm.color.offsetHSL(0,0,Math.sin(t*8+o.ph)*.004)});
+ walkers.forEach(w=>{let k=(t*w.sp+w.o)%2;k=k>1?2-k:k;w.w.g.position.lerpVectors(w.from,w.to,k);w.w.g.position.y=.06+Math.abs(Math.sin(t*8))*.06;
+  w.w.g.rotation.y=Math.atan2(w.to.x-w.from.x,w.to.z-w.from.z)+((t*w.sp+w.o)%2>1?Math.PI:0)});
+ packets.forEach(p=>{const k=(t*.25+p.o)%1;p.pk.position.lerpVectors(p.from,p.to,k);p.pk.position.y=.45});
+ rings.forEach((r,k)=>r.rotation.z=t*(k%2?-.3:.4));orbits.forEach((o,k)=>{o.rotation.y=t*.5+k;o.rotation.x+=.003});
+ core.scale.setScalar(1+Math.sin(t*2)*.04);pl.intensity=1.4+Math.sin(t*2)*.3;
+ mini();renderer.render(scene,camera);requestAnimationFrame(loop)})();
+</script>
+</body>
+</html>

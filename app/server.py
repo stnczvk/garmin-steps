@@ -3,7 +3,7 @@ import asyncio, hashlib, hmac, os, secrets, sqlite3, time
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 HERE = Path(__file__).resolve().parent
 ROOT = Path(os.environ.get("SOCIAL_HOME", "/root/social"))
@@ -80,9 +80,28 @@ from extra import router as extra_router  # noqa: E402
 app.include_router(extra_router)
 
 
+from pozaskala import router as pozaskala_router  # noqa: E402
+app.include_router(pozaskala_router)
+
+
 @app.get("/")
 def index():
     return FileResponse(HERE / "web" / "index.html")
+
+
+@app.get("/agencja")
+def agencja(req: Request):
+    # zakładka Agencja AI (osadzana w index.html) – tylko po zalogowaniu
+    if not authed(req):
+        return RedirectResponse("/")
+    return FileResponse(HERE / "web" / "agencja.html", headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/pozaskala")
+def pozaskala(req: Request):
+    if not authed(req):
+        return RedirectResponse("/")
+    return FileResponse(HERE / "web" / "pozaskala.html", headers={"Cache-Control": "no-cache"})
 
 
 STATIC = {"manifest.webmanifest": "application/manifest+json", "icon-192.png": "image/png", "icon-512.png": "image/png",
