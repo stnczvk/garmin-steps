@@ -78,8 +78,9 @@ canvas{width:100%;display:block}
  </div>
  <div class="grid">
   <section class="glass in" style="--d:340ms"><div class="card-h"><h2>🎬 PozaSkala dziś</h2><a href="#" data-go="agencja">Agencja AI →</a></div><div id="pz"><div class="sk"></div></div></section>
-  <section class="glass in" style="--d:380ms"><div class="card-h"><h2>⚡ Ostatnie zdarzenia</h2><a href="#" data-go="pozaskala">Pipeline →</a></div><div class="feed" id="feed"><div class="sk"></div></div></section>
+  <section class="glass in" style="--d:380ms"><div class="card-h"><h2>👤 Twoje konta dziś</h2><a href="#" data-go="agencja">Raport →</a></div><div id="pv"><div class="sk"></div></div></section>
  </div>
+ <section class="glass in" style="--d:420ms;margin-bottom:14px"><div class="card-h"><h2>⚡ Ostatnie zdarzenia</h2><a href="#" data-go="pozaskala">Pipeline →</a></div><div class="feed" id="feed"><div class="sk"></div></div></section>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -135,6 +136,26 @@ function scanner(S,EQ,FG,AUD){
  requestAnimationFrame(()=>spark($('eq'),EQ?.series||[]));
 }
 
+// raport z kont prywatnych: liczby z ostatniego odświeżenia + wnioski z poniedziałkowego raportu Agencji
+function priv(D,A){
+ const accs=Object.values(D?.accounts||{}).filter(a=>a.group==='prywatne'&&!a.error);
+ if(!accs.length){$('pv').innerHTML='<p class="empty">Brak połączonych kont w grupie Prywatne. Dodasz je w Statystykach → Konta i ustawienia.</p>';return}
+ const fol=accs.reduce((s,a)=>s+(a.followers||0),0),f28=accs.reduce((s,a)=>s+(a.followers_28d||0),0),v28=accs.reduce((s,a)=>s+(a.views_28d||0),0);
+ const posts=accs.flatMap(a=>(a.posts||[]).map(p=>({...p,acc:a.name}))).filter(p=>p.date).sort((a,b)=>Date.parse(b.ts||b.date)-Date.parse(a.ts||a.date));
+ const wk=posts.filter(p=>Date.parse(p.date)>Date.now()-7*864e5),last=posts[0],best=[...wk].sort((a,b)=>(b.views||0)-(a.views||0))[0];
+ const daysAgo=last?Math.floor((Date.now()-Date.parse(last.ts||last.date))/864e5):null;
+ const rows=[['Obserwujący',`${big(fol)} <span class="${f28>=0?'up':'down'}">${f28>=0?'+':''}${fmt(f28)}</span>`,''],
+  ['Wyświetlenia 28 dni',big(v28),''],
+  ['Posty w tym tygodniu',wk.length,wk.length?'':'down'],
+  ['Ostatni post',last?(daysAgo===0?'dziś':daysAgo===1?'wczoraj':daysAgo+' dni temu'):'–',daysAgo!=null&&daysAgo>3?'down':'']];
+ if(best)rows.push(['Najlepszy w tygodniu',`${esc((best.title||'bez opisu').slice(0,34))} · ${big(best.views)}`,'up']);
+ const R=A?.private?.[0];let note='';
+ if(R){const lines=R.text.split('\n').map(l=>l.trim()).filter(Boolean),idea=lines.filter(l=>l.startsWith('•')).slice(-3);
+  note=`<div class="note"><b>Analityk · ${new Date(R.at*1000).toLocaleDateString('pl')}</b><br>${esc(lines[0].replace(/^[•\d.\s]+/,'')).slice(0,200)}${idea.length?'<br><br><b>Pomysły na ten tydzień</b><br>'+idea.map(i=>esc(i.slice(0,110))).join('<br>'):''}</div>`}
+ else note='<p class="empty" style="margin-top:8px">Raport Analityka przyjdzie w poniedziałek o 8:00 (albo Agencja AI → Konta prywatne → Analizuj teraz).</p>';
+ $('pv').innerHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><b class="${r[2]}">${r[1]}</b></div>`).join('')+note;
+}
+
 function pozaskala(A,P){
  const rows=[];
  if(P?.ok){const gen=P.workflows.find(w=>/^generator$/i.test(w.name)),pub=P.workflows.find(w=>/^publisher$/i.test(w.name)&&w.active);
@@ -168,7 +189,7 @@ function feed(A,P,S){
 
 async function load(){
  const [D,S,EQ,FG,A,P,AUD]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit')]);
- social(D);scanner(S,EQ,FG,AUD);const pills=pozaskala(A,P)||[];feed(A,P,S);
+ social(D);scanner(S,EQ,FG,AUD);priv(D,A);const pills=pozaskala(A,P)||[];feed(A,P,S);
  if(S)pills.unshift([S.docker?.running,`Skaner ${S.docker?.running?'działa':'stoi'}`]);
  $('pills').innerHTML=pills.map(([ok,t])=>`<span class="pill glass ${ok?'ok':'bad'}"><i></i>${esc(t)}</span>`).join('');
 }
