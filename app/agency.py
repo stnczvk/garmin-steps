@@ -377,7 +377,7 @@ def _pz_account(platform):
 def _reply_text(video, comment):
     return claude(f"""Jesteś autorem kanału „Poza Skala” (Shorts/Reels o niewyobrażalnej skali rzeczy, EN). Komentarz pod filmem „{video}”:
 "{comment[:500]}"
-Napisz krótką (max 2 zdania), naturalną odpowiedź w języku komentarza: podziękuj, odpowiedz rzeczowo na pytanie albo dorzuć ciekawy fakt,
+Napisz krótką (max 2 zdania), naturalną odpowiedź ZAWSZE PO ANGIELSKU (kanał jest anglojęzyczny), nawet gdy komentarz jest w innym języku: podziękuj, odpowiedz rzeczowo na pytanie albo dorzuć ciekawy fakt,
 czasem zadaj pytanie, żeby rozkręcić dyskusję. Bez linków, bez emoji-spamu, bez proszenia o suba.
 Jeśli to spam, hejt, coś obraźliwego, prowokacja polityczna albo nie ma na co odpowiedzieć – odpowiedz dokładnie: SKIP""", FAST, 150).strip()
 
