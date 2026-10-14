@@ -140,5 +140,5 @@ def static_file(name: str):
     # ikony i manifest – potrzebne, żeby stronę dało się dodać do Docka / ekranu głównego
     if name not in STATIC:
         return JSONResponse({"error": "nie ma"}, status_code=404)
-    cc = "no-cache" if name == "sw.js" else "public, max-age=86400"
+    cc = "no-cache" if name in ("sw.js", "glass.css") else "public, max-age=86400"
     return FileResponse(HERE / "web" / name, media_type=STATIC[name], headers={"Cache-Control": cc})
