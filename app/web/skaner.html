@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pl">
+<html lang="pl" class="lg-dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -21,7 +21,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font
 .lbl small i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:4px;box-shadow:0 0 6px var(--ok)}
 .brain{text-align:center;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.12em;padding:6px 12px;cursor:default}
 .brain span{display:block;font-weight:400;letter-spacing:0;color:var(--mut)}
-header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(8px)}
+header{position:fixed;top:12px;left:12px;right:12px;border-radius:18px;z-index:3;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(8px)}
 .logo{display:flex;align-items:center;gap:10px;font-weight:700}
 .logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6b8cff,#c94fc0);display:grid;place-items:center;font-style:normal}
 .stats{display:flex;gap:18px;margin-left:auto;font:12px 'JetBrains Mono',monospace;color:var(--mut)}
@@ -82,7 +82,17 @@ header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align
 .tb span{color:var(--mut);font-size:10.5px}.tb em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tb b{font:600 11.5px 'JetBrains Mono';text-align:right}.tb small{color:var(--mut);font-weight:400}
 .chips{display:flex;flex-wrap:wrap;gap:4px}.chips span{font:11px 'JetBrains Mono';padding:3px 7px;border-radius:6px;background:#232838}
 .bar{height:8px;border-radius:8px;background:#232838;overflow:hidden;margin:4px 0 10px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#f5b25a,#ff7b70)}
-@media(max-width:700px){
+#chartbtn{position:fixed;right:12px;top:84px;z-index:3;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--txt);font:600 13px Inter;cursor:pointer;backdrop-filter:blur(8px)}
+#chartbox{position:fixed;inset:0;z-index:6;background:rgba(5,7,14,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
+#chartbox.open{display:flex}.cb-in{width:min(1100px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;position:relative}
+.cb-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding-right:30px}.cb-h .x{top:10px}
+.seg2{display:flex;gap:4px}.seg2 button{font:12px Inter;padding:4px 10px;border-radius:7px;border:1px solid var(--line);background:#232838;color:var(--mut);cursor:pointer}.seg2 button.on{background:var(--acc);color:#111}
+.cb-c{position:relative;height:min(60vh,520px)}#bigc{width:100%;height:100%;display:block}
+#ctip{position:absolute;display:none;pointer-events:none;background:rgba(10,12,20,.92);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:12px 'JetBrains Mono'}
+.fg{display:flex;gap:10px}.fg div{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px}.fg b{font:700 22px 'JetBrains Mono';display:block}.fg small{color:var(--mut);font-size:11px}
+details{margin:6px 0}summary{cursor:pointer;font-size:12.5px;color:var(--mut);margin-bottom:6px}
+.lessons{font-size:12.5px;line-height:1.5;background:rgba(47,179,165,.08);border:1px solid rgba(47,179,165,.25);border-radius:9px;padding:10px}
+@media(max-width:700px){#chartbtn{top:auto;bottom:130px}
  .stats{margin-left:0;width:100%;justify-content:space-between}
  #panel{top:auto;left:12px;right:12px;width:auto;height:62vh;transform:translateY(calc(100% + 24px))}
  #panel.open{transform:none}
@@ -90,8 +100,9 @@ header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align
  #mini canvas{width:110px;height:74px}
 }
 </style>
+<link rel="stylesheet" href="/glass.css">
 </head>
-<body>
+<body class="lg">
 <canvas id="stars"></canvas>
 <div id="scene"></div>
 <div id="labels"></div>
@@ -102,6 +113,9 @@ header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align
 <div id="feed"></div>
 <div id="models"></div>
 <div id="mini"><div class="t"><span>MAPA</span><span id="zl">100%</span></div><canvas id="mc" width="150" height="100"></canvas><div class="z"><button id="zo">−</button><button id="zi">+</button><button id="zr">⤢</button></div></div>
+<button id="chartbtn" onclick="openChart()">📈 Wykres PnL</button>
+<div id="chartbox"><div class="cb-in"><div class="cb-h"><b>Skumulowany PnL – sygnały prawdziwe vs shadow</b><span class="seg2"><button data-d="30">30 dni</button><button data-d="60" class="on">60 dni</button><button data-d="90">90 dni</button></span><button class="x" id="cx">×</button></div>
+<div class="cb-c"><canvas id="bigc"></canvas><div id="ctip"></div></div><p class="mut">Zielona linia: wysłane sygnały. Fioletowa przerywana: odrzucone (shadow). Słupki: liczba zamkniętych transakcji danego dnia.</p></div></div>
 <aside id="panel"><div class="ph"><button class="x" id="px">×</button><h2 id="pt"></h2><p id="pd"></p></div><div class="list" id="pl"></div></aside>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -138,7 +152,7 @@ const scene=new THREE.Scene(),FR=44,camera=new THREE.OrthographicCamera(-1,1,1,-
 const target=new THREE.Vector3(0,0,0),OFF=new THREE.Vector3(60,60,60);
 function setFrustum(){const a=W()/H();camera.left=-FR*a/2;camera.right=FR*a/2;camera.top=FR/2;camera.bottom=-FR/2;camera.updateProjectionMatrix()}
 function placeCam(){camera.position.copy(target).add(OFF);camera.lookAt(target)}
-const Z0=W()<700?.55:1;camera.zoom=Z0;setFrustum();placeCam();
+const Z0=W()<700?.5:.88;camera.zoom=Z0;setFrustum();placeCam();
 
 scene.add(new THREE.AmbientLight(0xb8c4ff,.55));
 const sun=new THREE.DirectionalLight(0xffffff,.85);sun.position.set(25,45,15);sun.castShadow=true;
@@ -148,7 +162,7 @@ scene.add(new THREE.HemisphereLight(0x9fb4ff,0x1a1d2b,.35));
 const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.8,...o});
 function box(w,h,d,m,x,y,z,p){const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);me.position.set(x,y,z);me.castShadow=me.receiveShadow=true;p.add(me);return me}
 const tint=(c,k,to=0xffffff)=>new THREE.Color(c).lerp(new THREE.Color(to),k);
-const S2=Math.SQRT2,S6=Math.sqrt(6),R=17,N=DEPTS.length;
+const S2=Math.SQRT2,S6=Math.sqrt(6),R=20,N=DEPTS.length;
 const toWorld=(mx,my)=>({x:(mx*S2+my*S6)/2,z:(my*S6-mx*S2)/2}); // ekran-iso -> grunt
 const toMap=(x,z)=>({x:(x-z)/S2,y:(x+z)/S6});
 
@@ -165,9 +179,10 @@ DEPTS.forEach((d,i)=>{
  const a=-Math.PI/2+i*Math.PI*2/N,sx=Math.cos(a)*R,sy=Math.sin(a)*R*.62;
  const p=toWorld(sx,sy),g=new THREE.Group();g.position.set(p.x,0,p.z);scene.add(g);
  const c=new THREE.Color(d.color);
- const fl=box(7.2,.5,7.2,mat(c),0,.25,0,g);fl.userData.i=i;floors.push(fl);
- box(4.6,.02,4.6,mat(tint(c,.55)),0,.51,0,g);
- const wm=mat(tint(c,.15,0x000000));box(.3,3.2,7.2,wm,-3.45,2.1,0,g);box(7.2,3.2,.3,wm,0,2.1,-3.45,g);
+ const fl=box(7.2,.5,7.2,mat(tint(c,.82,0x0b0f1c),{metalness:.4,roughness:.35}),0,.25,0,g);fl.userData.i=i;floors.push(fl);
+ const edge=new THREE.LineSegments(new THREE.EdgesGeometry(fl.geometry),new THREE.LineBasicMaterial({color:c}));edge.position.copy(fl.position);g.add(edge);
+ const rug=box(4.6,.02,4.6,new THREE.MeshBasicMaterial({color:tint(c,.0,0x000000).multiplyScalar(.35)}),0,.51,0,g);
+ const wm=new THREE.MeshStandardMaterial({color:c,transparent:true,opacity:.18,roughness:.1,metalness:.2});box(.3,3.2,7.2,wm,-3.45,2.1,0,g);box(7.2,3.2,.3,wm,0,2.1,-3.45,g);
  box(2.6,1.1,.06,mat(0x1d2130),.4,2.5,-3.28,g);                         // tablica
  box(.06,.08,2.2,mat(0xffffff),-3.28,2.6,.8,g);                          // półka
  [0xe05a5a,0x5a9be0,0xf0c050].forEach((bc,k)=>box(.2,.45,.14,mat(bc),-3.2,2.88,.2+k*.3,g));
@@ -193,6 +208,8 @@ DEPTS.forEach((d,i)=>{
  rooms.push({g,p,lift:0});
 });
 
+// parkiet giełdy: siatka pod biurem
+const grid=new THREE.GridHelper(110,55,0x2c3a66,0x161d33);grid.position.y=-.02;scene.add(grid);
 // mózg
 const base=new THREE.Mesh(new THREE.CylinderGeometry(5.2,5.6,.5,64),mat(0x23273a));base.position.y=.25;base.receiveShadow=true;scene.add(base);
 const plate=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.54,64),mat(0x2f3550,{metalness:.3,roughness:.4}));plate.position.y=.27;scene.add(plate);
@@ -201,12 +218,21 @@ const core=new THREE.Mesh(new THREE.SphereGeometry(1.1,32,24),new THREE.MeshStan
 const orbits=[0,1,2].map(k=>{const t=new THREE.Mesh(new THREE.TorusGeometry(1.9,.025,6,96),new THREE.MeshBasicMaterial({color:0xbfe6ff,transparent:true,opacity:.55}));t.position.y=3.2;t.rotation.set(k*1.05,k*.6,0);scene.add(t);return t});
 const beam=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,16,12,1,true),new THREE.MeshBasicMaterial({color:0xcfefff,transparent:true,opacity:.35}));beam.position.y=8;scene.add(beam);
 const pl=new THREE.PointLight(0x9fd8ff,1.6,26);pl.position.y=3.2;scene.add(pl);
+core.visible=false;orbits.forEach(o=>o.visible=false);beam.visible=false;
+const chartCv=document.createElement('canvas');chartCv.width=1200;chartCv.height=680;
+const chartTex=new THREE.CanvasTexture(chartCv);chartTex.anisotropy=4;
+const bigScreen=new THREE.Group();bigScreen.rotation.y=Math.PI/4;bigScreen.position.set(0,0,0);scene.add(bigScreen);
+box(.6,4.6,.6,mat(0x1a1f2e),0,2.6,-.2,bigScreen);
+const frame=box(17,9.8,.35,mat(0x0d111c,{metalness:.6,roughness:.3}),0,9.6,0,bigScreen);
+const screen=new THREE.Mesh(new THREE.PlaneGeometry(16.4,9.2),new THREE.MeshBasicMaterial({map:chartTex}));screen.position.set(0,9.6,.19);bigScreen.add(screen);
+const glow=new THREE.Mesh(new THREE.PlaneGeometry(18,10.6),new THREE.MeshBasicMaterial({color:0x6e8bff,transparent:true,opacity:.14}));glow.position.set(0,9.6,-.2);bigScreen.add(glow);
+floors.push(Object.assign(screen,{userData:{i:'chart'}}));
 
 // ===== UI =====
 const $=id=>document.getElementById(id),lblBox=$('labels'),labels=[];
 const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 DEPTS.forEach((d,i)=>{const e=document.createElement('div');e.className='lbl';e.style.setProperty('--c',d.color);e.onclick=()=>openPanel(i);lblBox.appendChild(e);labels.push(e)});
-const brain=document.createElement('div');brain.className='lbl brain';lblBox.appendChild(brain);
+const brain=document.createElement('div');brain.className='lbl brain';brain.style.cursor='pointer';brain.onclick=()=>openChart();lblBox.appendChild(brain);
 let filter='Wszystkie',openI=-1,S=null,seen=new Set(),first=true;
 const fmt=(v,d=2)=>v==null?'–':(+v).toLocaleString('pl',{maximumFractionDigits:d});
 const wr=x=>x?.wr==null?'–':x.wr+'%';
@@ -236,6 +262,8 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  if(d.panel==='elite')h+=`<div class="sec"><h3>Kalibracja: win rate wg elite_score (30 dni)</h3>`+tbl(['przedział','sygnały','zamkn.','win rate'],S.calibration.map(c=>[c.bucket,c.n,c.closed,wr(c)]))+
   `<h3>Modyfikatory: aktywność i skuteczność</h3><p class="mut">win rate gdy modyfikator dodatni vs ujemny (w nawiasie liczba zamkniętych)</p>`+tbl(['moduł','aktywny','śr.','WR +','WR −'],S.modifiers.map(modRow))+'</div>';
  if(MODS[d.panel]){const ms=S.modifiers.filter(m=>MODS[d.panel].test(m.name));
+  if(d.panel==='macro'&&FG)h+=`<div class="sec"><h3>Sentyment krypto</h3><div class="fg"><div><b>${FG.fear_greed??'–'}</b><small>Fear &amp; Greed · ${esc(FG.fg_label||'')}</small></div><div><b>${FG.btc_dominance??'–'}%</b><small>dominacja BTC</small></div></div>
+   <p class="mut">W skanerze zapisywane jako CryptoSentimentShadow – tylko obserwacja, nie zmienia elite_score. Skuteczność zobaczysz w Elite Engine.</p></div>`;
   if(d.panel==='macro'&&S.context)h+=`<div class="sec"><h3>Kontekst rynku teraz</h3>`+tbl(['pole','wartość'],Object.entries(S.context).filter(([,v])=>typeof v!=='object').slice(0,14).map(([k,v])=>[esc(k),esc(typeof v==='number'?fmt(v):v)]))+'</div>';
   if(d.panel==='macro')h+=`<div class="sec"><h3>Reżimy (30 dni)</h3>`+tbl(['reżim','sygnały','win rate'],S.regimes.map(r=>[esc(r.regime),r.n,wr(r)]))+'</div>';
   h+=`<div class="sec"><h3>Wpływ na wyniki</h3>`+(ms.length?tbl(['moduł','aktywny','śr.','WR +','WR −'],ms.map(modRow)):'<p class="mut">Brak danych.</p>')+
@@ -244,9 +272,11 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
   (S.open.length?tbl(['symbol','kier.','wielkość','elite'],S.open.map(o=>[esc(o.symbol.split('/')[0]),o.direction,fmt(o.position_size_percent)+'%',fmt(o.elite_score,0)])):'<p class="mut">Brak otwartych pozycji.</p>')+'</div>';
  if(d.panel==='stats')h+=`<div class="sec"><h3>30 dni</h3>`+tbl(['','sygnały','zamkn.','win rate','PnL'],[['Prawdziwe',S.real.n,S.real.closed,wr(S.real),fmt(S.real.pnl)],['Shadow',S.shadow.n,S.shadow.closed,wr(S.shadow),fmt(S.shadow.pnl)]])+
   `<h3>Odrzucone – czy słusznie?</h3><p class="mut">Jeśli odrzucone wygrywają częściej niż wysłane, próg może być za ostry.</p>`+tbl(['powód','n','win rate'],S.rejections.map(r=>[esc(r.reason),r.n,wr(r)]))+'</div>';
+ if(d.panel==='stats')h+=`<div class="sec"><h3>Audytor AI<button class="btn" id="go-aud">${AUD?.busy?'Analizuje…':'Uruchom audyt'}</button></h3><p class="mut">Co niedzielę 20:00. Tylko diagnoza i propozycje – niczego nie zmienia w skanerze.</p>`+(AUD?.reports?.length?AUD.reports.slice(0,3).map((r,k)=>`<details ${k?'':'open'}><summary>${new Date(r.at*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · real ${r.real?.wr??'–'}% · shadow ${r.shadow?.wr??'–'}%</summary><div class="lessons">${esc(r.text).replace(/\n/g,'<br>')}</div></details>`).join(''):'<p class="mut">Jeszcze nie było audytu.</p>')+'</div>';
  if(d.panel==='trades')h+=`<div class="sec"><h3>Otwarte (${S.open.length})</h3>`+(S.open.length?tbl(['symbol','kier.','status','entry'],S.open.map(o=>[esc(o.symbol.split('/')[0]),o.direction,esc(o.status),fmt(o.entry,4)])):'<p class="mut">Brak.</p>')+
   `<h3>Ostatnie zamknięte</h3>`+tbl(['symbol','wynik','PnL'],S.recent.filter(r=>r.result&&!r.is_shadow).slice(0,8).map(r=>[esc(r.symbol.split('/')[0])+' '+r.direction,esc(r.result),fmt(r.pnl)]))+'</div>';
  $('pl').innerHTML=h;
+ const ga=$('go-aud');if(ga)ga.onclick=async()=>{ga.disabled=true;ga.textContent='Analizuje…';await fetch('/api/scanner/audit',{method:'POST'});AUD={busy:true,reports:AUD?.reports||[]};setTimeout(loadAud,30000)};
 }
 function openPanel(i){openI=i;renderPanel(i);$('panel').classList.add('open');const r=rooms[i];target.set(r.p.x,0,r.p.z);placeCam()}
 $('px').onclick=()=>{$('panel').classList.remove('open');openI=-1};
@@ -262,7 +292,42 @@ async function poll(){
   const t=Date.parse((r.closed_at||r.created_at).replace(' ','T')+'Z');
   log(r.result?7:r.is_shadow?6:1,`${esc(r.symbol.split('/')[0])} ${r.direction} · ${r.result?`<b>${esc(r.result)}</b> ${fmt(r.pnl)}`:r.is_shadow?'shadow '+fmt(r.elite_score,0):'sygnał elite '+fmt(r.elite_score,0)}`,t)});
  first=false;refresh()}
-poll();setInterval(poll,20000);
+let FG=null,AUD=null,EQ=[],eqDays=60;
+async function loadAud(){try{AUD=await (await fetch('/api/scanner/audit')).json();if(AUD.busy)setTimeout(loadAud,15000)}catch(e){}if(openI>=0)renderPanel(openI)}
+async function loadExtra(){try{FG=await (await fetch('/api/scanner/sentiment')).json()}catch(e){}
+ try{const r=await (await fetch('/api/scanner/equity?days='+eqDays)).json();if(r.ok)EQ=r.series}catch(e){}drawChart(chartCv,EQ,false);chartTex.needsUpdate=true;if($('chartbox').classList.contains('open'))drawChart($('bigc'),EQ,true)}
+// wykres: skumulowany PnL real vs shadow + słupki liczby zamkniętych transakcji
+function drawChart(cv,data,big){const x=cv.getContext('2d'),W=cv.width,H=cv.height,dpr=big?(window.devicePixelRatio||1):1;
+ x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,W,H);x.scale(dpr,dpr);const w=W/dpr,h=H/dpr;
+ if(!big){const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#0b1430');g.addColorStop(1,'#070a14');x.fillStyle=g;x.fillRect(0,0,w,h)}
+ const P={l:big?58:70,r:24,t:big?24:80,b:big?36:50},cw=w-P.l-P.r,ch=h-P.t-P.b,fs=big?12:22;
+ if(!big){x.fillStyle='#e8ebf5';x.font=`600 30px Inter,sans-serif`;x.fillText('Skumulowany PnL · '+eqDays+' dni',P.l,48);}
+ if(!data.length){x.fillStyle='#8b91a8';x.font=`${fs}px Inter`;x.fillText('Brak zamkniętych transakcji w tym okresie',P.l,P.t+ch/2);return}
+ const vals=data.flatMap(d=>[d.real,d.shadow,0]),mn=Math.min(...vals),mx=Math.max(...vals),rg=(mx-mn)||1,mxN=Math.max(1,...data.map(d=>d.n));
+ const X=i=>P.l+i/(data.length-1||1)*cw,Y=v=>P.t+(mx-v)/rg*ch;
+ x.strokeStyle='rgba(255,255,255,.07)';x.lineWidth=1;x.font=`${fs}px JetBrains Mono,monospace`;x.fillStyle='#8b91a8';
+ for(let k=0;k<=4;k++){const v=mn+rg*k/4,y=Y(v);x.beginPath();x.moveTo(P.l,y);x.lineTo(P.l+cw,y);x.stroke();x.fillText((v>0?'+':'')+v.toFixed(1)+'%',4,y+fs/3)}
+ x.strokeStyle='rgba(255,255,255,.25)';x.beginPath();x.moveTo(P.l,Y(0));x.lineTo(P.l+cw,Y(0));x.stroke();
+ data.forEach((d,i)=>{if(!d.n)return;const bh=d.n/mxN*ch*.25;x.fillStyle='rgba(110,139,255,.25)';x.fillRect(X(i)-cw/data.length*.35,P.t+ch-bh,cw/data.length*.7,bh)});
+ const line=(k,c,dash)=>{x.strokeStyle=c;x.lineWidth=big?2.2:4;x.setLineDash(dash?[big?5:10,big?5:10]:[]);x.beginPath();data.forEach((d,i)=>i?x.lineTo(X(i),Y(d[k])):x.moveTo(X(i),Y(d[k])));x.stroke();x.setLineDash([])};
+ const ga=x.createLinearGradient(0,P.t,0,P.t+ch);ga.addColorStop(0,'rgba(61,220,132,.25)');ga.addColorStop(1,'rgba(61,220,132,0)');
+ x.fillStyle=ga;x.beginPath();x.moveTo(X(0),Y(0));data.forEach((d,i)=>x.lineTo(X(i),Y(d.real)));x.lineTo(X(data.length-1),Y(0));x.fill();
+ line('shadow','#b28cff',true);line('real','#3ddc84',false);
+ const L=data[data.length-1];x.font=`600 ${fs}px Inter`;x.fillStyle='#3ddc84';x.fillText(`real ${L.real>0?'+':''}${L.real}%`,P.l+cw-(big?170:300),P.t-(big?8:20));
+ x.fillStyle='#b28cff';x.fillText(`shadow ${L.shadow>0?'+':''}${L.shadow}%`,P.l+cw-(big?85:150),P.t-(big?8:20));
+ x.fillStyle='#8b91a8';x.font=`${fs}px JetBrains Mono`;[0,Math.floor(data.length/2),data.length-1].forEach(i=>x.fillText(data[i].d.slice(5),X(i)-(big?16:30),h-(big?12:16)));
+ cv._data=data;cv._X=X;cv._Y=Y}
+function openChart(){$('chartbox').classList.add('open');sizeBig();drawChart($('bigc'),EQ,true)}
+function sizeBig(){const c=$('bigc'),r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d}
+$('cx').onclick=()=>$('chartbox').classList.remove('open');
+document.querySelectorAll('#chartbox [data-d]').forEach(b=>b.onclick=()=>{eqDays=+b.dataset.d;document.querySelectorAll('#chartbox [data-d]').forEach(x=>x.classList.toggle('on',x===b));loadExtra()});
+$('bigc').onmousemove=e=>{const c=$('bigc'),D=c._data;if(!D?.length)return;const r=c.getBoundingClientRect(),mx=e.clientX-r.left;
+ let i=0,b=1e9;D.forEach((_,k)=>{const dd=Math.abs(c._X(k)-mx);if(dd<b){b=dd;i=k}});const d=D[i];
+ const t=$('ctip');t.style.display='block';t.style.left=Math.min(r.width-170,c._X(i)+10)+'px';t.style.top='30px';
+ t.innerHTML=`<b>${d.d}</b><br><span style="color:#3ddc84">real ${d.real}%</span><br><span style="color:#b28cff">shadow ${d.shadow}%</span><br>zamknięte: ${d.n}`};
+$('bigc').onmouseleave=()=>$('ctip').style.display='none';
+addEventListener('resize',()=>{if($('chartbox').classList.contains('open')){sizeBig();drawChart($('bigc'),EQ,true)}});
+poll();setInterval(poll,20000);loadAud();loadExtra();setInterval(loadExtra,300000);
 
 // ===== STEROWANIE =====
 const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=null,hover=-1;
@@ -271,8 +336,8 @@ el.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,m:0};el.setP
 el.addEventListener('pointermove',e=>{
  if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.m+=Math.abs(dx)+Math.abs(dy);drag.x=e.clientX;drag.y=e.clientY;
   if(drag.m>4){el.classList.add('drag');const k=(camera.top-camera.bottom)/(camera.zoom*H()),w=toWorld(-dx*k,-dy*k);target.x+=w.x;target.z+=w.z;placeCam()}return}
- hover=pick(e);el.classList.toggle('hov',hover>=0)});
-el.addEventListener('pointerup',e=>{el.classList.remove('drag');if(drag&&drag.m<=4){const i=pick(e);if(i>=0)openPanel(i)}drag=null});
+ hover=pick(e);el.classList.toggle('hov',hover!==-1)});
+el.addEventListener('pointerup',e=>{el.classList.remove('drag');if(drag&&drag.m<=4){const i=pick(e);if(i==='chart')openChart();else if(i>=0)openPanel(i)}drag=null});
 const setZoom=z=>{camera.zoom=Math.min(3,Math.max(.35,z));camera.updateProjectionMatrix()};
 el.addEventListener('wheel',e=>{e.preventDefault();setZoom(camera.zoom*(e.deltaY<0?1.1:.9))},{passive:false});
 $('zi').onclick=()=>setZoom(camera.zoom*1.2);$('zo').onclick=()=>setZoom(camera.zoom/1.2);
@@ -301,7 +366,7 @@ const clock=new THREE.Clock(),v=new THREE.Vector3();
 function project(p,e){v.copy(p).project(camera);e.style.left=(v.x+1)/2*W()+'px';e.style.top=(1-v.y)/2*H()+'px'}
 (function loop(){const t=clock.getElapsedTime();
  rooms.forEach((r,i)=>{r.lift+=((i===hover?.35:0)-r.lift)*.15;r.g.position.y=r.lift;v.set(r.p.x-1.2,4.6+r.lift,r.p.z-1.2);project(v,labels[i])});
- project(new THREE.Vector3(0,5.6,0),brain);
+ project(new THREE.Vector3(3.2,.6,3.2),brain);
  agents.forEach(o=>{o.f.head.position.y=.98*.95+(o.a.st?Math.sin(t*6+o.ph)*.04:0);if(o.a.st)o.sm.color.offsetHSL(0,0,Math.sin(t*8+o.ph)*.004)});
  walkers.forEach(w=>{let k=(t*w.sp+w.o)%2;k=k>1?2-k:k;w.w.g.position.lerpVectors(w.from,w.to,k);w.w.g.position.y=.06+Math.abs(Math.sin(t*8))*.06;
   w.w.g.rotation.y=Math.atan2(w.to.x-w.from.x,w.to.z-w.from.z)+((t*w.sp+w.o)%2>1?Math.PI:0)});

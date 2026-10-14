@@ -1,0 +1,60 @@
+/* Liquid Glass – wspólny wygląd całego centrum (ładowany przez wszystkie zakładki) */
+:root{
+  --lg-1:rgba(255,255,255,.115); --lg-2:rgba(255,255,255,.045); --lg-b:rgba(255,255,255,.14);
+  --lg-hi:rgba(255,255,255,.32); --lg-lo:rgba(255,255,255,.03); --lg-sh:0 18px 50px -20px rgba(0,0,0,.7);
+  --lg-blur:saturate(185%) blur(24px); --lg-r:22px;
+  --lg-base:#06070c;
+  --lg-a:rgba(124,92,255,.42); --lg-b2:rgba(0,170,255,.32); --lg-c:rgba(255,70,160,.24); --lg-d:rgba(30,215,160,.20);
+}
+:root[data-theme=light]{
+  --lg-1:rgba(255,255,255,.72); --lg-2:rgba(255,255,255,.42); --lg-b:rgba(255,255,255,.85);
+  --lg-hi:rgba(255,255,255,1); --lg-lo:rgba(0,0,0,.03); --lg-sh:0 18px 50px -24px rgba(40,40,90,.35);
+  --lg-base:#eef0f8; --lg-a:rgba(124,92,255,.30); --lg-b2:rgba(0,170,255,.22); --lg-c:rgba(255,70,160,.18); --lg-d:rgba(30,215,160,.16);
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme=dark]):not(.lg-dark){
+    --lg-1:rgba(255,255,255,.72); --lg-2:rgba(255,255,255,.42); --lg-b:rgba(255,255,255,.85);
+    --lg-hi:rgba(255,255,255,1); --lg-lo:rgba(0,0,0,.03); --lg-sh:0 18px 50px -24px rgba(40,40,90,.35);
+    --lg-base:#eef0f8; --lg-a:rgba(124,92,255,.30); --lg-b2:rgba(0,170,255,.22); --lg-c:rgba(255,70,160,.18); --lg-d:rgba(30,215,160,.16);
+  }
+}
+
+/* tło: miękkie, wolno płynące plamy światła pod szkłem */
+.lg-bg{position:fixed;inset:-10%;z-index:-1;pointer-events:none;background:var(--lg-base)}
+.lg-bg:before,.lg-bg:after{content:"";position:absolute;inset:0;filter:blur(40px)}
+.lg-bg:before{background:
+  radial-gradient(32% 40% at 18% 22%,var(--lg-a),transparent 70%),
+  radial-gradient(30% 38% at 82% 16%,var(--lg-b2),transparent 70%);
+  animation:lgdrift 26s ease-in-out infinite alternate}
+.lg-bg:after{background:
+  radial-gradient(34% 40% at 72% 82%,var(--lg-c),transparent 70%),
+  radial-gradient(30% 36% at 20% 80%,var(--lg-d),transparent 70%);
+  animation:lgdrift 32s ease-in-out infinite alternate-reverse}
+@keyframes lgdrift{to{transform:translate3d(3%,-4%,0) scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.lg-bg:before,.lg-bg:after{animation:none}}
+
+/* sama tafla szkła: gradient, rozmycie, jasna krawędź u góry (odbicie) */
+.lg .glass,
+.lg .card,.lg .head,.lg .kpi,.lg .stage,
+.lg header,.lg #panel,.lg #mini,.lg .lbl,.lg .ev,.lg .chip,.lg #chartbtn,.lg .cb-in{
+  background:linear-gradient(145deg,var(--lg-1),var(--lg-2)) !important;
+  -webkit-backdrop-filter:var(--lg-blur) !important;backdrop-filter:var(--lg-blur) !important;
+  border:1px solid var(--lg-b) !important;
+  box-shadow:inset 0 1px 0 var(--lg-hi),inset 0 -1px 0 var(--lg-lo),var(--lg-sh) !important;
+}
+.lg .card,.lg .kpi,.lg .stage,.lg #panel,.lg .cb-in{border-radius:var(--lg-r) !important}
+.lg .head{border-width:0 0 1px 0 !important;border-radius:0 !important}
+.lg .lbl,.lg .ev{box-shadow:inset 0 1px 0 var(--lg-hi),0 8px 24px -14px rgba(0,0,0,.6) !important}
+.lg .chip.on{background:linear-gradient(145deg,rgba(159,216,255,.9),rgba(159,216,255,.6)) !important;color:#0a0d16 !important}
+
+/* „płynny” połysk przesuwający się po najechaniu */
+.lg .glass,.lg .card{overflow:hidden}
+.lg .glass:after,.lg .card.lift:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.09) 45%,transparent 60%);transform:translateX(-120%);transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+.lg .glass:hover:after,.lg .card.lift:hover:after{transform:translateX(120%)}
+
+/* przyciski w stylu szkła */
+.lg .lg-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;border:1px solid var(--lg-b);
+  background:linear-gradient(145deg,var(--lg-1),var(--lg-2));-webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+  box-shadow:inset 0 1px 0 var(--lg-hi);color:inherit;font:inherit;cursor:pointer;text-decoration:none}
+.lg .lg-btn:hover{border-color:var(--lg-hi)}

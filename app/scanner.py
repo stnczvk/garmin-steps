@@ -123,3 +123,168 @@ def state(force: int = 0):
     out["total_db"] = _q("SELECT COUNT(*) AS n FROM trade_signals")[0]["n"]
     _cache.update(t=time.time(), data=out)
     return out
+
+
+# ---------- wykres kapitału: skumulowany PnL (real i shadow) ----------
+def equity(days=60):
+    since = (datetime.utcnow() - timedelta(days=days)).isoformat(" ")
+    rows = _q("SELECT closed_at, pnl, is_shadow FROM trade_signals WHERE result IS NOT NULL AND closed_at >= ? ORDER BY closed_at", (since,))
+    d0 = datetime.utcnow().date() - timedelta(days=days - 1)
+    day = {(d0 + timedelta(days=i)).isoformat(): [0.0, 0.0, 0] for i in range(days)}
+    for r in rows:
+        k = str(r["closed_at"])[:10]
+        if k in day:
+            day[k][1 if r["is_shadow"] else 0] += r["pnl"] or 0
+            day[k][2] += 0 if r["is_shadow"] else 1
+    out, a, b = [], 0.0, 0.0
+    for k, (pr, ps, n) in day.items():
+        a, b = a + pr, b + ps
+        out.append({"d": k, "real": round(a, 2), "shadow": round(b, 2), "n": n})
+    return out
+
+
+@router.get("/api/scanner/equity")
+def equity_api(days: int = 60):
+    try:
+        return {"ok": True, "series": equity(max(7, min(days, 180)))}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:150]}
+
+
+# ---------- sentyment krypto (do podglądu w centrum) ----------
+_fg = {"t": 0, "data": None}
+
+
+@router.get("/api/scanner/sentiment")
+def sentiment():
+    if _fg["data"] and time.time() - _fg["t"] < 1800:
+        return _fg["data"]
+    d = {"fear_greed": None, "fg_label": None, "btc_dominance": None}
+    try:
+        v = httpx.get("https://api.alternative.me/fng/?limit=1", timeout=8).json()["data"][0]
+        d.update(fear_greed=int(v["value"]), fg_label=v.get("value_classification"))
+    except Exception:
+        pass
+    try:
+        d["btc_dominance"] = round(httpx.get("https://api.coingecko.com/api/v3/global", timeout=8).json()["data"]["market_cap_percentage"]["btc"], 1)
+    except Exception:
+        pass
+    _fg.update(t=time.time(), data=d)
+    return d
+
+
+# ---------- Audytor AI (raz w tygodniu): diagnoza i propozycje, bez zmian w skanerze ----------
+def _brief(r):
+    try:
+        bd = {k: v for k, v in json.loads(r.get("elite_breakdown_json") or "{}").items() if v not in (0, None)}
+    except Exception:
+        bd = {}
+    return (f"{r['symbol'].split('/')[0]} {r['direction']} elite={r['elite_score']} reżim={r['market_regime']} "
+            f"wynik={r['result']} pnl={r['pnl']} powód_odrzucenia={(r['rejection_reason'] or '-')[:60]} składniki={json.dumps(bd)[:300]}")
+
+
+def audit():
+    from agency import claude, SMART, ai_ready, log
+    from extra import push_all
+    from social import _read, _write
+    if not ai_ready():
+        return {"ok": False, "error": "brak klucza AI"}
+    st = state(force=1)
+    if not st.get("ok"):
+        return {"ok": False, "error": st.get("error")}
+    since = (datetime.utcnow() - timedelta(days=30)).isoformat(" ")
+    cols = "symbol,direction,elite_score,market_regime,result,pnl,rejection_reason,elite_breakdown_json"
+    losers = _q(f"SELECT {cols} FROM trade_signals WHERE is_shadow=0 AND result='LOSS' AND created_at>=? ORDER BY created_at DESC LIMIT 15", (since,))
+    missed = _q(f"SELECT {cols} FROM trade_signals WHERE is_shadow=1 AND result IN ('WIN','PARTIAL_WIN') AND created_at>=? ORDER BY elite_score DESC LIMIT 15", (since,))
+    summary = {k: st[k] for k in ("real", "shadow", "calibration", "rejections", "regimes", "modifiers", "exposure")}
+    txt = claude(f"""Jesteś Audytorem skanera krypto/akcji (OKX, swap USDT). Skaner wysyła max 4 sygnały dziennie z elite_score ≥ 90,
+odrzucone sygnały (≥70) śledzi jako shadow. Właściciel kalibruje wagi wyłącznie na danych i ostrożnie (małe próbki = obserwacja).
+
+STATYSTYKI 30 DNI (JSON): {json.dumps(summary, ensure_ascii=False)[:6000]}
+
+PRZEGRANE PRAWDZIWE SYGNAŁY:
+{chr(10).join(_brief(r) for r in losers) or 'brak'}
+
+WYGRANE, KTÓRE ODRZUCIŁ (shadow):
+{chr(10).join(_brief(r) for r in missed) or 'brak'}
+
+Napisz po polsku krótki raport audytu:
+1. Diagnoza (2–3 zdania): co działa, co nie.
+2. Wzorce w przegranych i w odrzuconych wygranych (konkretne modyfikatory, reżimy, przedziały score).
+3. Max 4 propozycje zmian (próg, waga modyfikatora, filtr) – przy każdej: na jakich danych, wielkość próbki, ryzyko,
+   i czy próbka jest wystarczająca (jeśli N < 30, napisz wprost „obserwować”, nie zmieniać).
+Bez ogólników i bez porad inwestycyjnych. Nie wymyślaj liczb spoza danych.""", SMART, 1800)
+    rep = {"at": time.time(), "text": txt.strip(), "real": st["real"], "shadow": st["shadow"]}
+    hist = _read("scanner_audit.json", [])
+    hist.append(rep)
+    _write("scanner_audit.json", hist[-8:])
+    log("op", "Audytor skanera: nowy raport", "ok")
+    push_all("🧾 Audyt skanera gotowy", f"Real {st['real'].get('wr')}% WR, shadow {st['shadow'].get('wr')}% – propozycje w zakładce Skaner.", "/#skaner")
+    return {"ok": True}
+
+
+_audit_busy = {"on": False}
+
+
+@router.get("/api/scanner/audit")
+def audit_get():
+    from social import _read
+    return {"busy": _audit_busy["on"], "reports": _read("scanner_audit.json", [])[::-1]}
+
+
+@router.post("/api/scanner/audit")
+def audit_run():
+    import threading
+
+    def go():
+        _audit_busy["on"] = True
+        try:
+            audit()
+        except Exception as e:
+            print("scanner audit", e, flush=True)
+        finally:
+            _audit_busy["on"] = False
+    if not _audit_busy["on"]:
+        threading.Thread(target=go, daemon=True).start()
+    return {"ok": True}
+
+
+# ---------- push: nowe prawdziwe sygnały i ich wyniki + audyt w niedzielę 20:00 ----------
+def _watch():
+    import threading  # noqa: F401
+    from zoneinfo import ZoneInfo
+    from extra import push_all
+    from social import _read, _write
+    tz = ZoneInfo("Europe/Warsaw")
+    time.sleep(60)
+    while True:
+        try:
+            if os.path.exists(DB):
+                S = _read("scanner_seen.json", {})
+                first = not S
+                rows = _q("SELECT id, symbol, direction, entry, stop_loss, tp1, elite_score, position_size_percent, result, pnl "
+                          "FROM trade_signals WHERE is_shadow=0 ORDER BY id DESC LIMIT 60")
+                for r in reversed(rows):
+                    k, prev = str(r["id"]), S.get(str(r["id"]))
+                    sym = r["symbol"].split("/")[0]
+                    if prev is None and not first:
+                        push_all(f"📈 Sygnał: {sym} {r['direction']}",
+                                 f"elite {r['elite_score']:.0f} · entry {r['entry']} · SL {r['stop_loss']} · TP1 {r['tp1']} · {r['position_size_percent'] or '?'}%",
+                                 "/#skaner")
+                    if r["result"] and prev != r["result"] and not first:
+                        icon = "✅" if r["result"] in WIN else "➖" if r["result"] == "BREAK_EVEN" else "❌"
+                        push_all(f"{icon} {sym} {r['direction']}: {r['result']}", f"PnL {r['pnl']:+.2f}%", "/#skaner")
+                    S[k] = r["result"] or ""
+                _write("scanner_seen.json", dict(sorted(S.items(), key=lambda kv: -int(kv[0]))[:200]))
+            now = datetime.now(tz)
+            if now.weekday() == 6 and now.hour == 20:
+                hist = _read("scanner_audit.json", [])
+                if not hist or time.time() - hist[-1]["at"] > 20 * 3600:
+                    audit_run()
+        except Exception as e:
+            print("scanner watch", e, flush=True)
+        time.sleep(60)
+
+
+import threading as _th  # noqa: E402
+_th.Thread(target=_watch, daemon=True).start()

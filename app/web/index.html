@@ -21,6 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
+<link rel="stylesheet" href="/glass.css">
 <style>
 :root{
   color-scheme:light;
@@ -551,23 +552,55 @@ body{text-rendering:optimizeLegibility}
 @media (max-width:900px){.duo,.duo.rev{grid-template-columns:minmax(0,1fr)}.fstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.rbig{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.rbig b{font-size:18px}.tb{grid-template-columns:minmax(0,1fr)}.fmt .fr{grid-template-columns:minmax(0,110px) minmax(0,1fr) 48px}}
 @media (prefers-reduced-motion:reduce){.hc{opacity:1;transform:none;transition:none}.hot,.hot:after,.hot .fl,#bell.ring svg{animation:none}.fmt .bar i,.forecast .prog i{transition:none}}
-.vframe{position:fixed;left:0;right:0;bottom:0;top:var(--hh,64px);z-index:15;display:none;background:#08090A}
+body.lg{background:transparent}
+body.needs-login .side,body.needs-login .vframe,body.needs-login .s-dim{display:none!important}
+.side{position:fixed;left:12px;top:12px;bottom:12px;width:232px;z-index:40;display:flex;flex-direction:column;gap:6px;padding:14px 10px;border-radius:24px;
+  background:linear-gradient(145deg,var(--lg-1),var(--lg-2));-webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);border:1px solid var(--lg-b);
+  box-shadow:inset 0 1px 0 var(--lg-hi),var(--lg-sh);transition:width .35s cubic-bezier(.2,.8,.2,1),transform .35s cubic-bezier(.2,.8,.2,1)}
+.s-brand{display:flex;align-items:center;gap:10px;padding:2px 6px 12px}.s-brand img{width:30px;height:30px;border-radius:9px}.s-brand b{font-weight:650;flex:1;white-space:nowrap}
+.s-col{border:0;background:transparent;color:var(--soft);font-size:20px;cursor:pointer;padding:2px 6px;border-radius:8px}
+#snav{display:flex;flex-direction:column;gap:3px;overflow:auto}
+#snav button{display:flex;align-items:center;gap:12px;border:0;background:transparent;color:var(--soft);padding:10px 12px;border-radius:14px;font:500 14px Geist,system-ui;cursor:pointer;text-align:left;white-space:nowrap;transition:background .2s,color .2s}
+#snav button i{font-style:normal;width:22px;text-align:center;font-size:16px;flex:none}
+#snav button:hover{background:rgba(255,255,255,.07);color:var(--ink)}
+#snav button[aria-current=page]{color:var(--ink);background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.06));box-shadow:inset 0 1px 0 var(--lg-hi),0 6px 18px -10px rgba(0,0,0,.6)}
+.s-grp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:14px 12px 4px;white-space:nowrap;overflow:hidden}
+.s-foot{margin-top:auto;font-size:11px;color:var(--faint);padding:6px 12px;white-space:nowrap;overflow:hidden}
+body{--sw:256px}body.s-mini{--sw:96px}body.s-mini .side{width:72px}
+body.s-mini .side span,body.s-mini .s-brand b,body.s-mini .s-foot{display:none}body.s-mini .s-grp{font-size:0;padding:8px 0;border-top:1px solid var(--lg-b);margin:6px 10px 0}
+body.s-mini .s-col{transform:rotate(180deg)}body.s-mini .s-brand{flex-direction:column}
+.head,.wrap{margin-left:var(--sw)}.head-in,.wrap{max-width:1240px}
+.burger{display:none;border:1px solid var(--lg-b);background:linear-gradient(145deg,var(--lg-1),var(--lg-2));color:var(--ink);border-radius:12px;width:38px;height:38px;font-size:17px;cursor:pointer}
+.s-dim{position:fixed;inset:0;z-index:39;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .3s}
+@media (max-width:900px){body,body.s-mini{--sw:0px}.side,body.s-mini .side{width:250px;transform:translateX(-120%)}
+ body.s-mini .side span,body.s-mini .s-brand b,body.s-mini .s-foot{display:revert}body.s-mini .s-grp{font-size:11px;padding:14px 12px 4px;border:0}
+ body.s-open .side{transform:none}body.s-open .s-dim{opacity:1;pointer-events:auto}.burger{display:grid;place-items:center}.s-col{display:none}}
+.vframe{position:fixed;left:var(--sw);right:0;bottom:0;top:var(--hh,64px);z-index:15;display:none;background:transparent}
 .vframe iframe{width:100%;height:100%;border:0;display:none}
-body.v-ext .vframe{display:block}body.v-ext #app,body.v-ext #tabs,body.v-ext #refresh,body.v-ext #bell{display:none!important}
+body.v-ext .vframe{display:block}body.v-ext #app,body.v-ext #tabs,body.v-ext #refresh{display:none!important}
 body.v-ext{overflow:hidden}
 </style>
 </head>
 <body>
+<div class="lg-bg" aria-hidden="true"></div>
+<aside class="side" id="side" aria-label="Menu">
+  <div class="s-brand"><img src="/ikona-192.png" alt=""><b>Centrum</b><button class="s-col" id="s-col" title="Zwiń / rozwiń menu" aria-label="Zwiń menu">‹</button></div>
+  <nav id="snav">
+    <button data-v="home"><i>🏠</i><span>Ekran główny</span></button>
+    <div class="s-grp">Social media</div>
+    <button data-v="stats"><i>📊</i><span>Statystyki</span></button>
+    <button data-v="agencja"><i>🤖</i><span>Agencja AI</span></button>
+    <button data-v="pozaskala"><i>🎬</i><span>Pipeline PozaSkala</span></button>
+    <div class="s-grp">Skaner giełdowy</div>
+    <button data-v="skaner"><i>📡</i><span>Biuro skanera</span></button>
+  </nav>
+  <div class="s-foot">Liquid Glass · v2</div>
+</aside>
+<div class="s-dim" id="sdim"></div>
 <header class="head" id="head">
   <div class="head-in">
+    <button class="burger" id="burger" aria-label="Menu">☰</button>
     <div class="brand"><img src="/ikona-192.png" alt=""><b>Centrum dowodzenia</b><span>PozaSkala i konta prywatne</span></div>
-    <div class="seg" role="group" aria-label="Widok" id="views">
-      <span class="pill"></span>
-      <button data-v="stats" aria-pressed="true">Statystyki</button>
-      <button data-v="agencja" aria-pressed="false">Agencja AI</button>
-      <button data-v="pozaskala" aria-pressed="false" title="Pipeline PozaSkala z n8n">Pipeline</button>
-      <button data-v="skaner" aria-pressed="false" title="Market Scanner (OKX)">Skaner</button>
-    </div>
     <div class="seg" role="group" aria-label="Grupa kont" id="tabs">
       <span class="pill"></span>
       <button data-g="" aria-pressed="true">Wszystko</button>
@@ -686,7 +719,7 @@ async function api(path, opt) {
 
 function showLogin() {
   if ($('.login')) return;
-  $('#app').hidden = true; $('#head').hidden = true;
+  $('#app').hidden = true; $('#head').hidden = true; document.body.classList.add('needs-login');
   document.body.insertAdjacentHTML('beforeend', `<form class="card login"><img src="/ikona-192.png" alt="">
     <h1>Centrum dowodzenia</h1><p>Zaloguj się, żeby zobaczyć statystyki.</p>
     <label for="pw">Hasło</label><input type="password" id="pw" autocomplete="current-password" required>
@@ -1179,23 +1212,31 @@ $('#theme').onclick = e => {
 };
 setTheme(document.documentElement.dataset.theme || 'auto');
 
-// zakładki: Statystyki / Agencja AI / Pipeline PozaSkala (osobne strony w iframe, ładowane raz)
+// widoki z menu bocznego: Ekran główny / Statystyki / Agencja AI / Pipeline / Skaner (osobne strony w iframe, ładowane raz)
+const VIEWS = ['home', 'stats', 'agencja', 'pozaskala', 'skaner'];
 function setView(v, push) {
-  v = ['agencja', 'pozaskala', 'skaner'].includes(v) ? v : 'stats';
-  $('#views').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v));
+  v = VIEWS.includes(v) ? v : 'home';
+  document.querySelectorAll('#snav button').forEach(x => x.dataset.v === v ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
   document.body.classList.toggle('v-ext', v !== 'stats');
+  document.body.classList.remove('s-open');
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');
   const box = $('#vframe');
   box.querySelectorAll('iframe').forEach(f => f.style.display = f.dataset.v === v ? 'block' : 'none');
   if (v !== 'stats' && !box.querySelector(`iframe[data-v="${v}"]`)) {
     const f = document.createElement('iframe'); f.dataset.v = v; f.src = '/' + v; f.title = v; f.style.display = 'block'; box.appendChild(f);
   }
-  if (push) history.replaceState(null, '', v === 'stats' ? location.pathname : '#' + v);
-  requestAnimationFrame(() => movePill($('#views')));
+  if (v === 'stats') setTimeout(() => pills(), 0);
+  if (push) history.replaceState(null, '', '#' + v);
 }
-$('#views').onclick = e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v, true); };
+$('#snav').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v, true); };
+$('#burger').onclick = () => document.body.classList.toggle('s-open');
+$('#sdim').onclick = () => document.body.classList.remove('s-open');
+try { if (localStorage.getItem('menu-mini') === '1') document.body.classList.add('s-mini'); } catch (e) {}
+$('#s-col').onclick = () => { const m = document.body.classList.toggle('s-mini'); try { localStorage.setItem('menu-mini', m ? '1' : '0'); } catch (e) {} setTimeout(() => pills(), 360); };
+addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.go) setView(e.data.go, true); });
+document.body.classList.add('lg');
 setView(location.hash.slice(1));
-const pills = () => ['#tabs', '#range', '#theme', '#views'].forEach(s => movePill($(s)));
+const pills = () => ['#tabs', '#range', '#theme'].forEach(s => movePill($(s)));
 let rt; addEventListener('resize', () => { pills(); document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px'); clearTimeout(rt); rt = setTimeout(() => data && drawChart(Object.entries(data.accounts || {}).filter(([, a]) => !group || a.group === group)), 150); });
 document.fonts?.ready.then(pills);
 pills();
