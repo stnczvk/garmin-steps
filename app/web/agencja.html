@@ -72,6 +72,12 @@ header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align
 .sw span:after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s}
 .sw input:checked+span{background:var(--ok)}.sw input:checked+span:after{left:17px}
 .row{display:flex;align-items:center;gap:8px;font-size:13px;margin:7px 0}.row input{width:54px;background:#232838;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:4px}
+.lessons{font-size:12.5px;line-height:1.5;background:rgba(47,179,165,.08);border:1px solid rgba(47,179,165,.25);border-radius:9px;padding:10px;margin-bottom:4px}
+.rt{display:grid;grid-template-columns:minmax(0,1fr) 42px 42px 48px;gap:4px 8px;font-size:12px;align-items:center}
+.rt span{color:var(--mut);font-size:11px}.rt a{color:var(--txt);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt b{font:600 12px 'JetBrains Mono';text-align:right}.rt b.g{color:var(--ok)}.rt b.r{color:#ff7b70}
+.cm{border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:8px}.cm p{font-size:13px;margin:4px 0}
+.cm textarea{width:100%;min-height:58px;background:#1b1f2c;border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:6px;font:12.5px Inter;resize:vertical}
 @media(max-width:700px){
  .stats{margin-left:0;width:100%;justify-content:space-between}
  #panel{top:auto;left:12px;right:12px;width:auto;height:62vh;transform:translateY(calc(100% + 24px))}
@@ -100,7 +106,7 @@ header{position:fixed;top:12px;left:12px;right:12px;z-index:3;display:flex;align
 // id: agent backendu (scout/qa/op) albo wf:<regex nazwy workflow n8n>; soon = jeszcze nie działa
 const DEPTS=[
  {name:'Research',sub:'Trendy i kolejka tematów dla PozaSkali',color:'#4f6fe0',icon:'🔍',panel:'research',agents:[
-  {n:'Trend Scout',m:'Sonnet',s:'trend-analyst + web search',id:'scout'},{n:'SEO Hunter',m:'Haiku',s:'social-seo-researcher',soon:1}]},
+  {n:'Trend Scout',m:'Sonnet',s:'trend-analyst + web search',id:'scout'},{n:'SEO Hunter',m:'Haiku',s:'podpowiedzi YT → tytuł, opis, tagi',id:'seo'}]},
  {name:'Skrypty',sub:'Scenariusz w generatorze n8n',color:'#e0a92e',icon:'✍️',agents:[
   {n:'Scenarzysta',m:'GPT-4.1',s:'n8n · Message a model',id:'wf:^generator$'},{n:'Sędzia n8n',m:'GPT-4.1-mini',s:'n8n · Judge Script',id:'wf:^generator$'}]},
  {name:'Publikacja',sub:'YouTube + Instagram',color:'#c94fc0',icon:'📲',agents:[
@@ -108,18 +114,18 @@ const DEPTS=[
  {name:'Kreacja',sub:'Lektor, kadry, scena wideo, montaż',color:'#7a5ce0',icon:'🎨',agents:[
   {n:'Lektor',m:'OpenAI TTS',s:'n8n · lektor',id:'wf:^generator$'},{n:'Grafik',m:'OpenAI',s:'n8n · zdjęcie',id:'wf:^generator$'},
   {n:'Kling',m:'Kling',s:'n8n · scena wideo',id:'wf:^generator$'},{n:'Montażysta',m:'FFmpeg',s:'n8n · Montaż film',id:'wf:^montaż film$'}]},
- {name:'Analityka',sub:'Wyniki i pętla zwrotna',color:'#2fb3a5',icon:'📊',agents:[
-  {n:'Analityk',m:'n8n',s:'Analytics Collector',id:'wf:^analytics collector$'},{n:'Raporty',m:'Haiku',s:'centrum · raport tygodnia',id:'on'}]},
+ {name:'Analityka',sub:'Wyniki, retencja i pętla zwrotna',color:'#2fb3a5',icon:'📊',panel:'analytics',agents:[
+  {n:'Analityk',m:'n8n',s:'Analytics Collector',id:'wf:^analytics collector$'},{n:'Retencja',m:'Sonnet',s:'krzywa oglądania YT → lekcje',id:'retention'},{n:'Raporty',m:'Haiku',s:'centrum · raport tygodnia',id:'on'}]},
  {name:'Kontrola jakości',sub:'Ocena i poprawki scenariusza przed nagraniem',color:'#d94b4b',icon:'🛡️',panel:'qa',agents:[
-  {n:'Kontroler',m:'Sonnet',s:'ocena 1–10 + fakty',id:'qa'},{n:'Hook Master',m:'Sonnet',s:'hook-generator',id:'qa'}]},
+  {n:'Kontroler',m:'Sonnet',s:'ocena 1–10 + fakty',id:'qa'},{n:'Hook Master',m:'Sonnet',s:'hook-generator',id:'qa'},{n:'Technik',m:'FFmpeg',s:'czarne klatki, cisza, długość',id:'tech'}]},
  {name:'Automatyzacje',sub:'Sterowanie n8n i autopilot',color:'#3fae5a',icon:'⚙️',panel:'ops',agents:[
   {n:'n8n Operator',m:'Haiku',s:'workflow on/off, start',id:'op'},{n:'Error Watch',m:'push',s:'powiadomienia z apki',id:'on'}]},
- {name:'Inbox',sub:'Komentarze i wiadomości',color:'#e07a2e',icon:'💬',agents:[
-  {n:'Komentarze',m:'Haiku',s:'reply-comments',soon:1},{n:'DM',m:'Haiku',s:'reply-dm',soon:1}]}
+ {name:'Inbox',sub:'Odpowiedzi na komentarze (zatwierdzasz jednym kliknięciem)',color:'#e07a2e',icon:'💬',panel:'inbox',agents:[
+  {n:'Komentarze YT',m:'Haiku',s:'szkice odpowiedzi',id:'inbox'},{n:'Komentarze IG',m:'Haiku',s:'reply-comments',soon:1}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
-const AG_NAMES={scout:'Trend Scout',qa:'Kontroler',op:'n8n Operator',n8n:'n8n'};
-const AG_DEPT={scout:0,qa:5,op:6,n8n:6};
+const AG_NAMES={scout:'Trend Scout',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox'};
+const AG_DEPT={scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7};
 
 // ===== SCENA =====
 const el=document.getElementById('scene'),W=()=>innerWidth,H=()=>innerHeight;
@@ -208,7 +214,7 @@ function agentState(a){ // 2 = pracuje, 1 = gotowy, 0 = wyłączony/wkrótce
  if(a.soon)return 0;if(a.id==='on')return 1;
  if(a.id?.startsWith('wf:')){if(!P?.ok)return 0;const re=new RegExp(a.id.slice(3),'i'),w=P.workflows.filter(w=>re.test(w.name));
   if(P.executions.some(e=>e.status==='running'&&w.some(x=>x.id===e.workflowId)))return 2;return w.some(x=>x.active)?1:0}
- if(!A)return 0;if(A.busy[a.id])return 2;return A.settings.autopilot&&A.ai?1:0}
+ if(!A)return 0;if(A.busy[a.id])return 2;if(a.id==='tech')return A.settings.autopilot?1:0;if(a.id==='inbox'&&!A.settings.inbox)return 0;return A.settings.autopilot&&A.ai?1:0}
 function refresh(){
  DEPTS.forEach(d=>d.agents.forEach(a=>a.st=agentState(a)));
  DEPTS.forEach((d,i)=>{const r=d.agents.filter(a=>a.st===2).length,on=d.agents.filter(a=>a.st).length;
@@ -238,6 +244,20 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
    (A.reviews.map(r=>`<div class="rv"><span class="sc ${r.score>=A.settings.min_score?'ok':'bad'}">${Math.round(r.score)}</span><div><b>${esc(r.topic)}</b>
     ${r.changed?.length?`<small>poprawił: ${esc(r.changed.join(', '))}</small>`:'<small>bez zmian</small>'}${r.before&&r.after&&r.before!==r.after?`<small class="hk">„${esc(r.before)}” → „${esc(r.after)}”</small>`:''}
     ${(r.issues||[]).slice(0,3).map(x=>`<small class="mut">• ${esc(x)}</small>`).join('')}</div></div>`).join('')||'<p class="mut">Jeszcze nic nie oceniał – pierwsza ocena przy najbliższym generatorze.</p>')+'</div>';
+  h+=`<div class="sec"><h3>Kontrola techniczna filmów</h3>`+(A.tech.map(t=>`<div class="rv"><span class="sc ${t.ok?'ok':'bad'}">${t.ok?'✓':'✗'}</span><div><b>${esc(t.movie||'film')}</b>
+    <small>${t.ok?esc((t.duration||'?')+' s · OK'):esc((t.problems||[]).join('; '))}</small>${(t.warnings||[]).length?`<small class="mut">${esc(t.warnings.join(', '))}</small>`:''}</div></div>`).join('')||'<p class="mut">Pierwsza kontrola po najbliższym montażu.</p>')+'</div>';
+ }
+ if(d.panel==='analytics'&&A){
+  h+=`<div class="sec"><h3>Lekcje z retencji<button class="btn" id="go-ret">${A.busy.retention?'Liczy…':'Przelicz teraz'}</button></h3>`+
+   (A.lessons?.text?`<div class="lessons">${esc(A.lessons.text).replace(/\n/g,'<br>')}</div><small class="mut">z ${A.lessons.n} filmów · ${ago(A.lessons.at)} temu</small>`:'<p class="mut">Potrzeba min. 3 filmów starszych niż 3 dni. Liczy się codziennie o 7:00.</p>')+
+   (A.retention.length?`<h3>Filmy</h3><div class="rt"><span>film</span><span>3 s</span><span>½</span><span>koniec</span>`+A.retention.map(v=>`<a href="${esc(v.url||'#')}" target="_blank" rel="noopener">${esc(v.title)}</a><b class="${v.hold3s>=70?'g':v.hold3s<50?'r':''}">${v.hold3s}%</b><b>${v.mid}%</b><b>${v.end}%</b>`).join('')+'</div>':'')+'</div>';
+ }
+ if(d.panel==='inbox'&&A){
+  const dr=A.inbox.filter(x=>x.status==='draft');
+  h+=`<div class="sec"><h3>Do zatwierdzenia (${dr.length})<button class="btn" id="go-inb">${A.busy.inbox?'Czyta…':'Sprawdź komentarze'}</button></h3>`+
+   (dr.map(x=>`<div class="cm"><small class="mut">${esc(x.author)} · ${esc(x.video)}</small><p>„${esc(x.text)}”</p>
+    <textarea data-c="${esc(x.id)}">${esc(x.reply)}</textarea><div class="btns"><button class="btn" data-send="${esc(x.id)}">Wyślij</button><button class="btn" data-skip="${esc(x.id)}">Pomiń</button></div></div>`).join('')||'<p class="mut">Brak nowych komentarzy do odpowiedzi. Sprawdza co 30 min.</p>')+
+   (A.inbox.some(x=>x.status==='sent')?`<h3>Wysłane</h3>`+A.inbox.filter(x=>x.status==='sent').slice(0,5).map(x=>`<div class="tp used"><div><b>${esc(x.reply)}</b><small>do ${esc(x.author)}: „${esc(x.text.slice(0,80))}”</small></div></div>`).join(''):'')+'</div>';
  }
  if(d.panel==='ops'){
   const L=LINK;h+=`<div class="sec"><h3>Autopilot</h3>
@@ -245,8 +265,9 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
    <label class="row">Próg jakości <input type="number" id="ms" min="1" max="10" value="${A?.settings.min_score||7}"> /10</label>
    ${A&&!A.ai?'<p class="warn">Brak klucza AI (OPENAI_API_KEY w /root/social/.env) – agenci nie mają mózgu.</p>':''}
    <h3>Generator n8n</h3>${!L?'<p class="mut">Sprawdzam…</p>':!L.ok?`<p class="warn">${esc(L.error||'Nie znalazłem generatora')}</p>`:
-   `<p>${esc(L.generator)}: ${L.connected?'<b style="color:var(--ok)">podpięty do agencji</b>':'<b>niepodpięty</b>'}</p>
-   <div class="btns"><button class="btn" id="lk">${L.connected?'Odepnij agencję':'Podepnij agencję'}</button>${L.connected?'<button class="btn" id="run">▶ Uruchom generator teraz</button>':''}</div>`}
+   `<p>${esc(L.generator)}: ${L.connected?'<b style="color:var(--ok)">podpięty</b>':'<b>niepodpięty</b>'}${L.montage?` · ${esc(L.montage)}: ${L.montage_connected?'<b style="color:var(--ok)">kontrola techniczna</b>':'<b>bez kontroli</b>'}`:''}</p>
+   <div class="btns">${L.connected&&L.montage&&!L.montage_connected?'<button class="btn" id="lk-up">Zaktualizuj podpięcie</button>':''}<button class="btn" id="lk">${L.connected?'Odepnij agencję':'Podepnij agencję'}</button>${L.connected?'<button class="btn" id="run">▶ Uruchom generator teraz</button>':''}</div>`}
+   <label class="sw"><input type="checkbox" id="inb" ${A?.settings.inbox!==false?'checked':''}><span></span>Inbox przygotowuje odpowiedzi na komentarze</label>
    <h3>Workflow</h3>${P?.ok?P.workflows.filter(w=>!/clip|kopia|\d$/i.test(w.name)).map(w=>`<label class="sw"><input type="checkbox" data-w="${w.id}" ${w.active?'checked':''}><span></span>${esc(w.name)}</label>`).join(''):'<p class="mut">Brak danych z n8n.</p>'}</div>`;
  }
  if(!d.panel&&P?.ok){const ids=d.agents.filter(a=>a.id?.startsWith('wf:')).map(a=>new RegExp(a.id.slice(3),'i'));
@@ -260,6 +281,13 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  const ms=$('ms');if(ms)ms.onchange=async()=>{await post('/api/agency/settings',{min_score:+ms.value});poll()};
  on('lk',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/'+(LINK.connected?'disconnect':'connect')).catch(()=>({ok:false,error:'błąd sieci'}));
   if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
+ on('lk-up',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/connect').catch(()=>({ok:false}));if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
+ on('go-ret',async()=>{await post('/api/agency/retention');setTimeout(poll,1500)});
+ on('go-inb',async()=>{await post('/api/agency/inbox-run');setTimeout(poll,2000)});
+ const inb=$('inb');if(inb)inb.onchange=async()=>{await post('/api/agency/settings',{inbox:inb.checked});poll()};
+ $('pl').querySelectorAll('[data-send]').forEach(b=>b.onclick=async()=>{b.disabled=true;const id=b.dataset.send,t=$('pl').querySelector(`textarea[data-c="${id}"]`).value;
+  const r=await post('/api/agency/inbox/'+id,{reply:t});if(!r.ok){alert(r.error||'Nie wysłano');b.disabled=false}poll()});
+ $('pl').querySelectorAll('[data-skip]').forEach(b=>b.onclick=async()=>{await post('/api/agency/inbox/'+b.dataset.skip,{action:'skip'});poll()});
  on('run',async e=>{if(!confirm('Uruchomić generator teraz? Powstanie dodatkowy film (koszt API).'))return;e.target.disabled=true;const r=await post('/api/agency/run/generator');e.target.textContent=r.ok?'Wystartował ✓':'Nie udało się';poll()});
  $('pl').querySelectorAll('[data-w]').forEach(c=>c.onchange=async()=>{await post(`/api/agency/n8n/${c.dataset.w}/${c.checked?'activate':'deactivate'}`);setTimeout(poll,800)});
 }

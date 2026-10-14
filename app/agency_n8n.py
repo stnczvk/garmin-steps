@@ -110,3 +110,67 @@ def put_body(wf, minimal=False):
     s = wf.get("settings") or {}
     return {"name": wf["name"], "nodes": wf["nodes"], "connections": wf["connections"],
             "settings": {k: v for k, v in s.items() if k in keep} if minimal else s}
+
+
+# ---------- Montaż film: kontrola techniczna final.mp4 ----------
+TECH_JS = r"""// Agencja AI – kontrola techniczna final.mp4: zatrzymuje zepsuty film przed publikacją
+const { execSync } = require('child_process');
+const fs = require('fs');
+const j = $json, f = j.outputPath;
+const problems = [], warnings = [];
+let duration = 0;
+const run = (c) => { try { return execSync(c, { encoding: 'utf8', maxBuffer: 1024 * 1024 * 20 }); } catch (e) { return String(e.stdout || '') + String(e.stderr || ''); } };
+try {
+  if (fs.statSync(f).size < 300 * 1024) problems.push('plik podejrzanie mały');
+  const pr = JSON.parse(execSync(`ffprobe -v error -show_entries format=duration:stream=codec_type,width,height -of json "${f}"`, { encoding: 'utf8' }));
+  duration = Number(pr.format.duration) || 0;
+  const v = pr.streams.find((s) => s.codec_type === 'video'), a = pr.streams.find((s) => s.codec_type === 'audio');
+  if (!v) problems.push('brak obrazu'); else if (v.width !== 1080 || v.height !== 1920) warnings.push(`rozdzielczość ${v.width}x${v.height}`);
+  if (!a) problems.push('brak dźwięku');
+  if (duration < 15 || duration > 60) problems.push(`długość ${duration.toFixed(1)} s (powinno 15–60)`);
+  const out = run(`ffmpeg -hide_banner -nostats -i "${f}" -vf blackdetect=d=0.8:pix_th=0.10 -af silencedetect=noise=-45dB:d=1.5 -f null - 2>&1`);
+  // ignorujemy początek i zakończenie (przejścia/fade) – liczy się czerń w środku filmu
+  const blacks = [...out.matchAll(/black_start:([\d.]+).*?black_duration:([\d.]+)/g)].map((m) => [+m[1], +m[2]]).filter((b) => b[0] > 0.3 && b[0] < duration - 1.5);
+  if (blacks.length) problems.push(`czarny ekran ${blacks.map((b) => b[0].toFixed(1) + 's').join(', ')}`);
+  const sil = [...out.matchAll(/silence_start: ([\d.]+)/g)].map((m) => +m[1]).filter((t) => t < duration - 2.5);
+  if (sil.length) problems.push(`cisza od ${sil.map((t) => t.toFixed(1) + 's').join(', ')}`);
+} catch (e) { problems.push('nie da się odczytać pliku: ' + String(e.message || e).slice(0, 120)); }
+if (j.hasSubtitles === false) warnings.push('brak napisów');
+if (j.hasKling === false) warnings.push('brak sceny Kling');
+const ok = problems.length === 0;
+try {
+  await this.helpers.httpRequest({ method: 'POST', url: '__URL__/api/agency/hook/tech', headers: { 'X-Agency-Token': '__TOKEN__' },
+    json: true, timeout: 20000, body: { ok, problems, warnings, duration: Math.round(duration), movie: j.movieName } });
+} catch (e) {}
+if (!ok) throw new Error('Kontrola techniczna agencji zatrzymała film: ' + problems.join('; '));
+return [{ json: { ...j, techQa: { ok, problems, warnings } } }];"""
+
+
+def find_montage(workflows, gen):
+    ids = []
+    for n in (gen or {}).get("nodes", []):
+        if n["type"].endswith("executeWorkflow"):
+            v = n["parameters"].get("workflowId")
+            ids.append(v.get("value") if isinstance(v, dict) else v)
+    c = [w for w in workflows if "Render Video" in {n["name"] for n in w.get("nodes", [])}]
+    c.sort(key=lambda w: (w["id"] not in ids, not w.get("active"), w.get("name") != "Montaż film"))
+    return c[0] if c else None
+
+
+def strip_montage(wf):
+    wf = copy.deepcopy(wf)
+    names = {n["name"] for n in wf["nodes"] if n["name"].startswith(TAG)}
+    wf["nodes"] = [n for n in wf["nodes"] if n["name"] not in names]
+    for k in names:
+        wf["connections"].pop(k, None)
+    wf["connections"].pop("Render Video", None)
+    return wf
+
+
+def patch_montage(wf, url, token):
+    wf = strip_montage(wf)
+    rx, ry = next(n for n in wf["nodes"] if n["name"] == "Render Video")["position"]
+    js = TECH_JS.replace("__URL__", url.rstrip("/")).replace("__TOKEN__", token)
+    wf["nodes"].append(_code(TAG + "kontrola techniczna", js, [rx + 220, ry]))
+    wf["connections"]["Render Video"] = {"main": [[{"node": TAG + "kontrola techniczna", "type": "main", "index": 0}]]}
+    return wf

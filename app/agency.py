@@ -45,7 +45,7 @@ człowiek/auto/Everest/Ziemia) → FIRST ESCALATION → BIG REVEAL (jedyna scena
 Filary (pillar): cosmic_scale, earth_scale, animal_scale, mega_scale.
 Kategorie (category): space, ocean, geology, biology, physics, technology, human_body, extreme_weather."""
 
-DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6}
+DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True}
 
 
 # ---------- stan ----------
@@ -149,6 +149,7 @@ def research(n=8, why="harmonogram"):
         prompt = f"""{CHANNEL}
 
 {perf or 'Brak jeszcze danych o wynikach.'}
+{lessons_text()}
 
 Tematy już użyte (nie powtarzaj ani nie rób bliskich wariantów):
 {chr(10).join('- ' + u for u in used) or '- brak'}
@@ -211,6 +212,8 @@ def review(script, judge=None):
         view = {k: script.get(k) for k in ("topic", "pillar", "format", "title", "hook", "main_question", "voiceover", "key_numbers", "timeline")}
         prompt = f"""{CHANNEL}
 
+{lessons_text()}
+
 SCENARIUSZ z generatora (JSON):
 {json.dumps(view, ensure_ascii=False)}
 
@@ -229,12 +232,14 @@ Odpowiedz WYŁĄCZNIE JSON: {{"score": liczba, "issues": ["krótko po polsku"], 
         if "title" in ch and len(str(ch["title"])) > 60:
             ch.pop("title")
         new = {**script, **ch}
+        seo_ch = seo(new)
+        new.update(seo_ch)
         score = float(r.get("score") or 0)
         # pełny autopilot: agencja może zaliczyć scenariusz, który sędzia odrzucił, jeśli go poprawiła
         struct_ok = isinstance(new.get("timeline"), list) and len(new["timeline"]) == 5 and 60 <= _words(new.get("voiceover")) <= 100
         passed = bool(judge.get("pass")) or (bool(ch) and struct_ok and score >= s["min_score"] and
                                              not any("timeline" in p or "hashtags" in p or "missing" in p for p in judge.get("problems") or []))
-        out = {"score": score, "issues": [str(i) for i in (r.get("issues") or [])][:6], "rewritten": bool(ch), "changed": list(ch),
+        out = {"score": score, "issues": [str(i) for i in (r.get("issues") or [])][:6], "rewritten": bool(ch or seo_ch), "changed": list(ch) + list(seo_ch),
                "pass": passed, "script": new}
         log("qa", f"Ocena {score:.0f}/10 – " + (f"poprawił: {', '.join(ch)}" if ch else "zatwierdził bez zmian") + f" · {topic}",
             "ok" if score >= s["min_score"] else "warn",
@@ -246,6 +251,192 @@ Odpowiedz WYŁĄCZNIE JSON: {{"score": liczba, "issues": ["krótko po polsku"], 
         return {"score": None, "pass": None, "rewritten": False, "script": script, "error": str(e)[:200]}
     finally:
         _busy.pop("qa", None)
+
+
+# ---------- SEO Hunter: tytuł, opis, hashtagi pod realne wyszukiwania ----------
+def yt_suggest(q):
+    try:
+        r = httpx.get("https://suggestqueries.google.com/complete/search", params={"client": "firefox", "ds": "yt", "q": q}, timeout=10)
+        return r.json()[1][:8]
+    except Exception:
+        return []
+
+
+def seo(script):
+    _busy["seo"] = "dobiera słowa kluczowe"
+    try:
+        seeds = [str(x) for x in (script.get("search_keywords") or [])[:2]] + [str(script.get("topic") or "")]
+        sug = list(dict.fromkeys(x for q in seeds if q for x in yt_suggest(q)))[:20]
+        view = {k: script.get(k) for k in ("topic", "title", "description", "hashtags", "search_keywords", "ig_caption")}
+        prompt = f"""Jesteś SEO Hunterem kanału YouTube Shorts/Reels „Poza Skala” (EN).
+Metadane filmu: {json.dumps(view, ensure_ascii=False)}
+Prawdziwe podpowiedzi wyszukiwania YouTube dla tego tematu: {json.dumps(sug, ensure_ascii=False)}
+Popraw metadane pod te wyszukiwania, zachowując ciekawość (bez clickbaitu, bez zmiany tematu):
+title max 60 znaków z głównym słowem kluczowym, description 2–3 zdania z naturalnymi frazami, dokładnie 8 hashtagów, 6–8 search_keywords.
+Jeśli już są dobre – zwróć pusty obiekt. Odpowiedz WYŁĄCZNIE JSON z polami do zmiany: {{"title":..,"description":..,"hashtags":[..],"search_keywords":[..]}}"""
+        r = as_json(claude(prompt, FAST, 900))
+        ch = {}
+        if isinstance(r, dict):
+            if r.get("title") and len(str(r["title"])) <= 60:
+                ch["title"] = str(r["title"])
+            if r.get("description"):
+                ch["description"] = str(r["description"])
+            if isinstance(r.get("hashtags"), list) and len(r["hashtags"]) == 8:
+                ch["hashtags"] = [str(h) for h in r["hashtags"]]
+            if isinstance(r.get("search_keywords"), list) and 6 <= len(r["search_keywords"]) <= 8:
+                ch["search_keywords"] = [str(h) for h in r["search_keywords"]]
+        if ch:
+            log("seo", f"Dopasował {', '.join(ch)} pod wyszukiwania ({len(sug)} podpowiedzi YT)", "ok",
+                {"before": script.get("title"), "after": ch.get("title"), "suggest": sug[:8]})
+        return ch
+    except Exception as e:
+        log("seo", f"SEO pominięte: {e}", "error")
+        return {}
+    finally:
+        _busy.pop("seo", None)
+
+
+# ---------- Analityk retencji: gdzie widzowie odpadają ----------
+def lessons_text():
+    L = _read("agency_lessons.json", {})
+    return ("LEKCJE Z RETENCJI (co trzyma widzów na tym kanale – stosuj):\n" + L["text"]) if L.get("text") else ""
+
+
+def _pz_youtube():
+    from social import _accounts
+    for k, a in _accounts().items():
+        if a.get("platform") == "youtube" and a.get("group") == "pozaskala" and a.get("refresh_token"):
+            return k, a
+    return None, None
+
+
+def retention(force=False):
+    from social import _google_access
+    key, acc = _pz_youtube()
+    if not acc or _busy.get("retention"):
+        return 0
+    _busy["retention"] = "liczy retencję"
+    try:
+        posts = (_read("cache.json", {}).get("accounts", {}).get(key) or {}).get("posts") or []
+        R = _read("agency_retention.json", {})
+        h = {"Authorization": "Bearer " + _google_access(acc)}
+        today = datetime.now(TZ).date()
+        n = 0
+        for p in posts:
+            try:
+                age = (today - datetime.fromisoformat(p["date"]).date()).days
+            except Exception:
+                continue
+            if age < 3 or age > 60 or (p["id"] in R and not force and time.time() - R[p["id"]]["at"] < 5 * 86400):
+                continue
+            rep = httpx.get("https://youtubeanalytics.googleapis.com/v2/reports", headers=h, timeout=30, params={
+                "ids": "channel==MINE", "startDate": p["date"], "endDate": today.isoformat(), "dimensions": "elapsedVideoTimeRatio",
+                "metrics": "audienceWatchRatio,relativeRetentionPerformance", "filters": f"video=={p['id']}"}).json()
+            rows = rep.get("rows") or []
+            if len(rows) < 3:
+                continue
+            at = lambda x: min(rows, key=lambda r: abs(r[0] - x))
+            dur = p.get("dur") or 30
+            drop = max(((rows[i][0], rows[i - 1][1] - rows[i][1]) for i in range(1, len(rows))), key=lambda x: x[1])[0]
+            R[p["id"]] = {"at": time.time(), "title": p.get("title"), "views": p.get("views"), "dur": dur, "url": p.get("url"),
+                          "hold3s": round(at(min(3 / dur, 1))[1] * 100), "mid": round(at(.5)[1] * 100), "end": round(at(.95)[1] * 100),
+                          "rel": round(sum(r[2] for r in rows) / len(rows), 2), "drop": round(drop * 100)}
+            n += 1
+        _write("agency_retention.json", dict(sorted(R.items(), key=lambda kv: -kv[1]["at"])[:80]))
+        vids = sorted(R.values(), key=lambda v: -v["hold3s"])
+        if (n or force) and len(vids) >= 3:
+            desc = "\n".join(f"- „{v['title']}” {v['dur']}s: po 3 s zostaje {v['hold3s']}%, w połowie {v['mid']}%, na końcu {v['end']}%, "
+                             f"vs podobne Shorts {v['rel']}, największy odpływ przy {v['drop']}% filmu" for v in vids[:25])
+            txt = claude("Jesteś Analitykiem retencji kanału YouTube Shorts „Poza Skala” (filmy o skali, EN). Dane retencji filmów:\n" + desc +
+                         "\n\nNapisz 5 krótkich, konkretnych lekcji (po polsku, każda od „• ”): jakie hooki i tematy trzymają widzów "
+                         "w pierwszych 3 s, gdzie ludzie odpadają i co zmienić w scenariuszach. Bez wstępu.", SMART, 700)
+            if txt.strip():
+                _write("agency_lessons.json", {"at": time.time(), "text": txt.strip(), "n": len(vids)})
+        if n or force:
+            log("retention", f"Przeanalizował retencję {n} filmów", "ok")
+        return n
+    except Exception as e:
+        log("retention", f"Retencja nie zadziałała: {e}", "error")
+        return 0
+    finally:
+        _busy.pop("retention", None)
+
+
+# ---------- Inbox: szkice odpowiedzi na komentarze YouTube (wysyłasz jednym kliknięciem) ----------
+def inbox():
+    from social import _google_access
+    key, acc = _pz_youtube()
+    if not acc or _busy.get("inbox") or not settings().get("inbox", True):
+        return 0
+    _busy["inbox"] = "czyta komentarze"
+    try:
+        h = {"Authorization": "Bearer " + _google_access(acc)}
+        th = httpx.get("https://www.googleapis.com/youtube/v3/commentThreads", headers=h, timeout=30, params={
+            "part": "snippet", "allThreadsRelatedToChannelId": acc["channel_id"], "maxResults": 40, "order": "time"}).json()
+        if "error" in th:
+            raise RuntimeError(th["error"].get("message", "")[:150])
+        I = _read("agency_inbox.json", {"done": [], "items": []})
+        done = set(I["done"])
+        titles = {p["id"]: p.get("title") for p in (_read("cache.json", {}).get("accounts", {}).get(key) or {}).get("posts", [])}
+        n = 0
+        for t in th.get("items", []):
+            sn = t["snippet"]
+            c = sn["topLevelComment"]["snippet"]
+            if t["id"] in done or sn.get("totalReplyCount", 0) or c.get("authorChannelId", {}).get("value") == acc["channel_id"]:
+                continue
+            if time.time() - datetime.fromisoformat(c["publishedAt"].replace("Z", "+00:00")).timestamp() > 7 * 86400:
+                continue
+            done.add(t["id"])
+            vid = titles.get(sn.get("videoId"), "")
+            txt = claude(f"""Jesteś autorem kanału „Poza Skala” (Shorts o niewyobrażalnej skali rzeczy, EN). Komentarz pod filmem „{vid}”:
+"{c.get('textOriginal', '')[:500]}"
+Napisz krótką (max 2 zdania), naturalną odpowiedź w języku komentarza: podziękuj, odpowiedz rzeczowo na pytanie albo dorzuć ciekawy fakt,
+czasem zadaj pytanie, żeby rozkręcić dyskusję. Bez linków, bez emoji-spamu, bez proszenia o suba.
+Jeśli to spam, hejt, coś obraźliwego albo nie ma na co odpowiedzieć – odpowiedz dokładnie: SKIP""", FAST, 150).strip()
+            I["items"].append({"id": t["id"], "t": time.time(), "video": vid, "author": c.get("authorDisplayName"),
+                               "text": c.get("textOriginal", "")[:300], "reply": "" if txt == "SKIP" else txt[:400],
+                               "status": "skip" if txt == "SKIP" else "draft"})
+            n += 1
+            if n >= 15:
+                break
+        I["done"] = list(done)[-2000:]
+        I["items"] = I["items"][-200:]
+        _write("agency_inbox.json", I)
+        drafts = sum(1 for x in I["items"][-n:] if x["status"] == "draft") if n else 0
+        if n:
+            log("inbox", f"Nowe komentarze: {n}, przygotował {drafts} odpowiedzi do zatwierdzenia", "ok")
+            if drafts:
+                push_all("💬 Odpowiedzi do zatwierdzenia", f"{drafts} nowych komentarzy na YouTube – szkice czekają w Agencji.", "/#agencja")
+        return n
+    except Exception as e:
+        log("inbox", f"Inbox nie zadziałał: {e}", "error")
+        return 0
+    finally:
+        _busy.pop("inbox", None)
+
+
+@router.post("/api/agency/inbox/{cid}")
+async def inbox_send(cid: str, req: Request):
+    """Wysyłka zatwierdzonego przez Ciebie szkicu (albo pominięcie)."""
+    from social import _google_access
+    b = await req.json()
+    I = _read("agency_inbox.json", {"done": [], "items": []})
+    it = next((x for x in I["items"] if x["id"] == cid), None)
+    if not it:
+        return {"ok": False}
+    if b.get("action") == "skip":
+        it["status"] = "skip"
+    else:
+        _, acc = _pz_youtube()
+        text = str(b.get("reply") or it["reply"])[:500]
+        r = httpx.post("https://www.googleapis.com/youtube/v3/comments", params={"part": "snippet"}, timeout=30,
+                       headers={"Authorization": "Bearer " + _google_access(acc)},
+                       json={"snippet": {"parentId": cid, "textOriginal": text}})
+        if r.status_code >= 300:
+            return {"ok": False, "error": "YouTube nie pozwala odpowiadać – kanał połączony tylko do odczytu" if r.status_code == 403 else r.text[:150]}
+        it.update(status="sent", reply=text)
+    _write("agency_inbox.json", I)
+    return {"ok": True}
 
 
 # ---------- n8n Operator ----------
@@ -286,6 +477,22 @@ async def hook_review(req: Request):
     return review(sc, b.get("judge"))
 
 
+@router.post("/api/agency/hook/tech")
+async def hook_tech(req: Request):
+    """Wynik kontroli technicznej final.mp4 z workflow Montaż film."""
+    if not _tok_ok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    ok = bool(b.get("ok"))
+    probs = [str(x) for x in (b.get("problems") or [])]
+    log("tech", (f"Film OK ({b.get('duration', '?')} s)" if ok else "Zatrzymał film: " + "; ".join(probs)) +
+        (f" · {str(b.get('movie', ''))[:60]}" if b.get("movie") else ""), "ok" if ok else "error",
+        {"ok": ok, "problems": probs, "warnings": b.get("warnings"), "movie": b.get("movie"), "duration": b.get("duration")})
+    if not ok:
+        push_all("🛑 Film zatrzymany", "Kontrola techniczna: " + "; ".join(probs)[:150], "/#agencja")
+    return {"ok": True}
+
+
 @router.post("/api/agency/hook/event")
 async def hook_event(req: Request):
     if not _tok_ok(req):
@@ -305,9 +512,13 @@ def state():
     for e in L:
         last[e["agent"]] = e
     reviews = [e["extra"] for e in L if e["agent"] == "qa" and e.get("extra")][-20:]
+    R = _read("agency_retention.json", {})
+    I = _read("agency_inbox.json", {"items": []})
     return {"settings": {k: v for k, v in s.items() if k != "token"}, "token": s["token"], "busy": _busy,
             "queue": [x for x in t if x["status"] == "queued"], "used": [x for x in t if x["status"] == "used"][-15:][::-1],
-            "log": L[-60:][::-1], "last": last, "reviews": reviews[::-1], "ai": ai_ready(), "provider": provider(), "models": dict(zip(("smart", "fast"), MODELS[provider()])),
+            "log": L[-60:][::-1], "last": last,
+            "lessons": _read("agency_lessons.json", {}), "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
+            "inbox": I["items"][-25:][::-1], "tech": [e["extra"] for e in L if e["agent"] == "tech" and e.get("extra")][-8:][::-1], "reviews": reviews[::-1], "ai": ai_ready(), "provider": provider(), "models": dict(zip(("smart", "fast"), MODELS[provider()])),
             "avg_score": round(sum(r["score"] for r in reviews) / len(reviews), 1) if reviews else None}
 
 
@@ -335,7 +546,7 @@ async def topic_action(tid: str, req: Request):
 async def set_settings(req: Request):
     b = await req.json()
     s = settings()
-    for k in ("autopilot", "min_score", "queue_target"):
+    for k in ("autopilot", "min_score", "queue_target", "inbox"):
         if k in b:
             s[k] = type(DEFAULT[k])(b[k])
     if b.get("new_token"):
@@ -393,7 +604,9 @@ def link_state():
     except Exception as e:
         return {"ok": False, "error": str(e)[:150]}
     g = AN.find_generator(wfs)
+    m = AN.find_montage(wfs, g)
     return {"ok": bool(g), "generator": g and g["name"], "connected": bool(g) and AN.is_connected(g),
+            "montage": m and m["name"], "montage_connected": bool(m) and AN.is_connected(m),
             "backup": bool(_read("agency_backup.json", None)), "url": _public_url()}
 
 
@@ -406,32 +619,39 @@ def link(action: str):
     g = AN.find_generator(wfs)
     if not g:
         return {"ok": False, "error": "Nie znalazłem workflow generatora (Merge Context + Judge Gate)."}
+    m = AN.find_montage(wfs, g)
     if action == "connect":
         if not _public_url():
             return {"ok": False, "error": "Brak SOCIAL_DOMAIN w /root/social/.env"}
         if not AN.is_connected(g):
             _write("agency_backup.json", g)
-        new = AN.patch(g, _public_url(), settings()["token"])
+        if m and not AN.is_connected(m):
+            _write("agency_backup_montage.json", m)
+        jobs = [(g, AN.patch(g, _public_url(), settings()["token"]))]
+        if m:
+            jobs.append((m, AN.patch_montage(m, _public_url(), settings()["token"])))
     elif action == "disconnect":
-        new = AN.strip(g)
+        jobs = [(g, AN.strip(g))] + ([(m, AN.strip_montage(m))] if m and AN.is_connected(m) else [])
     else:
         return JSONResponse({"error": "akcja"}, status_code=400)
-    r = n8n("PUT", f"/api/v1/workflows/{g['id']}", json=AN.put_body(new))
-    if r.status_code >= 400:
-        r = n8n("PUT", f"/api/v1/workflows/{g['id']}", json=AN.put_body(new, minimal=True))
-    if r.status_code >= 400:
-        log("op", f"n8n nie przyjął zmian: {r.text[:200]}", "error")
-        return {"ok": False, "error": r.text[:300]}
-    if g.get("active"):
-        n8n("POST", f"/api/v1/workflows/{g['id']}/activate")
-    log("op", ("Podpiął agencję do " if action == "connect" else "Odpiął agencję od ") + g["name"], "ok")
+    for wf, new in jobs:
+        r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new))
+        if r.status_code >= 400:
+            r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new, minimal=True))
+        if r.status_code >= 400:
+            log("op", f"n8n nie przyjął zmian w {wf['name']}: {r.text[:200]}", "error")
+            return {"ok": False, "error": f"{wf['name']}: {r.text[:300]}"}
+        if wf.get("active"):
+            n8n("POST", f"/api/v1/workflows/{wf['id']}/activate")
+    log("op", ("Podpiął agencję do " if action == "connect" else "Odpiął agencję od ") + " i ".join(w["name"] for w, _ in jobs), "ok")
     return {"ok": True}
 
 
 # ---------- harmonogram: codziennie rano dopełnia kolejkę ----------
 def _loop():
     time.sleep(90)
-    done = None
+    done = done_ret = None
+    last_inbox = 0
     while True:
         try:
             s = settings()
@@ -444,7 +664,28 @@ def _loop():
                         push_all("🔭 Nowe tematy w kolejce", "Trend Scout dorzucił tematy dla PozaSkali.", "/#agencja")
         except Exception as e:
             print("agency loop", e, flush=True)
+        try:
+            if ai_ready() and now.hour == 7 and done_ret != now.date():
+                done_ret = now.date()
+                retention()
+            if ai_ready() and settings().get("inbox", True) and time.time() - last_inbox > 1800:
+                last_inbox = time.time()
+                inbox()
+        except Exception as e:
+            print("agency loop 2", e, flush=True)
         time.sleep(600)
+
+
+@router.post("/api/agency/retention")
+def do_retention():
+    threading.Thread(target=retention, kwargs={"force": True}, daemon=True).start()
+    return {"ok": True}
+
+
+@router.post("/api/agency/inbox-run")
+def do_inbox():
+    threading.Thread(target=inbox, daemon=True).start()
+    return {"ok": True}
 
 
 threading.Thread(target=_loop, daemon=True).start()
