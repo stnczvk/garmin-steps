@@ -2386,8 +2386,8 @@ async function saveActivity(date,a){
 const CARDIO=["Chodzenie na bieżni","Bieżnia pod górę (incline walk)","Bieganie na bieżni","Bieganie na zewnątrz","Rower stacjonarny","Rower na zewnątrz","Orbitrek","Schody / stepper","Wioślarz (ergometr)","Skakanka","Pływanie","Nordic walking","Interwały (HIIT)","Sporty drużynowe","Inne"];
 function isTrainDayAuto(d){ if(sessions.some(x=>x.date===d)) return true; const wd=new Date(d+"T12:00:00").getDay(); return [1,3,6].includes(wd); }
 function isTrainDay(d){ const o=dayType[d]; return o==="t"?true:o==="r"?false:isTrainDayAuto(d); }
-function dayTypeHTML(d){ const t=isTrainDay(d), man=d in dayType;
-  return `<div class="dtype"><div class="seg" role="group" aria-label="Rodzaj dnia"><button type="button" data-act="fd-dtype" data-v="t" data-d="${d}" aria-pressed="${t}">Treningowy</button><button type="button" data-act="fd-dtype" data-v="r" data-d="${d}" aria-pressed="${!t}">Wolny</button></div>${man?`<button type="button" class="techlink" data-act="fd-dtype" data-v="auto" data-d="${d}">↺ wg planu</button>`:""}</div>`; }
+function dayTypeHTML(d){ const t=isTrainDay(d);
+  return `<div class="dtype"><div class="seg" role="group" aria-label="Rodzaj dnia"><button type="button" data-act="fd-dtype" data-v="t" data-d="${d}" aria-pressed="${t}">Treningowy</button><button type="button" data-act="fd-dtype" data-v="r" data-d="${d}" aria-pressed="${!t}">Wolny</button></div></div>`; }
 function kcalGoal(d){ const t=isTrainDay(d); const ak=autoKcal(); if(ak) return t?ak.train:ak.rest; return (t?targets.kcalTrain:targets.kcalRest)||targets.kcal||null; }
 function weekKcalGoal(){ const ak=autoKcal(); if(ak) return (3*ak.train+4*ak.rest)/7; const kt=targets.kcalTrain||targets.kcal, kr=targets.kcalRest||targets.kcal; return kt&&kr?(3*kt+4*kr)/7:null; }
 function stepsGoal(){return targets.steps?+targets.steps:(MODE==="red"?10000:8000)}
