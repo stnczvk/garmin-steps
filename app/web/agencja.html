@@ -102,6 +102,8 @@ body.dash #dash{display:block}body.dash #scene,body.dash #labels,body.dash #mini
 .dx{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @keyframes bl{50%{opacity:.4}}
 .fg2{display:flex;gap:8px}.fg2 div{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.fg2 b{font:700 20px 'JetBrains Mono';display:block}.fg2 small{color:var(--mut);font-size:11px}
+.bar2{height:6px;border-radius:6px;background:#232838;overflow:hidden;margin:6px 0}.bar2 i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#f5b25a,#ff7b70)}
+.fg2 b.r{color:#ff7b70}
 @media(max-width:700px){#dash{inset:118px 0 0 0}.dg{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:700px){
  .stats{margin-left:0;width:100%;justify-content:space-between}
@@ -316,6 +318,12 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
    <label class="sw"><input type="checkbox" id="inb" ${A?.settings.inbox!==false?'checked':''}><span></span>Inbox czyta komentarze</label>
    <label class="sw"><input type="checkbox" id="inba" ${A?.settings.inbox_auto!==false?'checked':''}><span></span>…i odpowiada sam (inaczej szkice)</label>
    <label class="sw"><input type="checkbox" id="abx" ${A?.settings.ab!==false?'checked':''}><span></span>Test A/B hooków (co drugi film)</label>
+   <h3>Koszty AI dziś</h3>${(c=>c?`<div class="fg2"><div><b class="${c.today>=c.limit?'r':''}">${c.today.toFixed(2)} $</b><small>z limitu ${c.limit} $ · ${c.calls} wywołań</small></div><div><b>${c.days.slice(-7).reduce((s,d)=>s+d.usd,0).toFixed(2)} $</b><small>ostatnie 7 dni</small></div></div>
+    <div class="bar2"><i style="width:${Math.min(100,c.today/c.limit*100)}%"></i></div>
+    ${Object.keys(c.by_agent).length?`<p class="mut">${Object.entries(c.by_agent).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${esc(AG_NAMES[k]||k)} ${v.toFixed(3)} $`).join(' · ')}</p>`:''}
+    <label class="row">Dzienny limit <input type="number" id="lim" min="0.1" max="50" step="0.1" value="${c.limit}"> $ – po przekroczeniu agenci czekają do północy</label>`:'')(A?.costs)}
+   <h3>Kopie zapasowe<button class="btn" id="go-bk">Zrób teraz</button></h3><p class="mut">Codziennie 3:30, trzymane 14 ostatnich (kolejka, raporty, dziennik, ustawienia).</p>
+   ${(A?.backups||[]).slice(0,4).map(b=>`<div class="tp used"><div><b><a href="/api/agency/backup/${esc(b.name)}" style="color:inherit">⬇ ${esc(b.name)}</a></b><small>${b.kb} KB · ${ago(b.at)} temu</small></div></div>`).join('')||'<p class="mut">Jeszcze nie ma kopii.</p>'}
    <h3>Workflow</h3>${P?.ok?P.workflows.filter(w=>!/clip|kopia|\d$/i.test(w.name)).map(w=>`<label class="sw"><input type="checkbox" data-w="${w.id}" ${w.active?'checked':''}><span></span>${esc(w.name)}</label>`).join(''):'<p class="mut">Brak danych z n8n.</p>'}</div>`;
  }
  if(!d.panel&&P?.ok){const ids=d.agents.filter(a=>a.id?.startsWith('wf:')).map(a=>new RegExp(a.id.slice(3),'i'));
@@ -330,6 +338,8 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  on('lk',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/'+(LINK.connected?'disconnect':'connect')).catch(()=>({ok:false,error:'błąd sieci'}));
   if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
  on('lk-up',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/connect').catch(()=>({ok:false}));if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
+ const lim=$('lim');if(lim)lim.onchange=async()=>{await post('/api/agency/settings',{daily_limit:+lim.value});poll()};
+ on('go-bk',async e=>{e.target.disabled=true;await post('/api/agency/backup');poll()});
  on('go-tr',async()=>{await post('/api/agency/trends');setTimeout(poll,2500)});
  const abx=$('abx');if(abx)abx.onchange=async()=>{await post('/api/agency/settings',{ab:abx.checked});poll()};
  on('go-priv',async()=>{await post('/api/agency/private');setTimeout(poll,2000)});
@@ -376,7 +386,7 @@ function deptMetric(i){const d=DEPTS[i],L=(A?.log||[]).find(e=>(AG_DEPT[e.agent]
   case 'Kreacja':return{...lastEx(/monta/i),x};
   case 'analytics':return{v:A?.retention?.length?Math.round(A.retention.reduce((s,r)=>s+r.hold3s,0)/A.retention.length)+'%':'–',l:'średnio zostaje po 3 s',x:A?.ab?.verdict||x};
   case 'qa':return{v:A?.avg_score!=null?A.avg_score+'/10':'–',l:'średnia ocena scenariuszy'+(A?.tech?.[0]?' · technika: '+(A.tech[0].ok?'OK':'błąd'):''),x};
-  case 'ops':return{v:A?(A.settings.autopilot?'ON':'OFF'):'–',l:'autopilot · '+(P?.ok?P.workflows.filter(w=>w.active).length+' workflow aktywnych':'n8n offline'),x};
+  case 'ops':return{v:A?(A.settings.autopilot?'ON':'OFF'):'–',l:'autopilot · '+(P?.ok?P.workflows.filter(w=>w.active).length+' workflow aktywnych':'n8n offline'),x:A?.costs?`koszt AI dziś ${A.costs.today.toFixed(2)} $ / ${A.costs.limit} $`:x};
   case 'inbox':{const it=A?.inbox||[],sent=it.filter(c=>c.status==='sent'&&new Date(c.t*1000).toDateString()===today).length,dr=it.filter(c=>c.status==='draft').length;return{v:sent,l:`odpowiedzi dziś${dr?' · '+dr+' czeka':''}`,x}}
   case 'private':{const r=A?.private?.[0];return{v:r?r.accounts.reduce((s,a)=>s+(a.followers||0),0).toLocaleString('pl'):'–',l:r?'obserwujących · raport '+ago(r.at)+' temu':'brak raportu',x}}
  }return{x}}

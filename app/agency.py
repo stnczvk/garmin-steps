@@ -45,7 +45,7 @@ człowiek/auto/Everest/Ziemia) → FIRST ESCALATION → BIG REVEAL (jedyna scena
 Filary (pillar): cosmic_scale, earth_scale, animal_scale, mega_scale.
 Kategorie (category): space, ocean, geology, biology, physics, technology, human_body, extreme_weather."""
 
-DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True, "inbox_auto": True, "ab": True}
+DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True, "inbox_auto": True, "ab": True, "daily_limit": 1.0}
 
 
 # ---------- stan ----------
@@ -73,8 +73,65 @@ def save_topics(t):
 
 
 # ---------- Claude ----------
+# ---------- licznik i dzienny limit kosztów AI ----------
+# ceny w $ za 1 mln tokenów (wejście, wyjście); wyszukiwanie w sieci liczone osobno za wywołanie
+PRICES = {"gpt-4.1-mini": (0.4, 1.6), "gpt-4.1-nano": (0.1, 0.4), "gpt-4.1": (2.0, 8.0), "gpt-4o-mini": (0.15, 0.6), "gpt-4o": (2.5, 10.0),
+          "haiku": (1.0, 5.0), "sonnet": (3.0, 15.0), "opus": (15.0, 75.0)}
+WEB_CALL = 0.03
+_cost_lock = threading.Lock()
+
+
+def _price(model):
+    m = model.lower()
+    for k in sorted(PRICES, key=len, reverse=True):
+        if k in m:
+            return PRICES[k]
+    return (3.0, 12.0)
+
+
+def _today():
+    return datetime.now(TZ).date().isoformat()
+
+
+def costs():
+    C = _read("agency_costs.json", {})
+    t = C.get(_today(), {})
+    return {"today": round(t.get("usd", 0), 4), "calls": t.get("calls", 0), "limit": settings().get("daily_limit", 1.0),
+            "days": [{"d": d, "usd": round(v.get("usd", 0), 3), "calls": v.get("calls", 0)} for d, v in sorted(C.items())[-14:]],
+            "by_agent": t.get("by", {})}
+
+
+def _spend(model, tin, tout, web_calls=0):
+    usd = tin / 1e6 * _price(model)[0] + tout / 1e6 * _price(model)[1] + web_calls * WEB_CALL
+    who = threading.current_thread().name
+    agent = next((k for k, v in _busy.items() if v), "inne")
+    with _cost_lock:
+        C = _read("agency_costs.json", {})
+        t = C.setdefault(_today(), {"usd": 0, "calls": 0, "by": {}})
+        t["usd"] += usd
+        t["calls"] += 1
+        t["by"][agent] = round(t["by"].get(agent, 0) + usd, 4)
+        _write("agency_costs.json", dict(sorted(C.items())[-60:]))
+        over = t["usd"] >= settings().get("daily_limit", 1.0)
+        if over and not t.get("alerted"):
+            t["alerted"] = True
+            _write("agency_costs.json", dict(sorted(C.items())[-60:]))
+            try:
+                push_all("💸 Limit kosztów AI osiągnięty", f"Dziś {t['usd']:.2f} $ – agenci wstrzymani do północy. Zmienisz w Automatyzacjach.", "/#agencja")
+            except Exception:
+                pass
+    return usd
+
+
+def _guard():
+    t = _read("agency_costs.json", {}).get(_today(), {})
+    if t.get("usd", 0) >= settings().get("daily_limit", 1.0):
+        raise RuntimeError(f"dzienny limit kosztów AI ({settings().get('daily_limit', 1.0)} $) osiągnięty – agenci czekają do północy")
+
+
 def claude(prompt, model=FAST, max_tokens=1500, system="", web=False):
     """Wywołanie modelu agencji (OpenAI albo Claude – patrz provider())."""
+    _guard()
     prov = provider()
     if model in (SMART, FAST):
         model = MODELS[prov][0 if model == SMART else 1]
@@ -96,6 +153,8 @@ def claude(prompt, model=FAST, max_tokens=1500, system="", web=False):
         if model != FALLBACK:
             return claude(prompt, FALLBACK, max_tokens, system)
         raise RuntimeError(j["error"].get("message", str(j))[:200])
+    u = j.get("usage") or {}
+    _spend(model, u.get("input_tokens", 0), u.get("output_tokens", 0), (u.get("server_tool_use") or {}).get("web_search_requests", 0))
     return "".join(b.get("text", "") for b in j.get("content", []) if b.get("type") == "text")
 
 
@@ -112,6 +171,8 @@ def _openai(prompt, model, max_tokens, system="", web=False):
         if web:
             return _openai(prompt, model, max_tokens, system, web=False)
         raise RuntimeError("OpenAI: " + str((j.get("error") or {}).get("message", j))[:200])
+    u = j.get("usage") or {}
+    _spend(model, u.get("input_tokens", 0), u.get("output_tokens", 0), sum(1 for o in j.get("output", []) if o.get("type") == "web_search_call"))
     return "".join(c.get("text", "") for o in j.get("output", []) if o.get("type") == "message"
                    for c in o.get("content", []) if c.get("type") == "output_text")
 
@@ -827,7 +888,7 @@ def state():
             "queue": [x for x in t if x["status"] == "queued"], "used": [x for x in t if x["status"] == "used"][-15:][::-1],
             "log": L[-60:][::-1], "last": last,
             "lessons": _read("agency_lessons.json", {}), "private": _read("agency_private.json", [])[-3:][::-1],
-            "ab": ab_results(), "trends": _read("agency_trends.json", {}), "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
+            "ab": ab_results(), "trends": _read("agency_trends.json", {}), "costs": costs(), "backups": backups_list(), "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
             "inbox": I["items"][-25:][::-1], "tech": [e["extra"] for e in L if e["agent"] == "tech" and e.get("extra")][-8:][::-1], "reviews": reviews[::-1], "ai": ai_ready(), "provider": provider(), "models": dict(zip(("smart", "fast"), MODELS[provider()])),
             "avg_score": round(sum(r["score"] for r in reviews) / len(reviews), 1) if reviews else None}
 
@@ -856,9 +917,10 @@ async def topic_action(tid: str, req: Request):
 async def set_settings(req: Request):
     b = await req.json()
     s = settings()
-    for k in ("autopilot", "min_score", "queue_target", "inbox", "inbox_auto", "ab"):
+    for k in ("autopilot", "min_score", "queue_target", "inbox", "inbox_auto", "ab", "daily_limit"):
         if k in b:
             s[k] = type(DEFAULT[k])(b[k])
+    s["daily_limit"] = max(0.1, min(float(s.get("daily_limit", 1.0)), 50.0))
     if b.get("new_token"):
         s["token"] = secrets.token_urlsafe(24)
     _write("agency_settings.json", s)
@@ -957,10 +1019,54 @@ def link(action: str):
     return {"ok": True}
 
 
+# ---------- kopie zapasowe danych centrum (codziennie 3:30, 14 ostatnich) ----------
+import zipfile
+from pathlib import Path
+from fastapi.responses import FileResponse
+from social import DIR as DATA_DIR, ROOT as SOCIAL_ROOT
+
+BK = SOCIAL_ROOT / "backups"
+
+
+def backup():
+    BK.mkdir(parents=True, exist_ok=True)
+    name = BK / f"centrum-{datetime.now(TZ).strftime('%Y-%m-%d_%H%M')}.zip"
+    with zipfile.ZipFile(name, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in DATA_DIR.glob("*.json"):
+            z.write(f, f"dane/{f.name}")
+        for extra in ("sesje.db",):
+            if (SOCIAL_ROOT / extra).exists():
+                z.write(SOCIAL_ROOT / extra, extra)
+    os.chmod(name, 0o600)
+    for old in sorted(BK.glob("centrum-*.zip"))[:-14]:
+        old.unlink()
+    log("op", f"Kopia zapasowa: {name.name} ({name.stat().st_size // 1024} KB)", "ok")
+    return name
+
+
+def backups_list():
+    if not BK.exists():
+        return []
+    return [{"name": f.name, "kb": f.stat().st_size // 1024, "at": f.stat().st_mtime} for f in sorted(BK.glob("centrum-*.zip"), reverse=True)[:14]]
+
+
+@router.post("/api/agency/backup")
+def do_backup():
+    return {"ok": True, "name": backup().name}
+
+
+@router.get("/api/agency/backup/{name}")
+def get_backup(name: str):
+    f = BK / name
+    if not re.fullmatch(r"centrum-[\d_-]+\.zip", name) or not f.exists():
+        return JSONResponse({"error": "nie ma"}, status_code=404)
+    return FileResponse(f, media_type="application/zip", filename=name)
+
+
 # ---------- harmonogram: codziennie rano dopełnia kolejkę ----------
 def _loop():
     time.sleep(90)
-    done = done_ret = done_priv = done_tr = None
+    done = done_ret = done_priv = done_tr = done_bk = None
     last_inbox = 0
     while True:
         try:
@@ -975,6 +1081,9 @@ def _loop():
         except Exception as e:
             print("agency loop", e, flush=True)
         try:
+            if now.hour == 3 and now.minute >= 20 and done_bk != now.date():
+                done_bk = now.date()
+                backup()
             if ai_ready() and s["autopilot"] and now.weekday() in (0, 3) and now.hour == 5 and done_tr != now.date():
                 done_tr = now.date()
                 trends()
