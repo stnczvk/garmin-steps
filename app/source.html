@@ -1032,6 +1032,7 @@ function gymHTML(ex,t){ if(ex.time||!(t.kind==="up"||t.kind==="down")) return ""
   if(t.big) h+=`<span class="gymline">Duży skok. Jeśli nie zrobisz wszystkich serii na <b class="num">${fmt(t.w)} kg</b>, wróć do poprzedniego ciężaru i dobijaj 1–2 powtórzenia ponad zakres, zanim spróbujesz znowu.</span>`;
   if(open) h+=`<div class="gymask"><span>Co ile kg możesz zmieniać ciężar w tym ćwiczeniu na swojej siłowni?</span><div class="chips">${[1,1.25,2,2.5,4,5,10].map(v=>`<button data-act="gym-set" data-id="${ex.id}" data-v="${v}" aria-pressed="${st===v}">${fmt(v)} kg</button>`).join("")}${st?`<button data-act="gym-set" data-id="${ex.id}" data-v="0">domyślnie (${fmt(ex.inc)} kg)</button>`:""}</div></div>`;
   return h; }
+async function saveDayType(){ if(store.mode==="db"){ try{ await store.db.doc("settings/daytype").set(dayType); }catch(e){} } else lsSet("sila-5x5-daytype",dayType); }
 async function saveGymSteps(){ if(store.mode==="db"){ try{ await store.db.doc("settings/gymsteps").set(gymSteps); }catch(e){} } else lsSet("sila-5x5-gymsteps",gymSteps); }
 document.addEventListener("click",ev=>{const b=ev.target.closest('[data-act="gym-ask"],[data-act="gym-set"]'); if(!b) return; const id=b.dataset.id;
   if(b.dataset.act==="gym-ask"){ state.gymAsk=state.gymAsk===id?null:id; }
@@ -1066,6 +1067,7 @@ function target0(ex){
 }
 let swaps={};
 let gymSteps={};
+let dayType={};
 const PERHAND_LIB=new Set(["dbfly","incdbfly","dbrdl","kickback","dbbench","incl","row2","row2arc","dbohp","arnold","latA","latC","hammer","inclcurl","curlB","lunge"]);
 function libName(id){if(typeof TECH_LIB==="undefined")return null;for(const [,l] of TECH_LIB)for(const [i,n] of l)if(i===id)return n;return null}
 function exDef(id){for(const p of Object.values(PLANS))for(const d of Object.values(p.plan))for(const e of d)if(e.id===id)return e;const n=libName(id);return n?{id,name:n,perHand:PERHAND_LIB.has(id)}:null}
@@ -2343,11 +2345,12 @@ function initFood(){
       window.__wstDb=w.start||0; renderRemind(); if(state.tab==="log"&&!document.activeElement?.id?.startsWith("in-")) renderLog();},()=>{});
     db.doc("settings/reminders").onSnapshot(d=>{reminders={...REM_DEF,...(d.exists?d.data():{})};renderRemind();if(typeof renderPlan==="function")renderPlan()},()=>{});
     db.doc("settings/targets").onSnapshot(d=>{targets=d.exists?{...d.data()}:{kcal:null,protein:null};foodChanged()},()=>{});
+    db.doc("settings/daytype").onSnapshot(d=>{dayType=d.exists?{...d.data()}:{}; foodChanged();},()=>{});
     db.doc("settings/gymsteps").onSnapshot(d=>{gymSteps=d.exists?{...d.data()}:{}; if(!document.activeElement?.id?.startsWith("in-")) renderLog(); if(typeof renderProg==="function") renderProg();},()=>{});
     db.doc("settings/shopping").onSnapshot(d=>{shop=shopNorm(d.exists?d.data():null); if(state.tab==="shop") renderShop();},()=>{});
   }else{
     reminders={...REM_DEF,...lsGet("sila-5x5-reminders",{})};
-    shop=shopNorm(lsGet("sila-5x5-shop",null)); sleepD=lsGet("sila-5x5-sleep",{}); gymSteps=lsGet("sila-5x5-gymsteps",{});
+    shop=shopNorm(lsGet("sila-5x5-shop",null)); sleepD=lsGet("sila-5x5-sleep",{}); gymSteps=lsGet("sila-5x5-gymsteps",{}); dayType=lsGet("sila-5x5-daytype",{});
     food=lsGet(LSF,{});activity=lsGet(LSA,{});products=lsGet(LSP,{});recipes=lsGet(LSR,{});targets=lsGet(LST,{kcal:null,protein:null});foodChanged();
   }
   (async()=>{try{sampleApi=window.claude?.use?await window.claude.use("sample"):null}catch(e){sampleApi=null} if(sampleApi){try{imgCaps=(await sampleApi.limits())?.images||null}catch(e){imgCaps=null}} renderFood();})();
@@ -2369,7 +2372,10 @@ async function saveActivity(date,a){
   else { if(empty) delete activity[date]; else activity[date]=a; lsSet(LSA,activity); foodChanged(); }
 }
 const CARDIO=["Chodzenie na bieżni","Bieżnia pod górę (incline walk)","Bieganie na bieżni","Bieganie na zewnątrz","Rower stacjonarny","Rower na zewnątrz","Orbitrek","Schody / stepper","Wioślarz (ergometr)","Skakanka","Pływanie","Nordic walking","Interwały (HIIT)","Sporty drużynowe","Inne"];
-function isTrainDay(d){ if(sessions.some(x=>x.date===d)) return true; const wd=new Date(d+"T12:00:00").getDay(); return [1,3,6].includes(wd); }
+function isTrainDayAuto(d){ if(sessions.some(x=>x.date===d)) return true; const wd=new Date(d+"T12:00:00").getDay(); return [1,3,6].includes(wd); }
+function isTrainDay(d){ const o=dayType[d]; return o==="t"?true:o==="r"?false:isTrainDayAuto(d); }
+function dayTypeHTML(d){ const t=isTrainDay(d), man=d in dayType;
+  return `<div class="row" style="gap:6px;justify-content:center;margin:-2px 0 8px"><button class="btn small ${t?"":"ghost"}" data-act="fd-dtype" data-v="t" data-d="${d}">🏋️ Treningowy</button><button class="btn small ${t?"ghost":""}" data-act="fd-dtype" data-v="r" data-d="${d}">😴 Wolny</button>${man?`<button class="techlink" data-act="fd-dtype" data-v="auto" data-d="${d}">↺ wg planu</button>`:""}</div>`; }
 function kcalGoal(d){ const t=isTrainDay(d); const ak=autoKcal(); if(ak) return t?ak.train:ak.rest; return (t?targets.kcalTrain:targets.kcalRest)||targets.kcal||null; }
 function weekKcalGoal(){ const ak=autoKcal(); if(ak) return (3*ak.train+4*ak.rest)/7; const kt=targets.kcalTrain||targets.kcal, kr=targets.kcalRest||targets.kcal; return kt&&kr?(3*kt+4*kr)/7:null; }
 function stepsGoal(){return targets.steps?+targets.steps:(MODE==="red"?10000:8000)}
@@ -2774,7 +2780,7 @@ function renderFood0(){
   const items=food[fst.date]||[], tot=dayTotals(items), pg=proteinGoal();
   const prodList=Object.values(products).sort((a,b)=>a.name.localeCompare(b.name,"pl"));
   const isToday=fst.date===today();
-  let h=`${dayHeadHTML(fst.date,"fd",isTrainDay(fst.date)?"Dzień treningowy":"Dzień wolny")}${plateauHTML()}
+  let h=`${dayHeadHTML(fst.date,"fd",isTrainDay(fst.date)?"Dzień treningowy":"Dzień wolny")}${dayTypeHTML(fst.date)}${plateauHTML()}
   <div class="card stack"><div class="kc-wrap">
     ${(()=>{const G=macroGoals(fst.date);return kcalRing(tot.kcal,G.kc)+`<div class="kc-bars">`+macroBox("Białko",tot.p,G.p,"g","var(--m-p)")+macroBox("Węglowodany",tot.c,G.c,"g","var(--m-c)")+macroBox("Tłuszcze",tot.f,G.f,"g","var(--m-f)")+`</div>`})()}
   </div>
@@ -3517,6 +3523,7 @@ document.addEventListener("click",async ev=>{
   if(a==="fd-rstart"){fst.saveMeal=b.dataset.m;renderFood();document.getElementById("fd-rname")?.focus();return}
   if(a==="fd-rcancel"){fst.saveMeal=null;renderFood();return}
   if(a==="fd-rsave"){const nm=document.getElementById("fd-rname").value.trim();if(!nm){setMsg("Wpisz nazwę posiłku.");return}const its=(food[fst.date]||[]).filter(x=>x.meal===b.dataset.m).map(({name,g,kcal,p,c,f,szt,ml})=>({name,g,kcal,p,c,f,...(szt?{szt}:{}),...(ml?{ml:true}:{})}));try{await saveRecipe({name:nm,items:its});fst.saveMeal=null;fst.qtab="rec";renderFood();setMsg(`Zapisano „${nm}” w Moich posiłkach.`)}catch(e){setMsg("Nie udało się zapisać.")}return}
+  if(a==="fd-dtype"){const d=b.dataset.d,v=b.dataset.v; if(v==="auto"||(v==="t")===isTrainDayAuto(d)) delete dayType[d]; else dayType[d]=v; saveDayType(); foodChanged(); return;}
   if(a==="fd-prev"||a==="fd-next"){fst.editI=null;fst.date=shiftDate(fst.date,a==="fd-prev"?-1:1);fst.msg="";renderFood();}
   if(a==="fd-today"){fst.editI=null;fst.date=today();fst.msg="";renderFood();}
   if(a==="fd-scanretry"){try{localStorage.removeItem("sila-5x5-nolive")}catch(e){} if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){setMsg("Ta aplikacja w ogóle nie udostępnia aparatu stronom (brak funkcji getUserMedia). Zostaje zdjęcie kodu.");return} openScanner();return}
