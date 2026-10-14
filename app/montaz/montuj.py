@@ -396,6 +396,59 @@ HALUCYNACJE_ZWROTY = [["dzięki", "za", "uwagę"], ["dziękuję", "za", "uwagę"
                       ["dziękuję", "za", "obejrzenie"], ["dziękuję", "bardzo"], ["dzięki", "za", "oglądanie"]]
 
 
+# liczebniki przy „dzień” -> cyfry („trzydziesty siódmy dzień” -> „37 dzień”)
+_NUM_STEMS = sorted({
+    "setn": 100, "dwusetn": 200, "dwieście": 200,
+    "dwudziest": 20, "dwadzieści": 20, "trzydziest": 30, "trzydzieści": 30, "czterdziest": 40,
+    "czterdzieści": 40, "pięćdziesi": 50, "sześćdziesi": 60, "siedemdziesi": 70, "osiemdziesi": 80,
+    "dziewięćdziesi": 90,
+    "jedenast": 11, "dwunast": 12, "trzynast": 13, "czternast": 14, "piętnast": 15, "szesnast": 16,
+    "siedemnast": 17, "osiemnast": 18, "dziewiętnast": 19,
+    "dziesiąt": 10, "dziesięć": 10, "dziesięci": 10,
+    "pierwsz": 1, "jeden": 1, "jedn": 1, "drug": 2, "dwóch": 2, "dwu": 2, "trzeci": 3, "trzech": 3,
+    "czwart": 4, "cztery": 4, "czterech": 4, "piąt": 5, "pięć": 5, "pięci": 5, "szóst": 6, "sześć": 6,
+    "sześci": 6, "siódm": 7, "siedem": 7, "siedmi": 7, "ósm": 8, "osiem": 8, "ośmi": 8,
+    "dziewiąt": 9, "dziewięć": 9, "dziewięci": 9}.items(), key=lambda kv: -len(kv[0]))
+_NUM_EXACT = {"sto": 100, "dwa": 2, "trzy": 3, "dwie": 2}
+_DAY_WORDS = {"dzień", "dnia", "dni", "dniu", "dniem", "numer", "nr"}
+
+
+def _num_val(w):
+    if w.isdigit():
+        return int(w)
+    if w in _NUM_EXACT:
+        return _NUM_EXACT[w]
+    return next((v for st, v in _NUM_STEMS if w.startswith(st)), None)
+
+
+def days_as_digits(trans):
+    nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", w.lower())
+    for v in trans.values():
+        ws = v.get("words", [])
+        i = 0
+        while i < len(ws):
+            vals, j = [], i
+            while j < len(ws) and _num_val(nrm(ws[j]["word"])) is not None:
+                x = _num_val(nrm(ws[j]["word"]))
+                if vals and x >= min(vals):        # „sto trzydzieści siedem” rośnie w dół, inaczej to nowa liczba
+                    break
+                vals.append(x)
+                j += 1
+                if re.search(r"[,.!?;:]$", ws[j - 1]["word"]):   # przecinek kończy liczbę
+                    break
+            prev = [nrm(w["word"]) for w in ws[max(0, i - 2):i]]
+            near = (prev[-1:] and prev[-1] in _DAY_WORDS) or (j < len(ws) and nrm(ws[j]["word"]) in _DAY_WORDS
+                                                             and not re.search(r"[,.!?;:]$", ws[j - 1]["word"]))
+            if vals and near \
+                    and not all(nrm(ws[k]["word"]).isdigit() for k in range(i, j)):
+                tail = re.sub(r"^[\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+", "", ws[j - 1]["word"])   # zachowaj kropkę/przecinek
+                ws[i]["word"] = str(sum(vals)) + tail
+                for k in range(i + 1, j):
+                    ws[k]["word"] = ""
+            i = max(j, i + 1)
+    return trans
+
+
 def clean_words(trans):
     """Stałe poprawki słów + usuwanie „dzięki” wymyślonego przez rozpoznawanie mowy w ciszy."""
     nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", w.lower())
@@ -428,7 +481,7 @@ def clean_words(trans):
                     if at_end or gap_before > 0.5:
                         for j in range(i, end):
                             ws[j]["word"] = ""
-    return trans
+    return days_as_digits(trans)
 
 
 def user_subs(trans, day):
