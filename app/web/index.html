@@ -562,7 +562,7 @@ body.lg{background:transparent;min-height:100dvh}
 .s-theme button{border:1px solid var(--lg-b);background:transparent;color:var(--soft);border-radius:9px;padding:5px 8px;font:500 12px Geist,system-ui;cursor:pointer}
 .s-theme button.on{background:rgba(255,255,255,.14);color:var(--ink)}
 @media (max-width:640px){.head-in{flex-wrap:nowrap;gap:10px}.brand{min-width:0;flex:1}.brand b{font-size:17px}.brand>span{display:none}
- .brand b .b-long{display:none!important}.brand b .b-short{display:inline!important;color:inherit;font-size:inherit;margin:0}#theme{display:none!important}.s-theme{display:flex}.s-theme~.s-foot{margin-top:6px}.side{background:linear-gradient(145deg,rgba(28,30,44,.94),rgba(14,15,24,.94)) !important}:root[data-theme=light] .side{background:linear-gradient(145deg,rgba(255,255,255,.95),rgba(240,242,250,.95)) !important}#bell{flex:none}}
+ .brand b .b-long{display:none!important}.brand b .b-short{display:inline!important;color:inherit;font-size:inherit;margin:0}#theme{display:none!important}#bell{flex:none}}
 
 body.needs-login .side,body.needs-login .vframe,body.needs-login .s-dim{display:none!important}
 .side{position:fixed;left:12px;top:calc(12px + env(safe-area-inset-top));bottom:calc(12px + env(safe-area-inset-bottom));width:232px;z-index:40;display:flex;flex-direction:column;gap:6px;padding:14px 10px;border-radius:24px;
@@ -611,7 +611,6 @@ body.v-ext .head{position:relative;flex:none}
     <button data-v="skaner"><i>📡</i><span>Biuro skanera</span></button>
     <button data-v="skaner-stats"><i>📈</i><span>Statystyki skanera</span></button>
   </nav>
-  <div class="s-theme"><span>Motyw</span><button data-t="auto">Auto</button><button data-t="light">Jasny</button><button data-t="dark">Ciemny</button></div>
   <div class="s-foot">Liquid Glass · v2</div>
 </aside>
 <div class="s-dim" id="sdim"></div>
