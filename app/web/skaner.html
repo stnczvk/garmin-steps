@@ -163,7 +163,7 @@ const DEPTS=[
  {name:'Analityka',sub:'Shadow tracking, Self Audit, raporty',color:'#2fb3a5',icon:'📊',panel:'stats',agents:[
   {n:'Shadow Tracker',m:'',s:'śledzi odrzucone sygnały',id:'on',kw:'shadow'},{n:'Self Audit',m:'nd 19:30',s:'self_audit',id:'on',kw:'audit'},{n:'Audytor AI',m:'GPT',s:'centrum · nd 20:00',id:'aud'},{n:'Raporty',m:'19:00',s:'performance_analytics',id:'on',kw:'report'}]},
  {name:'Trade Manager',sub:'Limit w strefie entry, TP/SL, Telegram',color:'#3fae5a',icon:'🎯',panel:'trades',agents:[
-  {n:'Trade Manager',m:'',s:'TP1–TP4, break-even, INVALIDATED',id:'pos',kw:'trade'},{n:'Telegram',m:'max 4/dzień',s:'message_builder',id:'on',kw:'telegram'},{n:'Push centrum',m:'',s:'sygnały i wyniki',id:'on'}]}
+  {n:'Trade Manager',m:'',s:'TP1–TP4, break-even, INVALIDATED',id:'pos',kw:'trade'},{n:'Telegram',m:'max 4/dzień',s:'message_builder',id:'on',kw:'telegram'},{n:'Push centrum',m:'',s:'sygnały i wyniki',id:'on'},{n:'Dziennik',m:'GPT',s:'notatka po zamknięciu',id:'on'}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
 
@@ -340,9 +340,12 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  if(d.panel==='stats')h+=`<div class="sec"><h3>30 dni</h3>`+tbl(['','sygnały','zamkn.','win rate','PnL'],[['Prawdziwe',S.real.n,S.real.closed,wr(S.real),fmt(S.real.pnl)],['Shadow',S.shadow.n,S.shadow.closed,wr(S.shadow),fmt(S.shadow.pnl)]])+
   `<h3>Odrzucone – czy słusznie?</h3><p class="mut">Jeśli odrzucone wygrywają częściej niż wysłane, próg może być za ostry.</p>`+tbl(['powód','n','win rate'],S.rejections.map(r=>[esc(r.reason),r.n,wr(r)]))+'</div>';
  if(d.panel==='stats')h+=`<div class="sec"><h3>Audytor AI<button class="btn" id="go-aud">${AUD?.busy?'Analizuje…':'Uruchom audyt'}</button></h3><p class="mut">Co niedzielę 20:00. Tylko diagnoza i propozycje – niczego nie zmienia w skanerze.</p>`+(AUD?.reports?.length?AUD.reports.slice(0,3).map((r,k)=>`<details ${k?'':'open'}><summary>${new Date(r.at*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · real ${r.real?.wr??'–'}% · shadow ${r.shadow?.wr??'–'}%</summary><div class="lessons">${esc(r.text).replace(/\n/g,'<br>')}</div></details>`).join(''):'<p class="mut">Jeszcze nie było audytu.</p>')+'</div>';
+ if(d.panel==='trades')h+=`<div class="sec"><h3>Dziennik transakcji<button class="btn" id="go-jr">Uzupełnij</button></h3><p class="mut">Po każdym zamknięciu AI zapisuje 2 zdania: dlaczego wygrało/przegrało i lekcję. Trafia też do Audytora.</p>`+
+  (JR.length?JR.slice(0,6).map(j=>`<div class="tp used"><div><b class="${j.pnl>=0?'g':'r'}">${esc(j.symbol)} ${j.direction} · ${esc(j.result)} ${j.pnl>=0?'+':''}${fmt(j.pnl)}%</b><small>${esc(j.text)}</small></div></div>`).join(''):'<p class="mut">Pusto – pierwszy wpis po najbliższym zamknięciu (albo kliknij „Uzupełnij”).</p>')+'</div>';
  if(d.panel==='trades')h+=`<div class="sec"><h3>Otwarte (${S.open.length})</h3>`+(S.open.length?tbl(['symbol','kier.','status','entry'],S.open.map(o=>[esc(o.symbol.split('/')[0]),o.direction,esc(o.status),fmt(o.entry,4)])):'<p class="mut">Brak.</p>')+
   `<h3>Ostatnie zamknięte</h3>`+tbl(['symbol','wynik','PnL'],S.recent.filter(r=>r.result&&!r.is_shadow).slice(0,8).map(r=>[esc(r.symbol.split('/')[0])+' '+r.direction,esc(r.result),fmt(r.pnl)]))+'</div>';
  $('pl').innerHTML=h;
+ const gj=$('go-jr');if(gj)gj.onclick=async()=>{gj.disabled=true;gj.textContent='Pisze…';await fetch('/api/scanner/journal/backfill',{method:'POST'});setTimeout(loadJR,20000)};
  const ga=$('go-aud');if(ga)ga.onclick=async()=>{ga.disabled=true;ga.textContent='Analizuje…';await fetch('/api/scanner/audit',{method:'POST'});AUD={busy:true,reports:AUD?.reports||[]};setTimeout(loadAud,30000)};
 }
 function openPanel(i){openI=i;renderPanel(i);$('panel').classList.add('open');const r=rooms[i];target.set(r.p.x,0,r.p.z);placeCam()}
@@ -359,7 +362,8 @@ async function poll(){
   const t=Date.parse((r.closed_at||r.created_at).replace(' ','T')+'Z');
   log(r.result?7:r.is_shadow?6:1,`${esc(r.symbol.split('/')[0])} ${r.direction} · ${r.result?`<b>${esc(r.result)}</b> ${fmt(r.pnl)}`:r.is_shadow?'shadow '+fmt(r.elite_score,0):'sygnał elite '+fmt(r.elite_score,0)}`,t)});
  first=false;refresh()}
-let FG=null,AUD=null,EQ=[],eqDays=60;
+let FG=null,AUD=null,EQ=[],eqDays=60,JR=[];
+async function loadJR(){try{JR=await (await fetch('/api/scanner/journal')).json()}catch(e){}if(openI>=0)renderPanel(openI)}
 async function loadAud(){try{AUD=await (await fetch('/api/scanner/audit')).json();if(AUD.busy)setTimeout(loadAud,15000)}catch(e){}if(openI>=0)renderPanel(openI)}
 let CND=null,cSym=null,cBar='1H',cMode='candles',TK=[];
 const chg=C=>C?.candles?.length?(C.candles.at(-1).c/C.candles[0].o-1)*100:0;
@@ -468,7 +472,7 @@ $('bigc').onmousemove=e=>{const c=$('bigc');if(cMode==='candles'){const k=c._c;i
  t.innerHTML=`<b>${d.d}</b><br><span style="color:#3ddc84">real ${d.real}%</span><br><span style="color:#b28cff">shadow ${d.shadow}%</span><br>zamknięte: ${d.n}`};
 $('bigc').onmouseleave=()=>$('ctip').style.display='none';
 addEventListener('resize',redrawBig);
-poll().then(loadCandles);setInterval(poll,20000);loadAud();loadExtra();setInterval(loadExtra,300000);setInterval(loadCandles,6000);loadTickers();setInterval(loadTickers,60000);
+poll().then(loadCandles);setInterval(poll,20000);loadAud();loadJR();setInterval(loadJR,120000);loadExtra();setInterval(loadExtra,300000);setInterval(loadCandles,6000);loadTickers();setInterval(loadTickers,60000);
 
 
 function deptMetric(i){if(!S)return{};const d=DEPTS[i],mod=n=>S.modifiers?.find(m=>m.name===n);

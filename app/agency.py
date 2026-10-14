@@ -45,7 +45,7 @@ człowiek/auto/Everest/Ziemia) → FIRST ESCALATION → BIG REVEAL (jedyna scena
 Filary (pillar): cosmic_scale, earth_scale, animal_scale, mega_scale.
 Kategorie (category): space, ocean, geology, biology, physics, technology, human_body, extreme_weather."""
 
-DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True, "inbox_auto": True}
+DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True, "inbox_auto": True, "ab": True}
 
 
 # ---------- stan ----------
@@ -232,14 +232,17 @@ Odpowiedz WYŁĄCZNIE JSON: {{"score": liczba, "issues": ["krótko po polsku"], 
         if "title" in ch and len(str(ch["title"])) > 60:
             ch.pop("title")
         new = {**script, **ch}
+        ab_ch, ab_entry = ab_apply(new, "hook" in ch)
+        new.update(ab_ch)
         seo_ch = seo(new)
         new.update(seo_ch)
+        ab_log(ab_entry, new.get("title"))
         score = float(r.get("score") or 0)
         # pełny autopilot: agencja może zaliczyć scenariusz, który sędzia odrzucił, jeśli go poprawiła
         struct_ok = isinstance(new.get("timeline"), list) and len(new["timeline"]) == 5 and 60 <= _words(new.get("voiceover")) <= 100
         passed = bool(judge.get("pass")) or (bool(ch) and struct_ok and score >= s["min_score"] and
                                              not any("timeline" in p or "hashtags" in p or "missing" in p for p in judge.get("problems") or []))
-        out = {"score": score, "issues": [str(i) for i in (r.get("issues") or [])][:6], "rewritten": bool(ch or seo_ch), "changed": list(ch) + list(seo_ch),
+        out = {"score": score, "issues": [str(i) for i in (r.get("issues") or [])][:6], "rewritten": bool(ch or seo_ch or ab_ch), "changed": list(ch) + list(seo_ch) + (["hook B (test A/B)"] if ab_ch else []),
                "pass": passed, "script": new}
         log("qa", f"Ocena {score:.0f}/10 – " + (f"poprawił: {', '.join(ch)}" if ch else "zatwierdził bez zmian") + f" · {topic}",
             "ok" if score >= s["min_score"] else "warn",
@@ -299,7 +302,12 @@ Jeśli już są dobre – zwróć pusty obiekt. Odpowiedz WYŁĄCZNIE JSON z pol
 # ---------- Analityk retencji: gdzie widzowie odpadają ----------
 def lessons_text():
     L = _read("agency_lessons.json", {})
-    return ("LEKCJE Z RETENCJI (co trzyma widzów na tym kanale – stosuj):\n" + L["text"]) if L.get("text") else ""
+    out = ("LEKCJE Z RETENCJI (co trzyma widzów na tym kanale – stosuj):\n" + L["text"]) if L.get("text") else ""
+    try:
+        ab = ab_text()
+    except Exception:
+        ab = ""
+    return (out + "\n\n" + ab).strip()
 
 
 def _pz_youtube():
@@ -594,6 +602,152 @@ def do_private():
     return {"ok": True}
 
 
+# ---------- Test A/B hooków: co drugi film dostaje alternatywny hook z generatora ----------
+import re as _re
+
+
+def _split_first(text):
+    m = _re.match(r"\s*(.+?[.!?…])(\s+|$)(.*)", text or "", _re.S)
+    return (m.group(1), m.group(3)) if m else (text, "")
+
+
+def ab_apply(script, kontroler_changed_hook):
+    """Zwraca (zmiany, wpis). Wariant B = alt_hooks[0] jako pierwsze zdanie lektora."""
+    s = settings()
+    if not s.get("ab", True):
+        return {}, None
+    H = _read("agency_ab.json", [])
+    alts = [str(a).strip() for a in (script.get("alt_hooks") or []) if str(a).strip()]
+    variant = "B" if (len(H) % 2 == 1 and alts and not kontroler_changed_hook) else "A"
+    ch = {}
+    if variant == "B":
+        _, rest = _split_first(script.get("voiceover") or "")
+        alt = alts[0] if alts[0][-1:] in ".!?…" else alts[0] + "."
+        vo = (alt + " " + rest).strip()
+        if 60 <= len(vo.split()) <= 100:
+            ch = {"hook": alt, "voiceover": vo}
+        else:
+            variant = "A"
+    entry = {"at": time.time(), "title": (ch.get("title") or script.get("title") or "")[:120], "topic": str(script.get("topic") or "")[:100],
+             "variant": variant, "hook": ch.get("hook") or script.get("hook"), "hook_type": script.get("hook_type") if variant == "A" else "ALT",
+             "other": script.get("hook") if variant == "B" else (alts[0] if alts else None)}
+    return ch, entry
+
+
+def ab_log(entry, final_title):
+    if not entry:
+        return
+    entry["title"] = (final_title or entry["title"])[:120]
+    H = _read("agency_ab.json", [])
+    H.append(entry)
+    _write("agency_ab.json", H[-200:])
+
+
+def ab_results():
+    """Łączy filmy z testu z retencją z YouTube (po tytule) – średnie utrzymanie po 3 s dla A i B."""
+    H = _read("agency_ab.json", [])
+    R = list(_read("agency_retention.json", {}).values())
+    norm = lambda t: _re.sub(r"\W+", "", str(t or "").lower())
+    byt = {norm(r.get("title")): r for r in R}
+    rows = []
+    for h in H:
+        r = byt.get(norm(h["title"]))
+        rows.append({**h, "hold3s": r["hold3s"] if r else None, "views": r.get("views") if r else None})
+    agg = {}
+    for v in ("A", "B"):
+        xs = [r["hold3s"] for r in rows if r["variant"] == v and r["hold3s"] is not None]
+        agg[v] = {"n": len(xs), "hold3s": round(sum(xs) / len(xs), 1) if xs else None}
+    types = {}
+    for r in rows:
+        if r["hold3s"] is not None and r.get("hook_type"):
+            types.setdefault(r["hook_type"], []).append(r["hold3s"])
+    agg["by_type"] = sorted([{"type": k, "n": len(v), "hold3s": round(sum(v) / len(v), 1)} for k, v in types.items()], key=lambda x: -x["hold3s"])
+    agg["rows"] = rows[-20:][::-1]
+    a, b = agg["A"], agg["B"]
+    if a["n"] >= 3 and b["n"] >= 3:
+        diff = b["hold3s"] - a["hold3s"]
+        agg["verdict"] = (f"Alternatywne hooki (B) trzymają {'lepiej' if diff > 0 else 'gorzej'} o {abs(diff):.1f} pp po 3 s "
+                          f"(A {a['hold3s']}%, n={a['n']} vs B {b['hold3s']}%, n={b['n']}).")
+    else:
+        agg["verdict"] = f"Za mało danych: A {a['n']}, B {b['n']} filmów z retencją (potrzeba min. 3+3)."
+    return agg
+
+
+def ab_text():
+    r = ab_results()
+    t = [r["verdict"]] if r["A"]["n"] + r["B"]["n"] else []
+    if r["by_type"]:
+        t.append("Typy hooków wg utrzymania po 3 s: " + ", ".join(f"{x['type']} {x['hold3s']}% (n={x['n']})" for x in r["by_type"][:6]))
+    return ("WYNIKI TESTU A/B HOOKÓW:\n" + "\n".join(t)) if t else ""
+
+
+# ---------- Kopiarz trendów: co działa w niszy na YouTube Shorts (ostatnie 7 dni) ----------
+TREND_Q = ["how big is", "scale comparison", "size comparison universe", "deepest ocean", "largest star", "biggest animal ever"]
+
+
+def trends(why="harmonogram"):
+    from social import _google_access
+    if _busy.get("trends"):
+        return 0
+    _, acc = _pz_youtube()
+    if not acc:
+        log("trends", "Brak połączonego kanału YouTube PozaSkali", "warn")
+        return 0
+    _busy["trends"] = "przegląda trendy w niszy"
+    try:
+        h = {"Authorization": "Bearer " + _google_access(acc)}
+        after = datetime.utcfromtimestamp(time.time() - 7 * 86400).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ids = []
+        for q in TREND_Q[:4]:
+            r = httpx.get("https://www.googleapis.com/youtube/v3/search", headers=h, timeout=30, params={
+                "part": "id", "q": q, "type": "video", "videoDuration": "short", "order": "viewCount",
+                "publishedAfter": after, "maxResults": 15, "relevanceLanguage": "en"}).json()
+            if "error" in r:
+                raise RuntimeError("YouTube: " + r["error"].get("message", "")[:120])
+            ids += [i["id"]["videoId"] for i in r.get("items", []) if i.get("id", {}).get("videoId")]
+        ids = list(dict.fromkeys(ids))[:50]
+        vids = httpx.get("https://www.googleapis.com/youtube/v3/videos", headers=h, timeout=30,
+                         params={"part": "snippet,statistics", "id": ",".join(ids)}).json().get("items", []) if ids else []
+        top = sorted([{"id": v["id"], "title": v["snippet"]["title"], "channel": v["snippet"]["channelTitle"],
+                       "views": int(v["statistics"].get("viewCount", 0)), "likes": int(v["statistics"].get("likeCount", 0)),
+                       "url": "https://youtu.be/" + v["id"]} for v in vids if v["snippet"]["channelId"] != acc["channel_id"]],
+                     key=lambda x: -x["views"])[:20]
+        if not top:
+            log("trends", "Brak filmów z niszy w ostatnim tygodniu", "warn")
+            return 0
+        used = [t["topic"] for t in topics()][-80:]
+        prompt = f"""{CHANNEL}
+
+Najpopularniejsze Shorts z niszy w ostatnich 7 dniach (cudze kanały):
+{chr(10).join(f"- „{t['title']}” – {t['views']:,} wyświetleń ({t['channel']})" for t in top)}
+
+Tematy już użyte: {', '.join(used[-40:]) or 'brak'}
+
+Jesteś Kopiarzem trendów. Nie kopiuj tytułów – wyciągnij, CO w nich działa (obiekt, porównanie, mechanika, typ hooka),
+i zaproponuj 4 NOWE tematy w formacie Poza Skalą, które wykorzystują ten sam mechanizm na innym obiekcie.
+Odpowiedz WYŁĄCZNIE tablicą JSON: [{{"topic":"(EN)","pillar":"","category":"","hook":"(EN, max 12 słów)","reference":"","payoff":"",
+"why":"(PL, 1 zdanie: jaki trend i dlaczego zadziała)","inspired_by":"tytuł filmu z listy"}}]"""
+        items = as_json(claude(prompt, SMART, 1800))
+        new = [{"id": uuid.uuid4().hex[:8], "status": "queued", "created": time.time(), "source": "trend",
+                **{k: str(x.get(k, ""))[:300] for k in ("topic", "pillar", "category", "hook", "reference", "payoff", "why", "inspired_by")}}
+               for x in items if x.get("topic")]
+        save_topics(topics() + new)
+        _write("agency_trends.json", {"at": time.time(), "top": top[:12], "added": [n["topic"] for n in new]})
+        log("trends", f"Dorzucił {len(new)} tematów z trendów w niszy ({why})", "ok")
+        return len(new)
+    except Exception as e:
+        log("trends", f"Trendy nie zadziałały: {e}", "error")
+        return 0
+    finally:
+        _busy.pop("trends", None)
+
+
+@router.post("/api/agency/trends")
+def do_trends():
+    threading.Thread(target=trends, kwargs={"why": "ręcznie z apki"}, daemon=True).start()
+    return {"ok": True}
+
+
 # ---------- n8n Operator ----------
 def n8n(method, path, **kw):
     base = os.environ.get("N8N_URL", "http://127.0.0.1:5678").rstrip("/")
@@ -672,7 +826,8 @@ def state():
     return {"settings": {k: v for k, v in s.items() if k != "token"}, "token": s["token"], "busy": _busy,
             "queue": [x for x in t if x["status"] == "queued"], "used": [x for x in t if x["status"] == "used"][-15:][::-1],
             "log": L[-60:][::-1], "last": last,
-            "lessons": _read("agency_lessons.json", {}), "private": _read("agency_private.json", [])[-3:][::-1], "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
+            "lessons": _read("agency_lessons.json", {}), "private": _read("agency_private.json", [])[-3:][::-1],
+            "ab": ab_results(), "trends": _read("agency_trends.json", {}), "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
             "inbox": I["items"][-25:][::-1], "tech": [e["extra"] for e in L if e["agent"] == "tech" and e.get("extra")][-8:][::-1], "reviews": reviews[::-1], "ai": ai_ready(), "provider": provider(), "models": dict(zip(("smart", "fast"), MODELS[provider()])),
             "avg_score": round(sum(r["score"] for r in reviews) / len(reviews), 1) if reviews else None}
 
@@ -701,7 +856,7 @@ async def topic_action(tid: str, req: Request):
 async def set_settings(req: Request):
     b = await req.json()
     s = settings()
-    for k in ("autopilot", "min_score", "queue_target", "inbox", "inbox_auto"):
+    for k in ("autopilot", "min_score", "queue_target", "inbox", "inbox_auto", "ab"):
         if k in b:
             s[k] = type(DEFAULT[k])(b[k])
     if b.get("new_token"):
@@ -805,7 +960,7 @@ def link(action: str):
 # ---------- harmonogram: codziennie rano dopełnia kolejkę ----------
 def _loop():
     time.sleep(90)
-    done = done_ret = done_priv = None
+    done = done_ret = done_priv = done_tr = None
     last_inbox = 0
     while True:
         try:
@@ -820,6 +975,9 @@ def _loop():
         except Exception as e:
             print("agency loop", e, flush=True)
         try:
+            if ai_ready() and s["autopilot"] and now.weekday() in (0, 3) and now.hour == 5 and done_tr != now.date():
+                done_tr = now.date()
+                trends()
             if ai_ready() and now.weekday() == 0 and now.hour == 8 and done_priv != now.date():
                 done_priv = now.date()
                 private_report()

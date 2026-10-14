@@ -61,7 +61,7 @@ h2{font-size:14.5px;font-weight:650;margin-bottom:10px;display:flex;justify-cont
   <section class="glass"><h2>Sposób zamknięcia</h2><div id="exit"></div></section>
  </div>
  <div class="g2">
-  <section class="glass"><h2>Ostatnie transakcje</h2><div class="scroll"><table class="tb" id="rec"></table></div></section>
+  <section class="glass"><h2>Ostatnie transakcje <small>📝 = notatka z dziennika (najedź)</small></h2><div class="scroll"><table class="tb" id="rec"></table></div></section>
   <section class="glass"><h2>Kiedy sygnały wygrywają <small>dzień × pora (czas PL), PnL %</small></h2><div class="heat" id="heat"></div><p class="empty" id="heatn" style="padding-bottom:0"></p></section>
  </div>
 </div>
@@ -113,11 +113,12 @@ function heat(h){const DN=['pn','wt','śr','cz','pt','sb','nd'],SL=['0–4','4�
   const a=.15+.75*Math.abs(c.pnl)/m;out+=`<div title="${d} ${SL[b]}: ${c.n} transakcji, ${c.w} wygranych, PnL ${sg(c.pnl)}" style="background:${c.pnl>=0?`rgba(61,220,132,${a})`:`rgba(255,107,107,${a})`};color:${a>.55?'#0b0d16':'var(--ink)'}">${c.n}</div>`})});
  $('heat').innerHTML=out;$('heatn').textContent=Object.keys(h).length?'Liczba w kratce = transakcje; kolor = zysk (zielony) lub strata (czerwony), mocniejszy = większy.':'Brak zamkniętych transakcji.'}
 
-async function load(){let r;try{r=await (await fetch(`/api/scanner/stats?days=${days}&shadow=${shadow}`)).json()}catch(e){r={ok:false,error:'Brak połączenia'}}
+let JR={};async function loadJR(){try{(await (await fetch('/api/scanner/journal')).json()).forEach(j=>JR[j.symbol+'|'+j.result+'|'+Number(j.pnl).toFixed(2)]=j.text)}catch(e){}}
+async function load(){if(!Object.keys(JR).length)await loadJR();let r;try{r=await (await fetch(`/api/scanner/stats?days=${days}&shadow=${shadow}`)).json()}catch(e){r={ok:false,error:'Brak połączenia'}}
  D=r;if(!r.ok){$('kpis').innerHTML=`<div class="glass" style="grid-column:1/-1"><p class="empty">${esc(r.error)}</p></div>`;return}
  $('sub').textContent=`${shadow?'Sygnały odrzucone (shadow)':'Sygnały wysłane'} · ${days>=3650?'cała historia':'ostatnie '+days+' dni'}`;
  kpis(r.kpi);equity(r.curve);$('sym').innerHTML=bars(r.by_symbol);$('dir').innerHTML=table(r.by_direction);$('reg').innerHTML=table(r.by_regime);$('exit').innerHTML=table(r.by_exit);heat(r.heat);
- $('rec').innerHTML='<tr><th>data</th><th>symbol</th><th>wynik</th><th class="r">elite</th><th class="r">PnL</th></tr>'+r.recent.map(t=>`<tr><td>${esc(String(t.created_at).slice(5,16))}</td><td>${esc(t.symbol.split('/')[0])} ${t.direction==='LONG'?'↑':'↓'}</td><td>${esc(t.result||'otwarta')}</td><td class="r">${fmt(t.elite_score,0)}</td><td class="r ${cls(t.pnl)}">${t.result?sg(t.pnl):'–'}</td></tr>`).join('')}
+ $('rec').innerHTML='<tr><th>data</th><th>symbol</th><th>wynik</th><th class="r">elite</th><th class="r">PnL</th></tr>'+r.recent.map(t=>`<tr><td>${esc(String(t.created_at).slice(5,16))}</td><td>${esc(t.symbol.split('/')[0])} ${t.direction==='LONG'?'↑':'↓'}</td><td>${esc(t.result||'otwarta')}${(n=>n?` <span title="${esc(n)}" style="cursor:help">📝</span>`:'')(JR[t.symbol.split('/')[0]+'|'+t.result+'|'+Number(t.pnl).toFixed(2)])}</td><td class="r">${fmt(t.elite_score,0)}</td><td class="r ${cls(t.pnl)}">${t.result?sg(t.pnl):'–'}</td></tr>`).join('')}
 load();setInterval(load,120000);addEventListener('resize',()=>D?.ok&&equity(D.curve));
 </script>
 </body>

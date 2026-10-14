@@ -101,6 +101,7 @@ body.dash #dash{display:block}body.dash #scene,body.dash #labels,body.dash #mini
 .dl span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dl em{font:normal 11px 'JetBrains Mono';color:var(--mut)}
 .dx{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @keyframes bl{50%{opacity:.4}}
+.fg2{display:flex;gap:8px}.fg2 div{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.fg2 b{font:700 20px 'JetBrains Mono';display:block}.fg2 small{color:var(--mut);font-size:11px}
 @media(max-width:700px){#dash{inset:118px 0 0 0}.dg{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:700px){
  .stats{margin-left:0;width:100%;justify-content:space-between}
@@ -132,7 +133,7 @@ body.dash #dash{display:block}body.dash #scene,body.dash #labels,body.dash #mini
 // id: agent backendu (scout/qa/op) albo wf:<regex nazwy workflow n8n>; soon = jeszcze nie działa
 const DEPTS=[
  {name:'Research',sub:'Trendy i kolejka tematów dla PozaSkali',color:'#4f6fe0',icon:'🔍',panel:'research',agents:[
-  {n:'Trend Scout',m:'Sonnet',s:'trend-analyst + web search',id:'scout'},{n:'SEO Hunter',m:'Haiku',s:'podpowiedzi YT → tytuł, opis, tagi',id:'seo'}]},
+  {n:'Trend Scout',m:'Sonnet',s:'trend-analyst + web search',id:'scout'},{n:'SEO Hunter',m:'Haiku',s:'podpowiedzi YT → tytuł, opis, tagi',id:'seo'},{n:'Kopiarz trendów',m:'Sonnet',s:'top Shorts niszy → tematy',id:'trends'}]},
  {name:'Skrypty',sub:'Scenariusz w generatorze n8n',color:'#e0a92e',icon:'✍️',agents:[
   {n:'Scenarzysta',m:'GPT-4.1',s:'n8n · Message a model',id:'wf:^generator$'},{n:'Sędzia n8n',m:'GPT-4.1-mini',s:'n8n · Judge Script',id:'wf:^generator$'}]},
  {name:'Publikacja',sub:'YouTube + Instagram',color:'#c94fc0',icon:'📲',agents:[
@@ -141,7 +142,7 @@ const DEPTS=[
   {n:'Lektor',m:'OpenAI TTS',s:'n8n · lektor',id:'wf:^generator$'},{n:'Grafik',m:'OpenAI',s:'n8n · zdjęcie',id:'wf:^generator$'},
   {n:'Kling',m:'Kling',s:'n8n · scena wideo',id:'wf:^generator$'},{n:'Montażysta',m:'FFmpeg',s:'n8n · Montaż film',id:'wf:^montaż film$'}]},
  {name:'Analityka',sub:'Wyniki, retencja i pętla zwrotna',color:'#2fb3a5',icon:'📊',panel:'analytics',agents:[
-  {n:'Analityk',m:'n8n',s:'Analytics Collector',id:'wf:^analytics collector$'},{n:'Retencja',m:'Sonnet',s:'krzywa oglądania YT → lekcje',id:'retention'},{n:'Raporty',m:'Haiku',s:'centrum · raport tygodnia',id:'on'}]},
+  {n:'Analityk',m:'n8n',s:'Analytics Collector',id:'wf:^analytics collector$'},{n:'Retencja',m:'Sonnet',s:'krzywa oglądania YT → lekcje',id:'retention'},{n:'Test A/B',m:'',s:'hook A vs B → utrzymanie 3 s',id:'on'},{n:'Raporty',m:'Haiku',s:'centrum · raport tygodnia',id:'on'}]},
  {name:'Kontrola jakości',sub:'Ocena i poprawki scenariusza przed nagraniem',color:'#d94b4b',icon:'🛡️',panel:'qa',agents:[
   {n:'Kontroler',m:'Sonnet',s:'ocena 1–10 + fakty',id:'qa'},{n:'Hook Master',m:'Sonnet',s:'hook-generator',id:'qa'},{n:'Technik',m:'FFmpeg',s:'czarne klatki, cisza, długość',id:'tech'}]},
  {name:'Automatyzacje',sub:'Sterowanie n8n i autopilot',color:'#3fae5a',icon:'⚙️',panel:'ops',agents:[
@@ -152,8 +153,8 @@ const DEPTS=[
   {n:'Analityk prywatnych',m:'Sonnet',s:'performance-analyst',id:'private'},{n:'Doradca treści',m:'Sonnet',s:'social-content + hook-generator',id:'private'}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
-const AG_NAMES={scout:'Trend Scout',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox',private:'Analityk prywatnych'};
-const AG_DEPT={scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7,private:8};
+const AG_NAMES={scout:'Trend Scout',trends:'Kopiarz trendów',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox',private:'Analityk prywatnych'};
+const AG_DEPT={trends:0,scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7,private:8};
 
 // ===== SCENA =====
 const el=document.getElementById('scene'),W=()=>innerWidth,H=()=>innerHeight;
@@ -264,8 +265,10 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  let h=d.agents.map(agRow).join('');
  if(d.panel==='research'&&A){
   h+=`<div class="sec"><h3>Kolejka tematów (${A.queue.length})<button class="btn" id="go-res">${A.busy.scout?'Szuka…':'Szukaj teraz'}</button></h3>`+
-   (A.queue.map(t=>`<div class="tp"><div><b>${esc(t.topic)}</b><small>${esc(t.pillar||t.category)} · ${esc(t.hook)}</small><small class="why">${esc(t.why)}</small></div>
+   (A.queue.map(t=>`<div class="tp"><div><b>${t.source==='trend'?'🔥 ':''}${esc(t.topic)}</b><small>${esc(t.pillar||t.category)} · ${esc(t.hook)}</small><small class="why">${esc(t.why)}</small></div>
     <span class="acts"><button title="Następny" data-t="${t.id}" data-a="top">⬆</button><button title="Pomiń" data-t="${t.id}" data-a="skip">✕</button></span></div>`).join('')||'<p class="mut">Pusto – Trend Scout dorzuci tematy rano albo gdy generator poprosi.</p>')+
+   `<h3>Trendy w niszy<button class="btn" id="go-tr">${A.busy.trends?'Szuka…':'Sprawdź trendy'}</button></h3><p class="mut">Pon. i czw. 5:00 – najpopularniejsze Shorts z niszy z 7 dni → nowe tematy z tym samym mechanizmem.</p>`+
+   (A.trends?.top?.length?A.trends.top.slice(0,5).map(t=>`<div class="tp used"><div><b><a href="${esc(t.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(t.title)}</a></b><small>${(t.views||0).toLocaleString('pl')} wyśw. · ${esc(t.channel)}</small></div></div>`).join('')+`<small class="mut">${ago(A.trends.at)} temu</small>`:'')+
    (A.used.length?`<h3>Ostatnio użyte</h3>`+A.used.slice(0,6).map(t=>`<div class="tp used"><div><b>${esc(t.topic)}</b><small>${t.used?ago(t.used)+' temu':''}</small></div></div>`).join(''):'')+'</div>';
  }
  if(d.panel==='qa'&&A){
@@ -280,6 +283,12 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
   h+=`<div class="sec"><h3>Lekcje z retencji<button class="btn" id="go-ret">${A.busy.retention?'Liczy…':'Przelicz teraz'}</button></h3>`+
    (A.lessons?.text?`<div class="lessons">${esc(A.lessons.text).replace(/\n/g,'<br>')}</div><small class="mut">z ${A.lessons.n} filmów · ${ago(A.lessons.at)} temu</small>`:'<p class="mut">Potrzeba min. 3 filmów starszych niż 3 dni. Liczy się codziennie o 7:00.</p>')+
    (A.retention.length?`<h3>Filmy</h3><div class="rt"><span>film</span><span>3 s</span><span>½</span><span>koniec</span>`+A.retention.map(v=>`<a href="${esc(v.url||'#')}" target="_blank" rel="noopener">${esc(v.title)}</a><b class="${v.hold3s>=70?'g':v.hold3s<50?'r':''}">${v.hold3s}%</b><b>${v.mid}%</b><b>${v.end}%</b>`).join('')+'</div>':'')+'</div>';
+ }
+ if(d.panel==='analytics'&&A?.ab){const ab=A.ab;
+  h+=`<div class="sec"><h3>Test A/B hooków</h3><p class="mut">Co drugi film dostaje alternatywny hook z generatora (B). Porównanie: ile widzów zostaje po 3 s.</p>
+   <div class="fg2"><div><b>${ab.A.hold3s??'–'}${ab.A.hold3s!=null?'%':''}</b><small>A · hook główny · ${ab.A.n} filmów</small></div><div><b>${ab.B.hold3s??'–'}${ab.B.hold3s!=null?'%':''}</b><small>B · hook alternatywny · ${ab.B.n} filmów</small></div></div>
+   <p class="mut" style="margin-top:6px">${esc(ab.verdict)}</p>`+
+   (ab.rows.length?`<div class="rt" style="grid-template-columns:22px minmax(0,1fr) 46px"><span></span><span>film · hook</span><span>3 s</span>`+ab.rows.slice(0,8).map(r=>`<b style="text-align:left">${r.variant}</b><a title="${esc(r.hook)}">${esc(r.title)}</a><b>${r.hold3s!=null?r.hold3s+'%':'…'}</b>`).join('')+'</div>':'')+'</div>';
  }
  if(d.panel==='inbox'&&A){
   const dr=A.inbox.filter(x=>x.status==='draft');
@@ -306,6 +315,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
    <div class="btns">${L.connected&&L.montage&&!L.montage_connected?'<button class="btn" id="lk-up">Zaktualizuj podpięcie</button>':''}<button class="btn" id="lk">${L.connected?'Odepnij agencję':'Podepnij agencję'}</button>${L.connected?'<button class="btn" id="run">▶ Uruchom generator teraz</button>':''}</div>`}
    <label class="sw"><input type="checkbox" id="inb" ${A?.settings.inbox!==false?'checked':''}><span></span>Inbox czyta komentarze</label>
    <label class="sw"><input type="checkbox" id="inba" ${A?.settings.inbox_auto!==false?'checked':''}><span></span>…i odpowiada sam (inaczej szkice)</label>
+   <label class="sw"><input type="checkbox" id="abx" ${A?.settings.ab!==false?'checked':''}><span></span>Test A/B hooków (co drugi film)</label>
    <h3>Workflow</h3>${P?.ok?P.workflows.filter(w=>!/clip|kopia|\d$/i.test(w.name)).map(w=>`<label class="sw"><input type="checkbox" data-w="${w.id}" ${w.active?'checked':''}><span></span>${esc(w.name)}</label>`).join(''):'<p class="mut">Brak danych z n8n.</p>'}</div>`;
  }
  if(!d.panel&&P?.ok){const ids=d.agents.filter(a=>a.id?.startsWith('wf:')).map(a=>new RegExp(a.id.slice(3),'i'));
@@ -320,6 +330,8 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  on('lk',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/'+(LINK.connected?'disconnect':'connect')).catch(()=>({ok:false,error:'błąd sieci'}));
   if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
  on('lk-up',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/connect').catch(()=>({ok:false}));if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
+ on('go-tr',async()=>{await post('/api/agency/trends');setTimeout(poll,2500)});
+ const abx=$('abx');if(abx)abx.onchange=async()=>{await post('/api/agency/settings',{ab:abx.checked});poll()};
  on('go-priv',async()=>{await post('/api/agency/private');setTimeout(poll,2000)});
  on('go-ret',async()=>{await post('/api/agency/retention');setTimeout(poll,1500)});
  on('go-inb',async()=>{await post('/api/agency/inbox-run');setTimeout(poll,2000)});
@@ -362,7 +374,7 @@ function deptMetric(i){const d=DEPTS[i],L=(A?.log||[]).find(e=>(AG_DEPT[e.agent]
   case 'Skrypty':return{...lastEx(/^generator$/i),x};
   case 'Publikacja':return{...lastEx(/^publisher$/i),x};
   case 'Kreacja':return{...lastEx(/monta/i),x};
-  case 'analytics':return{v:A?.retention?.length?Math.round(A.retention.reduce((s,r)=>s+r.hold3s,0)/A.retention.length)+'%':'–',l:'średnio zostaje po 3 s',x};
+  case 'analytics':return{v:A?.retention?.length?Math.round(A.retention.reduce((s,r)=>s+r.hold3s,0)/A.retention.length)+'%':'–',l:'średnio zostaje po 3 s',x:A?.ab?.verdict||x};
   case 'qa':return{v:A?.avg_score!=null?A.avg_score+'/10':'–',l:'średnia ocena scenariuszy'+(A?.tech?.[0]?' · technika: '+(A.tech[0].ok?'OK':'błąd'):''),x};
   case 'ops':return{v:A?(A.settings.autopilot?'ON':'OFF'):'–',l:'autopilot · '+(P?.ok?P.workflows.filter(w=>w.active).length+' workflow aktywnych':'n8n offline'),x};
   case 'inbox':{const it=A?.inbox||[],sent=it.filter(c=>c.status==='sent'&&new Date(c.t*1000).toDateString()===today).length,dr=it.filter(c=>c.status==='draft').length;return{v:sent,l:`odpowiedzi dziś${dr?' · '+dr+' czeka':''}`,x}}

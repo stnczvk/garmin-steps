@@ -223,6 +223,9 @@ STATYSTYKI 30 DNI (JSON): {json.dumps(summary, ensure_ascii=False)[:6000]}
 PRZEGRANE PRAWDZIWE SYGNAŁY:
 {chr(10).join(_brief(r) for r in losers) or 'brak'}
 
+DZIENNIK OSTATNICH TRANSAKCJI (notatki AI po zamknięciu):
+{chr(10).join(f"- {j['symbol']} {j['direction']} {j['result']} {j['pnl']:+.2f}%: {j['text']}" for j in _read("scanner_journal.json", [])[-15:]) or 'brak'}
+
 WYGRANE, KTÓRE ODRZUCIŁ (shadow):
 {chr(10).join(_brief(r) for r in missed) or 'brak'}
 
@@ -292,6 +295,7 @@ def _watch():
                     if r["result"] and prev != r["result"] and not first:
                         icon = "✅" if r["result"] in WIN else "➖" if r["result"] == "BREAK_EVEN" else "❌"
                         push_all(f"{icon} {sym} {r['direction']}: {r['result']}", f"PnL {r['pnl']:+.2f}%", "/#skaner")
+                        _th.Thread(target=journal_entry, args=(r["id"],), daemon=True).start()
                     S[k] = r["result"] or ""
                 _write("scanner_seen.json", dict(sorted(S.items(), key=lambda kv: -int(kv[0]))[:200]))
             now = datetime.now(tz)
@@ -435,3 +439,76 @@ def stats(days: int = 30, shadow: int = 0):
             "heat": {k: {**v, "pnl": round(v["pnl"], 2)} for k, v in heat.items()},
             "recent": [{k: r[k] for k in ("created_at", "closed_at", "symbol", "direction", "result", "exit_reason", "pnl", "elite_score")}
                        for r in rows[::-1][:40]]}
+
+
+# ---------- Dziennik transakcji: po każdym zamknięciu AI zapisuje, dlaczego wygrało / przegrało ----------
+_BARS = {"15m": 900, "1H": 3600, "4H": 14400}
+
+
+def journal_entry(sid, force=False):
+    from agency import claude, FAST, ai_ready
+    from social import _read, _write
+    J = _read("scanner_journal.json", [])
+    if not force and any(j["id"] == sid for j in J):
+        return None
+    if not ai_ready():
+        return None
+    r = _q("SELECT id, created_at, closed_at, symbol, direction, entry, stop_loss, tp1, tp2, exit_price, result, exit_reason, pnl, elite_score, "
+           "market_regime, risk_reward, max_profit_percent, max_drawdown_percent, elite_breakdown_json FROM trade_signals WHERE id=?", (sid,))
+    if not r or not r[0]["result"]:
+        return None
+    r = r[0]
+    try:
+        bd = {k: v for k, v in json.loads(r["elite_breakdown_json"] or "{}").items() if v not in (0, None)}
+    except Exception:
+        bd = {}
+    # przebieg ceny w czasie trwania transakcji (świece 1H z OKX)
+    path = ""
+    try:
+        t0 = int(datetime.fromisoformat(str(r["created_at"])).replace(tzinfo=None).timestamp() * 1000)
+        t1 = int(datetime.fromisoformat(str(r["closed_at"])).replace(tzinfo=None).timestamp() * 1000) if r["closed_at"] else t0 + 86400000
+        js = httpx.get("https://www.okx.com/api/v5/market/history-candles", timeout=10,
+                       params={"instId": _inst(r["symbol"]), "bar": "1H", "after": t1 + 3600000, "limit": 100}).json().get("data", [])
+        cs = [(int(x[0]), float(x[2]), float(x[3]), float(x[4])) for x in js if t0 - 3600000 <= int(x[0]) <= t1][::-1]
+        if cs:
+            hi, lo = max(c[1] for c in cs), min(c[2] for c in cs)
+            path = f"w trakcie: max {hi}, min {lo}, {len(cs)} świec 1H, zamknięcia: " + ", ".join(f"{c[3]}" for c in cs[:: max(1, len(cs) // 8)])
+    except Exception:
+        pass
+    txt = claude(f"""Transakcja skanera (OKX swap): {r['symbol']} {r['direction']}, entry {r['entry']}, SL {r['stop_loss']}, TP1 {r['tp1']}, TP2 {r['tp2']},
+wyjście {r['exit_price']} ({r['exit_reason']}), wynik {r['result']} {r['pnl']:+.2f}%, elite_score {r['elite_score']}, reżim {r['market_regime']},
+RR {r['risk_reward']}, maks. zysk w trakcie {r['max_profit_percent']}%, maks. obsunięcie {r['max_drawdown_percent']}%.
+Składniki elite_score: {json.dumps(bd)[:600]}
+{path}
+
+Napisz po polsku DOKŁADNIE 2 krótkie zdania do dziennika: 1) dlaczego transakcja wygrała/przegrała (konkretnie: ruch ceny względem poziomów,
+który składnik scoringu trafił albo zawiódł), 2) jedna lekcja na przyszłość. Bez wstępu, bez porad inwestycyjnych.""", FAST, 220).strip()
+    e = {"id": sid, "at": time.time(), "symbol": r["symbol"].split("/")[0], "direction": r["direction"], "result": r["result"],
+         "pnl": r["pnl"] or 0, "text": txt[:500]}
+    J = [j for j in J if j["id"] != sid] + [e]
+    _write("scanner_journal.json", J[-150:])
+    return e
+
+
+@router.get("/api/scanner/journal")
+def journal_get():
+    from social import _read
+    return _read("scanner_journal.json", [])[::-1][:60]
+
+
+@router.post("/api/scanner/journal/backfill")
+def journal_backfill():
+    """Uzupełnia dziennik dla ostatnich 8 zamkniętych prawdziwych transakcji bez notatki."""
+    from social import _read
+    have = {j["id"] for j in _read("scanner_journal.json", [])}
+    ids = [r["id"] for r in _q("SELECT id FROM trade_signals WHERE is_shadow=0 AND result IS NOT NULL ORDER BY closed_at DESC LIMIT 20")
+           if r["id"] not in have][:8]
+
+    def go():
+        for i in ids:
+            try:
+                journal_entry(i)
+            except Exception as ex:
+                print("journal", ex, flush=True)
+    _th.Thread(target=go, daemon=True).start()
+    return {"ok": True, "n": len(ids)}
