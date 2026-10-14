@@ -257,11 +257,11 @@ def audio_silences(video):
         return [], None
 
 
-def auto_cuts(info):
+def _auto_cuts(info):
     """Cięcia z transkrypcji. Zwraca (opcje dla kolejnosc.txt, lista powodów)."""
     chunks = [c for c in info.get("chunks", []) if not c.get("szum")]
     if not chunks:
-        return [], []
+        return [], [], []
     words = lambda c: [w for w in re.sub(r"[^\w\s]", " ", c["text"].lower()).split() if w]
     cuts, reasons, removed = [], [], set()
     # 1) powtórki: od początku wcześniejszego podejścia do początku ostatniego podejścia
@@ -330,11 +330,13 @@ def auto_cuts(info):
     dur = info.get("dur")
     norm_words = [(float(x["start"]), float(x["end"])) for x in info.get("words", []) if _wn(x.get("word", ""))
                   and float(x["end"]) - float(x["start"]) <= max(1.0, (0.15 + 0.09 * len(_wn(x["word"]))) * 2.5)]
-    for s0, e0 in info.get("silences", []):
+    for s0, e0 in (info.get("silences", []) if norm_words else []):   # klip bez mowy – nie tniemy ciszy
         lead, tail = s0 <= 0.1, dur is not None and e0 >= dur - 0.1
-        a, b = (0.0 if lead else s0 + 0.25), (dur if tail else e0 - 0.25)
-        if b - a < (0.5 if lead or tail else 0.7):
-            continue
+        if tail:
+            continue        # cisza na końcu zostaje – zwykle pokazujesz wtedy jedzenie
+        a, b = (0.0 if lead else s0 + 0.25), e0 - 0.25
+        if b - a < (0.5 if lead else 0.7) or (not lead and b - a > 4.0):
+            continue        # długa pauza w środku = pewnie coś pokazujesz bez słów
         if any(ws >= a and we <= b for ws, we in norm_words):
             continue        # rozpoznane słowo w środku – to cicha mowa, nie cisza
         cuts.append((a, b))
@@ -371,7 +373,24 @@ def auto_cuts(info):
             opts.append(f"do={a:.2f}")
         else:
             opts.append(f"od={b:.2f}" if a <= 0.2 else f"wytnij={a:.2f}-{b:.2f}")
-    return opts, reasons
+    return opts, reasons, merged
+
+
+def auto_cuts(info):
+    """Cięcia + bezpiecznik: z klipu musi zostać sensowny kawałek (min. 1,5 s i 30% długości)."""
+    dur = info.get("dur")
+    if not dur:
+        o, r, _ = _auto_cuts(info)
+        return o, r
+    need = min(dur, max(1.0, 0.2 * dur))
+    for variant in (info, {**info, "silences": []}):
+        o, r, m = _auto_cuts(variant)
+        left = dur - sum(max(0.0, min(b, dur) - max(a, 0.0)) for a, b in m)
+        if left >= need:
+            if variant is not info:
+                r.append("UWAGA: cięcie ciszy zabrałoby prawie cały klip – pominięte")
+            return o, r
+    return [], ["UWAGA: automatyczne cięcia zabrałyby prawie cały klip – klip zostaje w całości"]
 
 
 def day_summary(day_date, n, title):
