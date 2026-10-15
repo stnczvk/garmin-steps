@@ -4917,13 +4917,16 @@ if(matchMedia("(hover:hover)").matches)document.addEventListener("pointermove",e
 function snap(d){
   const items=food[d]||[], ses=sessions.filter(s=>s.date===d);
   if(!items.length&&!ses.length) return null;
-  const G=macroGoals(d), tot=dayTotals(items), R=v=>Math.round(v), rng=g=>g==null?null:Array.isArray(g)?g.map(R):R(g);
+  /* do vloga: ręczny wybór dnia wygrywa; bez niego dzień jest treningowy tylko wtedy, gdy jest zapisany trening (plan wg dni tygodnia bywa nieaktualny, gdy zamieniasz dni) */
+  const man=d in dayType, tr=man?isTrainDay(d):ses.length>0, had=dayType[d]; dayType[d]=tr?"t":"r";
+  let G; try{G=macroGoals(d)}finally{if(man)dayType[d]=had; else delete dayType[d];}
+  const tot=dayTotals(items), R=v=>Math.round(v), rng=g=>g==null?null:Array.isArray(g)?g.map(R):R(g);
   const meals=MEALS.map(m=>{const l=items.filter(x=>x.meal===m);if(!l.length)return null;const t=dayTotals(l);
     return {name:m,kcal:R(t.kcal),p:R(t.p),c:R(t.c),f:R(t.f),items:l.map(x=>{const v=itemVals(x);return {name:x.name,qty:qtyTxt(x),kcal:R(v.kcal)}})}}).filter(Boolean);
   const workout=ses.map(s=>{const bd=sessionBadges(s);return {day:s.day,plan:PLANS[s.plan||"red"]?.label||"",dur:s.dur||null,
     sets:Object.values(s.ex||{}).reduce((a,l)=>a+l.filter(x=>x.r>0).length,0),vol:R(sessVolume(s)),
     ex:Object.entries(s.ex||{}).map(([id,l])=>({name:exName(id),sets:l.filter(x=>x.r>0||x.w>0).map(x=>[+x.w||0,+x.r||0]),badge:bd[id]||null}))}});
-  return {date:d,train:isTrainDay(d),meals,total:{kcal:R(tot.kcal),p:R(tot.p),c:R(tot.c),f:R(tot.f)},
+  return {date:d,train:tr,meals,total:{kcal:R(tot.kcal),p:R(tot.p),c:R(tot.c),f:R(tot.f)},
     goal:{kcal:G.kc?R(G.kc):null,p:rng(G.p),c:rng(G.c),f:rng(G.f)},workout,at:Date.now()};
 }
 function flush(){timer=0;if(store.mode!=="db")return;for(const d of pend){try{const o=snap(d);if(!o)continue;const k=JSON.stringify({...o,at:0});if(last[d]===k)continue;last[d]=k;store.db.doc("vlog/"+d).set(o).catch(()=>{last[d]=null})}catch(e){}}pend.clear()}
