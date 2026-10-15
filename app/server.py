@@ -390,6 +390,13 @@ def hook_key():
     return k
 
 
+def key_ok(key: str) -> bool:
+    """Link do wagi i link do montażu są wymienne – działa każdy z nich, więc wklejenie
+    „nie tego” linku (w skrócie w telefonie albo na Macu) niczego nie psuje."""
+    key = str(key or "")
+    return bool(key) and (hmac.compare_digest(key, hook_key()) or hmac.compare_digest(key, vlog_key()))
+
+
 @app.get("/api/hook/info")
 def hook_info():
     last = kv_get("hook_last")
@@ -400,7 +407,7 @@ def hook_info():
 @app.post("/api/hook/redakcja")
 async def hook_redakcja(req: Request, key: str = ""):
     """Redakcja transkrypcji vloga dla montażu na Macu (cięcie pomyłek, poprawa napisów) – ten sam klucz co link do montażu."""
-    if not hmac.compare_digest(key, vlog_key()):
+    if not key_ok(key):
         raise HTTPException(403, "bad key")
     if not API_KEY:
         return JSONResponse({"error": "Brak klucza API na serwerze."}, status_code=503)
@@ -547,7 +554,7 @@ async def el_set(req: Request):
 @app.post("/api/hook/asr")
 async def hook_asr(req: Request, key: str = ""):
     """Rozpoznawanie mowy (Groq Whisper large-v3) dla montażu vloga na Macu – plik audio w treści zapytania."""
-    if not hmac.compare_digest(key, vlog_key()):
+    if not key_ok(key):
         raise HTTPException(403, "bad key")
     gk = _mz_env().get("GROQ_API_KEY")
     if not gk:
@@ -580,7 +587,7 @@ async def hook_asr(req: Request, key: str = ""):
 @app.get("/api/hook/slownik")
 def hook_slownik(key: str = ""):
     """Zapamiętane poprawki słów – Mac (vlog, przepisy) używa ich tak samo jak montaż daily."""
-    if not hmac.compare_digest(key, vlog_key()):
+    if not key_ok(key):
         raise HTTPException(403, "bad key")
     return _slownik()
 
@@ -588,7 +595,7 @@ def hook_slownik(key: str = ""):
 @app.post("/api/hook/slownik")
 async def hook_slownik_set(req: Request, key: str = ""):
     """Zmiana słownika poprawek: {"dodaj": [{"z","na"}], "usun": ["z", ...]}."""
-    if not hmac.compare_digest(key, vlog_key()):
+    if not key_ok(key):
         raise HTTPException(403, "bad key")
     b = await req.json()
     usun = {str(x).lower() for x in b.get("usun", [])}
@@ -604,7 +611,7 @@ async def hook_slownik_set(req: Request, key: str = ""):
 @app.get("/api/hook/montaz_log")
 def hook_montaz_log(key: str = ""):
     """Ostatni montaż daily – log i pliki pomocnicze (do sprawdzania błędów, ten sam klucz co link do montażu)."""
-    if not hmac.compare_digest(key, vlog_key()):
+    if not key_ok(key):
         raise HTTPException(403, "bad key")
     jobs = sorted(d for d in MZ_JOBS.iterdir() if d.is_dir() and MZ_ID.match(d.name)) if MZ_JOBS.is_dir() else []
     if not jobs:
@@ -631,7 +638,7 @@ def hook_montaz_log(key: str = ""):
 @app.get("/api/hook/backup")
 def hook_backup(key: str = ""):
     """Kopia zapasowa (dziennik + centrum) do pobrania przez Maca – ten sam klucz co link do montażu."""
-    if not hmac.compare_digest(key, vlog_key()):
+    if not key_ok(key):
         raise HTTPException(403, "bad key")
     import tarfile, tempfile
     from starlette.background import BackgroundTask
@@ -659,7 +666,7 @@ def hook_backup(key: str = ""):
 @app.get("/api/hook/vlog")
 def hook_vlog(key: str = "", date: str = ""):
     """Dane dnia do montażu vlogu na Macu (posiłki, cele, trening) – zapisuje je sama aplikacja."""
-    if not hmac.compare_digest(key, vlog_key()):
+    if not key_ok(key):
         raise HTTPException(403, "bad key")
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
         raise HTTPException(400, "bad date")
@@ -1153,7 +1160,7 @@ def update_run():
 
 @app.post("/api/hook/weight")
 async def hook_weight(req: Request, key: str = ""):
-    if not hmac.compare_digest(key, hook_key()):
+    if not key_ok(key):
         return JSONResponse({"error": "zły klucz"}, status_code=403)
     raw = (await req.body()).decode("utf-8", "replace")
     try:
