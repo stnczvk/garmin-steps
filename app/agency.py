@@ -73,6 +73,24 @@ def save_topics(t):
 
 
 # ---------- Claude ----------
+# ---------- sieć: ponawianie przy chwilowych błędach (DNS, zerwane połączenie) ----------
+_http = httpx.Client(transport=httpx.HTTPTransport(retries=3), timeout=180)
+
+
+def http(method, url, **kw):
+    for attempt in range(3):
+        try:
+            return _http.request(method, url, **kw)
+        except (httpx.ReadError, httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout, httpx.WriteError) as e:
+            if attempt == 2:
+                raise
+            time.sleep(3 * (attempt + 1))
+
+
+def _transient(e):
+    return bool(re.search(r"Errno -?\d+|reset by peer|name resolution|timed out|Timeout|temporarily|502|503|504", str(e)))
+
+
 # ---------- licznik i dzienny limit kosztów AI ----------
 # ceny w $ za 1 mln tokenów (wejście, wyjście); wyszukiwanie w sieci liczone osobno za wywołanie
 PRICES = {"gpt-4.1-mini": (0.4, 1.6), "gpt-4.1-nano": (0.1, 0.4), "gpt-4.1": (2.0, 8.0), "gpt-4o-mini": (0.15, 0.6), "gpt-4o": (2.5, 10.0),
@@ -146,7 +164,7 @@ def claude(prompt, model=FAST, max_tokens=1500, system="", web=False):
     if web:
         body["tools"] = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}]
     h = {"x-api-key": key, "anthropic-version": "2023-06-01"}
-    j = httpx.post(url, headers=h, json=body, timeout=180).json()
+    j = http("POST", url, headers=h, json=body).json()
     if j.get("type") == "error":
         if web:  # bez wyszukiwania
             return claude(prompt, model, max_tokens, system, web=False)
@@ -164,7 +182,7 @@ def _openai(prompt, model, max_tokens, system="", web=False):
         body["instructions"] = system
     if web:
         body["tools"] = [{"type": "web_search"}]
-    r = httpx.post("https://api.openai.com/v1/responses", json=body, timeout=180,
+    r = http("POST", "https://api.openai.com/v1/responses", json=body,
                    headers={"Authorization": "Bearer " + os.environ.get("OPENAI_API_KEY", "")})
     j = r.json()
     if r.status_code >= 400:
@@ -178,10 +196,21 @@ def _openai(prompt, model, max_tokens, system="", web=False):
 
 
 def as_json(txt):
+    """Pierwszy poprawny obiekt/tablica JSON z odpowiedzi modelu (ignoruje tekst i źródła dopisane przed/po)."""
     m = re.search(r"```(?:json)?\s*(.*?)```", txt, re.S)
-    txt = m.group(1) if m else txt
-    a, b = min([i for i in (txt.find("["), txt.find("{")) if i >= 0] or [0]), max(txt.rfind("]"), txt.rfind("}"))
-    return json.loads(txt[a:b + 1])
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except Exception:
+            pass
+    dec = json.JSONDecoder()
+    for i, ch in enumerate(txt):
+        if ch in "[{":
+            try:
+                return dec.raw_decode(txt[i:])[0]
+            except Exception:
+                continue
+    raise ValueError("brak JSON w odpowiedzi modelu")
 
 
 # ---------- Trend Scout: kolejka tematów ----------
@@ -320,7 +349,7 @@ Odpowiedz WYŁĄCZNIE JSON: {{"score": liczba, "issues": ["krótko po polsku"], 
 # ---------- SEO Hunter: tytuł, opis, hashtagi pod realne wyszukiwania ----------
 def yt_suggest(q):
     try:
-        r = httpx.get("https://suggestqueries.google.com/complete/search", params={"client": "firefox", "ds": "yt", "q": q}, timeout=10)
+        r = http("GET", "https://suggestqueries.google.com/complete/search", params={"client": "firefox", "ds": "yt", "q": q}, timeout=10)
         return r.json()[1][:8]
     except Exception:
         return []
@@ -398,7 +427,7 @@ def retention(force=False):
                 continue
             if age < 3 or age > 60 or (p["id"] in R and not force and time.time() - R[p["id"]]["at"] < 5 * 86400):
                 continue
-            rep = httpx.get("https://youtubeanalytics.googleapis.com/v2/reports", headers=h, timeout=30, params={
+            rep = http("GET", "https://youtubeanalytics.googleapis.com/v2/reports", headers=h, timeout=30, params={
                 "ids": "channel==MINE", "startDate": p["date"], "endDate": today.isoformat(), "dimensions": "elapsedVideoTimeRatio",
                 "metrics": "audienceWatchRatio,relativeRetentionPerformance", "filters": f"video=={p['id']}"}).json()
             rows = rep.get("rows") or []
@@ -457,11 +486,11 @@ def _send(item, text):
     try:
         if item.get("platform") == "instagram":
             k, acc = _pz_account("instagram")
-            r = httpx.post(f"https://graph.instagram.com/{item['id']}/replies", timeout=30,
+            r = http("POST", f"https://graph.instagram.com/{item['id']}/replies", timeout=30,
                            params={"message": text, "access_token": _ig_token(k, acc)})
         else:
             _, acc = _pz_youtube()
-            r = httpx.post("https://www.googleapis.com/youtube/v3/comments", params={"part": "snippet"}, timeout=30,
+            r = http("POST", "https://www.googleapis.com/youtube/v3/comments", params={"part": "snippet"}, timeout=30,
                            headers={"Authorization": "Bearer " + _google_access(acc)},
                            json={"snippet": {"parentId": item["id"], "textOriginal": text}})
         if r.status_code < 300:
@@ -479,7 +508,7 @@ def _yt_new_comments(I, done):
     if not acc:
         return []
     h = {"Authorization": "Bearer " + _google_access(acc)}
-    th = httpx.get("https://www.googleapis.com/youtube/v3/commentThreads", headers=h, timeout=30, params={
+    th = http("GET", "https://www.googleapis.com/youtube/v3/commentThreads", headers=h, timeout=30, params={
         "part": "snippet", "allThreadsRelatedToChannelId": acc["channel_id"], "maxResults": 40, "order": "time"}).json()
     if "error" in th:
         raise RuntimeError("YouTube: " + th["error"].get("message", "")[:150])
@@ -504,13 +533,13 @@ def _ig_new_comments(I, done):
         return []
     tok = _ig_token(key, acc)
     me = acc.get("name", "").lstrip("@").lower()
-    media = httpx.get("https://graph.instagram.com/me/media", timeout=30,
+    media = http("GET", "https://graph.instagram.com/me/media", timeout=30,
                       params={"fields": "id,caption,timestamp", "limit": 10, "access_token": tok}).json()
     if "error" in media:
         raise RuntimeError("Instagram: " + media["error"].get("message", "")[:150])
     out = []
     for m in media.get("data", []):
-        cs = httpx.get(f"https://graph.instagram.com/{m['id']}/comments", timeout=30, params={
+        cs = http("GET", f"https://graph.instagram.com/{m['id']}/comments", timeout=30, params={
             "fields": "id,text,username,timestamp,replies{username}", "limit": 30, "access_token": tok}).json()
         if "error" in cs:
             raise RuntimeError("Instagram komentarze: " + cs["error"].get("message", "")[:150])
@@ -570,10 +599,11 @@ def inbox():
             if drafts:
                 push_all("💬 Odpowiedzi do zatwierdzenia", f"{drafts} komentarzy czeka w Agencji (autopilot nie mógł wysłać).", "/#agencja")
         for e in errs:
-            log("inbox", e, "error")
+            log("inbox", e, "warn" if _transient(e) else "error")
         return n
     except Exception as e:
-        log("inbox", f"Inbox nie zadziałał: {e}", "error")
+        log("inbox", "Chwilowy problem z siecią – spróbuję za 30 min" if _transient(e) else f"Inbox nie zadziałał: {e}",
+            "warn" if _transient(e) else "error")
         return 0
     finally:
         _busy.pop("inbox", None)
@@ -760,14 +790,14 @@ def trends(why="harmonogram"):
         after = datetime.utcfromtimestamp(time.time() - 7 * 86400).strftime("%Y-%m-%dT%H:%M:%SZ")
         ids = []
         for q in TREND_Q[:4]:
-            r = httpx.get("https://www.googleapis.com/youtube/v3/search", headers=h, timeout=30, params={
+            r = http("GET", "https://www.googleapis.com/youtube/v3/search", headers=h, timeout=30, params={
                 "part": "id", "q": q, "type": "video", "videoDuration": "short", "order": "viewCount",
                 "publishedAfter": after, "maxResults": 15, "relevanceLanguage": "en"}).json()
             if "error" in r:
                 raise RuntimeError("YouTube: " + r["error"].get("message", "")[:120])
             ids += [i["id"]["videoId"] for i in r.get("items", []) if i.get("id", {}).get("videoId")]
         ids = list(dict.fromkeys(ids))[:50]
-        vids = httpx.get("https://www.googleapis.com/youtube/v3/videos", headers=h, timeout=30,
+        vids = http("GET", "https://www.googleapis.com/youtube/v3/videos", headers=h, timeout=30,
                          params={"part": "snippet,statistics", "id": ",".join(ids)}).json().get("items", []) if ids else []
         top = sorted([{"id": v["id"], "title": v["snippet"]["title"], "channel": v["snippet"]["channelTitle"],
                        "views": int(v["statistics"].get("viewCount", 0)), "likes": int(v["statistics"].get("likeCount", 0)),
@@ -952,7 +982,7 @@ def run_now(name: str):
         return JSONResponse({"error": "nazwa"}, status_code=400)
     base = os.environ.get("N8N_URL", "http://127.0.0.1:5678").rstrip("/")
     try:
-        r = httpx.post(f"{base}/webhook/agency-{name}", json={"from": "agencja", "token": settings()["token"]}, timeout=15)
+        r = http("POST", f"{base}/webhook/agency-{name}", json={"from": "agencja", "token": settings()["token"]}, timeout=15)
         ok = r.status_code < 300
     except Exception as e:
         ok, r = False, type("R", (), {"text": str(e)})()
