@@ -411,7 +411,10 @@ def _pz_youtube():
 def retention(force=False):
     from social import _google_access
     key, acc = _pz_youtube()
-    if not acc or _busy.get("retention"):
+    if not acc:
+        log("retention", "Retencja: brak połączonego YouTube PozaSkala", "error")
+        return 0
+    if _busy.get("retention"):
         return 0
     _busy["retention"] = "liczy retencję"
     try:
@@ -450,8 +453,9 @@ def retention(force=False):
                          "w pierwszych 3 s, gdzie ludzie odpadają i co zmienić w scenariuszach. Bez wstępu.", SMART, 700)
             if txt.strip():
                 _write("agency_lessons.json", {"at": time.time(), "text": txt.strip(), "n": len(vids)})
-        if n or force:
-            log("retention", f"Przeanalizował retencję {n} filmów", "ok")
+        # zawsze wpis – inaczej strażnik nie odróżni „nic nowego” od „nie uruchomił się”
+        log("retention", f"Przeanalizował retencję {n} filmów" if n else
+            "Retencja: brak nowych filmów do analizy (3–60 dni, poprzednie aktualne)", "ok")
         return n
     except Exception as e:
         log("retention", f"Retencja nie zadziałała: {e}", "error")
