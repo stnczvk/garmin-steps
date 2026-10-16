@@ -4,7 +4,7 @@ Konta podpina się na stronie głównej aplikacji (klucze wkleja się tam, logow
 Dane trzymane w ROOT/social: config.json (klucze), tokens.json (połączone konta), cache.json (ostatnie statystyki).
 """
 import json, os, re, secrets, threading, time, urllib.parse
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -313,8 +313,75 @@ def fetch_instagram(key, acc):
             "views_28d": sum(p["views"] for p in posts if p["date"] >= cut), "daily": [], "posts": posts}
 
 
-# ---- TikTok (Apify – publiczne liczby z profilu)
+# ---- TikTok: Apify (jeśli jest token i kredyty), a bez niego darmowo – strona profilu + yt-dlp
 def fetch_tiktok(handle):
+    if cfg("APIFY_TOKEN"):
+        try:
+            return fetch_tiktok_apify(handle)
+        except Exception as e:
+            apify_err = str(e)
+        try:
+            return fetch_tiktok_free(handle)
+        except Exception as e:
+            raise RuntimeError(f"{apify_err}; darmowa metoda też nie zadziałała: {e}")
+    return fetch_tiktok_free(handle)
+
+
+_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+       "Chrome/129.0.0.0 Safari/537.36")
+
+
+def fetch_tiktok_free(handle):
+    """Bez Apify: liczby profilu z publicznej strony TikToka, lista filmów przez yt-dlp."""
+    stats, err, sec = {}, "", ""
+    try:
+        r = httpx.get(f"https://www.tiktok.com/@{handle}", headers={"User-Agent": _UA, "Accept-Language": "en-US,en;q=0.9"},
+                      timeout=30, follow_redirects=True)
+        m = re.search(r'<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)</script>', r.text, re.S)
+        if m:
+            ui = json.loads(m.group(1)).get("__DEFAULT_SCOPE__", {}).get("webapp.user-detail", {}).get("userInfo", {})
+            stats = ui.get("statsV2") or ui.get("stats") or {}
+            sec = (ui.get("user") or {}).get("secUid", "")
+        if not stats:
+            err = f"strona profilu bez danych (HTTP {r.status_code})"
+    except Exception as e:
+        err = f"strona profilu: {e}"
+    posts = []
+    try:
+        import yt_dlp
+        class _Q:  # yt-dlp bez wypisywania błędów na konsolę – i tak zbieramy je niżej
+            debug = info = warning = staticmethod(lambda *a, **k: None)
+            error = staticmethod(lambda m, *a, **k: _errs.append(str(m)))
+        _errs = []
+        opts = {"quiet": True, "no_warnings": True, "logger": _Q(), "skip_download": True, "playlistend": 25, "ignoreerrors": True,
+                "http_headers": {"User-Agent": _UA}}
+        with yt_dlp.YoutubeDL(opts) as y:
+            # secUid ze strony profilu omija najczęstszy błąd yt-dlp („Unable to extract secondary user ID")
+            info = y.extract_info(f"tiktokuser:{sec}" if sec else f"https://www.tiktok.com/@{handle}", download=False) or {}
+        if not info.get("entries") and _errs:
+            raise RuntimeError(_errs[-1].replace("ERROR: ", "")[:120])
+        for i in [x for x in (info.get("entries") or []) if x][:25]:
+            ts = datetime.fromtimestamp(i["timestamp"], timezone.utc).isoformat() if i.get("timestamp") else ""
+            posts.append({"id": str(i.get("id")), "title": (i.get("description") or i.get("title") or "")[:90],
+                          "date": ts[:10], "ts": ts, "dur": i.get("duration"),
+                          "url": i.get("webpage_url") or f"https://www.tiktok.com/@{handle}/video/{i.get('id')}",
+                          "thumb": i.get("thumbnail") or "", "views": i.get("view_count") or 0,
+                          "likes": i.get("like_count") or 0, "comments": i.get("comment_count") or 0,
+                          "shares": i.get("repost_count") or 0, "saved": i.get("save_count")})
+            if not stats and i.get("channel_follower_count"):
+                stats = {"followerCount": i["channel_follower_count"]}
+    except Exception as e:
+        err = (err + "; " if err else "") + f"lista filmów: {str(e)[:120]}"
+    if not stats and not posts:
+        raise RuntimeError(f"TikTok (darmowo): {err or 'brak danych – profil prywatny albo TikTok zablokował serwer'}")
+    cut = (date.today() - timedelta(days=28)).isoformat()
+    return {"followers": int(stats.get("followerCount") or 0), "followers_label": "obserwujący",
+            "media_count": int(stats.get("videoCount") or len(posts)),
+            "views_28d": sum(p["views"] for p in posts if p["date"] >= cut), "daily": [], "posts": posts,
+            "source": "free"}
+
+
+def fetch_tiktok_apify(handle):
     tok = cfg("APIFY_TOKEN")
     r = httpx.post("https://api.apify.com/v2/acts/clockworks~tiktok-scraper/run-sync-get-dataset-items",
                    params={"token": tok, "timeout": 240},
@@ -353,7 +420,7 @@ def refresh_all(tiktok=True):
         cache = _read("cache.json", {})
         out = cache.get("accounts", {})
         todo = [(k, a) for k, a in _accounts().items()]
-        if tiktok and cfg("APIFY_TOKEN"):
+        if tiktok:
             todo += _tiktok()
         for k, a in todo:
             try:

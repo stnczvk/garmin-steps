@@ -18,6 +18,7 @@ say "2/5 Środowisko Pythona"
 [ -d "$HOME_DIR/venv" ] || python3 -m venv "$HOME_DIR/venv"
 "$HOME_DIR/venv/bin/pip" install -q --upgrade pip
 "$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pywebpush
+"$HOME_DIR/venv/bin/pip" install -q -U yt-dlp  # TikTok bez Apify; -U bo TikTok często zmienia stronę
 
 say "3/5 Hasło"
 touch "$HOME_DIR/.env"; chmod 600 "$HOME_DIR/.env"
