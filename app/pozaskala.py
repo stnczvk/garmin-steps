@@ -29,6 +29,19 @@ def _schedules(nodes):
     return out
 
 
+def _triggers(w):
+    """Harmonogramy workflow (nazwa + godzina) – do przycisków „Uruchom jak …”."""
+    try:
+        from n8n_control import triggers
+        out = []
+        for t in triggers(w):
+            s = _schedules([t])
+            out.append({"name": t["name"], "time": (s[0].get("time") or s[0].get("cron") or s[0].get("every")) if s else ""})
+        return out
+    except Exception:
+        return []
+
+
 @router.get("/api/pozaskala/status")
 def status(force: int = 0):
     if _cache["data"] and not force and time.time() - _cache["t"] < 30:
@@ -47,7 +60,7 @@ def status(force: int = 0):
         return {"ok": False, "error": "n8n: " + str(wf.get("message", wf))[:200]}
     workflows = [{"id": w["id"], "name": w.get("name", ""), "active": w.get("active", False),
                   "updatedAt": w.get("updatedAt"), "nodes": len(w.get("nodes") or []),
-                  "schedules": _schedules(w.get("nodes"))} for w in wf["data"]]
+                  "schedules": _schedules(w.get("nodes")), "triggers": _triggers(w)} for w in wf["data"]]
     names = {w["id"]: w["name"] for w in workflows}
     execs = [{"id": e.get("id"), "workflowId": e.get("workflowId"), "workflow": names.get(e.get("workflowId"), "?"),
               "status": e.get("status") or ("success" if e.get("finished") else "error"), "mode": e.get("mode"),

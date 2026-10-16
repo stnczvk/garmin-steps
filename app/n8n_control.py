@@ -29,9 +29,12 @@ def _bust():
         pass
 
 
-# Ręczny start ma dać workflow te same dane, co jego harmonogram (Schedule Trigger zwraca datę/godzinę
-# uruchomienia – z niej np. Publisher liczy godzinę publikacji). Bez tego publikacja wypadała na 0:00.
-SLOT_JS = r"""// Centrum – ręczne uruchomienie udaje start z harmonogramu: najbliższy termin z harmonogramu (__H__:__M__)
+# Ręczny start ma zachować się jak start z wybranego harmonogramu. Workflow potrafią sprawdzać, KTÓRY
+# trigger ruszył (np. generator: $('Schedule Trigger 10:00').isExecuted → slot EXPERIMENT i publikacja 21:00,
+# inaczej SAFE i 0:00). Dlatego dla każdego harmonogramu jest osobny start, a odwołania $('Trigger')
+# w workflow są owinięte tak, że ręczny start z tego harmonogramu liczy się jak jego uruchomienie.
+VER = "centrum-v2"
+SLOT_JS = r"""// __VER__ – ręczne uruchomienie z centrum udaje start z „__TRIG__” (dane jak z harmonogramu)
 const tz = '__TZ__';
 const now = DateTime.now().setZone(tz);
 let d = now;
@@ -47,15 +50,10 @@ return [{ json: {
 } }];"""
 
 
-def _hook_path(wf):
-    """Ścieżka webhooka, którym centrum może wystartować workflow (albo None, gdy trzeba go dodać/odświeżyć)."""
-    names = {n["name"] for n in wf.get("nodes", [])}
-    for n in wf.get("nodes", []):
-        if n["type"].endswith("webhook") and n["name"] == "Agencja: start":
-            return n["parameters"].get("path")
-        if n["type"].endswith("webhook") and n["name"] == TAG + "start" and TAG + "jak harmonogram" in names:
-            return n["parameters"].get("path")
-    return None
+def triggers(wf):
+    C = wf.get("connections", {})
+    return [n for n in wf.get("nodes", []) if n["type"].split(".")[-1] in TRIGGERS and not n.get("disabled")
+            and not n["name"].startswith(TAG) and n["name"] in C]
 
 
 def _slot(trig):
@@ -65,48 +63,94 @@ def _slot(trig):
     return -1, 0
 
 
-def _add_hook(wf, token):
+def _wrapped(name, q):
+    return f"({_ref(name, q)}.isExecuted ? {_ref(name, q)} : {_ref(TAG + 'jak ' + name, q)})"
+
+
+def _ref(name, q):
+    return f"$({q}{name}{q})"
+
+
+def _rewrite(obj, names, wrap):
+    """Owija (wrap=True) albo odwija odwołania $('Trigger') w wyrażeniach i kodzie node'ów."""
+    if isinstance(obj, dict):
+        return {k: _rewrite(v, names, wrap) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_rewrite(v, names, wrap) for v in obj]
+    if isinstance(obj, str):
+        for nm in names:
+            for q in ("'", '"'):
+                obj = obj.replace(_wrapped(nm, q), _ref(nm, q))  # najpierw odwijamy (bez podwójnego owijania)
+                if wrap:
+                    obj = obj.replace(_ref(nm, q), _wrapped(nm, q))
+        return obj
+    return obj
+
+
+def _hooks(wf):
+    """{nazwa harmonogramu: ścieżka webhooka} – albo None, gdy przyciski trzeba dodać lub odświeżyć."""
+    N = {n["name"]: n for n in wf.get("nodes", [])}
+    T = triggers(wf)
+    out = {}
+    for t in T:
+        s, j = N.get(TAG + "start " + t["name"]), N.get(TAG + "jak " + t["name"])
+        if not s or not j or VER not in j["parameters"].get("jsCode", ""):
+            return None
+        out[t["name"]] = s["parameters"]["path"]
+    return out or None
+
+
+def _add_hooks(wf, token):
     wf = copy.deepcopy(wf)
-    old = {n["name"] for n in wf["nodes"] if n["name"].startswith(TAG)}  # starsza wersja przycisku – wymieniamy
+    old = {n["name"] for n in wf["nodes"] if n["name"].startswith(TAG)}  # poprzednia wersja przycisków – wymieniamy
     wf["nodes"] = [n for n in wf["nodes"] if n["name"] not in old]
     for k in old:
         wf["connections"].pop(k, None)
     C = wf["connections"]
-    trig = next((n for n in wf["nodes"] if n["type"].split(".")[-1] in TRIGGERS and not n.get("disabled") and n["name"] in C), None)
-    if not trig:
+    T = triggers(wf)
+    if not T:
         return None, None
-    tx, ty = trig["position"]
-    path = f"centrum-run-{wf['id']}"
-    wf["nodes"].append({"parameters": {"httpMethod": "POST", "path": path, "options": {}}, "id": str(uuid.uuid4()),
-                        "name": TAG + "start", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [tx, ty + 260],
-                        "webhookId": str(uuid.uuid4())})
-    wf["nodes"].append({"parameters": {"conditions": {"options": {"caseSensitive": True, "leftValue": "", "typeValidation": "loose", "version": 2},
-                        "conditions": [{"id": str(uuid.uuid4()), "leftValue": "={{ $json.body.token }}", "rightValue": token,
-                                        "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}},
-                        "id": str(uuid.uuid4()), "name": TAG + "token OK?", "type": "n8n-nodes-base.if", "typeVersion": 2.2,
-                        "position": [tx + 220, ty + 260]})
-    h, m = _slot(trig)
     tz = (wf.get("settings") or {}).get("timezone") or os.environ.get("GENERIC_TIMEZONE") or "Europe/Warsaw"
-    js = SLOT_JS.replace("__H__", str(h)).replace("__M__", str(m)).replace("__TZ__", tz)
-    wf["nodes"].append({"parameters": {"jsCode": js}, "id": str(uuid.uuid4()), "name": TAG + "jak harmonogram",
-                        "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [tx + 440, ty + 260]})
-    C[TAG + "start"] = {"main": [[{"node": TAG + "token OK?", "type": "main", "index": 0}]]}
-    C[TAG + "token OK?"] = {"main": [[{"node": TAG + "jak harmonogram", "type": "main", "index": 0}], []]}
-    C[TAG + "jak harmonogram"] = {"main": [copy.deepcopy(C[trig["name"]]["main"][0])]}
-    return wf, path
+    names = [t["name"] for t in T]
+    for n in wf["nodes"]:
+        n["parameters"] = _rewrite(n.get("parameters") or {}, names, True)
+    paths = {}
+    for i, t in enumerate(T):
+        tx, ty = t["position"]
+        y = ty + 260 + i * 140
+        nm = t["name"]
+        paths[nm] = f"centrum-run-{wf['id']}-{i}"
+        h, m = _slot(t)
+        js = (SLOT_JS.replace("__VER__", VER).replace("__TRIG__", nm).replace("__H__", str(h))
+              .replace("__M__", str(m)).replace("__TZ__", tz))
+        wf["nodes"] += [
+            {"parameters": {"httpMethod": "POST", "path": paths[nm], "options": {}}, "id": str(uuid.uuid4()),
+             "name": TAG + "start " + nm, "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [tx, y],
+             "webhookId": str(uuid.uuid4())},
+            {"parameters": {"conditions": {"options": {"caseSensitive": True, "leftValue": "", "typeValidation": "loose", "version": 2},
+             "conditions": [{"id": str(uuid.uuid4()), "leftValue": "={{ $json.body.token }}", "rightValue": token,
+                             "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}},
+             "id": str(uuid.uuid4()), "name": TAG + "token " + nm, "type": "n8n-nodes-base.if", "typeVersion": 2.2,
+             "position": [tx + 220, y]},
+            {"parameters": {"jsCode": js}, "id": str(uuid.uuid4()), "name": TAG + "jak " + nm,
+             "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [tx + 440, y]}]
+        C[TAG + "start " + nm] = {"main": [[{"node": TAG + "token " + nm, "type": "main", "index": 0}]]}
+        C[TAG + "token " + nm] = {"main": [[{"node": TAG + "jak " + nm, "type": "main", "index": 0}], []]}
+        C[TAG + "jak " + nm] = {"main": [copy.deepcopy(C[nm]["main"][0])]}
+    return wf, paths
 
 
 @router.post("/api/n8n/run/{wid}")
-def run(wid: str):
+def run(wid: str, trigger: str = ""):
     r = n8n("GET", f"/api/v1/workflows/{wid}")
     if r.status_code >= 300:
         return JSONResponse({"error": f"n8n: {r.text[:150]}"}, status_code=502)
     wf = r.json()
     name, active = wf.get("name", wid), wf.get("active")
     token = settings()["token"]
-    path = _hook_path(wf)
-    if not path:
-        new, path = _add_hook(wf, token)
+    paths = _hooks(wf)
+    if not paths:
+        new, paths = _add_hooks(wf, token)
         if not new:
             return {"ok": False, "error": "Ten workflow nie ma harmonogramu – startuje go inny workflow (np. generator). Uruchom tamten."}
         p = n8n("PUT", f"/api/v1/workflows/{wid}", json=AN.put_body(new))
@@ -114,10 +158,11 @@ def run(wid: str):
             p = n8n("PUT", f"/api/v1/workflows/{wid}", json=AN.put_body(new, minimal=True))
         if p.status_code >= 300:
             return {"ok": False, "error": f"n8n nie przyjął przycisku startu: {p.text[:150]}"}
-        if active:  # ponowna aktywacja rejestruje nowy webhook
+        if active:  # ponowna aktywacja rejestruje nowe webhooki
             n8n("POST", f"/api/v1/workflows/{wid}/deactivate")
             n8n("POST", f"/api/v1/workflows/{wid}/activate")
-        log("op", f"Dodał przycisk „Uruchom” do workflow {name}", "info")
+        log("op", f"Dodał przyciski „Uruchom” do workflow {name}", "info")
+    trig = trigger if trigger in paths else next(iter(paths))
     temp = not active
     if temp:  # webhook działa tylko w aktywnym workflow – włączamy na chwilę
         a = n8n("POST", f"/api/v1/workflows/{wid}/activate")
@@ -125,7 +170,7 @@ def run(wid: str):
             return {"ok": False, "error": f"Nie da się włączyć workflow: {a.text[:150]}"}
         time.sleep(1.5)
     try:
-        w = http("POST", f"{_base()}/webhook/{path}", json={"from": "centrum", "token": token}, timeout=20)
+        w = http("POST", f"{_base()}/webhook/{paths[trig]}", json={"from": "centrum", "token": token}, timeout=20)
         ok, err = w.status_code < 300, w.text[:150]
     except Exception as e:
         ok, err = False, str(e)[:150]
@@ -133,9 +178,9 @@ def run(wid: str):
         if temp:
             time.sleep(2)
             n8n("POST", f"/api/v1/workflows/{wid}/deactivate")
-    log("op", f"Uruchomił ręcznie {name}" if ok else f"Nie udało się uruchomić {name}: {err}", "ok" if ok else "error")
+    log("op", f"Uruchomił ręcznie {name} (jak „{trig}”)" if ok else f"Nie udało się uruchomić {name}: {err}", "ok" if ok else "error")
     _bust()
-    return {"ok": ok, "error": None if ok else err}
+    return {"ok": ok, "error": None if ok else err, "trigger": trig}
 
 
 @router.post("/api/n8n/retry/{eid}")

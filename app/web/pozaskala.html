@@ -164,9 +164,9 @@ function list(){
  $('exl').querySelectorAll('.ex.click').forEach(r=>r.onclick=()=>detail(r.dataset.e));
  $('wfl').innerHTML=state.workflows.slice().sort((a,b)=>b.active-a.active||a.name.localeCompare(b.name)).map(w=>
   `<div class="wf"><span>${esc(w.name)}</span><span class="tag ${w.active?'':'no'}">${w.active?'aktywny':'wyłączony'}</span><small>${w.nodes} node'ów${w.schedules.length?' · ⏰ '+esc(w.schedules.map(s=>s.time||s.cron||s.every).join(', ')):''}</small>
-  <div class="acts"><button class="go" data-run="${esc(w.id)}">▶ Uruchom teraz</button><button data-tog="${esc(w.id)}" data-on="${w.active?1:0}">${w.active?'Wyłącz':'Włącz'}</button></div></div>`).join('');
- $('wfl').querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.run,'Uruchomiono – za chwilę pojawi się w uruchomieniach.',
-   'Uruchomić teraz „'+(state.workflows.find(w=>w.id===b.dataset.run)||{}).name+'”?'));
+  <div class="acts">${(w.triggers&&w.triggers.length>1?w.triggers:[{name:''}]).map(t=>`<button class="go" data-run="${esc(w.id)}" data-trig="${esc(t.name)}">▶ ${t.name?'Uruchom jak '+esc(t.time||t.name):'Uruchom teraz'}</button>`).join('')}<button data-tog="${esc(w.id)}" data-on="${w.active?1:0}">${w.active?'Wyłącz':'Włącz'}</button></div></div>`).join('');
+ $('wfl').querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.run+(b.dataset.trig?'?trigger='+encodeURIComponent(b.dataset.trig):''),'Uruchomiono – za chwilę pojawi się w uruchomieniach.',
+   'Uruchomić teraz „'+(state.workflows.find(w=>w.id===b.dataset.run)||{}).name+'”'+(b.dataset.trig?' tak, jakby wystartował harmonogram „'+b.dataset.trig+'”':'')+'?'));
  $('wfl').querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>act(b,`/api/agency/n8n/${b.dataset.tog}/${b.dataset.on==='1'?'deactivate':'activate'}`,b.dataset.on==='1'?'Wyłączono.':'Włączono.'));
 }
 
