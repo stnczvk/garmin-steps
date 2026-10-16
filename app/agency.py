@@ -568,11 +568,12 @@ def inbox():
         today = datetime.now(TZ).date().isoformat()
         sent_today = sum(1 for x in I["items"] if x.get("day") == today and x.get("status") == "sent")
         new, errs = [], []
-        for fetch in (_yt_new_comments, _ig_new_comments):
+        for name, fetch in (("YouTube", _yt_new_comments), ("Instagram", _ig_new_comments)):
             try:
                 new += fetch(I, done)
             except Exception as e:
-                errs.append(str(e)[:120])
+                m = str(e)[:120]
+                errs.append(m if m.startswith(name) else f"{name}: {m}")
         auto = s.get("autopilot") and s.get("inbox_auto", True)
         n = sent = 0
         for c in new[:20]:
