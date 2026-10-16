@@ -196,10 +196,12 @@ def g_stats():
     if not accs:
         return IDLE, "brak połączonych kont", None
     ts = c.get("updated") or c.get("ts") or 0
-    bad = [a["name"] for a in accs.values() if a.get("error")]
+    bad = [a for a in accs.values() if a.get("error")]
     age = (time.time() - ts) / 3600 if ts else None
     if bad:
-        return FAIL, "błąd konta: " + ", ".join(bad)[:100] + " – połącz ponownie", None
+        b = bad[0]
+        hint = "" if b.get("platform") == "tiktok" else " – połącz konto ponownie w Statystykach"
+        return FAIL, f"{b.get('name')}: {str(b.get('error'))[:110]}{hint}" + (f" (+{len(bad) - 1})" if len(bad) > 1 else ""), None
     if age is not None and age > 3:
         return WARN, f"statystyki nieodświeżane od {age:.0f} h", None
     return OK, f"{len(accs)} kont · odświeżone {_ago(ts) if ts else 'niedawno'}", None

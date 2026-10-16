@@ -322,7 +322,14 @@ def fetch_tiktok(handle):
                          "shouldDownloadCovers": False, "shouldDownloadSubtitles": False}, timeout=300)
     items = r.json() if r.status_code < 300 else []
     if not isinstance(items, list) or not items:
-        raise RuntimeError(f"TikTok/Apify: brak danych ({r.status_code})")
+        why = {401: "zły token Apify – wklej nowy w ustawieniach", 402: "skończyły się darmowe kredyty Apify w tym miesiącu",
+               403: "Apify odmówił dostępu – sprawdź token", 429: "limit zapytań Apify – spróbuje później"}.get(r.status_code)
+        if not why:
+            try:
+                why = (r.json().get("error") or {}).get("message", "")[:120] if r.status_code >= 300 else "profil bez filmów albo prywatny"
+            except Exception:
+                why = f"kod {r.status_code}"
+        raise RuntimeError(f"TikTok/Apify: {why}")
     author = items[0].get("authorMeta", {})
     posts = [{"id": str(i.get("id")), "title": (i.get("text") or "")[:90], "date": (i.get("createTimeISO") or "")[:10],
               "ts": i.get("createTimeISO") or "", "dur": (i.get("videoMeta") or {}).get("duration"),
