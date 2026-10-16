@@ -1,5 +1,5 @@
 """Dodatki centrum: powiadomienia push (post się rozkręca), raport tygodnia i analiza „co działa” (PozaSkala)."""
-import hashlib, json, os, re, statistics, threading, time
+import hashlib, json, os, re, statistics, threading, time, urllib.parse
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -76,19 +76,30 @@ def push_all(title, body, url="/"):
     except Exception:
         return 0
     pem, _ = _vapid()
-    keep, sent = [], 0
+    # Apple (iPhone) odrzuca VAPID z adresem @localhost – kontaktem jest adres centrum
+    dom = os.environ.get("SOCIAL_DOMAIN", "")
+    claims = {"sub": f"https://{dom}" if dom else "mailto:admin@example.com"}
+    keep, sent, results = [], 0, []
     for s in subs:
+        host = urllib.parse.urlparse(s.get("endpoint", "")).netloc
         try:
             webpush(subscription_info=s, data=json.dumps({"title": title, "body": body, "url": url}, ensure_ascii=False),
-                    vapid_private_key=pem, vapid_claims={"sub": "mailto:centrum@localhost"}, ttl=86400)
+                    vapid_private_key=pem, vapid_claims=dict(claims), ttl=86400, headers={"Urgency": "high"})
             keep.append(s); sent += 1
+            results.append({"host": host, "ok": True, "code": 201})
         except WebPushException as e:
             code = getattr(getattr(e, "response", None), "status_code", 0)
+            txt = (getattr(getattr(e, "response", None), "text", "") or str(e))[:160]
+            results.append({"host": host, "ok": False, "code": code, "err": txt})
             if code not in (404, 410):
                 keep.append(s)
-        except Exception:
+        except Exception as e:
+            results.append({"host": host, "ok": False, "code": 0, "err": str(e)[:160]})
             keep.append(s)
     _write("push.json", keep)
+    log = _read("push_log.json", [])
+    log.append({"t": time.time(), "title": title[:80], "sent": sent, "subs": len(subs), "results": results})
+    _write("push_log.json", log[-60:])
     return sent
 
 
@@ -120,8 +131,9 @@ async def push_unsubscribe(req: Request):
 
 @router.post("/api/social/push/test")
 def push_test():
-    n = push_all("Powiadomienia działają", "Dam znać, gdy któryś post zacznie się rozkręcać.", "/")
-    return {"sent": n}
+    n = push_all("Powiadomienia działają ✅", "Test z centrum – jeśli to widzisz, wszystko gra.", "/#straznicy")
+    last = (_read("push_log.json", []) or [{}])[-1]
+    return {"sent": n, "subs": last.get("subs", 0), "results": last.get("results", [])}
 
 
 # ---------------------------------------------------------------- post się rozkręca

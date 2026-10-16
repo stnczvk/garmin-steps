@@ -87,6 +87,8 @@ from agency import router as agency_router  # noqa: E402
 app.include_router(agency_router)
 from scanner import router as scanner_router  # noqa: E402
 app.include_router(scanner_router)
+from guardians import router as guardians_router  # noqa: E402
+app.include_router(guardians_router)
 
 
 @app.get("/")
@@ -94,7 +96,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html"}
+PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "straznicy": "straznicy.html"}
 
 
 def _page(req: Request, name: str):
@@ -117,6 +119,11 @@ def agencja(req: Request):
 @app.get("/pozaskala")
 def pozaskala(req: Request):
     return _page(req, "pozaskala")
+
+
+@app.get("/straznicy")
+def straznicy(req: Request):
+    return _page(req, "straznicy")
 
 
 @app.get("/skaner-stats")

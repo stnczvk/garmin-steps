@@ -202,10 +202,11 @@ function feed(A,P,S){
 }
 
 async function load(){
- const [D,S,EQ,FG,A,P,AUD]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit')]);
+ const [D,S,EQ,FG,A,P,AUD,GD]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit'),get('/api/guardians')]);
  social(D);scanner(S,EQ,FG,AUD);priv(D,A);const pills=pozaskala(A,P)||[];feed(A,P,S);
  if(S)pills.unshift([S.docker?.running,`Skaner ${S.docker?.running?'działa':'stoi'}`]);
- $('pills').innerHTML=pills.map(([ok,t])=>`<span class="pill glass ${ok?'ok':'bad'}"><i></i>${esc(t)}</span>`).join('');
+ if(GD){const c=GD.count;pills.unshift([!c.fail,`Strażnicy ${c.ok}/${GD.guardians.length}${c.fail?' · '+c.fail+' problem':''}`,'straznicy'])}
+ $('pills').innerHTML=pills.map(([ok,t,go])=>`<span class="pill glass ${ok?'ok':'bad'}"${go?` data-go="${go}" style="cursor:pointer"`:''}><i></i>${esc(t)}</span>`).join('');
 }
 load();setInterval(load,60000);
 addEventListener('resize',()=>{const c=$('eq');if(c&&c._d)spark(c,c._d)});
