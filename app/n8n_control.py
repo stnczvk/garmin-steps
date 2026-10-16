@@ -29,16 +29,48 @@ def _bust():
         pass
 
 
+# Ręczny start ma dać workflow te same dane, co jego harmonogram (Schedule Trigger zwraca datę/godzinę
+# uruchomienia – z niej np. Publisher liczy godzinę publikacji). Bez tego publikacja wypadała na 0:00.
+SLOT_JS = r"""// Centrum – ręczne uruchomienie udaje start z harmonogramu: najbliższy termin z harmonogramu (__H__:__M__)
+const tz = '__TZ__';
+const now = DateTime.now().setZone(tz);
+let d = now;
+if (__H__ >= 0) {
+  d = now.set({ hour: __H__, minute: __M__, second: 0, millisecond: 0 });
+  if (d < now) d = d.plus({ days: 1 });
+}
+return [{ json: {
+  timestamp: d.toISO(), 'Readable date': d.toFormat('MMMM d yyyy, h:mm:ss a'), 'Readable time': d.toFormat('h:mm:ss a'),
+  'Day of week': d.toFormat('cccc'), Year: d.toFormat('yyyy'), Month: d.toFormat('MMMM'), 'Day of month': d.toFormat('dd'),
+  Hour: d.toFormat('HH'), Minute: d.toFormat('mm'), Second: d.toFormat('ss'), Timezone: tz + ' (UTC' + d.toFormat('ZZ') + ')',
+  manualFromCentrum: true,
+} }];"""
+
+
 def _hook_path(wf):
-    """Ścieżka webhooka, którym centrum może wystartować workflow (albo None)."""
+    """Ścieżka webhooka, którym centrum może wystartować workflow (albo None, gdy trzeba go dodać/odświeżyć)."""
+    names = {n["name"] for n in wf.get("nodes", [])}
     for n in wf.get("nodes", []):
-        if n["type"].endswith("webhook") and (n["name"] == TAG + "start" or n["name"] == "Agencja: start"):
+        if n["type"].endswith("webhook") and n["name"] == "Agencja: start":
+            return n["parameters"].get("path")
+        if n["type"].endswith("webhook") and n["name"] == TAG + "start" and TAG + "jak harmonogram" in names:
             return n["parameters"].get("path")
     return None
 
 
+def _slot(trig):
+    for r in ((trig.get("parameters") or {}).get("rule") or {}).get("interval") or []:
+        if r.get("field") in ("days", "weeks", None) or "triggerAtHour" in r:
+            return int(r.get("triggerAtHour", 0)), int(r.get("triggerAtMinute", 0))
+    return -1, 0
+
+
 def _add_hook(wf, token):
     wf = copy.deepcopy(wf)
+    old = {n["name"] for n in wf["nodes"] if n["name"].startswith(TAG)}  # starsza wersja przycisku – wymieniamy
+    wf["nodes"] = [n for n in wf["nodes"] if n["name"] not in old]
+    for k in old:
+        wf["connections"].pop(k, None)
     C = wf["connections"]
     trig = next((n for n in wf["nodes"] if n["type"].split(".")[-1] in TRIGGERS and not n.get("disabled") and n["name"] in C), None)
     if not trig:
@@ -53,8 +85,14 @@ def _add_hook(wf, token):
                                         "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}},
                         "id": str(uuid.uuid4()), "name": TAG + "token OK?", "type": "n8n-nodes-base.if", "typeVersion": 2.2,
                         "position": [tx + 220, ty + 260]})
+    h, m = _slot(trig)
+    tz = (wf.get("settings") or {}).get("timezone") or os.environ.get("GENERIC_TIMEZONE") or "Europe/Warsaw"
+    js = SLOT_JS.replace("__H__", str(h)).replace("__M__", str(m)).replace("__TZ__", tz)
+    wf["nodes"].append({"parameters": {"jsCode": js}, "id": str(uuid.uuid4()), "name": TAG + "jak harmonogram",
+                        "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [tx + 440, ty + 260]})
     C[TAG + "start"] = {"main": [[{"node": TAG + "token OK?", "type": "main", "index": 0}]]}
-    C[TAG + "token OK?"] = {"main": [copy.deepcopy(C[trig["name"]]["main"][0]), []]}
+    C[TAG + "token OK?"] = {"main": [[{"node": TAG + "jak harmonogram", "type": "main", "index": 0}], []]}
+    C[TAG + "jak harmonogram"] = {"main": [copy.deepcopy(C[trig["name"]]["main"][0])]}
     return wf, path
 
 
