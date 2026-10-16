@@ -51,6 +51,13 @@ svg{display:block;min-width:960px;width:100%;height:auto}
 .dot.running{animation:blink 1s infinite}@keyframes blink{50%{opacity:.3}}
 .wf{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 4px;border-top:1px solid var(--line);font-size:13px}
 .wf:first-of-type{border-top:0}
+.acts{grid-column:1/3;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.acts button{font:12px Geist,system-ui;color:inherit;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer}
+.acts button.go{border-color:#6E8BFF;color:#AFC0FF}.acts button:disabled{opacity:.5;cursor:wait}
+.ex.click{cursor:pointer}.ex.click:hover{background:rgba(255,255,255,.04)}
+.exd{grid-column:1/-1;font-size:12.5px;line-height:1.45;background:rgba(255,123,112,.08);border:1px solid rgba(255,123,112,.3);border-radius:10px;padding:9px 11px;margin:4px 0 6px;overflow-wrap:anywhere}
+.exd b{color:#FF9C93}.exd .acts{margin-top:8px}
+#toast{position:fixed;left:50%;bottom:calc(20px + var(--sab,0px));transform:translateX(-50%);background:#16171f;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;z-index:9;display:none;max-width:90vw}
 .wf small{grid-column:1/3;color:var(--faint);font:11px 'JetBrains Mono',monospace}
 .tag{font:11px 'JetBrains Mono',monospace;padding:2px 7px;border-radius:6px;background:rgba(74,222,128,.1);color:var(--ok)}
 .tag.no{background:rgba(255,255,255,.05);color:var(--faint)}
@@ -82,6 +89,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
   <div class="card fold" id="c-wf"><h2><button class="tg" aria-expanded="true"><i>▾</i><span>Workflow w n8n</span></button></h2><div class="body" id="wfl"><div class="empty">Ładuję…</div></div></div>
  </div>
 </div>
+<div id="toast" role="status"></div>
 <script>
 const LANES=[
  {key:'gen',match:/generator/i,title:'Generator',color:'#6E8BFF',nodes:[['⏰','Start','harmonogram'],['🧠','Temat','insights + AI'],['✍️','Scenariusz','OpenAI'],['🎙️','Lektor','TTS'],['🖼️','Kadry','OpenAI img'],['🎬','Scena','Kling / fal.ai'],['🏷️','SEO + okładka','seo.json'],['☁️','Drive','folder filmu']]},
@@ -151,9 +159,15 @@ function list(){
  if(L){const ids=new Set(state.workflows.filter(w=>L.match.test(w.name)).map(w=>w.id));ex=ex.filter(e=>ids.has(e.workflowId))}
  $('exT').textContent=L?`Uruchomienia: ${L.title}`:'Ostatnie uruchomienia';$('all').hidden=!L;
  $('exl').innerHTML=ex.slice(0,14).map(e=>{const dur=e.stoppedAt?Math.round((new Date(e.stoppedAt)-new Date(e.startedAt))/1000):null;
-  return`<div class="ex"><span class="dot ${e.status}"></span><span>${esc(e.workflow)} <span style="color:var(--faint)">· ${ST[e.status]||e.status}</span></span><span class="d">${dur==null?'…':dur<120?dur+' s':Math.round(dur/60)+' min'}</span><time>${new Date(e.startedAt).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time></div>`}).join('')||'<div class="empty">Brak uruchomień.</div>';
+  const bad=['error','crashed'].includes(e.status);
+  return`<div class="ex${bad?' click':''}"${bad?` data-e="${esc(e.id)}"`:''}><span class="dot ${e.status}"></span><span>${esc(e.workflow)} <span style="color:var(--faint)">· ${ST[e.status]||e.status}</span></span><span class="d">${dur==null?'…':dur<120?dur+' s':Math.round(dur/60)+' min'}</span><time>${new Date(e.startedAt).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time></div>${bad?`<div class="exd" id="d${esc(e.id)}" hidden></div>`:''}`}).join('')||'<div class="empty">Brak uruchomień.</div>';
+ $('exl').querySelectorAll('.ex.click').forEach(r=>r.onclick=()=>detail(r.dataset.e));
  $('wfl').innerHTML=state.workflows.slice().sort((a,b)=>b.active-a.active||a.name.localeCompare(b.name)).map(w=>
-  `<div class="wf"><span>${esc(w.name)}</span><span class="tag ${w.active?'':'no'}">${w.active?'aktywny':'wyłączony'}</span><small>${w.nodes} node'ów${w.schedules.length?' · ⏰ '+esc(w.schedules.map(s=>s.time||s.cron||s.every).join(', ')):''}</small></div>`).join('');
+  `<div class="wf"><span>${esc(w.name)}</span><span class="tag ${w.active?'':'no'}">${w.active?'aktywny':'wyłączony'}</span><small>${w.nodes} node'ów${w.schedules.length?' · ⏰ '+esc(w.schedules.map(s=>s.time||s.cron||s.every).join(', ')):''}</small>
+  <div class="acts"><button class="go" data-run="${esc(w.id)}">▶ Uruchom teraz</button><button data-tog="${esc(w.id)}" data-on="${w.active?1:0}">${w.active?'Wyłącz':'Włącz'}</button></div></div>`).join('');
+ $('wfl').querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.run,'Uruchomiono – za chwilę pojawi się w uruchomieniach.',
+   'Uruchomić teraz „'+(state.workflows.find(w=>w.id===b.dataset.run)||{}).name+'”?'));
+ $('wfl').querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>act(b,`/api/agency/n8n/${b.dataset.tog}/${b.dataset.on==='1'?'deactivate':'activate'}`,b.dataset.on==='1'?'Wyłączono.':'Włączono.'));
 }
 
 function kpis(){
@@ -165,6 +179,26 @@ function kpis(){
  const n=nextStart();$('k4').textContent=n?n.d.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'}):'–';$('k4s').textContent=n?n.w:'brak harmonogramu';
 }
 
+function toast(t){const el=$('toast');el.textContent=t;el.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.display='none',5000)}
+async function act(b,url,okMsg,ask){
+ if(ask&&!confirm(ask))return;
+ b.disabled=true;const t=b.textContent;b.textContent='…';
+ try{const r=await (await fetch(url,{method:'POST'})).json();toast(r.ok?okMsg:'Nie wyszło: '+(r.error||'błąd'))}
+ catch(e){toast('Brak połączenia z centrum.')}
+ b.disabled=false;b.textContent=t;setTimeout(()=>load(true),2500);
+}
+async function detail(id){
+ const d=$('d'+id);if(!d)return;if(!d.hidden){d.hidden=true;return}
+ d.hidden=false;d.textContent='Sprawdzam, co poszło nie tak…';
+ try{const r=await (await fetch('/api/n8n/execution/'+id)).json();
+  if(!r.ok){d.textContent='Nie da się pobrać szczegółów: '+(r.error||'');return}
+  const hint=/quota|insufficient|billing|429|rate limit/i.test(r.message+r.description)?'<br>💡 Wygląda na brak środków / limit w API – po doładowaniu kliknij „Ponów”.':'';
+  d.innerHTML=`<b>${esc(r.node||'Błąd')}</b>: ${esc(r.message||'brak opisu')}${r.description?'<br>'+esc(r.description):''}${hint}
+   <div class="acts"><button class="go" data-retry="${esc(id)}">↻ Ponów od miejsca błędu</button>${r.workflowId?`<button data-rerun="${esc(r.workflowId)}">▶ Uruchom od nowa</button>`:''}</div>`;
+  d.querySelector('[data-retry]').onclick=e=>{e.stopPropagation();act(e.target,'/api/n8n/retry/'+id,'Ponowiono – sprawdź uruchomienia za chwilę.')};
+  const rr=d.querySelector('[data-rerun]');if(rr)rr.onclick=e=>{e.stopPropagation();act(e.target,'/api/n8n/run/'+r.workflowId,'Uruchomiono od nowa.')};
+ }catch(e){d.textContent='Brak połączenia z centrum.'}
+}
 async function load(force){
  try{const r=await fetch('/api/pozaskala/status'+(force?'?force=1':''));
   if(r.status===401){$('msg').style.display='block';$('msg').textContent='Sesja wygasła – odśwież centrum i zaloguj się.';return}

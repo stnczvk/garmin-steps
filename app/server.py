@@ -89,6 +89,8 @@ from scanner import router as scanner_router  # noqa: E402
 app.include_router(scanner_router)
 from guardians import router as guardians_router  # noqa: E402
 app.include_router(guardians_router)
+from n8n_control import router as n8n_router  # noqa: E402
+app.include_router(n8n_router)
 
 
 @app.get("/")
