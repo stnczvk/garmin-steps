@@ -520,8 +520,18 @@ async def _scribe(audio: bytes, key: str, fname="a.mp3", mime="audio/mpeg"):
             data = {**base, "model_id": model}
             if terms:
                 data["keyterms"] = terms
-            r = await c.post("https://api.elevenlabs.io/v1/speech-to-text", headers={"xi-api-key": key},
-                             data=data, files={"file": (fname, audio, mime)})
+            r = None
+            for attempt in range(3):      # chwilowy błąd (limit, przeciążenie, zerwane połączenie) – ponów
+                try:
+                    r = await c.post("https://api.elevenlabs.io/v1/speech-to-text", headers={"xi-api-key": key},
+                                     data=data, files={"file": (fname, audio, mime)})
+                except httpx.HTTPError:
+                    r = None
+                if r is not None and r.status_code < 429:
+                    break
+                await asyncio.sleep(3 * (attempt + 1))
+            if r is None:
+                return None
             if r.status_code == 200:
                 return r.json()
             if r.status_code not in (400, 404, 422):
@@ -581,7 +591,7 @@ async def hook_asr(req: Request, key: str = ""):
             await asyncio.sleep(8)
     if r.status_code != 200:
         return JSONResponse({"error": f"Groq {r.status_code}: {r.text[:200]}"}, status_code=502)
-    return {"text": (r.json().get("text") or "").strip()}
+    return {"text": (r.json().get("text") or "").strip(), "via": "groq"}
 
 
 @app.get("/api/hook/slownik")
