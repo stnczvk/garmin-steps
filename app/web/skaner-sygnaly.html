@@ -102,7 +102,7 @@ function card(r){const d=(r.direction||'').toUpperCase(),Z=zone(r),moved=r.origi
  return `<div class="glass c ${d[0]}"><div class="hd"><div class="sym">${esc(r.base)}<small>${esc(r.timeframe||'')} · ${ago(r.created_at)}</small></div><span class="dir ${d[0]}">${d}</span>
    <div class="now">${r.price?`<b>${f(r.price)}</b><small>${sp(r.move)}${r.r_now!=null?` · ${r.r_now>=0?'+':''}${r.r_now}R`:''}</small>`:'<small class="mut">brak ceny</small>'}</div></div>
   <div class="body">${stage(r)}
-   <div class="lv"><div class="box en"><small>Strefa wejścia${Z?'':' (środek)'}</small><b>${ent}</b></div>
+   <div class="lv"><div class="box en"><small>${Z?'Strefa wejścia':'Środek strefy · sygnał sprzed zapisu strefy'}</small><b>${ent}</b></div>
     <div class="box sl"><small>Stop loss${moved?' · przesunięty':''}</small><b>${f(r.stop_loss)}</b><em class="${(pc(r.stop_loss,r.entry,d)||0)>=0?'pos':'neg'}">${(()=>{const x=pc(r.stop_loss,r.entry,d);return x==null?'':(x>=0?'+':'')+x.toFixed(2)+'%'})()}${moved?` <span class="mut">(był ${f(r.original_stop_loss)})</span>`:''}</em></div>
     <div class="tps">${tps}</div></div>
    ${r.entry&&r.stop_loss?ladder(r):''}
