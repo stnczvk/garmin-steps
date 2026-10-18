@@ -77,13 +77,39 @@ def save_topics(t):
 _http = httpx.Client(transport=httpx.HTTPTransport(retries=3), timeout=180)
 
 
+def _curl(method, url, params=None, headers=None, json=None, data=None, timeout=60, **_):
+    """Zapas, gdy httpx dostaje [Errno 104] (zerwane połączenie): ta sama prośba przez curl (IPv4, HTTP/1.1, własny TLS)."""
+    import json as _j, subprocess, tempfile, urllib.parse
+    if params:
+        url += ("&" if "?" in url else "?") + urllib.parse.urlencode(params)
+    cmd = ["curl", "-sS", "-4", "--http1.1", "--retry", "2", "--retry-all-errors", "-m", str(int(timeout or 60)), "-X", method,
+           "-o", "-", "-w", "\n%{http_code}", url]
+    for k, v in (headers or {}).items():
+        cmd += ["-H", f"{k}: {v}"]
+    body = None
+    if json is not None:
+        body = _j.dumps(json).encode()
+        cmd += ["-H", "Content-Type: application/json", "--data-binary", "@-"]
+    elif data is not None:
+        body = urllib.parse.urlencode(data).encode() if isinstance(data, dict) else data
+        cmd += ["--data-binary", "@-"]
+    r = subprocess.run(cmd, input=body, capture_output=True, timeout=(timeout or 60) + 30)
+    if r.returncode:
+        raise httpx.ConnectError(f"curl: {r.stderr.decode(errors='ignore').strip()[:150]}")
+    out, _, code = r.stdout.rpartition(b"\n")
+    return httpx.Response(int(code or 0), content=out, request=httpx.Request(method, url))
+
+
 def http(method, url, **kw):
     for attempt in range(3):
         try:
             return _http.request(method, url, **kw)
         except (httpx.ReadError, httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout, httpx.WriteError) as e:
             if attempt == 2:
-                raise
+                try:
+                    return _curl(method, url, **kw)
+                except Exception:
+                    raise e
             time.sleep(3 * (attempt + 1))
 
 

@@ -20,27 +20,60 @@ _cache = {"t": 0, "data": None}
 
 
 def configured():
-    return all(os.environ.get(k) for k in ("OKX_RO_KEY", "OKX_RO_SECRET", "OKX_RO_PASSPHRASE"))
+    return all((os.environ.get(k) or "").strip() for k in ("OKX_RO_KEY", "OKX_RO_SECRET", "OKX_RO_PASSPHRASE"))
 
 
-def _get(path):
-    """Podpisane zapytanie GET (jedyny rodzaj zapytania w tym module)."""
+# klucz z OKX EEA (konto w Europie) działa tylko na eea.okx.com, z konta demo – tylko z nagłówkiem demo;
+# próbujemy po kolei i zapamiętujemy, który adres przyjął klucz
+SITES = [("https://www.okx.com", False), ("https://eea.okx.com", False), ("https://my.okx.com", False),
+         ("https://us.okx.com", False), ("https://www.okx.com", True)]
+_site = {"ok": None}
+
+
+def _env(k):
+    return (os.environ.get(k) or "").strip().strip('"').strip("'")
+
+
+def _once(base, demo, path):
     now = datetime.now(timezone.utc)
     ts = now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
-    sign = base64.b64encode(hmac.new(os.environ["OKX_RO_SECRET"].encode(), (ts + "GET" + path).encode(), hashlib.sha256).digest()).decode()
-    h = {"OK-ACCESS-KEY": os.environ["OKX_RO_KEY"], "OK-ACCESS-SIGN": sign, "OK-ACCESS-TIMESTAMP": ts,
-         "OK-ACCESS-PASSPHRASE": os.environ["OKX_RO_PASSPHRASE"]}
+    sign = base64.b64encode(hmac.new(_env("OKX_RO_SECRET").encode(), (ts + "GET" + path).encode(), hashlib.sha256).digest()).decode()
+    h = {"OK-ACCESS-KEY": _env("OKX_RO_KEY"), "OK-ACCESS-SIGN": sign, "OK-ACCESS-TIMESTAMP": ts,
+         "OK-ACCESS-PASSPHRASE": _env("OKX_RO_PASSPHRASE")}
+    if demo:
+        h["x-simulated-trading"] = "1"
     for attempt in range(3):
         try:
-            j = httpx.get(BASE + path, headers=h, timeout=12).json()
-            break
+            return httpx.get(base + path, headers=h, timeout=12).json()
         except httpx.TransportError:
             if attempt == 2:
                 raise
             time.sleep(2)
-    if j.get("code") not in ("0", 0):
-        raise RuntimeError(f"OKX {j.get('code')}: {j.get('msg', '')[:120]}")
-    return j.get("data", [])
+
+
+def _get(path):
+    """Podpisane zapytanie GET (jedyny rodzaj zapytania w tym module)."""
+    if _env("OKX_RO_BASE"):
+        sites = [(_env("OKX_RO_BASE").rstrip("/"), _env("OKX_RO_DEMO") == "1")]
+    else:
+        sites = ([_site["ok"]] if _site["ok"] else []) + [x for x in SITES if x != _site["ok"]]
+    first = None
+    for base, demo in sites:
+        try:
+            j = _once(base, demo, path)
+        except Exception as e:
+            first = first or f"{base}: {str(e)[:80]}"
+            continue
+        code = str(j.get("code"))
+        if code == "0":
+            _site["ok"] = (base, demo)
+            return j.get("data", [])
+        if code in ("50119", "50101", "50110") or not code:  # klucz z innej domeny / środowiska – próbuj dalej
+            first = first or f"OKX {code}: {j.get('msg', '')[:100]}"
+            continue
+        raise RuntimeError(f"OKX {code}: {j.get('msg', '')[:120]}")
+    raise RuntimeError((first or "brak odpowiedzi") + " – klucz nie działa na www/eea/us ani w trybie demo. "
+                       "Sprawdź, czy skopiowałeś cały API Key (bez spacji) i czy klucz nie został usunięty.")
 
 
 def _f(x):

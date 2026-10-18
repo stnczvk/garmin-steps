@@ -573,7 +573,7 @@ body.needs-login .side,body.needs-login .vframe,body.needs-login .s-dim{display:
   box-shadow:inset 0 1px 0 var(--lg-hi),var(--lg-sh);transition:width .35s cubic-bezier(.2,.8,.2,1),transform .35s cubic-bezier(.2,.8,.2,1)}
 .s-brand{display:flex;align-items:center;gap:10px;padding:2px 6px 12px}.s-brand img{width:30px;height:30px;border-radius:9px}.s-brand b{font-weight:650;flex:1;white-space:nowrap}
 .s-col{border:0;background:transparent;color:var(--soft);font-size:20px;cursor:pointer;padding:2px 6px;border-radius:8px}
-#snav{display:flex;flex-direction:column;gap:3px;overflow:auto}
+#snav{display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}#snav::-webkit-scrollbar{display:none}#snav button span{min-width:0;overflow:hidden;text-overflow:ellipsis}#snav button{min-width:0}
 #snav button{display:flex;align-items:center;gap:12px;border:0;background:transparent;color:var(--soft);padding:10px 12px;border-radius:14px;font:500 14px Geist,system-ui;cursor:pointer;text-align:left;white-space:nowrap;transition:background .2s,color .2s}
 #snav button i{font-style:normal;width:22px;text-align:center;font-size:16px;flex:none}
 #snav button:hover{background:rgba(255,255,255,.07);color:var(--ink)}

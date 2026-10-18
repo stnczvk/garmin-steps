@@ -536,7 +536,8 @@ async def hook_post(jid: str, what: str, req: Request):
                 push = j
                 shutil.rmtree(VUP / jid, ignore_errors=True)
         elif what == "ask":
-            j.update(ask=[str(t)[:200] for t in (b.get("texts") or [])][:12], state="ask", step="Wybierz zapowiedź", answer=None)
+            j.update(ask=[str(t)[:200] for t in (b.get("texts") or [])][:12], state="ask", step="Wybierz zapowiedź", answer=None,
+                     previews=sorted(int(i) for i in (b.get("previews") or []) if str(i).isdigit()))
             push = "ask"
         _wr("mont_vlog.json", v)
     if push:
@@ -548,6 +549,36 @@ async def hook_post(jid: str, what: str, req: Request):
             res = next((l for l in reversed(j["lines"]) if l.startswith("GOTOWE")), "")
             push_all("🎥 Vlog gotowy w CapCut" if ok else "❌ Montaż vloga nie wyszedł", (res or j["step"])[:150], "/#montazownia", kind="montaz")
     return {"ok": True}
+
+
+VPRE = SOCIAL_ROOT / "vlog_preview"
+
+
+@router.put("/api/mont-hook/{jid}/preview")
+async def hook_preview(jid: str, req: Request, i: int = 0):
+    """Krótki podgląd kandydata na zapowiedź (mp4 360p z Maca) – do wyboru w Montażowni."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    VPRE.mkdir(parents=True, exist_ok=True)
+    for old in sorted(VPRE.iterdir())[:-3]:  # trzymamy podglądy 3 ostatnich montaży
+        if old.name != jid:
+            shutil.rmtree(old, ignore_errors=True)
+    d = VPRE / os.path.basename(jid)
+    d.mkdir(exist_ok=True)
+    size = 0
+    with (d / f"{int(i)}.mp4").open("wb") as f:
+        async for chunk in req.stream():
+            size += len(chunk)
+            if size > 40 * 1048576:
+                return JSONResponse({"error": "za duży"}, status_code=413)
+            f.write(chunk)
+    return {"ok": True}
+
+
+@router.get("/api/mont-vlog/{jid}/preview/{i}")
+def vlog_preview(jid: str, i: int):
+    f = VPRE / os.path.basename(jid) / f"{int(i)}.mp4"
+    return FileResponse(f, media_type="video/mp4") if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
 
 
 @router.get("/api/mont-hook/{jid}/answer")

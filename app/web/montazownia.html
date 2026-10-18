@@ -59,6 +59,9 @@ pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--so
 body.m-office .dash-only{display:none!important}body.m-dash .office-only{display:none!important}
 body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .wsst{position:absolute;left:14px;bottom:12px;font:600 12.5px Geist,system-ui;padding:7px 12px;border-radius:999px;background:rgba(10,10,16,.72);color:#eee;border:1px solid rgba(255,255,255,.12)}
+.hk{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}
+.hko{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.hko video{width:100%;aspect-ratio:9/16;max-height:300px;object-fit:cover;border-radius:10px;background:#000}.hko p{font-size:13px;flex:1}
 .msg{position:fixed;left:50%;bottom:calc(20px + var(--sab,0px));transform:translateX(-50%);background:#16171f;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;z-index:9;display:none;max-width:90vw}
 @media(max-width:900px){.grid,.vid{grid-template-columns:minmax(0,1fr)}.wrap{padding:16px 14px 50px}}
 </style>
@@ -82,18 +85,21 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
   </div>
   <div class="row"><button class="btn pri" id="go" disabled>✂️ Zmontuj</button><button class="btn" id="cancel">Anuluj</button><span class="mut" id="up"></span></div>
  </section>
- <div class="grid dash-only">
-  <section class="glass list"><h2>Montaże</h2><div id="jl"><p class="mut">Ładuję…</p></div></section>
-  <section class="glass" id="det"><p class="mut">Wybierz film z listy.</p></section>
- </div>
- <section class="glass vlog dash-only" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
-  <div id="vform" hidden>
+ <section class="glass dash-only" id="vnew" hidden style="margin-bottom:14px">
+  <h2>Nowy montaż: vlog WNBF</h2>
+  <div id="vform">
    <div class="nf" style="grid-template-columns:120px 160px minmax(0,1fr)"><label>Odcinek nr<input id="vep" type="number" min="1"></label><label>Data nagrania<input id="vd" type="date"></label>
     <label>Klipy<span id="vsrc" class="mut" style="font-size:13px;padding-top:9px"></span></label></div>
    <div class="nf2"><label class="drop" id="vdrop"><input type="file" id="vf" accept="video/*,image/*,.mov,.mp4,.m4v,.png,.jpg,.jpeg" multiple hidden><b>📤 Wyślij klipy z telefonu (opcjonalnie)</b><span id="vfl">albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd</span></label>
     <label class="drop"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="vvo" style="accent-color:#8f7bff;width:18px;height:18px"><b>Dogrywam dziś głos do klipów bez mowy</b></span><span>Tak – klipy bez mowy w normalnej prędkości, do 8 s, każdy na cały ekran. Nie – jak zwykle (przyspieszone, w parach).</span></label></div>
    <div class="row"><button class="btn pri" id="vgo">🎥 Zmontuj odcinek</button><button class="btn" id="vcancel">Anuluj</button><span class="mut" id="vup"></span></div>
   </div>
+ </section>
+ <div class="grid dash-only">
+  <section class="glass list"><h2>Montaże</h2><div id="jl"><p class="mut">Ładuję…</p></div></section>
+  <section class="glass" id="det"><p class="mut">Wybierz film z listy.</p></section>
+ </div>
+ <section class="glass vlog dash-only" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
   <div id="vjobs"><p class="mut">Ładuję…</p></div>
  </section>
 </div>
@@ -149,7 +155,7 @@ async function detail(id,force){
 // ---- nowy montaż: wybór plików → wysyłka → montaż na serwerze ----
 let FC=[],FK=[];
 async function sug(){try{const r=await (await fetch('/api/mont-suggest?d='+($('nd').value||''))).json();DZU=r.dziennik;$('nd').value=r.date;$('nd').dataset.n=r.n;if(!DIRTY){$('t1').value=r.title[0];$('t2').value=r.title[1];$('t3').value=r.title[2]}}catch(e){}}
-$('food').onclick=()=>{setMode('dash');$('newp').hidden=!$('newp').hidden;if(!$('newp').hidden&&!$('t1').value)sug()};
+$('food').onclick=()=>{setMode('dash');$('vnew').hidden=true;$('newp').hidden=!$('newp').hidden;scrollTo({top:0,behavior:'smooth'});if(!$('newp').hidden&&!$('t1').value)sug()};
 $('cancel').onclick=()=>{$('newp').hidden=true};
 $('nd').onchange=sug;
 const mb=n=>(n/1048576).toFixed(n>1e8?0:1)+' MB';
@@ -177,15 +183,17 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
  $('vsrc').textContent=V.loose?`na Macu w _SUROWE/vlog czeka ${V.loose} plików`:'na Macu w _SUROWE/vlog nie ma nowych plików';
  if(!$('vep').value)$('vep').value=V.next_ep||'';if(!$('vd').value)$('vd').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
  const ST2={queued:'czeka na Maca',uploading:'wysyłanie klipów',claimed:'Mac otwiera montaż',working:'montuje się',ask:'czeka na Twój wybór',done:'gotowy w CapCut',error:'błąd'};
- $('vjobs').innerHTML=(V.jobs.length?V.jobs:[]).map(j=>`<div class="g ${j.state==='done'?'ok':j.state==='error'?'bad':'wait'}"><b>Odcinek #${j.ep}</b> · ${esc(j.date)} · ${ST2[j.state]||j.state}${j.step&&j.state!=='done'?' – '+esc(j.step):''}
-  ${j.state==='ask'&&j.ask?`<div style="margin-top:8px">Które zdanie dać na początek jako zapowiedź?</div><div class="row">${j.ask.map((t,i)=>`<button class="btn" data-ans="${i}" data-j="${j.id}">${i+1}. ${esc(t)}</button>`).join('')}<button class="btn" data-ans="none" data-j="${j.id}">— bez zapowiedzi —</button></div>`:''}
+ const vh=(V.jobs.length?V.jobs:[]).map(j=>`<div class="g ${j.state==='done'?'ok':j.state==='error'?'bad':'wait'}"><b>Odcinek #${j.ep}</b> · ${esc(j.date)} · ${ST2[j.state]||j.state}${j.step&&j.state!=='done'?' – '+esc(j.step):''}
+  ${j.state==='ask'&&j.ask?`<div style="margin-top:8px">Które zdanie dać na początek jako zapowiedź?</div><div class="hk">${j.ask.map((t,i)=>`<div class="hko">${(j.previews||[]).includes(i)?`<video src="/api/mont-vlog/${j.id}/preview/${i}" controls playsinline preload="metadata"></video>`:''}<p>${i+1}. ${esc(t)}</p><button class="btn pri" data-ans="${i}" data-j="${j.id}">Wybieram</button></div>`).join('')}</div><div class="row"><button class="btn" data-ans="none" data-j="${j.id}">— bez zapowiedzi —</button></div>`:''}
   ${j.state==='done'?`<pre>${esc((j.lines||[]).filter(l=>/GOTOWE|grafika|wycięte|nie dopasowano|plansza|zapowiedź/.test(l)).join('\n'))}</pre><p class="mut">Otwórz CapCut na Macu – projekt „WNBF AUTO #${j.ep}” czeka. Przejrzyj napisy i liczby na planszy, popraw i wyeksportuj.</p>`:''}
   ${['working','ask','claimed','error'].includes(j.state)&&(j.lines||[]).length?`<details ${j.state==='error'?'open':''}><summary>Postęp (${j.lines.length} linii)</summary><pre>${esc(j.lines.slice(-30).join('\n'))}</pre></details>`:''}
   ${['queued','uploading'].includes(j.state)?`<div class="row"><button class="btn" data-vc="${j.id}">Anuluj</button></div>`:''}</div>`).join('')||'<p class="mut">Jeszcze nie zlecałeś montażu vloga z centrum.</p>';
+ if(vh===vload.h)return;vload.h=vh;$('vjobs').innerHTML=vh;
+ if(V.jobs.some(j=>j.state==='ask')&&!vload.sc){vload.sc=1;window.setMode&&setMode('dash');setTimeout(()=>$('vsec').scrollIntoView({behavior:'smooth',block:'start'}),300)}
  document.querySelectorAll('[data-ans]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.j}/answer`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({choice:b.dataset.ans==='none'?null:+b.dataset.ans})});toast('Wybór wysłany do Maca.');vload()});
  document.querySelectorAll('[data-vc]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.vc}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});vload()})}
-$('vlogb').onclick=()=>{setMode('dash');$('vform').hidden=false;$('vsec').scrollIntoView({behavior:'smooth',block:'start'})};
-$('vcancel').onclick=()=>{$('vform').hidden=true};
+$('vlogb').onclick=()=>{setMode('dash');$('newp').hidden=true;$('vnew').hidden=!$('vnew').hidden;scrollTo({top:0,behavior:'smooth'})};
+$('vcancel').onclick=()=>{$('vnew').hidden=true};
 $('vf').onchange=e=>{VF=[...e.target.files];$('vfl').textContent=VF.length?`${VF.length} plików · ${mb(VF.reduce((s,f)=>s+f.size,0))}`:'albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd';$('vdrop').classList.toggle('has',!!VF.length)};
 $('vgo').onclick=async()=>{const ep=+$('vep').value,date=$('vd').value;if(!ep||!date)return toast('Podaj numer odcinka i datę.');
  if(!VF.length&&!V?.loose&&!confirm('Na Macu w _SUROWE/vlog nie widzę nowych klipów. Montować mimo to (np. klipy są już w „odc '+ep+'”)?'))return;
@@ -193,7 +201,7 @@ $('vgo').onclick=async()=>{const ep=+$('vep').value,date=$('vd').value;if(!ep||!
   if(VF.length){const tot=VF.reduce((s,f)=>s+f.size,0);let done=0;$('vup').innerHTML='Wysyłam…<div class="bar"><i id="vpb"></i></div>';
    for(let i=0;i<VF.length;i++){const f=VF[i];$('vup').firstChild.textContent=`Wysyłam ${i+1}/${VF.length}: ${f.name}`;await put(`/api/mont-vlog/${r.id}/file?name=${encodeURIComponent(f.name)}`,f,p=>{$('vpb').style.width=((done+p*f.size)/tot*100)+'%'});done+=f.size}
    await fetch(`/api/mont-vlog/${r.id}/go`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}
-  toast(V?.online?'Zlecone – Mac zaczyna montaż.':'Zlecone – Mac zacznie, gdy będzie włączony.');$('vform').hidden=true;VF=[];$('vf').value='';$('vup').textContent='';$('vep').value='';vload()}
+  toast(V?.online?'Zlecone – Mac zaczyna montaż.':'Zlecone – Mac zacznie, gdy będzie włączony.');$('vnew').hidden=true;VF=[];$('vf').value='';$('vup').textContent='';$('vep').value='';vload()}
  catch(e){$('vup').textContent='Nie wyszło: '+e.message}$('vgo').disabled=false;window.BUSY=false};
 
 // ---- zakładki Biuro / Dashboard (jak w Agencji) ----

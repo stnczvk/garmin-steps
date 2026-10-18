@@ -180,7 +180,8 @@ def _hx(method, url, **kw):
             return httpx.request(method, url, **kw)
         except httpx.TransportError:
             if attempt == 3:
-                raise
+                from agency import _curl
+                return _curl(method, url, **kw)
             time.sleep(2 * (attempt + 1))
 
 
