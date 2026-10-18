@@ -56,6 +56,9 @@ body{background:transparent}
 .plog{font:12px 'JetBrains Mono',monospace;color:var(--soft);margin-top:10px;display:flex;flex-direction:column;gap:5px}
 .plog .bad{color:var(--fail)}
 .mut{color:var(--faint);font-size:12px}
+.stage3d{padding:0!important;overflow:hidden;margin-bottom:16px;position:relative}
+#c3{display:block;width:100%;height:min(52vh,460px);min-height:300px;cursor:grab;touch-action:none}
+.h3d{position:absolute;top:10px;right:14px;font:11px 'JetBrains Mono',monospace;color:var(--faint)}
 @media(max-width:600px){.wrap{padding:16px 14px 50px}.dots{grid-template-columns:repeat(2,minmax(0,1fr))}.top .btns{margin-left:0;width:100%}.top .btns .btn{flex:1}}
 @media(prefers-reduced-motion:reduce){.orb,.orb:after{animation:none}}
 </style>
@@ -68,9 +71,11 @@ body{background:transparent}
   <div><h1 id="hd">Strażnicy</h1><p id="sub">Każdy pilnuje jednej rzeczy i sprawdza ją co minutę.</p><div class="chips" id="chips"></div></div>
   <div class="btns"><button class="btn" id="test">🔔 Test powiadomień</button><button class="btn" id="run">↻ Sprawdź wszystkich</button></div>
  </div>
+ <div class="stage3d glass"><canvas id="c3" aria-label="Centrala ochrony – ekran każdego strażnika"></canvas><span class="h3d">przeciągnij · kliknij ekran</span></div>
  <div id="areas"></div>
 </div>
 <div id="sheet"><div class="sh glass" id="sh"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -100,12 +105,62 @@ function open_(id){const g=D.guardians.find(x=>x.id===id);
  $('sheet').classList.add('open')}
 $('sheet').onclick=e=>{if(e.target.id==='sheet')$('sheet').classList.remove('open')};
 addEventListener('keydown',e=>{if(e.key==='Escape')$('sheet').classList.remove('open')});
-async function load(run){try{const r=await fetch(run?'/api/guardians/run':'/api/guardians',run?{method:'POST'}:{});if(r.ok){D=await r.json();render()}}catch(e){}}
+async function load(run){try{const r=await fetch(run?'/api/guardians/run':'/api/guardians',run?{method:'POST'}:{});if(r.ok){D=await r.json();render();window.sec3d&&sec3d()}}catch(e){}}
 $('run').onclick=async e=>{e.target.disabled=true;e.target.textContent='Sprawdzam…';await load(true);e.target.disabled=false;e.target.textContent='↻ Sprawdź wszystkich'};
 $('test').onclick=async e=>{e.target.disabled=true;let r;try{r=await (await fetch('/api/social/push/test',{method:'POST'})).json()}catch(x){r={sent:0,subs:0,results:[]}}
  e.target.disabled=false;const bad=(r.results||[]).filter(x=>!x.ok);
  alert(r.subs?`Wysłano na ${r.sent}/${r.subs} urządzeń.`+(bad.length?`\n\nNie doszło:\n`+bad.map(b=>`${b.host}: ${b.code} ${b.err||''}`).join('\n'):'\n\nJeśli nic nie przyszło, sprawdź ustawienia powiadomień w systemie.'):'Żadne urządzenie nie ma włączonych powiadomień.\n\nKliknij 🔔 w nagłówku centrum (na iPhonie: w apce z ekranu początkowego).');load(true)};
 load();setInterval(load,30000);
+// ===== CENTRALA OCHRONY 3D (wybrany wygląd): ekran = strażnik, kolor ramki i pulsu = stan =====
+(function(){
+ if(!window.THREE)return;
+ const cv=$('c3'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.5:2));
+ R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;
+ const scene=new THREE.Scene();scene.background=new THREE.Color('#05070b');
+ const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,200);let az=Math.PI/4+.12,el=.55,zoom=1;
+ function camSet(){cam.position.set(Math.cos(az)*Math.cos(el)*40,Math.sin(el)*40,Math.sin(az)*Math.cos(el)*40);cam.lookAt(0,2.3,-2);cam.zoom=zoom;cam.updateProjectionMatrix()}
+ function size(){const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);const a=w/h,v=w<700?9:7.6;cam.left=-v*a;cam.right=v*a;cam.top=v;cam.bottom=-v;cam.updateProjectionMatrix()}
+ const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:o.r??.7,metalness:o.m??0,emissive:o.e??0,emissiveIntensity:o.ei??1});
+ const add=(m,x,y,z,p=scene)=>{m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;p.add(m);return m};
+ const B=(w,h,d,m,x,y,z,p)=>add(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m),x,y+h/2,z,p);
+ scene.add(new THREE.HemisphereLight(0x6f84b8,0x05060a,.5));const s=new THREE.DirectionalLight(0xc8d2ff,.45);s.position.set(6,14,10);s.castShadow=true;s.shadow.mapSize.set(1024,1024);Object.assign(s.shadow.camera,{left:-14,right:14,top:14,bottom:-14});scene.add(s);
+ const fl=document.createElement('canvas');fl.width=fl.height=256;{const x=fl.getContext('2d');x.fillStyle='#1a1e27';x.fillRect(0,0,256,256);x.strokeStyle='#232836';x.lineWidth=2;for(let i=0;i<=8;i++){x.beginPath();x.moveTo(i*32,0);x.lineTo(i*32,256);x.stroke();x.beginPath();x.moveTo(0,i*32);x.lineTo(256,i*32);x.stroke()}}
+ const ft=new THREE.CanvasTexture(fl);ft.wrapS=ft.wrapT=THREE.RepeatWrapping;ft.repeat.set(4,3);
+ B(18,.2,13,new THREE.MeshStandardMaterial({map:ft,roughness:.55,metalness:.2}),0,-.2,0);B(18,6.6,.3,M('#11151d',{r:.8}),0,0,-6.6);B(.3,6.6,13,M('#11151d',{r:.8}),-9,0,0);
+ // łukowy pulpit operatorów
+ const arc=new THREE.Mesh(new THREE.CylinderGeometry(6.5,6.5,.95,48,1,true,-Math.PI*.28,Math.PI*.56),new THREE.MeshStandardMaterial({color:'#262c39',side:THREE.DoubleSide,metalness:.4,roughness:.4}));arc.position.set(0,.47,3.6);arc.rotation.y=Math.PI;scene.add(arc);
+ const top=new THREE.Mesh(new THREE.RingGeometry(5.9,6.7,48,1,-Math.PI*.28+Math.PI/2,Math.PI*.56),M('#3a4253',{m:.5,r:.3}));top.rotation.x=-Math.PI/2;top.position.set(0,.96,3.6);scene.add(top);
+ function agent(col,x,z,ry){const p=new THREE.Group();add(new THREE.Mesh(new THREE.CylinderGeometry(.26,.32,.75,14),M(col,{r:.55})),0,.62,0,p);const h=add(new THREE.Mesh(new THREE.SphereGeometry(.22,16,12),M('#f0cdb0')),0,1.22,0,p);
+  const ch=M('#23252f');B(.6,.08,.6,ch,0,.45,.1,p);B(.6,.7,.08,ch,0,.5,.4,p);p.position.set(x,0,z);p.rotation.y=ry;scene.add(p);return h}
+ const heads=[-.42,-.14,.14,.42].map((a,i)=>agent(['#ff6b9a','#1fc7a8','#ffb547','#5ab0ff'][i],Math.sin(a)*6.3,3.6-Math.cos(a)*6.3+.9,-a));
+ // makieta systemów
+ B(4,.85,2.4,M('#20252f',{m:.3,r:.4}),5.2,0,4.4);const tb=add(new THREE.Mesh(new THREE.BoxGeometry(3.7,.04,2.1),new THREE.MeshBasicMaterial({color:'#0b2a3a'})),5.2,.88,4.4);
+ const pins=[];for(let i=0;i<8;i++){const x=4+(i%4)*.8,z=3.9+Math.floor(i/4)*1,h=.2+((i*7)%5)*.1;B(.4,h,.4,M('#5a6480',{e:'#1a2a40',ei:.4}),x,.88,z);pins.push(add(new THREE.Mesh(new THREE.SphereGeometry(.08,10,8),new THREE.MeshBasicMaterial({color:'#3ddc84'})),x,.88+h+.14,z))}
+ for(let i=0;i<4;i++){const l=add(new THREE.Mesh(new THREE.BoxGeometry(14,.04,.08),new THREE.MeshBasicMaterial({color:'#3a5fa8'})),0,6.4,-5+i*3);l.castShadow=false}
+ [-6,0,6].forEach(x=>{const p=new THREE.PointLight(0x9fb0ff,.8,8,2);p.position.set(x,5.2,1);scene.add(p)});const wl=new THREE.PointLight(0x4f8bff,1.4,12,2);wl.position.set(0,3,-4.5);scene.add(wl);
+ // ściana ekranów – jeden ekran na strażnika
+ let mons=[];const COL={ok:'#3ddc84',warn:'#f5b25a',fail:'#ff5c6c',idle:'#6b7088'};
+ function draw(m,t){const g=m.g,x=m.x,w=320,h=190,st=COL[g.status||'idle'];x.fillStyle='#050912';x.fillRect(0,0,w,h);x.strokeStyle='rgba(80,110,170,.18)';for(let k=1;k<6;k++){x.beginPath();x.moveTo(0,k*h/6);x.lineTo(w,k*h/6);x.stroke()}
+  x.fillStyle='#d6dcef';x.font='600 21px Geist, system-ui, sans-serif';x.fillText((g.icon||'')+' '+g.name,12,28);x.fillStyle=st;x.beginPath();x.arc(w-20,20,8,0,7);x.fill();
+  x.fillStyle='rgba(166,176,201,.75)';x.font='13px JetBrains Mono, monospace';x.fillText(String(g.msg||'').slice(0,40),12,h-30);x.fillText('sprawdzono '+ago(g.at),12,h-12);
+  x.strokeStyle=st;x.lineWidth=2.5;x.beginPath();for(let j=0;j<=60;j++){const xx=10+j*(w-20)/60,ph=(j+t*25+m.i*7)%18,v=ph<1?-1:ph<2?.7:ph<3?-.25:0;const yy=h*.5+v*h*.26*(g.status==='ok'?1:g.status==='warn'?.6:g.status==='fail'?.08:0);j?x.lineTo(xx,yy):x.moveTo(xx,yy)}x.stroke();
+  if(g.status==='fail'&&Math.sin(t*6)>0){x.strokeStyle='#ff5c6c';x.lineWidth=7;x.strokeRect(3,3,w-6,h-6)}m.tx.needsUpdate=true}
+ function build(){mons.forEach(m=>{scene.remove(m.frame);scene.remove(m.scr)});mons=[];const G=D.guardians,cols=Math.min(6,Math.ceil(G.length/3)),rows=Math.ceil(G.length/cols),W2=15.6/cols,H2=Math.min(1.9,5.6/rows);
+  G.forEach((g,i)=>{const r=Math.floor(i/cols),c=i%cols,x=-7.8+W2/2+c*W2,y=.75+H2/2+(rows-1-r)*(H2+.12);const cvs=document.createElement('canvas');cvs.width=320;cvs.height=190;const tx=new THREE.CanvasTexture(cvs);tx.encoding=THREE.sRGBEncoding;
+   const frame=add(new THREE.Mesh(new THREE.BoxGeometry(W2-.1,H2,.14),M('#0b0e14',{m:.5,r:.3})),x,y,-6.38);const scr=new THREE.Mesh(new THREE.PlaneGeometry(W2-.22,H2-.12),new THREE.MeshBasicMaterial({map:tx,toneMapped:false}));scr.position.set(x,y,-6.3);scr.userData.id=g.id;scene.add(scr);
+   const m={g,i,x:cvs.getContext('2d'),tx,frame,scr};mons.push(m);draw(m,0)})}
+ let sig='';window.sec3d=()=>{const k=D.guardians.map(g=>g.id).join();if(k!==sig){sig=k;build()}mons.forEach(m=>{m.g=D.guardians.find(g=>g.id===m.g.id)||m.g});pins.forEach((p,i)=>p.material.color.set(COL[(D.guardians[i]||{}).status||'idle']))};
+ // sterowanie: obrót, zoom, klik w ekran = szczegóły strażnika
+ const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=null;
+ cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,az,el,m:0};cv.setPointerCapture(e.pointerId)});
+ cv.addEventListener('pointermove',e=>{if(!drag)return;drag.m+=Math.abs(e.movementX)+Math.abs(e.movementY);az=drag.az+(e.clientX-drag.x)*.006;el=Math.max(.2,Math.min(1.1,drag.el+(e.clientY-drag.y)*.004));camSet()});
+ cv.addEventListener('pointerup',e=>{if(drag&&drag.m<6){const r=cv.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mv,cam);const h=ray.intersectObjects(mons.map(m=>m.scr));if(h.length)open_(h[0].object.userData.id)}drag=null});
+ cv.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.7,Math.min(2.6,zoom*(e.deltaY<0?1.1:.9)));camSet()},{passive:false});
+ addEventListener('resize',size);size();camSet();const clock=new THREE.Clock();let k=0;
+ (function loop(){const t=clock.getElapsedTime();if(window.CENTRUM_ACTIVE!==false&&!document.hidden){if(mons.length){for(let j=0;j<2;j++){draw(mons[k%mons.length],t);k++}}
+  heads.forEach((h,i)=>h.rotation.y=Math.sin(t*.6+i)*.4);pins.forEach((p,i)=>p.scale.setScalar(1+.4*Math.max(0,Math.sin(t*4+i))));R.render(scene,cam)}requestAnimationFrame(loop)})();
+})();
+
 </script>
 </body>
 </html>

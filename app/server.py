@@ -174,7 +174,7 @@ def skaner(req: Request):
 STATIC = {"manifest.webmanifest": "application/manifest+json", "icon-192.png": "image/png", "icon-512.png": "image/png",
           "icon-maskable-512.png": "image/png", "apple-touch-icon.png": "image/png", "favicon.png": "image/png",
           "sw.js": "text/javascript", "ikona-180.png": "image/png", "ikona-192.png": "image/png", "ikona-512.png": "image/png",
-          "ikona-maskable-512.png": "image/png", "ikona-64.png": "image/png", "glass.css": "text/css", "glass.js": "text/javascript"}
+          "ikona-maskable-512.png": "image/png", "ikona-64.png": "image/png", "glass.css": "text/css", "glass.js": "text/javascript", "biuro3d_montaz.js": "text/javascript"}
 
 
 @app.get("/{name}")
@@ -182,5 +182,5 @@ def static_file(name: str):
     # ikony i manifest – potrzebne, żeby stronę dało się dodać do Docka / ekranu głównego
     if name not in STATIC:
         return JSONResponse({"error": "nie ma"}, status_code=404)
-    cc = "no-cache" if name in ("sw.js", "glass.css", "glass.js") else "public, max-age=86400"
+    cc = "no-cache" if name in ("sw.js", "glass.css", "glass.js", "biuro3d_montaz.js") else "public, max-age=86400"
     return FileResponse(HERE / "web" / name, media_type=STATIC[name], headers={"Cache-Control": cc})

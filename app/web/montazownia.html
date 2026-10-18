@@ -42,6 +42,9 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--soft);font-size:13px}
 pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--soft);margin-top:8px;max-height:280px;overflow:auto}
 .mut{color:var(--faint);font-size:13px}
 .vlog{margin-top:14px}
+.stage3d{padding:0!important;overflow:hidden;margin-bottom:14px;position:relative}
+#c3{display:block;width:100%;height:min(46vh,420px);min-height:280px;cursor:grab;touch-action:none}
+.h3d{position:absolute;top:10px;right:14px;font:11px 'JetBrains Mono',monospace;color:var(--faint)}
 .nf{display:grid;grid-template-columns:160px repeat(3,minmax(0,1fr));gap:10px}
 .nf2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}
 .nf label,.nf2 label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--faint)}
@@ -59,6 +62,7 @@ pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--so
 <div class="wrap">
  <div class="top"><div><h1>Montażownia</h1><p>Filmy montowane automatycznie. Strażnik montażu sprawdza każdy film, zanim go wrzucisz.</p></div>
   <div class="r"><button class="btn pri" id="food">🍽 Zmontuj jedzenie</button><button class="btn pri" id="vlogb">🎥 Zmontuj vloga</button></div></div>
+ <div class="stage3d glass"><canvas id="c3" aria-label="Warsztat twórcy – biuro Montażowni"></canvas><span class="h3d">przeciągnij · obróć</span></div>
  <section class="glass" id="newp" hidden style="margin-bottom:14px">
   <h2>Nowy montaż: daily jedzenie</h2>
   <div class="nf">
@@ -87,6 +91,8 @@ pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--so
  </section>
 </div>
 <div class="msg" id="msg"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/biuro3d_montaz.js" defer></script>
 <script>
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -100,6 +106,7 @@ async function load(){
  try{D=await (await fetch('/api/mont/jobs')).json()}catch(e){D={ok:false,error:'Brak połączenia z centrum.',jobs:[]}}
  if(!D.ok&&!D.jobs.length){$('jl').innerHTML=`<p class="mut">${esc(D.error)}</p>`;return}
  if(!SEL&&D.jobs[0])SEL=D.jobs[0].id;
+ {const w=D.jobs.find(j=>j.state==='working');window.WS_STATUS=w?('Montuję: '+ttl(w)):D.jobs[0]?('Ostatni: '+ttl(D.jobs[0])):'Montażownia'}
  $('jl').innerHTML=D.jobs.map(j=>`<div class="j ${j.id===SEL?'on':''}" data-id="${j.id}"><span class="dot ${j.state||''}"></span>
   <div><b>${esc(ttl(j))}</b><small>${when(j)} · ${ST[j.state]||j.state||'?'}${j.step&&j.state==='working'?' · '+esc(j.step):''}</small></div>
   ${j.check?`<span class="tag ${j.check.ok?'ok':'bad'}">${j.check.ok?'OK':'uwagi'}</span>`:''}</div>`).join('')||'<p class="mut">Brak montaży.</p>';
