@@ -103,6 +103,12 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .live .ask{margin-top:8px;color:var(--warn)}
 .btn.del{color:#ff8b80;border-color:rgba(255,120,110,.35)}
 @media(max-width:600px){.stp span{font-size:10px}.live .lh small{margin-left:0;width:100%}}
+.vfg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.vfi{border:1px solid var(--line);border-radius:14px;padding:8px;background:rgba(255,255,255,.04)}
+.vfi video{width:100%;aspect-ratio:9/16;border-radius:10px;background:#000;object-fit:contain;display:block}
+.vfi b{display:block;font-size:12.5px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vfi small{display:block;color:var(--faint);font-size:11px}
+.vfi .w{color:var(--warn)}
+@media(max-width:600px){.vfg{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body class="lg">
@@ -141,6 +147,8 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
  </div>
  <section class="glass vlog dash-only s-vlog" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
   <div id="vjobs"><p class="mut">Ładuję…</p></div>
+  <h3 style="margin:18px 0 8px;font-size:14px">🎞 Zmontowane vlogi <span class="mut" style="font-weight:500;font-size:12px">– wyeksportowane z CapCuta, podgląd 720p</span></h3>
+  <div id="vfilms" class="vfg"><p class="mut">Ładuję…</p></div>
   <div id="wz" class="mut" style="margin-top:10px"></div>
   <div id="arch" class="mut" style="margin-top:10px"></div>
  </section>
@@ -310,6 +318,14 @@ setInterval(()=>{if(liveRender.act)liveRender.h=null,liveRender()},1000);
 // ---- usuwanie nieudanych prób (z ich powiadomieniami) ----
 async function mclean(b){const r=await (await fetch('/api/mont-clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json();
  toast(r.ok?`Usunięto ${r.vlog+r.food} ${r.vlog+r.food===1?'próbę':'prób'} i ${r.notifs} powiadomień`:'Nie wyszło');vload.h=null;vload();load()}
+
+// ---- zmontowane vlogi (lekkie kopie z Maca) ----
+async function vfilms(){let r;try{r=await (await fetch('/api/mont-vlog/films')).json()}catch(e){return}
+ const h=(r.films||[]).map(f=>`<div class="vfi"><video src="/api/mont-vlog/film/${encodeURIComponent(f.name)}" controls playsinline preload="metadata"></video>
+  <b title="${esc(f.name)}">${f.kind==='przepis'?'🍳':'🎥'} ${esc(f.name)}</b><small>${new Date(f.mtime*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${f.m?` · ${Math.floor(f.m.dur/60)}:${String(Math.round(f.m.dur%60)).padStart(2,'0')} · ${f.m.lufs??'–'} LUFS`:''}</small>
+  ${f.warnings&&f.warnings.length?`<small class="w">⚠️ ${esc(f.warnings.join('; '))}</small>`:f.warnings?'<small style="color:var(--ok)">✓ strażnik: OK</small>':''}</div>`).join('')||'<p class="mut">Jeszcze nic – po eksporcie z CapCuta Mac wyśle tu podgląd (do ~15 min).</p>';
+ if(h!==vfilms.h){vfilms.h=h;$('vfilms').innerHTML=h}}
+vfilms();setInterval(vfilms,120000);
 vload();setInterval(vload,8000);
 load();setInterval(load,15000);
 </script>

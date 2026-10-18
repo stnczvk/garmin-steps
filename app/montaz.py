@@ -439,6 +439,54 @@ async def hook_wzorzec(req: Request):
     return {"ok": True, "warnings": warns}
 
 
+from social import ROOT as SOCIAL_ROOT  # noqa: E402
+VFILM = SOCIAL_ROOT / "vlog_films"
+
+
+@router.put("/api/mont-hook/film")
+async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: float = 0):
+    """Mac wysyła lekką kopię (720p) gotowego, wyeksportowanego vloga/przepisu – do obejrzenia w Montażowni."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100] or "film"
+    VFILM.mkdir(parents=True, exist_ok=True)
+    tmp = VFILM / (nm + ".part")
+    with tmp.open("wb") as f:
+        async for chunk in req.stream():
+            f.write(chunk)
+    if tmp.stat().st_size < 10000:
+        tmp.unlink(missing_ok=True)
+        return {"ok": False, "error": "pusty plik"}
+    tmp.replace(VFILM / (nm + ".mp4"))
+    M = _rd("mont_vlog_films.json", {})
+    M[nm] = {"name": nm, "kind": kind if kind in ("vlog", "przepis") else "vlog", "mtime": mtime or time.time(), "at": time.time()}
+    keep = sorted(M.values(), key=lambda x: -x["mtime"])[:20]   # 20 najnowszych, starsze kasujemy
+    for x in M.values():
+        if x not in keep:
+            (VFILM / (x["name"] + ".mp4")).unlink(missing_ok=True)
+    _wr("mont_vlog_films.json", {x["name"]: x for x in keep})
+    return {"ok": True}
+
+
+@router.get("/api/mont-vlog/films")
+def vlog_films():
+    M = _rd("mont_vlog_films.json", {})
+    W = {x["name"]: x.get("m") for x in _rd("mont_wzorce.json", {}).get("vlog", [])}
+    C = {x["name"]: x.get("warnings") for x in _rd("mont_vlog_checks.json", [])}
+    out = []
+    for x in sorted(M.values(), key=lambda x: -x["mtime"]):
+        f = VFILM / (x["name"] + ".mp4")
+        if f.is_file():
+            out.append({**x, "size": f.stat().st_size, "m": W.get(x["name"]), "warnings": C.get(x["name"])})
+    return {"films": out}
+
+
+@router.get("/api/mont-vlog/film/{name}")
+def vlog_film(name: str):
+    f = VFILM / (os.path.basename(name) + ".mp4")
+    return FileResponse(f, media_type="video/mp4") if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
+
+
 @router.get("/api/mont-wzorce")
 def wzorce():
     W = _rd("mont_wzorce.json", {})
