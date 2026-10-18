@@ -53,6 +53,12 @@ pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--so
 .drop b{color:var(--ink);font-size:14px}.drop span{overflow-wrap:anywhere}.drop.has{border-color:var(--acc);background:rgba(158,140,252,.08)}
 .bar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:linear-gradient(90deg,#8f7bff,#5b8cff);width:0}
 @media(max-width:900px){.nf,.nf2{grid-template-columns:minmax(0,1fr)}}
+.vt{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:14px}
+.vt button{border:0;background:transparent;color:var(--soft);font:600 12.5px Geist,system-ui;padding:6px 12px;border-radius:8px;cursor:pointer}
+.vt button.on{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.07));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+body.m-office .dash-only{display:none!important}body.m-dash .office-only{display:none!important}
+body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
+.wsst{position:absolute;left:14px;bottom:12px;font:600 12.5px Geist,system-ui;padding:7px 12px;border-radius:999px;background:rgba(10,10,16,.72);color:#eee;border:1px solid rgba(255,255,255,.12)}
 .msg{position:fixed;left:50%;bottom:calc(20px + var(--sab,0px));transform:translateX(-50%);background:#16171f;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;z-index:9;display:none;max-width:90vw}
 @media(max-width:900px){.grid,.vid{grid-template-columns:minmax(0,1fr)}.wrap{padding:16px 14px 50px}}
 </style>
@@ -62,8 +68,9 @@ pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--so
 <div class="wrap">
  <div class="top"><div><h1>Montażownia</h1><p>Filmy montowane automatycznie. Strażnik montażu sprawdza każdy film, zanim go wrzucisz.</p></div>
   <div class="r"><button class="btn pri" id="food">🍽 Zmontuj jedzenie</button><button class="btn pri" id="vlogb">🎥 Zmontuj vloga</button></div></div>
- <div class="stage3d glass"><canvas id="c3" aria-label="Warsztat twórcy – biuro Montażowni"></canvas><span class="h3d">przeciągnij · obróć</span></div>
- <section class="glass" id="newp" hidden style="margin-bottom:14px">
+ <div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ Dashboard</button></div>
+ <div class="stage3d glass office-only"><canvas id="c3" aria-label="Warsztat twórcy – biuro Montażowni"></canvas><span class="h3d">przeciągnij · obróć</span><span class="wsst" id="wsst"></span></div>
+ <section class="glass dash-only" id="newp" hidden style="margin-bottom:14px">
   <h2>Nowy montaż: daily jedzenie</h2>
   <div class="nf">
    <label>Data nagrania<input type="date" id="nd"></label>
@@ -75,11 +82,11 @@ pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--so
   </div>
   <div class="row"><button class="btn pri" id="go" disabled>✂️ Zmontuj</button><button class="btn" id="cancel">Anuluj</button><span class="mut" id="up"></span></div>
  </section>
- <div class="grid">
+ <div class="grid dash-only">
   <section class="glass list"><h2>Montaże</h2><div id="jl"><p class="mut">Ładuję…</p></div></section>
   <section class="glass" id="det"><p class="mut">Wybierz film z listy.</p></section>
  </div>
- <section class="glass vlog" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
+ <section class="glass vlog dash-only" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
   <div id="vform" hidden>
    <div class="nf" style="grid-template-columns:120px 160px minmax(0,1fr)"><label>Odcinek nr<input id="vep" type="number" min="1"></label><label>Data nagrania<input id="vd" type="date"></label>
     <label>Klipy<span id="vsrc" class="mut" style="font-size:13px;padding-top:9px"></span></label></div>
@@ -106,7 +113,7 @@ async function load(){
  try{D=await (await fetch('/api/mont/jobs')).json()}catch(e){D={ok:false,error:'Brak połączenia z centrum.',jobs:[]}}
  if(!D.ok&&!D.jobs.length){$('jl').innerHTML=`<p class="mut">${esc(D.error)}</p>`;return}
  if(!SEL&&D.jobs[0])SEL=D.jobs[0].id;
- {const w=D.jobs.find(j=>j.state==='working');window.WS_STATUS=w?('Montuję: '+ttl(w)):D.jobs[0]?('Ostatni: '+ttl(D.jobs[0])):'Montażownia'}
+ {const w=D.jobs.find(j=>j.state==='working');window.WS_STATUS=w?('Montuję: '+ttl(w)):D.jobs[0]?('Ostatni: '+ttl(D.jobs[0])):'Montażownia';$('wsst').textContent=(w?'⏳ ':'🎬 ')+window.WS_STATUS}
  $('jl').innerHTML=D.jobs.map(j=>`<div class="j ${j.id===SEL?'on':''}" data-id="${j.id}"><span class="dot ${j.state||''}"></span>
   <div><b>${esc(ttl(j))}</b><small>${when(j)} · ${ST[j.state]||j.state||'?'}${j.step&&j.state==='working'?' · '+esc(j.step):''}</small></div>
   ${j.check?`<span class="tag ${j.check.ok?'ok':'bad'}">${j.check.ok?'OK':'uwagi'}</span>`:''}</div>`).join('')||'<p class="mut">Brak montaży.</p>';
@@ -142,7 +149,7 @@ async function detail(id,force){
 // ---- nowy montaż: wybór plików → wysyłka → montaż na serwerze ----
 let FC=[],FK=[];
 async function sug(){try{const r=await (await fetch('/api/mont-suggest?d='+($('nd').value||''))).json();DZU=r.dziennik;$('nd').value=r.date;$('nd').dataset.n=r.n;if(!DIRTY){$('t1').value=r.title[0];$('t2').value=r.title[1];$('t3').value=r.title[2]}}catch(e){}}
-$('food').onclick=()=>{$('newp').hidden=!$('newp').hidden;if(!$('newp').hidden&&!$('t1').value)sug()};
+$('food').onclick=()=>{setMode('dash');$('newp').hidden=!$('newp').hidden;if(!$('newp').hidden&&!$('t1').value)sug()};
 $('cancel').onclick=()=>{$('newp').hidden=true};
 $('nd').onchange=sug;
 const mb=n=>(n/1048576).toFixed(n>1e8?0:1)+' MB';
@@ -177,7 +184,7 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
   ${['queued','uploading'].includes(j.state)?`<div class="row"><button class="btn" data-vc="${j.id}">Anuluj</button></div>`:''}</div>`).join('')||'<p class="mut">Jeszcze nie zlecałeś montażu vloga z centrum.</p>';
  document.querySelectorAll('[data-ans]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.j}/answer`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({choice:b.dataset.ans==='none'?null:+b.dataset.ans})});toast('Wybór wysłany do Maca.');vload()});
  document.querySelectorAll('[data-vc]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.vc}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});vload()})}
-$('vlogb').onclick=()=>{$('vform').hidden=false;$('vsec').scrollIntoView({behavior:'smooth',block:'start'})};
+$('vlogb').onclick=()=>{setMode('dash');$('vform').hidden=false;$('vsec').scrollIntoView({behavior:'smooth',block:'start'})};
 $('vcancel').onclick=()=>{$('vform').hidden=true};
 $('vf').onchange=e=>{VF=[...e.target.files];$('vfl').textContent=VF.length?`${VF.length} plików · ${mb(VF.reduce((s,f)=>s+f.size,0))}`:'albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd';$('vdrop').classList.toggle('has',!!VF.length)};
 $('vgo').onclick=async()=>{const ep=+$('vep').value,date=$('vd').value;if(!ep||!date)return toast('Podaj numer odcinka i datę.');
@@ -188,6 +195,13 @@ $('vgo').onclick=async()=>{const ep=+$('vep').value,date=$('vd').value;if(!ep||!
    await fetch(`/api/mont-vlog/${r.id}/go`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}
   toast(V?.online?'Zlecone – Mac zaczyna montaż.':'Zlecone – Mac zacznie, gdy będzie włączony.');$('vform').hidden=true;VF=[];$('vf').value='';$('vup').textContent='';$('vep').value='';vload()}
  catch(e){$('vup').textContent='Nie wyszło: '+e.message}$('vgo').disabled=false;window.BUSY=false};
+
+// ---- zakładki Biuro / Dashboard (jak w Agencji) ----
+(function(){let m='office';try{m=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}
+ window.setMode=x=>{m=x;document.body.classList.toggle('m-office',x==='office');document.body.classList.toggle('m-dash',x==='dash');
+  document.querySelectorAll('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===x));try{localStorage.setItem('view-'+location.pathname,x)}catch(e){}
+  setTimeout(()=>dispatchEvent(new Event('resize')),30)};
+ document.querySelectorAll('#vt button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));setMode(m)})();
 vload();setInterval(vload,8000);
 load();setInterval(load,15000);
 </script>

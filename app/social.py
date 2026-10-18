@@ -173,8 +173,19 @@ def google_callback(req: Request, code: str = "", state: str = "", error: str = 
     return RedirectResponse("/?ok=youtube")
 
 
+def _hx(method, url, **kw):
+    """Zapytanie z ponowieniem przy zerwanym połączeniu ([Errno 104] itp.)."""
+    for attempt in range(4):
+        try:
+            return httpx.request(method, url, **kw)
+        except httpx.TransportError:
+            if attempt == 3:
+                raise
+            time.sleep(2 * (attempt + 1))
+
+
 def _google_access(acc):
-    r = httpx.post("https://oauth2.googleapis.com/token", data={
+    r = _hx("POST", "https://oauth2.googleapis.com/token", data={
         "client_id": cfg("GOOGLE_CLIENT_ID"), "client_secret": cfg("GOOGLE_CLIENT_SECRET"),
         "refresh_token": acc["refresh_token"], "grant_type": "refresh_token"}, timeout=30).json()
     if "access_token" not in r:
@@ -272,7 +283,7 @@ def ig_callback(req: Request, code: str = "", state: str = "", error: str = "", 
 def _ig_token(key, acc):
     # token ważny 60 dni – odświeżamy, gdy ma ponad 20 dni
     if time.time() - acc.get("token_at", 0) > 20 * 86400:
-        r = httpx.get(f"{IG}/refresh_access_token", params={"grant_type": "ig_refresh_token", "access_token": acc["token"]},
+        r = _hx("GET", f"{IG}/refresh_access_token", params={"grant_type": "ig_refresh_token", "access_token": acc["token"]},
                       timeout=30).json()
         if "access_token" in r:
             acc["token"], acc["token_at"] = r["access_token"], time.time()

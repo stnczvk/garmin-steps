@@ -239,6 +239,12 @@ def g_audit():
     return (OK if age < 8 else WARN), f"ostatni audyt {_ago(h[-1]['at'])}", None
 
 
+def g_okx():
+    from scanner import okx_guard_tick
+    st, msg = okx_guard_tick()
+    return st, msg, None
+
+
 # ---------------------------------------------------------------- lista strażników
 G = [
     ("vps", "Serwer", "infra", "🖥️", "Dysk, pamięć i obciążenie VPS", g_vps),
@@ -256,6 +262,7 @@ G = [
     ("stats", "Statystyki kont", "social", "📊", "Czy dane z YouTube/IG/TikTok się odświeżają", g_stats),
     ("scanner", "Skaner", "skaner", "📡", "Czy skaner działa i skanuje rynek", g_scanner),
     ("risk", "Ryzyko", "skaner", "⚖️", "Czy ekspozycja portfela mieści się w limicie", g_risk),
+    ("okx", "Pozycje OKX", "skaner", "🔒", "Czy SL na OKX zgadza się ze skanerem (tylko odczyt – przesuwasz sam)", g_okx),
     ("journal", "Dziennik", "skaner", "📝", "Czy transakcje dostają notatki po zamknięciu", lambda: (OK, "notatki po każdym zamknięciu", None)),
     ("saudit", "Audyt skanera", "skaner", "🧾", "Czy cotygodniowy audyt się odbył", g_audit),
 ]

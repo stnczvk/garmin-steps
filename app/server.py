@@ -121,7 +121,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html"}
+PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html"}
 
 
 def _page(req: Request, name: str):
@@ -164,6 +164,11 @@ def powiadomienia(req: Request):
 @app.get("/skaner-stats")
 def skaner_stats(req: Request):
     return _page(req, "skaner-stats")
+
+
+@app.get("/skaner-sygnaly")
+def skaner_sygnaly(req: Request):
+    return _page(req, "skaner-sygnaly")
 
 
 @app.get("/skaner")

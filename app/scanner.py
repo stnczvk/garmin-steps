@@ -524,3 +524,99 @@ def journal_backfill():
                 print("journal", ex, flush=True)
     _th.Thread(target=go, daemon=True).start()
     return {"ok": True, "n": len(ids)}
+
+
+# ---------- zakładka „Sygnały”: aktualne sygnały z entry / SL / TP i co z nimi zrobić ----------
+SIG_COLS = "id,created_at,closed_at,symbol,timeframe,direction,status,entry,stop_loss,original_stop_loss,tp1,tp2,tp3,tp4,exit_price,result," \
+           "exit_reason,pnl,tp1_hit,tp2_hit,tp3_hit,break_even_set,position_size_percent,elite_score,risk_reward,market_regime,rank_label,stars," \
+           "max_profit_percent,max_drawdown_percent"
+
+
+def _sig_rows(where, args, limit):
+    try:
+        return _q(f"SELECT {SIG_COLS} FROM trade_signals WHERE is_shadow=0 AND {where} ORDER BY id DESC LIMIT {int(limit)}", args)
+    except sqlite3.OperationalError:  # starsza baza bez części kolumn
+        return _q(f"SELECT * FROM trade_signals WHERE is_shadow=0 AND {where} ORDER BY id DESC LIMIT {int(limit)}", args)
+
+
+def _is_open(r):
+    return not r.get("result") and (r.get("status") or "").upper() not in ("CLOSED", "INVALIDATED", "MISSED", "CANCELLED", "EXPIRED")
+
+
+def _advice(r, price):
+    """Co zrobić z sygnałem – tekst dla człowieka (centrum nic nie zleca)."""
+    st = (r.get("status") or "").upper()
+    sl, e = r.get("stop_loss"), r.get("entry")
+    if not e or not sl:
+        return "Skaner nie zapisał poziomów dla tego sygnału."
+    if r.get("tp2_hit"):
+        return f"TP2 osiągnięty – SL na TP1 ({sl}). Reszta pozycji jedzie do dalszych TP."
+    if r.get("tp1_hit") or r.get("break_even_set"):
+        return f"TP1 osiągnięty – SL na entry ({sl}). Pozycja nie może już zamknąć się stratą."
+    if st in ("PENDING", "WAIT_PULLBACK", "WAITING", "OPEN") and price and e:
+        far = abs(price / e - 1) * 100
+        if far > 0.15:
+            return f"Czeka na wejście: zlecenie limit na {e} (cena {far:.2f}% od entry)."
+    return f"W grze: SL {sl}, cel TP1 {r.get('tp1')}."
+
+
+def _signals_for(base, d):
+    r = _sig_rows("symbol LIKE ? AND UPPER(direction)=? AND created_at >= ?", (base + "/%", d.upper(),
+                  (datetime.utcnow() - timedelta(days=21)).isoformat(" ")), 1)
+    return r[0] if r else None
+
+
+@router.get("/api/scanner/signals")
+def signals():
+    if not os.path.exists(DB):
+        return {"ok": False, "error": f"Nie widzę bazy skanera: {DB}"}
+    since = (datetime.utcnow() - timedelta(days=21)).isoformat(" ")
+    rows = _sig_rows("created_at >= ?", (since,), 120)
+    px = {t["s"]: t["last"] for t in tickers().get("items", [])}
+    act, closed = [], []
+    for r in rows:
+        base = r["symbol"].split("/")[0]
+        p = px.get(base)
+        r["base"], r["price"] = base, p
+        if p and r.get("entry"):
+            sgn = 1 if (r["direction"] or "").upper() == "LONG" else -1
+            r["move"] = round((p / r["entry"] - 1) * 100 * sgn, 2)
+            risk = abs(r["entry"] - (r.get("original_stop_loss") or r["stop_loss"] or r["entry"]))
+            r["r_now"] = round((p - r["entry"]) * sgn / risk, 2) if risk else None
+        if _is_open(r):
+            r["advice"] = _advice(r, p)
+            act.append(r)
+        elif len(closed) < 20:
+            closed.append(r)
+    import okx_watch
+    okx = {"configured": okx_watch.configured()}
+    if okx["configured"]:
+        try:
+            okx = okx_watch.check(_signals_for)
+        except Exception as e:
+            okx = {"configured": True, "ok": False, "error": str(e)[:160], "positions": [], "alerts": []}
+    return {"ok": True, "active": act, "closed": closed, "okx": okx, "at": time.time()}
+
+
+def okx_guard_tick():
+    """Wołane co minutę przez strażnika „Pozycje OKX”: nowe rozbieżności = push (każda raz). Zwraca (status, opis)."""
+    import okx_watch
+    from extra import push_all
+    from social import _read, _write
+    if not okx_watch.configured():
+        return "idle", "dodaj klucz OKX tylko do odczytu (OKX_RO_KEY, OKX_RO_SECRET, OKX_RO_PASSPHRASE w .env)"
+    r = okx_watch.check(_signals_for)
+    if not r.get("ok"):
+        return "warn", "OKX: " + r.get("error", "brak odpowiedzi")[:120]
+    seen = _read("okx_alerts.json", {})
+    now = {a["key"]: time.time() for a in r["alerts"]}
+    for a in r["alerts"]:
+        if a["key"] not in seen:
+            push_all(a["title"], a["body"][:180], "/#skaner-sygnaly", kind="skaner", data={"signal": a["signal"]})
+    _write("okx_alerts.json", {k: seen.get(k, v) for k, v in now.items()})
+    if "trade" in (r.get("perm") or "") or "withdraw" in (r.get("perm") or ""):
+        return "warn", f"klucz OKX ma uprawnienia „{r['perm']}” – utwórz klucz tylko do odczytu"
+    n = len(r["positions"])
+    if r["alerts"]:
+        return "warn", f"{len(r['alerts'])} do zrobienia ręcznie: " + r["alerts"][0]["title"][2:80]
+    return "ok", f"{n} {'pozycja' if n == 1 else 'pozycji'} na OKX · SL zgodne ze skanerem" if n else "brak otwartych pozycji na OKX"

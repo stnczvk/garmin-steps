@@ -485,25 +485,38 @@ Jeśli to spam, hejt, coś obraźliwego, prowokacja polityczna albo nie ma na co
 
 
 def _send(item, text):
-    """Wysyła odpowiedź na platformę. Zwraca (ok, błąd)."""
+    """Wysyła odpowiedź na platformę. Zwraca (ok, błąd). Chwilowe błędy sieci oznacza do ponowienia."""
     from social import _google_access, _ig_token
+    pl = "Instagram" if item.get("platform") == "instagram" else "YouTube"
+    stage = "logowanie"
     try:
         if item.get("platform") == "instagram":
             k, acc = _pz_account("instagram")
+            tok = _ig_token(k, acc)
+            stage = "wysyłka"
             r = http("POST", f"https://graph.instagram.com/{item['id']}/replies", timeout=30,
-                           params={"message": text, "access_token": _ig_token(k, acc)})
+                     params={"message": text, "access_token": tok})
         else:
             _, acc = _pz_youtube()
+            tok = _google_access(acc)
+            stage = "wysyłka"
             r = http("POST", "https://www.googleapis.com/youtube/v3/comments", params={"part": "snippet"}, timeout=30,
-                           headers={"Authorization": "Bearer " + _google_access(acc)},
-                           json={"snippet": {"parentId": item["id"], "textOriginal": text}})
+                     headers={"Authorization": "Bearer " + tok},
+                     json={"snippet": {"parentId": item["id"], "textOriginal": text}})
+        item.pop("retry", None)
         if r.status_code < 300:
             return True, ""
         if r.status_code in (400, 403) and ("scope" in r.text.lower() or "permission" in r.text.lower() or r.status_code == 403):
-            return False, "brak uprawnień – połącz konto ponownie w ustawieniach centrum"
-        return False, r.text[:150]
+            return False, f"{pl}: brak uprawnień – połącz konto ponownie w ustawieniach centrum"
+        if r.status_code >= 500 or r.status_code == 429:
+            item["retry"] = item.get("retry", 0) + 1
+            return False, f"{pl} ({stage}): serwer chwilowo nie odpowiada ({r.status_code}) – ponowię automatycznie"
+        return False, f"{pl} ({stage}): {r.text[:150]}"
     except Exception as e:
-        return False, str(e)[:150]
+        if _transient(e):
+            item["retry"] = item.get("retry", 0) + 1
+            return False, f"{pl} ({stage}): zerwane połączenie – ponowię automatycznie przy następnym sprawdzeniu"
+        return False, f"{pl} ({stage}): {str(e)[:150]}"
 
 
 def _yt_new_comments(I, done):
@@ -580,6 +593,16 @@ def inbox():
                 errs.append(m if m.startswith(name) else f"{name}: {m}")
         auto = s.get("autopilot") and s.get("inbox_auto", True)
         n = sent = 0
+        # szkice, których wysyłka padła na chwilowym błędzie sieci (np. [Errno 104]) – ponów (max 5 razy)
+        for it in I["items"]:
+            if it.get("status") == "draft" and it.get("reply") and (it.get("retry") or "Errno 104" in (it.get("why") or "")) \
+                    and it.get("retry", 0) < 5 and auto and sent_today < DAILY_REPLIES:
+                ok, why = _send(it, it["reply"])
+                if ok:
+                    it["status"], sent_today, sent = "sent", sent_today + 1, sent + 1
+                    it.pop("why", None)
+                else:
+                    it["why"] = why
         for c in new[:20]:
             try:
                 txt = _reply_text(c["video"], c["text"])

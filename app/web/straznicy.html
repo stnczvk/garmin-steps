@@ -59,6 +59,11 @@ body{background:transparent}
 .stage3d{padding:0!important;overflow:hidden;margin-bottom:16px;position:relative}
 #c3{display:block;width:100%;height:min(52vh,460px);min-height:300px;cursor:grab;touch-action:none}
 .h3d{position:absolute;top:10px;right:14px;font:11px 'JetBrains Mono',monospace;color:var(--faint)}
+.vt{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:14px}
+.vt button{border:0;background:transparent;color:var(--soft);font:600 12.5px Geist,system-ui;padding:6px 12px;border-radius:8px;cursor:pointer}
+.vt button.on{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.07));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+body.m-office .dash-only{display:none!important}body.m-dash .office-only{display:none!important}
+body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 @media(max-width:600px){.wrap{padding:16px 14px 50px}.dots{grid-template-columns:repeat(2,minmax(0,1fr))}.top .btns{margin-left:0;width:100%}.top .btns .btn{flex:1}}
 @media(prefers-reduced-motion:reduce){.orb,.orb:after{animation:none}}
 </style>
@@ -71,8 +76,9 @@ body{background:transparent}
   <div><h1 id="hd">Strażnicy</h1><p id="sub">Każdy pilnuje jednej rzeczy i sprawdza ją co minutę.</p><div class="chips" id="chips"></div></div>
   <div class="btns"><button class="btn" id="test">🔔 Test powiadomień</button><button class="btn" id="run">↻ Sprawdź wszystkich</button></div>
  </div>
- <div class="stage3d glass"><canvas id="c3" aria-label="Centrala ochrony – ekran każdego strażnika"></canvas><span class="h3d">przeciągnij · kliknij ekran</span></div>
- <div id="areas"></div>
+ <div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ Dashboard</button></div>
+ <div class="stage3d glass office-only"><canvas id="c3" aria-label="Centrala ochrony – ekran każdego strażnika"></canvas><span class="h3d">przeciągnij · kliknij ekran</span></div>
+ <div id="areas" class="dash-only"></div>
 </div>
 <div id="sheet"><div class="sh glass" id="sh"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -110,6 +116,13 @@ $('run').onclick=async e=>{e.target.disabled=true;e.target.textContent='Sprawdza
 $('test').onclick=async e=>{e.target.disabled=true;let r;try{r=await (await fetch('/api/social/push/test',{method:'POST'})).json()}catch(x){r={sent:0,subs:0,results:[]}}
  e.target.disabled=false;const bad=(r.results||[]).filter(x=>!x.ok);
  alert(r.subs?`Wysłano na ${r.sent}/${r.subs} urządzeń.`+(bad.length?`\n\nNie doszło:\n`+bad.map(b=>`${b.host}: ${b.code} ${b.err||''}`).join('\n'):'\n\nJeśli nic nie przyszło, sprawdź ustawienia powiadomień w systemie.'):'Żadne urządzenie nie ma włączonych powiadomień.\n\nKliknij 🔔 w nagłówku centrum (na iPhonie: w apce z ekranu początkowego).');load(true)};
+
+// ---- zakładki Biuro / Dashboard (jak w Agencji) ----
+(function(){let m='office';try{m=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}
+ window.setMode=x=>{m=x;document.body.classList.toggle('m-office',x==='office');document.body.classList.toggle('m-dash',x==='dash');
+  document.querySelectorAll('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===x));try{localStorage.setItem('view-'+location.pathname,x)}catch(e){}
+  setTimeout(()=>dispatchEvent(new Event('resize')),30)};
+ document.querySelectorAll('#vt button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));setMode(m)})();
 load();setInterval(load,30000);
 // ===== CENTRALA OCHRONY 3D (wybrany wygląd): ekran = strażnik, kolor ramki i pulsu = stan =====
 (function(){
