@@ -469,5 +469,11 @@ function project(p,e){v.copy(p).project(camera);e.style.left=(v.x+1)/2*W()+'px';
  if(MODE!=="dash"&&window.CENTRUM_ACTIVE!==false&&!document.hidden){mini();renderer.render(scene,camera)}requestAnimationFrame(loop)})();
 setMode(MODE);
 </script>
+<script>
+// panel Dashboard zaczyna się zawsze pod nagłówkiem (na telefonie nagłówek łamie się na kilka linii)
+(function(){const h=document.querySelector('header'),d=document.getElementById('dash');if(!h||!d)return;
+ const fit=()=>{d.style.top=Math.ceil(h.getBoundingClientRect().bottom+8)+'px'};
+ try{new ResizeObserver(fit).observe(h)}catch(e){}addEventListener('resize',fit);fit();setTimeout(fit,500)})();
+</script>
 </body>
 </html>
