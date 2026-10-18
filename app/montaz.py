@@ -62,8 +62,11 @@ def _film(d, st):
 @router.get("/api/mont/jobs")
 def jobs():
     out = []
+    hidden = set(_rd("mont_hidden.json", []))
     if JOBS.is_dir():
         for d in sorted((x for x in JOBS.iterdir() if x.is_dir() and JID.match(x.name)), reverse=True)[:30]:
+            if d.name in hidden:
+                continue
             st = _status(d)
             st.pop("log", None)
             st["check"] = _rd("mont_checks.json", {}).get(d.name)
@@ -71,6 +74,35 @@ def jobs():
     return {"ok": JOBS.is_dir(), "jobs": out, "dziennik": DZ_URL, "can_act": bool(os.environ.get("DZIENNIK_PASS")),
             "vlog": _rd("mont_vlog.json", {"helper": None, "jobs": []}),
             "error": None if JOBS.is_dir() else f"Nie widzę montaży Dziennika w {JOBS}"}
+
+
+@router.post("/api/mont-clean")
+async def mont_clean(req: Request):
+    """Usuwa nieudane próby montażu (vlog/przepis z listy, jedzenie – ukrywa) razem z ich powiadomieniami.
+    {"vjob": id} | {"job": id} | {"all_failed": true}"""
+    b = await req.json()
+    vj, fj = set(), set()
+    with _vl:
+        v = _V()
+        for j in v["jobs"]:
+            if j["state"] == "error" and (b.get("all_failed") or j["id"] == b.get("vjob")):
+                vj.add(j["id"])
+        v["jobs"] = [j for j in v["jobs"] if j["id"] not in vj]
+        _wr("mont_vlog.json", v)
+    for jid in vj:
+        shutil.rmtree(VUP / os.path.basename(jid), ignore_errors=True)
+    if JOBS.is_dir():
+        for d in JOBS.iterdir():
+            if d.is_dir() and JID.match(d.name) and (b.get("all_failed") or d.name == b.get("job")) and _status(d).get("state") == "error":
+                fj.add(d.name)
+    if fj:
+        _wr("mont_hidden.json", sorted({*_rd("mont_hidden.json", []), *fj})[-300:])
+    from social import _read as sr, _write as sw
+    N = sr("notifs.json", [])
+    keep = [n for n in N if not ((n.get("data") or {}).get("vjob") in vj or (n.get("data") or {}).get("job") in fj
+                                 or (b.get("all_failed") and n.get("kind") == "montaz" and str(n.get("title", "")).startswith("❌")))]
+    sw("notifs.json", keep)
+    return {"ok": True, "vlog": len(vj), "food": len(fj), "notifs": len(N) - len(keep)}
 
 
 @router.get("/api/mont/{jid}")
@@ -655,7 +687,7 @@ async def hook_post(jid: str, what: str, req: Request):
             ok = j["state"] == "done"
             res = next((l for l in reversed(j["lines"]) if l.startswith("GOTOWE")), "")
             nm = "Przepis" if j.get("kind") == "przepis" else "Vlog"
-            push_all(f"🎥 {nm} gotowy w CapCut" if ok else f"❌ Montaż – {nm.lower()} nie wyszedł", (res or j["step"])[:150], "/#montazownia", kind="montaz")
+            push_all(f"🎥 {nm} gotowy w CapCut" if ok else f"❌ Montaż – {nm.lower()} nie wyszedł", (res or j["step"])[:150], "/#montazownia", kind="montaz", data={"vjob": j["id"]})
     return {"ok": True}
 
 
