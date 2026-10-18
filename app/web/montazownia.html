@@ -188,7 +188,16 @@ $('food').onclick=()=>{setMode('dash');setSec('food');$('vnew').hidden=true;$('n
 $('cancel').onclick=()=>{$('newp').hidden=true};
 $('nd').onchange=sug;
 const mb=n=>(n/1048576).toFixed(n>1e8?0:1)+' MB';
-$('fc').onchange=e=>{FC=[...e.target.files];$('fcl').textContent=FC.length?`${FC.length} klip(y) · ${mb(FC.reduce((s,f)=>s+f.size,0))}`:'';$('dropc').classList.toggle('has',!!FC.length);$('go').disabled=!FC.length};
+// jakość klipów: odczyt rozdzielczości i bitrate tego, co telefon faktycznie oddał (iPhone potrafi skompresować przy wyborze z Galerii)
+function vq(f){return new Promise(ok=>{if(!/^video|\.(mov|mp4|m4v)$/i.test(f.type||f.name))return ok(null);const v=document.createElement('video'),u=URL.createObjectURL(f);v.preload='metadata';v.muted=true;
+ const done=r=>{URL.revokeObjectURL(u);ok(r)};v.onloadedmetadata=()=>done({w:v.videoWidth,h:v.videoHeight,d:v.duration,mbps:v.duration?f.size*8/v.duration/1e6:0});v.onerror=()=>done(null);setTimeout(()=>done(null),6000);v.src=u})}
+async function qualityNote(files,el){const r=(await Promise.all(files.map(vq))).filter(x=>x&&x.w);if(!r.length)return;
+ const minS=Math.min(...r.map(x=>Math.min(x.w,x.h))),minB=Math.min(...r.map(x=>x.mbps));
+ const lbl=minS>=2000?'4K':minS>=1000?'1080p':minS>=700?'720p':minS+'p';
+ const bad=minS<1000||minB<8;
+ el.innerHTML=`<span style="display:block;margin-top:4px;font-weight:600;color:${bad?'var(--fail,#ff7b70)':'var(--ok,#5bd68a)'}">${bad?'⚠️':'✓'} jakość: ${lbl} · min. ${minB.toFixed(0)} Mb/s</span>`+
+  (bad?'<span style="display:block;font-size:12px">Telefon skompresował klipy. Wybierz je jeszcze raz: w Galerii stuknij „Opcje” u góry → „Bieżący” (oryginał), albo zapisz klipy do aplikacji Pliki i wybierz stamtąd.</span>':'')}
+$('fc').onchange=e=>{FC=[...e.target.files];$('fcl').textContent=FC.length?`${FC.length} klip(y) · ${mb(FC.reduce((s,f)=>s+f.size,0))}`:'';$('dropc').classList.toggle('has',!!FC.length);$('go').disabled=!FC.length;if(FC.length){const q=document.createElement('span');$('fcl').appendChild(q);qualityNote(FC,q)}};
 let DZU='',DIRTY=false;['t1','t2','t3'].forEach(id=>$(id).addEventListener('input',()=>DIRTY=true));
 function put(url,file,onp){return new Promise((ok,bad)=>{const x=new XMLHttpRequest();x.open('PUT',url);x.upload.onprogress=e=>onp(e.loaded/e.total);x.onload=()=>x.status<300?ok(JSON.parse(x.responseText)):bad(new Error((JSON.parse(x.responseText||'{}').error)||('HTTP '+x.status)));x.onerror=()=>bad(new Error('przerwane połączenie'));x.send(file)})}
 $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value].map(x=>x.trim()).filter(Boolean);if(!title.length)return toast('Wpisz tytuł.');
@@ -226,7 +235,7 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
 $('przb').onclick=()=>{setMode('dash');setSec('vlog');setKind('przepis');$('newp').hidden=true;$('vnew').hidden=false;scrollTo({top:0,behavior:'smooth'})};
 $('vlogb').onclick=()=>{setMode('dash');setSec('vlog');setKind('vlog');$('newp').hidden=true;$('vnew').hidden=!$('vnew').hidden;scrollTo({top:0,behavior:'smooth'})};
 $('vcancel').onclick=()=>{$('vnew').hidden=true};
-$('vf').onchange=e=>{VF=[...e.target.files];$('vfl').textContent=VF.length?`${VF.length} plików · ${mb(VF.reduce((s,f)=>s+f.size,0))}`:'albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd';$('vdrop').classList.toggle('has',!!VF.length)};
+$('vf').onchange=e=>{VF=[...e.target.files];$('vfl').textContent=VF.length?`${VF.length} plików · ${mb(VF.reduce((s,f)=>s+f.size,0))}`:'albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd';$('vdrop').classList.toggle('has',!!VF.length);if(VF.length){const q=document.createElement('span');$('vfl').appendChild(q);qualityNote(VF,q)}};
 let KIND='vlog';
 function setKind(k){KIND=k;const p=k==='przepis';document.querySelectorAll('.vonly').forEach(e=>e.hidden=p);document.querySelectorAll('.ponly').forEach(e=>e.hidden=!p);
  $('vnh').textContent=p?'Nowy montaż: przepis':'Nowy montaż: vlog WNBF';$('vepl').textContent=p?'Przepis nr':'Odcinek nr';$('vgo').textContent=p?'🍳 Zmontuj przepis':'🎥 Zmontuj odcinek';
