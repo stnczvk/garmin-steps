@@ -113,7 +113,7 @@ function okx(o){const el=$('okx');el.hidden=false;
  if(!o.configured){el.innerHTML=`<b>🔒 Strażnik pozycji OKX</b><p class="mut" style="margin-top:6px">Żeby centrum porównywało Twoje pozycje na OKX ze skanerem i przypominało o przesunięciu SL, utwórz na OKX klucz API z uprawnieniem <b>tylko „Odczyt”</b> i dopisz do <code>/root/social/.env</code>:<br><code>OKX_RO_KEY=…</code> <code>OKX_RO_SECRET=…</code> <code>OKX_RO_PASSPHRASE=…</code>, potem <code>social-update</code>. Centrum nic nie zleca – zmiany robisz sam w aplikacji OKX.</p>`;return}
  if(o.ok===false){el.innerHTML=`<b>🔒 Pozycje OKX</b><p class="neg" style="margin-top:6px">${esc(o.error)}</p>`;return}
  const warn=/trade|withdraw/.test(o.perm||'')?`<p class="al" style="margin:6px 0">Ten klucz ma uprawnienia „${esc(o.perm)}”. Do podglądu wystarczy „Odczyt” – utwórz nowy klucz tylko do odczytu.</p>`:'';
- el.innerHTML=`<b>🔒 Pozycje OKX</b> <span class="mut">tylko odczyt · ${o.positions.length} otwartych</span>${warn}
+ el.innerHTML=`<b>🔒 Pozycje OKX</b> <span class="mut">tylko odczyt · ${o.positions.length} otwartych${o.site?' · '+esc(o.site.replace('https://','')):''} · sprawdzane co minutę</span>${warn}
   ${o.positions.map(p=>`<div class="p"><div><b>${esc(p.base)}</b> <span class="dir ${p.dir[0]}">${p.dir}</span> <span class="mut">x${esc(p.lev)}</span></div>
    <div class="mono"><span class="mut">śr.</span> ${f(p.avg)}</div><div class="mono"><span class="mut">SL</span> ${p.sl.length?p.sl.map(f).join(', '):'<span class="neg">brak</span>'}</div>
    <div class="mono">${sp(p.uplr)}</div><div>${p.alert?`<span class="al">${esc(p.alert)}</span>`:`<span class="mut">${esc(p.note||'')}</span>`}</div></div>`).join('')||'<p class="mut" style="margin-top:6px">Brak otwartych pozycji.</p>'}`}

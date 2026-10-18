@@ -95,7 +95,7 @@ def _fmt(x):
 
 def positions():
     """Otwarte pozycje + SL/TP widoczne na OKX (dołączone do pozycji albo jako zlecenia warunkowe)."""
-    pos = [p for p in _get("/api/v5/account/positions?instType=SWAP") if _f(p.get("pos"))]
+    pos = [p for p in _get("/api/v5/account/positions") if _f(p.get("pos"))]
     sl = {}
     for p in pos:
         for a in p.get("closeOrderAlgo") or []:
@@ -103,7 +103,7 @@ def positions():
                 sl.setdefault(p["instId"], []).append(_f(a["slTriggerPx"]))
     for typ in ("conditional", "oco"):
         try:
-            for a in _get(f"/api/v5/trade/orders-algo-pending?ordType={typ}&instType=SWAP"):
+            for a in _get(f"/api/v5/trade/orders-algo-pending?ordType={typ}"):
                 if _f(a.get("slTriggerPx")):
                     sl.setdefault(a["instId"], []).append(_f(a["slTriggerPx"]))
         except Exception:

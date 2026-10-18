@@ -602,6 +602,12 @@ def signals():
             okx = okx_watch.check(_signals_for)
         except Exception as e:
             okx = {"configured": True, "ok": False, "error": str(e)[:160], "positions": [], "alerts": []}
+    try:
+        from social import _read
+        okx["last"] = _read("okx_last.json", {})
+        okx["site"] = (okx_watch._site.get("ok") or [None])[0]
+    except Exception:
+        pass
     return {"ok": True, "active": act, "closed": closed, "okx": okx, "at": time.time()}
 
 
@@ -613,6 +619,8 @@ def okx_guard_tick():
     if not okx_watch.configured():
         return "idle", "dodaj klucz OKX tylko do odczytu (OKX_RO_KEY, OKX_RO_SECRET, OKX_RO_PASSPHRASE w .env)"
     r = okx_watch.check(_signals_for)
+    _write("okx_last.json", {"at": time.time(), "ok": r.get("ok"), "error": r.get("error"), "n": len(r.get("positions") or []),
+                             "site": (okx_watch._site.get("ok") or [None])[0]})
     if not r.get("ok"):
         return "warn", "OKX: " + r.get("error", "brak odpowiedzi")[:120]
     seen = _read("okx_alerts.json", {})
