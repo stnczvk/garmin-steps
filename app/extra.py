@@ -224,7 +224,8 @@ def detect_alerts(accounts):
             title = f"🔥 Post się rozkręca ({NAMES.get(a['platform'], '')})"
             body = f"„{(p.get('title') or 'Bez opisu')[:70]}” – {v:,} wyświetleń w {age}, {ratio:.0f}× więcej niż zwykle na {a.get('name', '')}".replace(",", " ")
             st["list"].insert(0, {"key": k, "id": p["id"], "title": p.get("title"), "platform": a["platform"], "acc": a.get("name"),
-                                  "views": v, "ratio": round(ratio, 1), "level": lvl, "at": now})
+                                  "views": v, "ratio": round(ratio, 1), "level": lvl, "at": now,
+                                  "url": p.get("url"), "thumb": p.get("thumb"), "date": p.get("date"), "likes": p.get("likes"), "comments": p.get("comments")})
             push_all(title, body, f"/?post={k}|{p['id']}")
     st["list"] = st["list"][:40]
     # stare wpisy (posty starsze niż 30 dni) – zapominamy

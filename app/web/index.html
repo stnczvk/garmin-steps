@@ -548,7 +548,9 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--surface);border:1px
 @keyframes flick{50%{transform:scale(1.15) rotate(-6deg)}}
 .hot b{font-weight:620}
 .hot small{display:block;color:var(--faint);font-size:12px}
-.hot .x{margin-left:auto;font-weight:650;color:var(--warn);white-space:nowrap}
+.hot .x{margin-left:auto;font-weight:650;color:var(--warn);white-space:nowrap;text-align:right}
+.hot .x .more{display:block;font-weight:550;color:var(--faint);font-size:11.5px;margin-top:2px}
+.hot:active{transform:scale(.99)}
 ::selection{background:color-mix(in oklab,var(--accent) 35%,transparent)}
 body{text-rendering:optimizeLegibility}
 @media (max-width:900px){.duo,.duo.rev{grid-template-columns:minmax(0,1fr)}.fstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -1126,7 +1128,7 @@ function openPost(p) {
   const acc = data.accounts[p.key] || {};
   const med = median((acc.posts || []).map(x => x.views || 0));
   const diff = med ? Math.round(((p.views || 0) / med - 1) * 100) : null;
-  const eng = p.views ? ((p.likes || 0) + (p.comments || 0) + (p.shares || 0) + (p.saved || 0)) / p.views * 100 : null;
+  const eng = p.views && p.likes != null ? ((p.likes || 0) + (p.comments || 0) + (p.shares || 0) + (p.saved || 0)) / p.views * 100 : null;
   const rank = (acc.posts || []).slice().sort((a, b) => (b.views || 0) - (a.views || 0)).findIndex(x => x.id === p.id) + 1;
   const tall = p.platform !== 'youtube';
   const cells = [cell(p.likes, 'polubień', 0), cell(p.comments, 'komentarzy', 1), cell(p.shares, 'udostępnień', 2), cell(p.saved, 'zapisań', 3),
@@ -1548,8 +1550,16 @@ function renderAlerts() {
   const fresh = alertList.filter(a => Date.now() / 1000 - a.at < 48 * 3600 && (!group || data?.accounts?.[a.key]?.group === group)).slice(0, 2);
   let el = $('#hots'); if (!el) { el = document.createElement('div'); el.id = 'hots'; $('#msg').after(el); }
   el.innerHTML = fresh.map(a => `<div class="hot" data-k="${esc(a.key)}" data-id="${esc(a.id)}"><span class="fl">🔥</span><span style="min-width:0"><b>„${esc((a.title || 'Bez opisu').slice(0, 70))}” się rozkręca</b>
-    <small>${esc(a.acc)} · ${NAMES[a.platform]} · ${fmt(a.views)} wyświetleń</small></span><span class="x num">${x1(a.ratio)}× więcej niż zwykle</span></div>`).join('');
-  el.querySelectorAll('.hot').forEach(h => h.onclick = () => { const p = findPost(h.dataset.k, h.dataset.id); if (p) openPost(p); });
+    <small>${esc(a.acc)} · ${NAMES[a.platform]} · ${fmt(a.views)} wyświetleń</small></span><span class="x num">${x1(a.ratio)}× więcej niż zwykle<small class="more">statystyki ›</small></span></div>`).join('');
+  el.querySelectorAll('.hot').forEach((h, i) => { h.setAttribute('role', 'button'); h.tabIndex = 0;
+    h.onclick = h.onkeydown = e => { if (e.key && e.key !== 'Enter' && e.key !== ' ') return; openAlert(fresh[i]); }; });
+}
+// post z alertu: pełne dane z konta, a gdy post wypadł już z listy – to, co zapamiętał alert
+function alertPost(a) {
+  return findPost(a.key, a.id) || {id: a.id, key: a.key, platform: a.platform, acc: a.acc, title: a.title, views: a.views, url: a.url || '',
+    thumb: a.thumb, likes: a.likes, comments: a.comments, date: a.date || new Date(a.at * 1000).toISOString().slice(0, 10)};
+}
+function openAlert(a) { if (a) openPost(alertPost(a));
 }
 
 // ---- powiadomienia push
@@ -1583,10 +1593,10 @@ const qs = new URLSearchParams(location.search);
 if (qs.get('blad')) $('#msg').innerHTML = `<div class="note bad">${esc(qs.get('blad'))}</div>`;
 if (qs.get('ok')) $('#msg').innerHTML = `<div class="note good">Konto ${esc(NAMES[qs.get('ok')] || '')} połączone. Statystyki pobierają się w tle.</div>`;
 if (qs.get('blad') || qs.get('ok')) { history.replaceState(null, '', '/'); $('#settings').open = true; }
-load().then(() => {
-  loadReport(); loadInsights(); loadAlerts(); bellState();
+load().then(async () => {
+  loadReport(); loadInsights(); bellState(); await loadAlerts();
   const pq = qs.get('post');
-  if (pq) { const [k, id] = pq.split('|'); const p = findPost(k, id); history.replaceState(null, '', '/'); if (p) setTimeout(() => openPost(p), 400); }
+  if (pq) { const [k, id] = pq.split('|'); const p = findPost(k, id); history.replaceState(null, '', '/'); const a = alertList.find(x => x.key === k && String(x.id) === String(id)); const q = p || (a && alertPost(a)); if (q) setTimeout(() => openPost(q), 400); }
   if (location.hash === '#raport') setTimeout(() => $('#raport').scrollIntoView({behavior: 'smooth', block: 'start'}), 500);
 }).then(loadSettings).catch(() => {});
 </script>
