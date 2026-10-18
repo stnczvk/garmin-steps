@@ -67,7 +67,7 @@ pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--so
   </div>
   <div class="nf2">
    <label class="drop" id="dropc"><input type="file" id="fc" accept="video/*,.mov,.mp4,.m4v" multiple hidden><b>🎞 Wybierz klipy</b><span id="fcl">każdy posiłek = osobny klip, kolejność ustali się po godzinie nagrania</span></label>
-   <label class="drop"><input type="file" id="fk" accept="image/png,image/jpeg" multiple hidden><b>🖼 Karty posiłków (opcjonalnie)</b><span id="fkl">PNG z Dziennika → Udostępnij</span></label>
+   <label class="drop has"><input type="checkbox" id="kd" checked style="accent-color:#8f7bff;width:18px;height:18px"><b>🖼 Karty posiłków z Dziennika</b><span>Jak dotąd: karty z posiłków wpisanych w dzienniku i tytuł z Twoim celem kcal. Po wysłaniu klipów otworzy się na chwilę Dziennik, zrobi karty i sam uruchomi montaż.</span></label>
   </div>
   <div class="row"><button class="btn pri" id="go" disabled>✂️ Zmontuj</button><button class="btn" id="cancel">Anuluj</button><span class="mut" id="up"></span></div>
  </section>
@@ -125,23 +125,26 @@ async function detail(id,force){
 }
 // ---- nowy montaż: wybór plików → wysyłka → montaż na serwerze ----
 let FC=[],FK=[];
-async function sug(){try{const r=await (await fetch('/api/mont-suggest?d='+($('nd').value||''))).json();$('nd').value=r.date;$('t1').value=r.title[0];$('t3').value=r.title[2];$('nd').dataset.n=r.n}catch(e){}}
+async function sug(){try{const r=await (await fetch('/api/mont-suggest?d='+($('nd').value||''))).json();DZU=r.dziennik;$('nd').value=r.date;$('nd').dataset.n=r.n;if(!DIRTY){$('t1').value=r.title[0];$('t2').value=r.title[1];$('t3').value=r.title[2]}}catch(e){}}
 $('food').onclick=()=>{$('newp').hidden=!$('newp').hidden;if(!$('newp').hidden&&!$('t1').value)sug()};
 $('cancel').onclick=()=>{$('newp').hidden=true};
 $('nd').onchange=sug;
 const mb=n=>(n/1048576).toFixed(n>1e8?0:1)+' MB';
 $('fc').onchange=e=>{FC=[...e.target.files];$('fcl').textContent=FC.length?`${FC.length} klip(y) · ${mb(FC.reduce((s,f)=>s+f.size,0))}`:'';$('dropc').classList.toggle('has',!!FC.length);$('go').disabled=!FC.length};
-$('fk').onchange=e=>{FK=[...e.target.files];$('fkl').textContent=FK.length?FK.map(f=>f.name).join(', '):'PNG z Dziennika → Udostępnij';e.target.closest('.drop').classList.toggle('has',!!FK.length)};
+let DZU='',DIRTY=false;['t1','t2','t3'].forEach(id=>$(id).addEventListener('input',()=>DIRTY=true));
 function put(url,file,onp){return new Promise((ok,bad)=>{const x=new XMLHttpRequest();x.open('PUT',url);x.upload.onprogress=e=>onp(e.loaded/e.total);x.onload=()=>x.status<300?ok(JSON.parse(x.responseText)):bad(new Error((JSON.parse(x.responseText||'{}').error)||('HTTP '+x.status)));x.onerror=()=>bad(new Error('przerwane połączenie'));x.send(file)})}
 $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value].map(x=>x.trim()).filter(Boolean);if(!title.length)return toast('Wpisz tytuł.');
- $('go').disabled=true;const all=[...FC.map(f=>['clip',f]),...FK.map(f=>['card',f])],tot=all.reduce((s,[,f])=>s+f.size,0);let done=0;
+ const kd=$('kd').checked;let win=null;if(kd){try{win=window.open('','_blank')}catch(e){}}
+ $('go').disabled=true;const all=FC.map(f=>['clip',f]),tot=all.reduce((s,[,f])=>s+f.size,0);let done=0;
  $('up').innerHTML='Zakładam montaż…<div class="bar"><i id="pb"></i></div>';
- try{const r=await (await fetch('/api/mont-new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,n:+($('nd').dataset.n||0),date:$('nd').value})})).json();if(!r.id)throw new Error(r.error||'nie wyszło');
+ try{const r=await (await fetch('/api/mont-new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,n:+($('nd').dataset.n||0),date:$('nd').value,autotitle:kd&&!DIRTY})})).json();if(!r.id)throw new Error(r.error||'nie wyszło');
   for(let i=0;i<all.length;i++){const [k,f]=all[i];$('up').firstChild.textContent=`Wysyłam ${k==='clip'?'klip':'kartę'} ${i+1}/${all.length}: ${f.name}`;
    await put(`/api/mont/${r.id}/file?kind=${k}&i=${i+1}&name=${encodeURIComponent(f.name)}`,f,p=>{$('pb').style.width=((done+p*f.size)/tot*100)+'%'});done+=f.size}
-  const s=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();if(!s.ok)throw new Error(s.error);
-  toast('Montaż ruszył – zwykle 2–4 minuty. Dam znać powiadomieniem.');$('newp').hidden=true;FC=[];FK=[];$('fc').value='';$('fk').value='';$('fcl').textContent='';$('dropc').classList.remove('has');$('t2').value='';$('up').textContent='';SEL=r.id;J=null;load()}
- catch(e){$('up').textContent='Nie wyszło: '+e.message}
+  if(kd){const url=`${DZU}/#karty-${r.id}-${$('nd').value}`;if(win){win.location=url}else{$('up').innerHTML=`Klipy wysłane. <a class="btn pri" href="${url}" target="_blank" rel="noopener">Dodaj karty z Dziennika i zmontuj</a>`;SEL=r.id;load();return}
+   toast('Klipy wysłane – Dziennik robi karty i uruchamia montaż (2–4 min).')}
+  else{const s=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();if(!s.ok)throw new Error(s.error);
+  toast('Montaż ruszył – zwykle 2–4 minuty. Dam znać powiadomieniem.')}$('newp').hidden=true;FC=[];DIRTY=false;$('fc').value='';$('fcl').textContent='';$('dropc').classList.remove('has');$('t2').value='';$('up').textContent='';SEL=r.id;J=null;load()}
+ catch(e){$('up').textContent='Nie wyszło: '+e.message;if(win)try{win.close()}catch(x){}}
  $('go').disabled=!FC.length};
 load();setInterval(load,15000);
 </script>

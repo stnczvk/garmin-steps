@@ -185,7 +185,8 @@ def suggest(d: str = ""):
         day = datetime.now(ZoneInfo("Europe/Warsaw")).date()
     n = (day - date.fromisoformat(START_DAY)).days + 1
     train = day.weekday() in (0, 2, 5)
-    return {"date": day.isoformat(), "n": n, "title": [f"Redukcja dzień {n}", "", "dzień treningowy" if train else "dzień nietreningowy"]}
+    return {"date": day.isoformat(), "n": n, "dziennik": DZ_URL,
+            "title": [f"Redukcja dzień {n}", "2100 kcal" if train else "2000 kcal", "dzień treningowy" if train else "dzień nietreningowy"]}
 
 
 @router.post("/api/mont-new")
@@ -202,6 +203,7 @@ async def new(req: Request):
     day.mkdir(parents=True)
     (JOBS / jid / "title.json").write_text(json.dumps(title, ensure_ascii=False))
     (JOBS / jid / "status.json").write_text(json.dumps({"state": "uploading", "step": "Wysyłanie klipów…", "src": "centrum",
+                                                       "autotitle": bool(b.get("autotitle")),
                                                        "date": str(b.get("date", ""))[:10], "at": time.time()}))
     # miejsce na dysku: klipy zostają tylko w 2 ostatnich zadaniach (gotowe filmy zostają)
     for d in sorted(x for x in JOBS.iterdir() if x.is_dir() and JID.match(x.name))[:-3]:
