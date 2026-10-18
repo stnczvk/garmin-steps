@@ -128,7 +128,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 </header>
 <div id="feed"></div>
 <div id="models"></div>
-<div id="mini"><div class="t"><span>MAPA</span><span id="zl">100%</span></div><canvas id="mc" width="150" height="100"></canvas><div class="z"><button id="zo">−</button><button id="zi">+</button><button id="zr">⤢</button></div><div class="z"><button id="rl" title="Obróć w lewo">⟲</button><button id="rm" title="Przeciąganie obraca widok">🔄</button><button id="rr" title="Obróć w prawo">⟳</button></div></div>
+<div id="mini"><div class="t"><span>MAPA</span><span id="zl">100%</span></div><canvas id="mc" width="150" height="100"></canvas><div class="z"><button id="zo">−</button><button id="zi">+</button><button id="zr">⤢</button></div><div class="z"><button id="rl" title="Obróć w lewo">⟲</button><button id="rm" title="Przesuwanie widoku (przeciąganie przesuwa zamiast obracać)">✋</button><button id="rr" title="Obróć w prawo">⟳</button></div></div>
 <div id="dash"><div class="dg" id="dg"></div></div>
 <aside id="panel"><div class="ph"><button class="x" id="px">×</button><h2 id="pt"></h2><p id="pd"></p></div><div class="list" id="pl"></div></aside>
 
@@ -170,8 +170,9 @@ el.appendChild(renderer.domElement);
 const scene=new THREE.Scene(),FR=44,camera=new THREE.OrthographicCamera(-1,1,1,-1,1,500);
 const target=new THREE.Vector3(0,0,0),OFF=new THREE.Vector3(60,60,60);
 function setFrustum(){const a=W()/H();camera.left=-FR*a/2;camera.right=FR*a/2;camera.top=FR/2;camera.bottom=-FR/2;camera.updateProjectionMatrix()}
-let AZ=0,ROT=false;const UPV=new THREE.Vector3(0,1,0);
-function placeCam(){camera.position.copy(target).add(OFF.clone().applyAxisAngle(UPV,AZ));camera.lookAt(target);camera.updateMatrixWorld()}
+// widok jak w Montażowni/Strażnikach: przeciąganie obraca (poziomo) i pochyla (pionowo); ✋ albo prawy przycisk = przesuwanie
+let AZ=0,ROT=true;const UPV=new THREE.Vector3(0,1,0),RAD=OFF.length(),AZ0=Math.atan2(OFF.x,OFF.z),EL0=Math.asin(OFF.y/OFF.length());let EL=EL0;
+function placeCam(){const a=AZ0+AZ;camera.position.set(target.x+RAD*Math.cos(EL)*Math.sin(a),target.y+RAD*Math.sin(EL),target.z+RAD*Math.cos(EL)*Math.cos(a));camera.lookAt(target);camera.updateMatrixWorld();window.wallVis&&wallVis()}
 function panBy(dx,dy,k){const R=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0).setY(0).normalize(),U=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1),F=new THREE.Vector3();camera.getWorldDirection(F);F.setY(0).normalize();const sU=Math.max(.2,F.dot(U));target.addScaledVector(R,-dx*k).addScaledVector(F,dy*k/sU);placeCam()}
 const Z0=W()<700?.55:1;camera.zoom=Z0;setFrustum();placeCam();
 
@@ -434,14 +435,17 @@ function renderDash(){if(MODE!=='dash')return;
    ${m.x?`<div class="dx">${esc(m.x)}</div>`:''}</div>`}).join('');
  $('dg').querySelectorAll('.dc').forEach(c=>c.onclick=()=>openPanel(+c.dataset.i))}
 
+// ściany zasłaniające widok (od strony kamery) chowają się przy obracaniu
+{const back=[],left=[];scene.children.forEach(o=>{if(o.isLight||o===camera)return;const p=o.position;if(p.z<-FL/2+1.6&&p.y>.3)back.push(o);else if(p.x<-FL/2+1.6&&p.y>.3)left.push(o)});
+ window.wallVis=()=>{const c=camera.position;back.forEach(o=>o.visible=c.z>-FL/2+2);left.forEach(o=>o.visible=c.x>-FL/2+2)};wallVis()}
 // ===== STEROWANIE =====
 const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=null,hover=-1;
 function pick(e){mv.set(e.clientX/W()*2-1,-(e.clientY/H())*2+1);ray.setFromCamera(mv,camera);const h=ray.intersectObjects(floors);return h.length?h[0].object.userData.i:-1}
 el.addEventListener('contextmenu',e=>e.preventDefault());
-el.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,m:0,rot:ROT||e.button===2||e.shiftKey};el.setPointerCapture(e.pointerId)});
+el.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,m:0,rot:ROT&&e.button!==2&&!e.shiftKey};el.setPointerCapture(e.pointerId)});
 el.addEventListener('pointermove',e=>{
  if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.m+=Math.abs(dx)+Math.abs(dy);drag.x=e.clientX;drag.y=e.clientY;
-  if(drag.m>4){el.classList.add('drag');if(drag.rot){AZ-=dx*.008;placeCam()}else{const k=(camera.top-camera.bottom)/(camera.zoom*H());panBy(dx,dy,k)}}return}
+  if(drag.m>4){el.classList.add('drag');if(drag.rot){AZ-=dx*.006;EL=Math.max(.22,Math.min(1.4,EL+dy*.004));placeCam()}else{const k=(camera.top-camera.bottom)/(camera.zoom*H());panBy(dx,dy,k)}}return}
  hover=pick(e);el.classList.toggle('hov',hover>=0)});
 el.addEventListener('pointerup',e=>{el.classList.remove('drag');if(drag&&drag.m<=4){const i=pick(e);if(i>=0)openPanel(i)}drag=null});
 const setZoom=z=>{camera.zoom=Math.min(3,Math.max(.35,z));camera.updateProjectionMatrix()};
@@ -449,8 +453,8 @@ el.addEventListener('wheel',e=>{e.preventDefault();setZoom(camera.zoom*(e.deltaY
 $('zi').onclick=()=>setZoom(camera.zoom*1.2);$('zo').onclick=()=>setZoom(camera.zoom/1.2);
 function spin(d){const a=AZ,b=AZ+d,t0=performance.now();(function f(n){const k=Math.min(1,(n-t0)/450),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;AZ=a+(b-a)*e;placeCam();if(k<1)requestAnimationFrame(f)})(t0)}
 $('rl').onclick=()=>spin(Math.PI/4);$('rr').onclick=()=>spin(-Math.PI/4);
-$('rm').onclick=()=>{ROT=!ROT;$('rm').classList.toggle('on',ROT);$('rm').title=ROT?'Przeciąganie obraca (kliknij, by przesuwać)':'Przeciąganie obraca widok'};
-$('zr').onclick=()=>{AZ=0;target.set(0,0,0);placeCam();setZoom(Z0)};
+$('rm').onclick=()=>{ROT=!ROT;$('rm').classList.toggle('on',!ROT);$('rm').title=ROT?'Przesuwanie widoku (przeciąganie przesuwa zamiast obracać)':'Przesuwanie włączone – kliknij, by znów obracać'};
+$('zr').onclick=()=>{AZ=0;EL=EL0;target.set(0,0,0);placeCam();setZoom(Z0)};
 addEventListener('resize',()=>{renderer.setSize(W(),H());setFrustum();stars()});
 
 // minimapa
