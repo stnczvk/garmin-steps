@@ -848,6 +848,16 @@ body{text-rendering:optimizeLegibility}
 [data-theme="light"] section.stack:empty:not([hidden]){background-image:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.8) 50%,transparent 70%),linear-gradient(rgba(10,10,20,.05),rgba(10,10,20,.05)),linear-gradient(rgba(10,10,20,.05),rgba(10,10,20,.05)),linear-gradient(rgba(10,10,20,.05),rgba(10,10,20,.05)),linear-gradient(rgba(10,10,20,.05),rgba(10,10,20,.05))}
 [data-theme="light"] .ctip{box-shadow:0 12px 30px -12px rgba(10,10,20,.25)}
 [data-theme="light"] .daypick button[aria-pressed="true"]{box-shadow:0 0 0 4px color-mix(in srgb,var(--dc) 12%,transparent)}
+
+/* clay effect (wersja A, tylko ciemny motyw) */
+:root:not([data-theme="light"]) .card,:root:not([data-theme="light"]) .ex,:root:not([data-theme="light"]) .meal,:root:not([data-theme="light"]) .stat,:root:not([data-theme="light"]) .rules,:root:not([data-theme="light"]) .plan-card,:root:not([data-theme="light"]) .hist-item,:root:not([data-theme="light"]) .qrow-wrap{border-radius:26px!important;border:0!important;
+ background:linear-gradient(160deg,#1B1D24,#121318)!important;
+ box-shadow:inset 0 2px 1px rgba(255,255,255,.07),inset 0 -6px 14px rgba(0,0,0,.45),0 14px 30px -14px rgba(0,0,0,.9),0 2px 0 rgba(158,140,252,.05)!important}
+:root:not([data-theme="light"]) .btn{border-radius:18px!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.35),inset 0 -4px 8px rgba(60,30,160,.45),0 10px 22px -10px rgba(126,105,245,.8)!important}
+:root:not([data-theme="light"]) .btn.ghost{background:linear-gradient(160deg,#23262F,#17191F)!important;border:0!important;box-shadow:inset 0 2px 1px rgba(255,255,255,.08),inset 0 -4px 8px rgba(0,0,0,.5),0 8px 18px -10px rgba(0,0,0,.9)!important}
+:root:not([data-theme="light"]) .seg{border-radius:18px!important;border:0!important;background:#111216!important;box-shadow:inset 0 3px 8px rgba(0,0,0,.6),inset 0 -1px 0 rgba(255,255,255,.04)!important}
+:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{border-radius:14px!important;background:linear-gradient(160deg,#2A2D38,#1D1F27)!important;box-shadow:inset 0 2px 1px rgba(255,255,255,.1),0 6px 14px -8px rgba(0,0,0,.9)!important}
+:root:not([data-theme="light"]) .rnd{box-shadow:inset 0 2px 1px rgba(255,255,255,.08),inset 0 -4px 8px rgba(0,0,0,.5),0 6px 14px -8px rgba(0,0,0,.9)!important;border:0!important}
 </style>
 
 <div class="wrap">
