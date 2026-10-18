@@ -625,6 +625,7 @@ body.v-ext .head{position:relative;flex:none}
   <nav id="snav">
     <button data-v="home"><i>🏠</i><span>Ekran główny</span></button>
     <button data-v="straznicy"><i>🛡️</i><span>Strażnicy</span><em class="s-badge" id="gbadge"></em></button>
+    <button data-v="powiadomienia"><i>🔔</i><span>Powiadomienia</span><em class="s-badge" id="nbadge"></em></button>
     <div class="s-grp">Social media</div>
     <button data-v="stats"><i>📊</i><span>Statystyki</span></button>
     <button data-v="agencja"><i>🤖</i><span>Agencja AI</span></button>
@@ -1257,7 +1258,7 @@ $('#theme').onclick = e => {
 setTheme(document.documentElement.dataset.theme || 'auto');
 
 // widoki z menu bocznego: Ekran główny / Statystyki / Agencja AI / Pipeline / Skaner (osobne strony w iframe, ładowane raz)
-const VIEWS = ['home', 'straznicy', 'stats', 'agencja', 'pozaskala', 'skaner', 'skaner-stats'];
+const VIEWS = ['home', 'straznicy', 'powiadomienia', 'stats', 'agencja', 'pozaskala', 'skaner', 'skaner-stats'];
 function setView(v, push) {
   v = VIEWS.includes(v) ? v : 'home';
   document.querySelectorAll('#snav button').forEach(x => x.dataset.v === v ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
@@ -1299,9 +1300,26 @@ function sizeApp() {
 addEventListener('resize', sizeApp); addEventListener('orientationchange', () => setTimeout(sizeApp, 300));
 $('#vframe').addEventListener('load', sizeApp, true);
 sizeApp();
-addEventListener('message', e => { if (e.origin !== location.origin || !e.data) return; if (e.data.go) setView(e.data.go, true); if (e.data.setTheme) setTheme(e.data.setTheme, true); });
+addEventListener('message', e => { if (e.origin !== location.origin || !e.data) return; if (e.data.go) setView(e.data.go, true); if (e.data.setTheme) setTheme(e.data.setTheme, true);
+  if (typeof e.data.notifs === 'number') nBadgeSet(e.data.notifs); });
 document.body.classList.add('lg');
-setView(location.hash.slice(1));
+// #powiadomienia=ID (kliknięcie w push) – otwiera konkretne powiadomienie
+function route() {
+  const [v, id] = location.hash.slice(1).split('=');
+  setView(v);
+  if (v === 'powiadomienia' && id) {
+    const f = $('#vframe').querySelector('iframe[data-v="powiadomienia"]');
+    const send = () => f.contentWindow.postMessage({open: id}, location.origin);
+    if (f.contentDocument?.readyState === 'complete') setTimeout(send, 100); else f.addEventListener('load', () => setTimeout(send, 300), {once: true});
+    history.replaceState(null, '', '#powiadomienia');
+  }
+}
+route(); addEventListener('hashchange', route);
+function nBadgeSet(n) { const b = $('#nbadge'); b.className = 's-badge' + (n ? ' w' : ''); b.textContent = n ? (n > 99 ? '99+' : n) : ''; }
+async function nBadge() { try { const r = await fetch('/api/notifs?limit=1'); if (r.ok) nBadgeSet((await r.json()).unread); } catch (e) {} }
+nBadge(); setInterval(nBadge, 60000);
+// Statystyki: serwer odświeża konta co godzinę – widok dociąga nowe liczby co 10 min (tylko gdy jest otwarty)
+setInterval(() => { if (!document.hidden && !document.body.classList.contains('v-ext') && !document.body.classList.contains('needs-login')) load().catch(() => {}); }, 600000);
 // licznik problemów strażników w menu
 async function gBadge() { try { const r = await fetch('/api/guardians'); if (!r.ok) return; const c = (await r.json()).count; const b = $('#gbadge');
   b.className = 's-badge ' + (c.fail ? 'f' : c.warn ? 'w' : ''); b.textContent = c.fail || c.warn || ''; } catch (e) {} }

@@ -521,12 +521,12 @@ def refresh():
 
 
 def _scheduler():
-    # co godzinę YouTube i Instagram (żeby szybko złapać post, który się rozkręca); TikTok (płatny Apify) raz dziennie
+    # co godzinę YouTube, Instagram i TikTok (darmowa metoda); z płatnym Apify TikTok raz na 6 h, żeby nie palić kredytów
     time.sleep(120)
     n = 0
     while True:
         try:
-            refresh_all(tiktok=(n % 24 == 0))
+            refresh_all(tiktok=(not cfg("APIFY_TOKEN") or n % 6 == 0))
         except Exception as e:
             print("social refresh error", e, flush=True)
         n += 1

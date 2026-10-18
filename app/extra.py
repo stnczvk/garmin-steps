@@ -67,7 +67,28 @@ def _vapid():
     return str(pem), base64.urlsafe_b64encode(raw).decode().rstrip("=")
 
 
-def push_all(title, body, url="/"):
+def _kind(url):
+    h = (url or "").split("#")[-1]
+    return {"skaner": "skaner", "pozaskala": "pozaskala", "agencja": "agencja", "straznicy": "straznicy"}.get(h, "social" if "post=" in (url or "") or h == "raport" else "inne")
+
+
+def notify_store(title, body, url="/", kind=None, data=None):
+    """Każde powiadomienie trafia też do centrum powiadomień w apce (nawet gdy push nie dojdzie)."""
+    L = _read("notifs.json", [])
+    nid = (L[-1]["id"] + 1) if L else 1
+    L.append({"id": nid, "t": time.time(), "title": title[:120], "body": (body or "")[:600], "url": url,
+              "kind": kind or _kind(url), "data": data or {}, "read": False})
+    _write("notifs.json", L[-400:])
+    return nid
+
+
+def push_all(title, body, url="/", kind=None, data=None):
+    try:
+        nid = notify_store(title, body, url, kind, data)
+        if url in ("/", "") or url.startswith("/#"):
+            url = f"/#powiadomienia={nid}"
+    except Exception:
+        pass
     subs = _read("push.json", [])
     if not subs:
         return 0
@@ -101,6 +122,23 @@ def push_all(title, body, url="/"):
     log.append({"t": time.time(), "title": title[:80], "sent": sent, "subs": len(subs), "results": results})
     _write("push_log.json", log[-60:])
     return sent
+
+
+@router.get("/api/notifs")
+def notifs(limit: int = 150, kind: str = ""):
+    L = [n for n in _read("notifs.json", []) if not kind or n["kind"] == kind]
+    return {"items": L[::-1][:limit], "unread": sum(1 for n in _read("notifs.json", []) if not n["read"])}
+
+
+@router.post("/api/notifs/read")
+async def notifs_read(req: Request):
+    b = await req.json()
+    L = _read("notifs.json", [])
+    for n in L:
+        if b.get("all") or n["id"] == b.get("id"):
+            n["read"] = True
+    _write("notifs.json", L)
+    return {"ok": True, "unread": sum(1 for n in L if not n["read"])}
 
 
 @router.get("/api/social/push/key")

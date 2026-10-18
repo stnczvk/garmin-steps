@@ -72,6 +72,18 @@ def _rate(rows):
             "pnl": round(sum(r.get("pnl") or 0 for r in closed), 2)}
 
 
+@router.get("/api/scanner/signal/{sid}")
+def signal(sid: int):
+    """Pełny zapis jednego sygnału (do centrum powiadomień)."""
+    if not os.path.exists(DB):
+        return {"ok": False, "error": "brak bazy skanera"}
+    try:
+        r = _q("SELECT * FROM trade_signals WHERE id=?", (sid,))
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:150]}
+    return {"ok": bool(r), "signal": r[0] if r else None}
+
+
 @router.get("/api/scanner/state")
 def state(force: int = 0):
     if _cache["data"] and not force and time.time() - _cache["t"] < 20:
@@ -291,10 +303,10 @@ def _watch():
                     if prev is None and not first:
                         push_all(f"📈 Sygnał: {sym} {r['direction']}",
                                  f"elite {r['elite_score']:.0f} · entry {r['entry']} · SL {r['stop_loss']} · TP1 {r['tp1']} · {r['position_size_percent'] or '?'}%",
-                                 "/#skaner")
+                                 "/#skaner", kind="skaner", data={"signal": r["id"]})
                     if r["result"] and prev != r["result"] and not first:
                         icon = "✅" if r["result"] in WIN else "➖" if r["result"] == "BREAK_EVEN" else "❌"
-                        push_all(f"{icon} {sym} {r['direction']}: {r['result']}", f"PnL {r['pnl']:+.2f}%", "/#skaner")
+                        push_all(f"{icon} {sym} {r['direction']}: {r['result']}", f"PnL {r['pnl']:+.2f}%", "/#skaner", kind="skaner", data={"signal": r["id"]})
                         _th.Thread(target=journal_entry, args=(r["id"],), daemon=True).start()
                     S[k] = r["result"] or ""
                 _write("scanner_seen.json", dict(sorted(S.items(), key=lambda kv: -int(kv[0]))[:200]))
