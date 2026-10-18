@@ -130,6 +130,22 @@ def notifs(limit: int = 150, kind: str = ""):
     return {"items": L[::-1][:limit], "unread": sum(1 for n in _read("notifs.json", []) if not n["read"])}
 
 
+@router.post("/api/notifs/delete")
+async def notifs_delete(req: Request):
+    """Kasowanie: jedno (id), z jednej kategorii (kind), przeczytane (read) albo wszystkie (all)."""
+    b = await req.json()
+    L = _read("notifs.json", [])
+    if b.get("all"):
+        keep = [n for n in L if b.get("kind") and n["kind"] != b["kind"]]
+    elif b.get("read"):
+        keep = [n for n in L if not n["read"] or (b.get("kind") and n["kind"] != b["kind"])]
+    else:
+        ids = set(b.get("ids") or [b.get("id")])
+        keep = [n for n in L if n["id"] not in ids]
+    _write("notifs.json", keep)
+    return {"ok": True, "deleted": len(L) - len(keep), "unread": sum(1 for n in keep if not n["read"])}
+
+
 @router.post("/api/notifs/read")
 async def notifs_read(req: Request):
     b = await req.json()

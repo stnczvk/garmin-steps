@@ -42,14 +42,17 @@ body{background:transparent}
 .go{display:inline-block;margin-top:10px;font-size:13px;color:var(--acc);text-decoration:none}
 .up{color:var(--ok)}.down{color:var(--bad)}
 .empty{color:var(--faint);padding:30px 4px;text-align:center}
-@media(max-width:600px){.wrap{padding:16px 14px 50px}.n{grid-template-columns:34px minmax(0,1fr)}.n time{grid-column:2;order:3}}
+.n{position:relative}.n .x{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(255,255,255,.06);color:var(--faint);font-size:18px;line-height:1;cursor:pointer;opacity:.55}.n:hover .x,.n.open .x{opacity:1}.n .x:hover{background:rgba(255,92,108,.2);color:#ff8a95}
+.n time{margin-right:30px}.n.gone{opacity:0;transform:translateX(30px);transition:.2s}
+.top .r{display:flex;gap:6px;flex-wrap:wrap}.btn.danger{border-color:rgba(255,92,108,.4);color:#ff8a95}
+@media(max-width:600px){.n .x{opacity:1}.n time{margin-right:0}.top .r .btn{font-size:12px;padding:7px 10px}.wrap{padding:16px 14px 50px}.n{grid-template-columns:34px minmax(0,1fr)}.n time{grid-column:2;order:3}}
 </style>
 </head>
 <body class="lg">
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <div class="top"><div><h1>Powiadomienia</h1><p id="sub">Wszystko, co centrum wysłało na telefon – także gdy push nie doszedł.</p></div>
-  <div class="r"><button class="btn" id="all">✓ Oznacz wszystkie jako przeczytane</button></div></div>
+  <div class="r"><button class="btn" id="all">✓ Przeczytane</button><button class="btn" id="delr">🗑 Usuń przeczytane</button><button class="btn danger" id="dela">Usuń wszystkie</button></div></div>
  <div class="chips" id="chips"></div>
  <div id="list"><div class="empty">Ładuję…</div></div>
 </div>
@@ -74,9 +77,10 @@ function render(){
   if(day!==last){h+=`<div class="day">${day===new Date().toLocaleDateString('pl',{weekday:'long',day:'numeric',month:'long'})?'Dziś':esc(day)}</div>`;last=day}
   h+=`<div class="n glass ${n.read?'':'unread'} ${OPEN===n.id?'open':''}" data-id="${n.id}"><span class="ic">${(K[n.kind]||K.inne)[1]}</span>
    <div><h3>${esc(n.title)}</h3><p>${esc(n.body)}</p></div><time>${d.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}</time>
+   <button class="x" data-del="${n.id}" title="Usuń" aria-label="Usuń powiadomienie">×</button>
    <div class="more" id="m${n.id}"></div></div>`});
  $('list').innerHTML=h;
- $('list').querySelectorAll('.n').forEach(el=>el.onclick=e=>{if(e.target.closest('a'))return;toggle(+el.dataset.id)});
+ $('list').querySelectorAll('.n').forEach(el=>el.onclick=e=>{if(e.target.closest('a'))return;const x=e.target.closest('[data-del]');if(x){del(+x.dataset.del,el);return}toggle(+el.dataset.id)});
  if(OPEN)fill(OPEN);
 }
 async function toggle(id,force){
@@ -91,14 +95,19 @@ async function fill(id){
  if(n.data?.signal){m.innerHTML='<p class="why">Ładuję sygnał…</p>';
   let r;try{r=await (await fetch('/api/scanner/signal/'+n.data.signal)).json()}catch(e){r={ok:false,error:'brak połączenia'}}
   if(!r.ok){m.innerHTML=`<p class="why">Nie da się wczytać sygnału: ${esc(r.error||'')}</p>${link}`;return}
-  const s=r.signal,pick=['symbol','direction','entry','stop_loss','tp1','tp2','tp3','elite_score','score','position_size_percent','leverage','timeframe','result','pnl','created_at','closed_at'];
-  const lab={symbol:'Para',direction:'Kierunek',entry:'Entry',stop_loss:'Stop loss',tp1:'TP1',tp2:'TP2',tp3:'TP3',elite_score:'Elite score',score:'Score',position_size_percent:'Wielkość pozycji %',leverage:'Dźwignia',timeframe:'Interwał',result:'Wynik',pnl:'PnL %',created_at:'Utworzony',closed_at:'Zamknięty'};
+  const s=r.signal,pick=['symbol','direction','entry_min','entry_max','entry','stop_loss','tp1','tp2','tp3','elite_score','score','position_size_percent','leverage','timeframe','result','pnl','created_at','closed_at'];
+  const lab={symbol:'Para',direction:'Kierunek',entry_min:'Strefa od',entry_max:'Strefa do',entry:'Entry (środek)',stop_loss:'Stop loss',tp1:'TP1',tp2:'TP2',tp3:'TP3',elite_score:'Elite score',score:'Score',position_size_percent:'Wielkość pozycji %',leverage:'Dźwignia',timeframe:'Interwał',result:'Wynik',pnl:'PnL %',created_at:'Utworzony',closed_at:'Zamknięty'};
   const cells=pick.filter(k=>s[k]!=null&&s[k]!=='').map(k=>`<div><small>${lab[k]}</small><b class="${k==='pnl'?(s.pnl>=0?'up':'down'):k==='direction'?(s.direction==='LONG'?'up':'down'):''}">${fmt(s[k],k==='pnl'?2:6)}</b></div>`).join('');
   const txt=Object.entries(s).filter(([k,v])=>typeof v==='string'&&v.length>40&&!pick.includes(k)).map(([k,v])=>`<b>${esc(k)}</b>\n${esc(v.slice(0,1500))}`).join('\n\n');
   m.innerHTML=`<div class="sig">${cells}</div>${txt?`<div class="why">${txt}</div>`:''}${link}`;return}
  m.innerHTML=link;
 }
 addEventListener('message',e=>{if(e.origin!==location.origin)return;if(e.data?.open){F='';const id=+e.data.open;const go=()=>toggle(id,true);D?go():load().then(go)}});
+async function del(id,el){el.classList.add('gone');await post('/api/notifs/delete',{id});setTimeout(load,220)}
+async function post(u,b){try{return await (await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json()}catch(e){return{}}}
+const scope=()=>F?` z kategorii „${K[F][0]}”`:'';
+$('delr').onclick=async()=>{const n=D.items.filter(x=>x.read&&(!F||x.kind===F)).length;if(!n)return;if(!confirm(`Usunąć ${n} przeczytanych powiadomień${scope()}?`))return;await post('/api/notifs/delete',{read:true,kind:F});load()};
+$('dela').onclick=async()=>{const n=D.items.filter(x=>!F||x.kind===F).length;if(!n)return;if(!confirm(`Usunąć wszystkie (${n}) powiadomienia${scope()}? Tego nie da się cofnąć.`))return;await post('/api/notifs/delete',{all:true,kind:F});OPEN=null;load()};
 $('all').onclick=async()=>{await fetch('/api/notifs/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({all:true})});load()};
 load();setInterval(load,30000);
 </script>
