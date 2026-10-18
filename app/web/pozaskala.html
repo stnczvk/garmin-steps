@@ -69,6 +69,7 @@ svg{display:block;min-width:960px;width:100%;height:auto}
 @media(max-width:820px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.flow,.loop,.lane.running .node rect,.dot.running{animation:none}}
 html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
+.trs{display:flex;flex-direction:column;gap:4px;margin-top:6px}.tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:12.5px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.04)}.tr small{grid-column:1/-1;color:var(--faint);font:11px 'JetBrains Mono',monospace;overflow-wrap:anywhere}.tr.zero b{color:#F5B25A}.tr.bad b{color:#FF5C6C}
 </style>
 <link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 </head>
@@ -160,7 +161,7 @@ function list(){
  $('exT').textContent=L?`Uruchomienia: ${L.title}`:'Ostatnie uruchomienia';$('all').hidden=!L;
  $('exl').innerHTML=ex.slice(0,14).map(e=>{const dur=e.stoppedAt?Math.round((new Date(e.stoppedAt)-new Date(e.startedAt))/1000):null;
   const bad=['error','crashed'].includes(e.status);
-  return`<div class="ex${bad?' click':''}"${bad?` data-e="${esc(e.id)}"`:''}><span class="dot ${e.status}"></span><span>${esc(e.workflow)} <span style="color:var(--faint)">· ${ST[e.status]||e.status}</span></span><span class="d">${dur==null?'…':dur<120?dur+' s':Math.round(dur/60)+' min'}</span><time>${new Date(e.startedAt).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time></div>${bad?`<div class="exd" id="d${esc(e.id)}" hidden></div>`:''}`}).join('')||'<div class="empty">Brak uruchomień.</div>';
+  return`<div class="ex click" data-e="${esc(e.id)}"><span class="dot ${e.status}"></span><span>${esc(e.workflow)} <span style="color:var(--faint)">· ${ST[e.status]||e.status}</span></span><span class="d">${dur==null?'…':dur<120?dur+' s':Math.round(dur/60)+' min'}</span><time>${new Date(e.startedAt).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time></div><div class="exd" id="d${esc(e.id)}" hidden></div>`}).join('')||'<div class="empty">Brak uruchomień.</div>';
  $('exl').querySelectorAll('.ex.click').forEach(r=>r.onclick=()=>detail(r.dataset.e));
  $('wfl').innerHTML=state.workflows.slice().sort((a,b)=>b.active-a.active||a.name.localeCompare(b.name)).map(w=>
   `<div class="wf"><span>${esc(w.name)}</span><span class="tag ${w.active?'':'no'}">${w.active?'aktywny':'wyłączony'}</span><small>${w.nodes} node'ów${w.schedules.length?' · ⏰ '+esc(w.schedules.map(s=>s.time||s.cron||s.every).join(', ')):''}</small>
@@ -210,13 +211,16 @@ async function act(b,url,okMsg,ask){
 }
 async function detail(id){
  const d=$('d'+id);if(!d)return;if(!d.hidden){d.hidden=true;return}
- d.hidden=false;d.textContent='Sprawdzam, co poszło nie tak…';
+ d.hidden=false;d.textContent='Pobieram przebieg…';
  try{const r=await (await fetch('/api/n8n/execution/'+id)).json();
   if(!r.ok){d.textContent='Nie da się pobrać szczegółów: '+(r.error||'');return}
   const hint=/quota|insufficient|billing|429|rate limit/i.test(r.message+r.description)?'<br>💡 Wygląda na brak środków / limit w API – po doładowaniu kliknij „Ponów”.':'';
-  d.innerHTML=`<b>${esc(r.node||'Błąd')}</b>: ${esc(r.message||'brak opisu')}${r.description?'<br>'+esc(r.description):''}${hint}
-   <div class="acts"><button class="go" data-retry="${esc(id)}">↻ Ponów od miejsca błędu</button>${r.workflowId?`<button data-rerun="${esc(r.workflowId)}">▶ Uruchom od nowa</button>`:''}</div>`;
-  d.querySelector('[data-retry]').onclick=e=>{e.stopPropagation();act(e.target,'/api/n8n/retry/'+id,'Ponowiono – sprawdź uruchomienia za chwilę.')};
+  const tr=(r.trace||[]).map(t=>`<div class="tr ${t.error?'bad':t.items?'':'zero'}"><span>${esc(t.node)}</span><b>${t.error?'błąd':t.items+' el.'}</b>${t.error?`<small>${esc(t.error)}</small>`:t.sample?`<small>${esc(t.sample)}</small>`:''}</div>`).join('');
+  const z=(r.trace||[]).find(t=>!t.items&&!t.error);
+  d.innerHTML=(r.message?`<b>${esc(r.node||'Błąd')}</b>: ${esc(r.message)}${r.description?'<br>'+esc(r.description):''}${hint}`:(z?`💡 Dane kończą się na <b>${esc(z.node)}</b> – ten krok nic nie przekazał dalej.`:'✓ Wszystkie kroki przekazały dane.'))+
+   `<details ${r.message?'':'open'} style="margin-top:8px"><summary>Przebieg krok po kroku (${(r.trace||[]).length})</summary><div class="trs">${tr}</div></details>
+   <div class="acts">${r.message?`<button class="go" data-retry="${esc(id)}">↻ Ponów od miejsca błędu</button>`:''}${r.workflowId?`<button data-rerun="${esc(r.workflowId)}">▶ Uruchom od nowa</button>`:''}</div>`;
+  const rt=d.querySelector('[data-retry]');if(rt)rt.onclick=e=>{e.stopPropagation();act(e.target,'/api/n8n/retry/'+id,'Ponowiono – sprawdź uruchomienia za chwilę.')};
   const rr=d.querySelector('[data-rerun]');if(rr)rr.onclick=e=>{e.stopPropagation();act(e.target,'/api/n8n/run/'+r.workflowId,'Uruchomiono od nowa.')};
  }catch(e){d.textContent='Brak połączenia z centrum.'}
 }

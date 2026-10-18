@@ -326,6 +326,94 @@ def _probe(f):
     return dur, probs, warns
 
 
+# ---------- nauka strażnika: wzorce z Twoich gotowych filmów ----------
+def measure(f, ff="ffmpeg"):
+    """Głośność (LUFS), tempo cięć (zmian ujęć na minutę), cisza i długość – te same liczby liczy pomocnik na Macu."""
+    out = subprocess.run([ff, "-hide_banner", "-nostats", "-i", str(f), "-vf", "scale=160:-2,select='gt(scene,0.3)',showinfo",
+                          "-af", "ebur128,silencedetect=noise=-45dB:d=2.5", "-f", "null", "-"],
+                         capture_output=True, text=True, timeout=1800).stderr
+    m = re.search(r"Duration: (\d+):(\d+):([\d.]+)", out)
+    dur = int(m[1]) * 3600 + int(m[2]) * 60 + float(m[3]) if m else 0
+    lufs = re.findall(r"I:\s+(-?[\d.]+) LUFS", out)
+    cuts = len(re.findall(r"pts_time:", out))
+    sil = sum(float(x) for x in re.findall(r"silence_duration: ([\d.]+)", out))
+    return {"dur": round(dur, 1), "lufs": float(lufs[-1]) if lufs else None, "cpm": round(cuts / dur * 60, 1) if dur else 0,
+            "sil": round(sil / dur * 100, 1) if dur else 0}
+
+
+def _q(vals, p):
+    v = sorted(x for x in vals if x is not None)
+    return v[min(len(v) - 1, int(p * (len(v) - 1) + .5))] if v else None
+
+
+def baseline(kind):
+    W = [x["m"] for x in _rd("mont_wzorce.json", {}).get(kind, [])]
+    if len(W) < 3:
+        return None
+    return {k: (_q([w.get(k) for w in W], .1), _q([w.get(k) for w in W], .5), _q([w.get(k) for w in W], .9)) for k in ("dur", "lufs", "cpm", "sil")} | {"n": len(W)}
+
+
+def compare(m, kind):
+    """Uwagi, gdy film wyraźnie odstaje od Twoich gotowych filmów tego rodzaju."""
+    b = baseline(kind)
+    if not b:
+        return [], None
+    w = []
+    lo, med, hi = b["lufs"]
+    if m.get("lufs") is not None and med is not None and abs(m["lufs"] - med) > 3:
+        w.append(f"głośność {m['lufs']:.0f} LUFS – Twoje gotowe filmy mają ok. {med:.0f} ({'za cicho' if m['lufs'] < med else 'za głośno'})")
+    lo, med, hi = b["cpm"]
+    if med and m.get("cpm") is not None and (m["cpm"] < lo * .7 or m["cpm"] > hi * 1.3):
+        w.append(f"tempo {m['cpm']:.0f} cięć/min – zwykle {lo:.0f}–{hi:.0f} ({'wolniej' if m['cpm'] < lo else 'szybciej'} niż Twoje filmy)")
+    lo, med, hi = b["dur"]
+    if med and (m["dur"] < lo * .7 or m["dur"] > hi * 1.3):
+        w.append(f"długość {m['dur']:.0f} s – zwykle {lo:.0f}–{hi:.0f} s")
+    lo, med, hi = b["sil"]
+    if m.get("sil", 0) > max(5, (hi or 0) * 1.5):
+        w.append(f"cisza przez {m['sil']:.0f}% filmu – w gotowych zwykle do {hi:.0f}%")
+    return w, b
+
+
+def _btxt(b):
+    return (f"Wzorzec z {b['n']} Twoich gotowych filmów: długość {b['dur'][0]:.0f}–{b['dur'][2]:.0f} s, głośność ok. {b['lufs'][1]:.0f} LUFS, "
+            f"{b['cpm'][0]:.0f}–{b['cpm'][2]:.0f} cięć/min.") if b else ""
+
+
+@router.post("/api/mont-hook/wzorzec")
+async def hook_wzorzec(req: Request):
+    """Pomocnik na Macu zgłasza gotowy film (vlog WNBF albo jedzenie) – strażnik uczy się z niego i sprawdza nowe eksporty."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    kind = "vlog" if b.get("kind") == "vlog" else "jedzenie"
+    name, m, mt = str(b.get("name", ""))[:120], b.get("m") or {}, float(b.get("mtime") or 0)
+    if not m.get("dur"):
+        return {"ok": False}
+    W = _rd("mont_wzorce.json", {})
+    L = W.setdefault(kind, [])
+    if any(x["name"] == name for x in L):
+        return {"ok": True, "known": True}
+    warns, base = compare(m, kind)
+    L.append({"name": name, "m": m, "mtime": mt, "at": time.time()})
+    W[kind] = L[-60:]
+    _wr("mont_wzorce.json", W)
+    if kind == "vlog" and base and time.time() - mt < 3 * 86400:  # świeży eksport – raport strażnika
+        from extra import push_all
+        V = _rd("mont_vlog_checks.json", [])
+        V.append({"name": name, "m": m, "warnings": warns, "at": time.time()})
+        _wr("mont_vlog_checks.json", V[-30:])
+        push_all("🎬 Strażnik: " + name + (" – OK" if not warns else " – uwagi"),
+                 "Zgodny z Twoimi gotowymi vlogami." if not warns else "; ".join(warns)[:170], "/#montazownia", kind="montaz")
+    return {"ok": True, "warnings": warns}
+
+
+@router.get("/api/mont-wzorce")
+def wzorce():
+    W = _rd("mont_wzorce.json", {})
+    return {k: {"n": len(W.get(k, [])), "base": baseline(k), "names": [x["name"] for x in W.get(k, [])][-8:]} for k in ("vlog", "jedzenie")} | \
+        {"vlog_checks": _rd("mont_vlog_checks.json", [])[-6:][::-1]}
+
+
 def check(jid):
     d = _job(jid)
     st = _status(d) if d else {}
@@ -333,6 +421,12 @@ def check(jid):
     if not f:
         return None
     dur, probs, warns = _probe(f)
+    try:
+        mm = measure(f)
+        w2, base = compare(mm, "jedzenie")
+        warns += w2
+    except Exception:
+        mm, base = {}, None
     res = {"at": time.time(), "duration": round(dur), "problems": probs, "warnings": warns, "ok": not probs, "review": "", "fix": ""}
     day = next(d.glob("dzien_*"), None)
     rap = (day / "raport.txt").read_text(encoding="utf-8")[:3000] if day and (day / "raport.txt").exists() else ""
@@ -343,7 +437,7 @@ def check(jid):
             txt = claude("Jesteś strażnikiem montażu krótkich filmów „daily jedzenie” (TikTok/Reels, po polsku). "
                          "Dostajesz raport automatycznych cięć i transkrypcję klipów. Sprawdź: czy nie zostały powtórzone zdania, "
                          "czy nie wycięto czegoś ważnego, czy kolejność posiłków ma sens, czy są przekleństwa/pomyłki.\n\n"
-                         f"Tytuł: {' / '.join(st.get('title') or [])}\nDługość: {dur:.0f} s\n\nRAPORT:\n{rap}\n\nTRANSKRYPCJA:\n{tr}\n\n"
+                         f"Tytuł: {' / '.join(st.get('title') or [])}\nDługość: {dur:.0f} s\n{_btxt(base)}\n\nRAPORT:\n{rap}\n\nTRANSKRYPCJA:\n{tr}\n\n"
                          'Odpowiedz JSON: {"ok": true/false, "review": "2-3 zdania oceny po polsku", '
                          '"fix": "jeśli coś trzeba poprawić – polecenie dla montażysty po polsku (np. wytnij w klipie 2 drugie podejście do zdania o obiedzie), inaczej pusty"}',
                          max_tokens=500)
@@ -354,6 +448,7 @@ def check(jid):
                 res["ok"] = False
     except Exception as e:
         res["review"] = f"(ocena AI niedostępna: {str(e)[:80]})"
+    res["m"] = mm
     C = _rd("mont_checks.json", {})
     C[jid] = res
     _wr("mont_checks.json", dict(sorted(C.items())[-40:]))

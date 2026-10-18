@@ -212,8 +212,20 @@ def execution(eid: str):
             for x in runs or []:
                 if x.get("error"):
                     node, msg, desc = nm, x["error"].get("message", ""), x["error"].get("description") or ""
-    return {"ok": True, "status": e.get("status"), "node": node, "message": msg[:600], "description": str(desc)[:600],
-            "workflowId": e.get("workflowId")}
+    # przebieg: ile elementów wyszło z każdego node'a (gdzie dane „znikają” przy wyniku „brak danych”)
+    trace = []
+    for nm, runs in (res.get("runData") or {}).items():
+        for x in runs or []:
+            outs = ((x.get("data") or {}).get("main") or [])
+            n = sum(len(o or []) for o in outs)
+            first = next((o[0].get("json") for o in outs if o), None)
+            smp = json.dumps(first, ensure_ascii=False)[:180] if first else ""
+            smp = re.sub(r'("?(?:access_token|token|key|secret)"?\s*[:=]\s*")[^"]+', r"\1…", smp, flags=re.I)
+            trace.append({"node": nm, "items": n, "t": x.get("startTime") or 0, "ms": x.get("executionTime"),
+                          "error": (x.get("error") or {}).get("message", "")[:200], "sample": smp})
+    trace.sort(key=lambda r: r["t"])
+    return {"ok": True, "status": e.get("status"), "node": node if msg else None, "message": msg[:600], "description": str(desc)[:600],
+            "workflowId": e.get("workflowId"), "trace": trace}
 
 
 # ---------- edycja: eksport, wgranie nowej wersji workflow (z kopią), przywracanie ----------

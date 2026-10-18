@@ -141,12 +141,12 @@ const DEPTS=[
  {name:'Skrypty',sub:'Scenariusz w generatorze n8n',color:'#e0a92e',icon:'✍️',agents:[
   {n:'Scenarzysta',m:'GPT-4.1',s:'n8n · Message a model',id:'wf:^generator$'},{n:'Sędzia n8n',m:'GPT-4.1-mini',s:'n8n · Judge Script',id:'wf:^generator$'}]},
  {name:'Publikacja',sub:'YouTube + Instagram',color:'#c94fc0',icon:'📲',agents:[
-  {n:'Publisher',m:'n8n',s:'n8n · Publisher',id:'wf:^publisher$'},{n:'Planer',m:'Sonnet',s:'monthly-content-planner',soon:1}]},
+  {n:'Publisher',m:'n8n',s:'n8n · Publisher',id:'wf:^publisher$'},{n:'Planer',m:'Sonnet',s:'plan tygodnia w sloty SAFE/EXPERIMENT · nd 18:00',id:'planner'}]},
  {name:'Kreacja',sub:'Lektor, kadry, scena wideo, montaż',color:'#7a5ce0',icon:'🎨',agents:[
   {n:'Lektor',m:'OpenAI TTS',s:'n8n · lektor',id:'wf:^generator$'},{n:'Grafik',m:'OpenAI',s:'n8n · zdjęcie',id:'wf:^generator$'},
   {n:'Kling',m:'Kling',s:'n8n · scena wideo',id:'wf:^generator$'},{n:'Montażysta',m:'FFmpeg',s:'n8n · Montaż film',id:'wf:^montaż film$'}]},
  {name:'Analityka',sub:'Wyniki, retencja i pętla zwrotna',color:'#2fb3a5',icon:'📊',panel:'analytics',agents:[
-  {n:'Analityk',m:'n8n',s:'Analytics Collector',id:'wf:^analytics collector$'},{n:'Retencja',m:'Sonnet',s:'krzywa oglądania YT → lekcje',id:'retention'},{n:'Test A/B',m:'',s:'hook A vs B → utrzymanie 3 s',id:'on'},{n:'Raporty',m:'Haiku',s:'centrum · raport tygodnia',id:'on'}]},
+  {n:'Analityk',m:'n8n',s:'Analytics Collector',id:'wf:^analytics collector$'},{n:'Retencja',m:'Sonnet',s:'krzywa oglądania YT → lekcje',id:'retention'},{n:'Test A/B',m:'',s:'hook A vs B → utrzymanie 3 s',id:'on'},{n:'Raporty',m:'Haiku',s:'centrum · raport tygodnia',id:'on'},{n:'Recykler',m:'Sonnet',s:'kontynuacje najlepszych filmów · śr 18:00',id:'recycle'}]},
  {name:'Kontrola jakości',sub:'Ocena i poprawki scenariusza przed nagraniem',color:'#d94b4b',icon:'🛡️',panel:'qa',agents:[
   {n:'Kontroler',m:'Sonnet',s:'ocena 1–10 + fakty',id:'qa'},{n:'Hook Master',m:'Sonnet',s:'hook-generator',id:'qa'},{n:'Technik',m:'FFmpeg',s:'czarne klatki, cisza, długość',id:'tech'}]},
  {name:'Automatyzacje',sub:'Sterowanie n8n i autopilot',color:'#3fae5a',icon:'⚙️',panel:'ops',agents:[
@@ -157,7 +157,7 @@ const DEPTS=[
   {n:'Analityk prywatnych',m:'Sonnet',s:'performance-analyst',id:'private'},{n:'Doradca treści',m:'Sonnet',s:'social-content + hook-generator',id:'private'}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
-const AG_NAMES={scout:'Trend Scout',trends:'Kopiarz trendów',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox',private:'Analityk prywatnych'};
+const AG_NAMES={scout:'Trend Scout',trends:'Kopiarz trendów',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox',private:'Analityk prywatnych',planner:'Planer',recycle:'Recykler'};
 const AG_DEPT={trends:0,scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7,private:8};
 
 // ===== SCENA =====
@@ -189,7 +189,7 @@ function skyTex(){return tex(512,512,(x,W2,H2)=>{const gr=x.createLinearGradient
  while(px<W2){const bw=W2*(.05+r()*.07),bh=H2*(.25+r()*.45);x.fillStyle='rgba(40,22,30,.88)';x.fillRect(px,H2-bh,bw,bh);for(let yy=H2-bh+6;yy<H2-4;yy+=9)for(let xx=px+3;xx<px+bw-3;xx+=7)if(r()<.25){x.fillStyle='rgba(255,215,140,.9)';x.fillRect(xx,yy,3,4)}px+=bw+2}})}
 
 const rooms=[],agents=[],floors=[],walkers=[],packets=[];
-const DESKS=[[-1.5,-1.3],[1.6,-1.3],[-1.5,1.5],[1.6,1.5]];
+const DESKS=[[-1.5,-1.3],[1.6,-1.3],[-1.5,1.5],[1.6,1.5]],DESKS5=[[-2.25,-1.3],[0,-1.3],[2.25,-1.3],[-1.2,1.5],[1.2,1.5]];
 function figure(color,s=1){const g=new THREE.Group(),bm=mat(color,{roughness:.55});
  const b=new THREE.Mesh(new THREE.CylinderGeometry(.22*s,.3*s,.75*s,14),bm);b.position.y=.38*s;
  const h=new THREE.Mesh(new THREE.SphereGeometry(.22*s,16,12),mat(0xf0cdb0,{roughness:.6}));h.position.y=.98*s;
@@ -226,7 +226,7 @@ DEPTS.forEach((d,i)=>{
  const rug=box(7,.08,6.4,mat(tint(c,.25,0x222222),{roughness:1}),0,.04,0,g);rug.userData.i=i;floors.push(rug);
  box(6.4,.09,5.8,mat(tint(c,.05,0x000000),{roughness:1}),0,.05,0,g);
  d.agents.forEach((ag,k)=>{
-  const [dx,dz]=DESKS[k],wood=mat(0x8a6a4c,{roughness:.55});
+  const [dx,dz]=(d.agents.length>4?DESKS5:DESKS)[k],wood=mat(0x8a6a4c,{roughness:.55});
   box(2,.1,.95,wood,dx,1.0,dz,g);[[-.9,-.4],[.9,-.4],[-.9,.4],[.9,.4]].forEach(([u,w])=>box(.07,.95,.07,mat(0x2b2b33),dx+u,.5,dz+w,g));
   box(1.2,.72,.06,mat(0x15161d),dx,1.5,dz-.32,g);box(.08,.3,.08,mat(0x15171f),dx,1.18,dz-.32,g);
   const sm=new THREE.MeshBasicMaterial({color:0x222633});const scr=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.62),sm);scr.position.set(dx,1.5,dz-.285);g.add(scr);
@@ -284,8 +284,13 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  $('pt').innerHTML=`${d.icon} ${d.name}`;$('pd').textContent=d.sub;
  let h=d.agents.map(agRow).join('');
  if(d.panel==='research'&&A){
+  const PL=A.plan||{};
+  h+=`<div class="sec"><h3>Plan tygodnia<button class="btn" id="go-plan">${A.busy.planner?'Układa…':'Ułóż teraz'}</button></h3>`+
+   ((PL.text||[]).map(l=>`<div class="tp used"><div><b>${esc(l)}</b></div></div>`).join('')||'<p class="mut">Planer układa tematy z kolejki na 7 dni w sloty 🛡 SAFE (publikacja 0:00) i 🧪 EXPERIMENT (21:00) – w niedziele o 18:00.</p>')+
+   (PL.at?`<small class="mut">${ago(PL.at)} temu</small>`:'')+
+   `<h3>Recykler<button class="btn" id="go-rec">${A.busy.recycle?'Szuka…':'Dorzuć kontynuacje'}</button></h3><p class="mut">Śr. 18:00 – bierze najlepsze filmy i dokłada 3 tematy na tym samym mechanizmie (oznaczone ♻️).</p></div>`;
   h+=`<div class="sec"><h3>Kolejka tematów (${A.queue.length})<button class="btn" id="go-res">${A.busy.scout?'Szuka…':'Szukaj teraz'}</button></h3>`+
-   (A.queue.map(t=>`<div class="tp"><div><b>${t.source==='trend'?'🔥 ':''}${esc(t.topic)}</b><small>${esc(t.pillar||t.category)} · ${esc(t.hook)}</small><small class="why">${esc(t.why)}</small></div>
+   (A.queue.map(t=>`<div class="tp"><div><b>${t.source==='trend'?'🔥 ':t.source==='recykler'?'♻️ ':''}${esc(t.topic)}</b><small>${t.plan?'🗓 '+esc(t.plan)+' · ':''}${esc(t.pillar||t.category)} · ${esc(t.hook)}</small><small class="why">${esc(t.why)}</small></div>
     <span class="acts"><button title="Następny" data-t="${t.id}" data-a="top">⬆</button><button title="Pomiń" data-t="${t.id}" data-a="skip">✕</button></span></div>`).join('')||'<p class="mut">Pusto – Trend Scout dorzuci tematy rano albo gdy generator poprosi.</p>')+
    `<h3>Trendy w niszy<button class="btn" id="go-tr">${A.busy.trends?'Szuka…':'Sprawdź trendy'}</button></h3><p class="mut">Pon. i czw. 5:00 – najpopularniejsze Shorts z niszy z 7 dni → nowe tematy z tym samym mechanizmem.</p>`+
    (A.trends?.top?.length?A.trends.top.slice(0,5).map(t=>`<div class="tp used"><div><b><a href="${esc(t.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(t.title)}</a></b><small>${(t.views||0).toLocaleString('pl')} wyśw. · ${esc(t.channel)}</small></div></div>`).join('')+`<small class="mut">${ago(A.trends.at)} temu</small>`:'')+
@@ -350,6 +355,8 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  $('pl').innerHTML=h;
  const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
  on('go-res',async()=>{await post('/api/agency/research');setTimeout(poll,1500)});
+ on('go-plan',async()=>{await post('/api/agency/agent/planner');setTimeout(poll,1500)});
+ on('go-rec',async()=>{await post('/api/agency/agent/recycle');setTimeout(poll,1500)});
  $('pl').querySelectorAll('[data-t]').forEach(b=>b.onclick=async()=>{await post('/api/agency/topics/'+b.dataset.t,{action:b.dataset.a});poll()});
  const ap=$('ap');if(ap)ap.onchange=async()=>{await post('/api/agency/settings',{autopilot:ap.checked});poll()};
  const ms=$('ms');if(ms)ms.onchange=async()=>{await post('/api/agency/settings',{min_score:+ms.value});poll()};

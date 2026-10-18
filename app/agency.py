@@ -983,6 +983,7 @@ def state():
             "lessons": _read("agency_lessons.json", {}), "private": _read("agency_private.json", [])[-3:][::-1],
             "ab": ab_results(), "trends": _read("agency_trends.json", {}), "costs": costs(), "backups": backups_list(), "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
             "inbox": I["items"][-25:][::-1], "tech": [e["extra"] for e in L if e["agent"] == "tech" and e.get("extra")][-8:][::-1], "reviews": reviews[::-1], "ai": ai_ready(), "provider": provider(), "models": dict(zip(("smart", "fast"), MODELS[provider()])),
+            "plan": _read("agency_plan.json", {}),
             "avg_score": round(sum(r["score"] for r in reviews) / len(reviews), 1) if reviews else None}
 
 

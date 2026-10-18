@@ -124,6 +124,7 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
  </div>
  <section class="glass vlog dash-only s-vlog" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
   <div id="vjobs"><p class="mut">Ładuję…</p></div>
+  <div id="wz" class="mut" style="margin-top:10px"></div>
  </section>
 </div>
 <div class="msg" id="msg"></div>
@@ -240,6 +241,11 @@ $('vgo').onclick=async()=>{const ep=+$('vep').value,date=$('vd').value;if(!ep||!
  window.setSec=x=>{sv=x;document.body.classList.toggle('sv-food',x==='food');document.body.classList.toggle('sv-vlog',x==='vlog');
   document.querySelectorAll('#sec button').forEach(b=>b.classList.toggle('on',b.dataset.s===x));try{localStorage.setItem('mont-sv',x)}catch(e){}};
  document.querySelectorAll('#sec button').forEach(b=>b.onclick=()=>setSec(b.dataset.s));setSec(sv)})();
+async function wz(){try{const w=await (await fetch('/api/mont-wzorce')).json();
+ const b=(k,l)=>w[k].base?`${l}: ${w[k].n} gotowych (${Math.round(w[k].base.dur[0])}–${Math.round(w[k].base.dur[2])} s, ~${Math.round(w[k].base.lufs[1])} LUFS, ${Math.round(w[k].base.cpm[0])}–${Math.round(w[k].base.cpm[2])} cięć/min)`:`${l}: ${w[k].n} gotowych – uczy się (min. 3)`;
+ $('wz').innerHTML=`<b>🛡️ Strażnik montażu się uczy</b><br>${b('vlog','Vlogi')}<br>${b('jedzenie','Jedzenie')}`+
+  (w.vlog_checks||[]).slice(0,3).map(c=>`<div class="g ${c.warnings.length?'bad':'ok'}" style="margin-top:8px"><b>${esc(c.name)}</b> – ${c.warnings.length?esc(c.warnings.join('; ')):'zgodny z Twoimi gotowymi vlogami'}</div>`).join('')}catch(e){}}
+wz();setInterval(wz,60000);
 vload();setInterval(vload,8000);
 load();setInterval(load,15000);
 </script>

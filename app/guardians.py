@@ -267,9 +267,68 @@ def g_okx():
     return st, msg, None
 
 
+def g_ssl():
+    """Ile dni zostało do wygaśnięcia certyfikatu HTTPS centrum (DuckDNS + Let's Encrypt odnawia się sam – to tylko kontrola)."""
+    import socket, ssl
+    host = (os.environ.get("PUBLIC_URL") or "https://centrum-dowodzenia.duckdns.org").split("//")[-1].split("/")[0]
+    ctx = ssl.create_default_context()
+    with socket.create_connection((host, 443), timeout=10) as s, ctx.wrap_socket(s, server_hostname=host) as c:
+        exp = ssl.cert_time_to_seconds(c.getpeercert()["notAfter"])
+    days = (exp - time.time()) / 86400
+    return (FAIL if days < 7 else WARN if days < 20 else OK), f"{host} · certyfikat ważny jeszcze {days:.0f} dni", None
+
+
+def g_tokens():
+    """Tokeny kont: Instagram (60 dni, centrum odświeża po 20) i Google (refresh token)."""
+    accs = _read("cache.json", {}).get("accounts", {})
+    raw = _read("tokens.json", {})
+    old = []
+    for k, a in (raw.items() if isinstance(raw, dict) else []):
+        if isinstance(a, dict) and a.get("token_at"):
+            age = (time.time() - a["token_at"]) / 86400
+            if age > 45:
+                old.append(f"{a.get('name', k)}: token IG ma {age:.0f} dni")
+    bad = [f"{a.get('name')}: {str(a.get('error'))[:60]}" for a in accs.values()
+           if a.get("error") and re.search(r"token|auth|połącz|expired|invalid_grant", str(a.get("error")), re.I)]
+    if bad:
+        return FAIL, bad[0] + " – połącz konto ponownie", None
+    if old:
+        return WARN, old[0] + " (wygasa po 60) – otwórz Statystyki, odświeży się", None
+    return OK, f"{len(accs)} kont · tokeny ważne", None
+
+
+def g_mac():
+    """Pomocnik montażu vloga na Macu: czy jest online, gdy czeka zlecenie."""
+    if not os.environ.get("MONT_TOKEN"):
+        return IDLE, "Mac nie połączony (brak MONT_TOKEN)", None
+    v = _read("mont_vlog.json", {})
+    seen = (v.get("helper") or {}).get("seen") or 0
+    wait = [j for j in v.get("jobs", []) if j.get("state") == "queued"]
+    on = time.time() - seen < 90
+    if wait and not on and time.time() - min(j.get("at", time.time()) for j in wait) > 600:
+        return WARN, f"vlog #{wait[0].get('ep')} czeka, a Mac jest offline od {_ago(seen) if seen else 'dawna'}", None
+    return (OK if on else IDLE), ("Mac online – gotowy do montażu" if on else f"Mac offline (ostatnio {_ago(seen)})" if seen else "Mac jeszcze się nie zgłosił"), None
+
+
+def g_dziennik():
+    import httpx
+    from montaz import DZ_URL
+    url = DZ_URL.rstrip("/")
+    if not url:
+        return IDLE, "brak adresu dziennika (DZIENNIK_URL)", None
+    t = time.time()
+    r = httpx.get(url + "/", timeout=10, follow_redirects=True)
+    ms = (time.time() - t) * 1000
+    if r.status_code >= 500:
+        return FAIL, f"dziennik odpowiada błędem {r.status_code}", None
+    return (WARN if ms > 4000 else OK), f"działa · odpowiedź {ms:.0f} ms", None
+
+
 # ---------------------------------------------------------------- lista strażników
 G = [
     ("vps", "Serwer", "infra", "🖥️", "Dysk, pamięć i obciążenie VPS", g_vps),
+    ("ssl", "Certyfikat HTTPS", "infra", "🔐", "Czy certyfikat centrum nie wygasa", g_ssl),
+    ("dziennik", "Dziennik", "infra", "📓", "Czy aplikacja Dziennik odpowiada", g_dziennik),
     ("backup", "Kopie zapasowe", "infra", "💾", "Czy codzienna kopia danych centrum się zrobiła", g_backup),
     ("push", "Powiadomienia", "infra", "🔔", "Czy powiadomienia dochodzą na Twoje urządzenia", g_push),
     ("n8n", "n8n", "pozaskala", "⚙️", "Czy n8n działa i nie sypie błędami", g_n8n),
@@ -281,6 +340,8 @@ G = [
     ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", g_inbox),
     ("ret", "Retencja", "agencja", "📈", "Czy codzienna analiza retencji (7:00) się odbyła", _agent_ran("retention", "Retencja", 26, after_hour=8)),
     ("costs", "Koszty AI", "agencja", "💸", "Czy agenci nie przekraczają dziennego limitu", g_costs),
+    ("tokens", "Tokeny kont", "social", "🔑", "Czy logowania do YouTube/Instagrama nie wygasają", g_tokens),
+    ("mac", "Mac (vlog)", "social", "💻", "Czy Mac jest gotowy, gdy czeka montaż vloga", g_mac),
     ("stats", "Statystyki kont", "social", "📊", "Czy dane z YouTube/IG/TikTok się odświeżają", g_stats),
     ("scanner", "Skaner", "skaner", "📡", "Czy skaner działa i skanuje rynek", g_scanner),
     ("risk", "Ryzyko", "skaner", "⚖️", "Czy ekspozycja portfela mieści się w limicie", g_risk),

@@ -168,7 +168,7 @@ const DEPTS=[
  {name:'Analityka',sub:'Shadow tracking, Self Audit, raporty',color:'#2fb3a5',icon:'📊',panel:'stats',agents:[
   {n:'Shadow Tracker',m:'',s:'śledzi odrzucone sygnały',id:'on',kw:'shadow'},{n:'Self Audit',m:'nd 19:30',s:'self_audit',id:'on',kw:'audit'},{n:'Audytor AI',m:'GPT',s:'centrum · nd 20:00',id:'aud'},{n:'Raporty',m:'19:00',s:'performance_analytics',id:'on',kw:'report'}]},
  {name:'Trade Manager',sub:'Limit w strefie entry, TP/SL, Telegram',color:'#3fae5a',icon:'🎯',panel:'trades',agents:[
-  {n:'Trade Manager',m:'',s:'TP1–TP4, break-even, INVALIDATED',id:'pos',kw:'trade'},{n:'Telegram',m:'max 4/dzień',s:'message_builder',id:'on',kw:'telegram'},{n:'Push centrum',m:'',s:'sygnały i wyniki',id:'on'},{n:'Dziennik',m:'GPT',s:'notatka po zamknięciu',id:'on'}]}
+  {n:'Trade Manager',m:'',s:'TP1–TP4, break-even, INVALIDATED',id:'pos',kw:'trade'},{n:'Telegram',m:'max 4/dzień',s:'message_builder',id:'on',kw:'telegram'},{n:'Push centrum',m:'',s:'sygnały i wyniki',id:'on'},{n:'Dziennik',m:'GPT',s:'notatka po zamknięciu',id:'on'},{n:'Strażnik OKX',m:'odczyt',s:'SL na OKX vs skaner → push',id:'on'}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
 

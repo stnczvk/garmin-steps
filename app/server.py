@@ -114,6 +114,8 @@ from n8n_control import router as n8n_router  # noqa: E402
 app.include_router(n8n_router)
 from montaz import router as montaz_router  # noqa: E402
 app.include_router(montaz_router)
+from agency_extra import router as agency_extra_router  # noqa: E402
+app.include_router(agency_extra_router)
 
 
 @app.get("/")
