@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 <style>
+button,input,select,textarea{font-family:inherit}
+
 :root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--pos:#3DDC84;--neg:#FF6B6B;--acc:#9FB3FF;--line:rgba(255,255,255,.08)}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%;color:var(--ink);font:14px/1.45 Geist,system-ui,sans-serif;background:transparent}
@@ -15,7 +17,7 @@ html,body{min-height:100%;color:var(--ink);font:14px/1.45 Geist,system-ui,sans-s
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 h1{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.02em}h1 small{display:block;font-size:13px;color:var(--soft);font-weight:400;letter-spacing:0;margin-top:2px}
 .seg{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
-.seg button{border:0;background:transparent;color:var(--soft);font:600 12.5px Geist;padding:7px 12px;border-radius:9px;cursor:pointer}
+.seg button{border:0;background:transparent;color:var(--soft);font:600 12.5px Geist,system-ui,sans-serif;padding:7px 12px;border-radius:9px;cursor:pointer}
 .seg button.on{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.07));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
 .ctl{display:flex;gap:8px;flex-wrap:wrap}
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:12px}
@@ -28,12 +30,12 @@ h2{font-size:14.5px;font-weight:650;margin-bottom:10px;display:flex;justify-cont
 .tip{position:absolute;pointer-events:none;display:none;background:rgba(10,12,22,.94);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:12px 'JetBrains Mono',monospace;white-space:nowrap;z-index:2}
 .bars{display:flex;flex-direction:column;gap:6px}
 .bar{display:grid;grid-template-columns:62px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:12.5px}
-.bar em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar b{font:600 12px 'JetBrains Mono';text-align:right}
+.bar em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar b{font:600 12px 'JetBrains Mono',ui-monospace,monospace;text-align:right}
 .track{height:14px;position:relative}.track i{position:absolute;top:0;bottom:0;border-radius:4px}.track:before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;border-left:1px solid rgba(255,255,255,.18)}
 .tb{width:100%;border-collapse:collapse;font-size:12.5px}.tb th{text-align:left;font-weight:500;color:var(--faint);font-size:11.5px;padding:5px 6px;border-bottom:1px solid var(--line)}
 .tb td{padding:6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}.tb td.r,.tb th.r{text-align:right}
 .heat{display:grid;grid-template-columns:34px repeat(6,minmax(0,1fr));gap:3px;font-size:11px}
-.heat span{color:var(--faint);display:grid;place-items:center}.heat div{height:30px;border-radius:6px;display:grid;place-items:center;font:600 11px 'JetBrains Mono';cursor:default}
+.heat span{color:var(--faint);display:grid;place-items:center}.heat div{height:30px;border-radius:6px;display:grid;place-items:center;font:600 11px 'JetBrains Mono',ui-monospace,monospace;cursor:default}
 .empty{color:var(--faint);font-size:13px;padding:12px 0}
 .scroll{max-height:380px;overflow:auto}
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.g2,.g3{grid-template-columns:minmax(0,1fr)}}

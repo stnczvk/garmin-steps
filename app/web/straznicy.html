@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 <style>
+button,input,select,textarea{font-family:inherit}
+
 :root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--ok:#3DDC84;--warn:#F5B25A;--fail:#FF5C6C;--idle:#6B7088;--line:rgba(255,255,255,.08)}
 :root[data-theme=light]{--ink:#0B0B12;--soft:#4A4A57;--faint:#80808C;--ok:#16A34A;--warn:#C27A06;--fail:#DC2F45;--idle:#9CA0B0;--line:rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -26,7 +28,7 @@ body{background:transparent}
 .chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font-size:12.5px;color:var(--soft)}
 .chip i{width:8px;height:8px;border-radius:50%}
 .top .btns{margin-left:auto;display:flex;gap:8px}
-.btn{border:1px solid rgba(255,255,255,.15);background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));color:var(--ink);font:600 13px Geist;padding:9px 14px;border-radius:999px;cursor:pointer}
+.btn{border:1px solid rgba(255,255,255,.15);background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));color:var(--ink);font:600 13px Geist,system-ui,sans-serif;padding:9px 14px;border-radius:999px;cursor:pointer}
 .btn:disabled{opacity:.5}
 .area{margin-bottom:16px}
 .area h2{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:600;margin:0 4px 10px}
