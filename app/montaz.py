@@ -654,6 +654,14 @@ async def vlog_act(jid: str, action: str, req: Request):
             j.update(state="queued", step="Czekam na Maca…")
         elif action == "answer":
             j.update(answer={"choice": b.get("choice")}, state="working", step="Zapowiedź wybrana – montuję dalej")
+        elif action == "again" and j["state"] in ("done", "error"):
+            # ponowny montaż z klipów, które już leżą na Macu w „odc N” (bez wysyłania jeszcze raz)
+            if any(x["state"] in ("queued", "uploading", "claimed", "working", "ask") for x in v["jobs"]):
+                return {"ok": False, "error": "Poprzedni montaż jeszcze trwa."}
+            nj = {k: j.get(k) for k in ("kind", "title", "ep", "date", "voiceover")}
+            nj.update(id=datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2),
+                      state="queued", step="Montuję ponownie – czekam na Maca…", files=[], lines=[], at=time.time(), again=jid)
+            v["jobs"] = v["jobs"][-30:] + [nj]
         elif action == "retry" and j["state"] == "error":
             if not all((VUP / jid / f).is_file() and (VUP / jid / f).stat().st_size for f in j.get("files", [])):
                 return {"ok": False, "error": "Klipów tego zlecenia nie ma już w centrum – wyślij je jeszcze raz"}
