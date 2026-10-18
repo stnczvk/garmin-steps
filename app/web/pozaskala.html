@@ -69,7 +69,40 @@ svg{display:block;min-width:960px;width:100%;height:auto}
 @media(max-width:820px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.flow,.loop,.lane.running .node rect,.dot.running{animation:none}}
 html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
+.lanes{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.ln{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px 12px 17px;overflow:hidden}
+.ln:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.ln.sel{border-color:var(--c)}.ln.off{opacity:.6}
+.ln.running:after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--c),transparent);animation:sweep 1.4s linear infinite}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.lnh{display:flex;align-items:center;justify-content:space-between;gap:8px}.lnh b{font-size:16px}
+.lnw{font:12px 'JetBrains Mono',monospace;color:var(--soft);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lnm{font-size:12.5px;color:var(--faint);margin-top:4px}
+.steps{display:flex;flex-wrap:wrap;gap:4px 3px;align-items:center;margin-top:10px;font-size:11.5px}
+.steps span{padding:3px 7px;border-radius:7px;background:rgba(255,255,255,.05);color:var(--soft);white-space:nowrap}.steps i{font-style:normal;color:var(--faint)}
+.lna{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
+.lna button{font:12px Geist,system-ui;color:inherit;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:999px;padding:6px 11px;cursor:pointer}
+.lna button.go{border-color:var(--c);color:#fff;background:color-mix(in oklab,var(--c) 30%,transparent)}
+.pill{font:600 11px Geist,system-ui;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--soft);white-space:nowrap}
+.pill.success{background:rgba(74,222,128,.14);color:var(--ok)}.pill.error,.pill.crashed{background:rgba(255,123,112,.14);color:var(--err)}.pill.running{background:rgba(110,139,255,.16);color:#AFC0FF}.pill.waiting{background:rgba(245,178,90,.14);color:var(--wait)}
+.stage-d{margin-top:10px}.stage-d summary{cursor:pointer;color:var(--faint);font-size:12.5px;padding:4px}
+.ex{grid-template-columns:10px minmax(0,1fr) auto 12px!important;padding:10px 4px!important}
+.exn b{display:block;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.exn small{color:var(--faint);font:11.5px 'JetBrains Mono',monospace}
+.chev{color:var(--faint);font-size:18px}
+.exd{background:rgba(255,255,255,.04)!important;border-color:var(--line)!important}
+.wf .acts .more{display:contents}.wf details.mo{grid-column:1/3}.wf details.mo summary{cursor:pointer;color:var(--faint);font-size:12px;margin-top:6px}
 .trs{display:flex;flex-direction:column;gap:4px;margin-top:6px}.tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:12.5px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.04)}.tr small{grid-column:1/-1;color:var(--faint);font:11px 'JetBrains Mono',monospace;overflow-wrap:anywhere}.tr.zero b{color:#F5B25A}.tr.bad b{color:#FF5C6C}
+.now{display:flex;align-items:center;gap:14px;margin:14px 0 12px;padding:16px 18px;border-radius:18px;border:1px solid var(--line);background:var(--card)}
+.now .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none;background:rgba(255,255,255,.06)}
+.now b{display:block;font-size:17px}.now span{color:var(--soft);font-size:13px}.now .r{margin-left:auto;text-align:right}
+.now.run{border-color:rgba(110,139,255,.5);background:linear-gradient(90deg,rgba(110,139,255,.16),rgba(110,139,255,.03))}.now.run .ic{background:rgba(110,139,255,.25);animation:blink 1.4s infinite}
+.now.bad{border-color:rgba(255,123,112,.45);background:linear-gradient(90deg,rgba(255,123,112,.14),rgba(255,123,112,.02))}
+.sech{font-size:14px;font-weight:650;margin:16px 2px 8px;color:var(--soft)}
+.td{display:grid;grid-template-columns:58px 24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 4px;border-top:1px solid var(--line);font-size:13.5px}
+.td:first-child{border-top:0}.td time{font:600 14px 'JetBrains Mono',monospace}.td.past time{color:var(--faint)}.td .em{font-size:16px;text-align:center}
+.td small{display:block;color:var(--faint);font-size:12px}.td.next{background:rgba(110,139,255,.08);border-radius:10px}
+.lane-ic{font-size:18px;margin-right:6px}
+.ln .steps{display:none}
 </style>
 <link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 </head>
@@ -84,10 +117,14 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
   <div class="kpi"><small>Błędy 24h</small><b id="k3">–</b><span id="k3s"></span></div>
   <div class="kpi"><small>Następny start</small><b id="k4">–</b><span id="k4s"></span></div>
  </div>
- <div class="stage"><svg id="svg" viewBox="0 0 1200 640" role="img" aria-label="Schemat pipeline'u PozaSkala"></svg></div>
+ <div class="now" id="now"></div>
+ <div class="card" id="c-today"><h2><span>📅 Dziś według harmonogramu</span><small id="tdd" class="mono" style="color:var(--faint);font-weight:400"></small></h2><div id="today"></div></div>
+ <h2 class="sech">Etapy</h2>
+ <div class="lanes" id="lanes"></div>
+ <details class="stage-d" hidden><summary>Schemat przepływu</summary><div class="stage"><svg id="svg" viewBox="0 0 1200 640" role="img" aria-label="Schemat pipeline'u PozaSkala"></svg></div></details>
  <div class="grid2">
   <div class="card fold" id="c-ex"><h2><button class="tg" aria-expanded="true"><i>▾</i><span id="exT">Ostatnie uruchomienia</span></button><button id="all" hidden>pokaż wszystkie</button></h2><div class="body" id="exl"><div class="empty">Ładuję…</div></div></div>
-  <div class="card fold" id="c-wf"><h2><button class="tg" aria-expanded="true"><i>▾</i><span>Workflow w n8n</span></button></h2><div class="body" id="wfl"><div class="empty">Ładuję…</div></div></div>
+  <div class="card fold closed" id="c-wf"><h2><button class="tg" aria-expanded="true"><i>▾</i><span>Workflow w n8n</span></button></h2><div class="body" id="wfl"><div class="empty">Ładuję…</div></div></div>
  </div>
 </div>
 <div id="toast" role="status"></div>
@@ -144,7 +181,55 @@ function draw(){
  });
  $('svg').innerHTML=h;
  $('svg').querySelectorAll('.lhead').forEach(g=>g.onclick=()=>{sel=sel===+g.dataset.l?null:+g.dataset.l;draw();list()});
+ lanes();
 }
+// czytelne karty etapów (zamiast szerokiego schematu – działa też na telefonie)
+function lanes(){
+ const el=$('lanes');if(!el)return;
+ el.innerHTML=LANES.map((L,li)=>{const s=laneStatus(L);
+  const sch=s.wf?.schedules?.map(x=>x.time||x.cron||x.every).filter(Boolean).join(', ')||'';
+  const dur=s.last&&s.last.stoppedAt?Math.round((new Date(s.last.stoppedAt)-new Date(s.last.startedAt))/1000):null;
+  return`<div class="ln ${s.st} ${sel===li?'sel':''}" style="--c:${L.color}" data-l="${li}">
+   <div class="lnh"><b><span class="lane-ic">${LIC[L.key]}</span>${esc(L.title)}</b><span class="pill ${s.st}">${ST[s.st]||s.st}</span></div>
+   <div class="lnw">${s.wf?esc(s.wf.name):'brak workflow w n8n'}</div>
+   <div class="lnm">${s.last?`ostatnio ${ago(s.last.startedAt)} (${ST[s.last.status]||s.last.status})${dur!=null?' · '+(dur<120?dur+' s':Math.round(dur/60)+' min'):''}`:'jeszcze nie uruchamiany'}${sch?` · ⏰ ${esc(sch)}`:''}</div>
+   <div class="steps">${L.nodes.map(([ic,t])=>`<span>${ic} ${esc(t)}</span>`).join('<i>›</i>')}</div>
+   <div class="lna">${s.wf?`<button class="go" data-lrun="${esc(s.wf.id)}">▶ Uruchom</button>`:''}${s.last&&['error','crashed','success'].includes(s.last.status)?`<button data-lex="${esc(s.last.id)}">${s.last.status==='success'?'🔍 Przebieg':'⚠️ Co poszło nie tak'}</button>`:''}<button data-lsel="${li}">${sel===li?'✕ Wszystkie uruchomienia':'📋 Uruchomienia'}</button></div></div>`}).join('');
+ el.querySelectorAll('[data-lsel]').forEach(b=>b.onclick=()=>{const i=+b.dataset.lsel;sel=sel===i?null:i;draw();list();$('c-ex').scrollIntoView({behavior:'smooth',block:'start'})});
+ el.querySelectorAll('[data-lrun]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.lrun,'Uruchomiono – za chwilę pojawi się w uruchomieniach.','Uruchomić teraz „'+(state.workflows.find(w=>w.id===b.dataset.lrun)||{}).name+'”?'));
+ el.querySelectorAll('[data-lex]').forEach(b=>b.onclick=()=>{sel=+b.closest('.ln').dataset.l;draw();list();setTimeout(()=>{detail(b.dataset.lex);$('d'+b.dataset.lex)?.scrollIntoView({behavior:'smooth',block:'center'})},50)});
+}
+
+
+// ---- czytelny widok: co działa teraz i co dziś startuje ----
+const LIC={gen:'🎬',mont:'🎞️',pub:'🚀',ana:'📊'};
+function laneOf(name){return LANES.find(L=>L.match.test(name||''))}
+function nice(name){const L=laneOf(name);return L?`${LIC[L.key]} ${L.title}`:'⚙️ '+(name||'?')}
+const fmtDur=s=>s==null?'':s<120?s+' s':Math.round(s/60)+' min';
+function nowCard(){const el=$('now');if(!state||!state.ok){el.innerHTML='';return}
+ const run=state.executions.filter(e=>e.status==='running'||e.status==='waiting');
+ const bad=state.executions.find(e=>['error','crashed'].includes(e.status)&&Date.now()-new Date(e.startedAt)<6*3600e3);
+ const n=nextStart();
+ if(run.length){const e=run[0],s=Math.round((Date.now()-new Date(e.startedAt))/1000);
+  el.className='now run';el.innerHTML=`<div class="ic">▶</div><div><b>Teraz działa: ${esc(nice(e.workflow))}</b><span>${esc(e.workflow)} · od ${fmtDur(s)}${run.length>1?` · i jeszcze ${run.length-1}`:''}</span></div><div class="r"><button class="pill running" data-nex="${esc(e.id)}">Przebieg ›</button></div>`}
+ else if(bad){el.className='now bad';el.innerHTML=`<div class="ic">⚠️</div><div><b>Błąd: ${esc(nice(bad.workflow))}</b><span>${ago(bad.startedAt)} · kliknij, żeby zobaczyć co poszło nie tak</span></div><div class="r"><button class="pill error" data-nex="${esc(bad.id)}">Szczegóły ›</button></div>`}
+ else{el.className='now';el.innerHTML=`<div class="ic">✓</div><div><b>Nic teraz nie działa</b><span>${n?`następny start: ${esc(nice(n.w))} o ${n.d.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}`:'brak zaplanowanych startów'}</span></div>`}
+ el.querySelectorAll('[data-nex]').forEach(b=>b.onclick=()=>{sel=null;list();setTimeout(()=>{detail(b.dataset.nex);$('d'+b.dataset.nex)?.scrollIntoView({behavior:'smooth',block:'center'})},50)})}
+function today(){const el=$('today');if(!state||!state.ok){el.innerHTML='';return}
+ const now=new Date(),rows=[];
+ state.workflows.filter(w=>w.active).forEach(w=>(w.schedules||[]).forEach(sc=>{if(!sc.time)return;
+  if(sc.every==='weeks'&&sc.days&&!sc.days.includes(now.getDay()))return;
+  const [hh,mm]=sc.time.split(':').map(Number),d=new Date(now);d.setHours(hh,mm,0,0);
+  const ex=state.executions.find(e=>e.workflowId===w.id&&Math.abs(new Date(e.startedAt)-d)<45*60e3);
+  rows.push({d,w,ex})}));
+ rows.sort((a,b)=>a.d-b.d);const nx=rows.find(r=>r.d>now&&!r.ex);
+ const ICO={success:'✅',error:'❌',crashed:'❌',running:'⏳',waiting:'⏳'};
+ el.innerHTML=rows.map(r=>{const past=r.d<=now,st=r.ex?r.ex.status:past?'missed':'plan';
+  const dur=r.ex&&r.ex.stoppedAt?Math.round((new Date(r.ex.stoppedAt)-new Date(r.ex.startedAt))/1000):null;
+  return`<div class="td ${past?'past':''} ${r===nx?'next':''}" ${r.ex?`data-tex="${esc(r.ex.id)}" style="cursor:pointer"`:''}><time>${r.d.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}</time><span class="em">${ICO[st]||(st==='missed'?'⚠️':'🕒')}</span>
+   <div><b>${esc(nice(r.w.name))}</b><small>${esc(r.w.name)}${r.ex?' · '+(ST[st]||st)+(dur!=null?' · '+fmtDur(dur):''):st==='missed'?' · nie wystartował':r===nx?' · następny':''}</small></div><span class="chev">${r.ex?'›':''}</span></div>`}).join('')||'<div class="empty">Brak startów zaplanowanych na dziś.</div>';
+ $('tdd').textContent=now.toLocaleDateString('pl',{weekday:'long',day:'numeric',month:'long'});
+ el.querySelectorAll('[data-tex]').forEach(r=>r.onclick=()=>{sel=null;list();setTimeout(()=>{detail(r.dataset.tex);$('d'+r.dataset.tex)?.scrollIntoView({behavior:'smooth',block:'center'})},50)})}
 
 function nextStart(){
  const now=new Date();let best=null;
@@ -161,12 +246,13 @@ function list(){
  $('exT').textContent=L?`Uruchomienia: ${L.title}`:'Ostatnie uruchomienia';$('all').hidden=!L;
  $('exl').innerHTML=ex.slice(0,14).map(e=>{const dur=e.stoppedAt?Math.round((new Date(e.stoppedAt)-new Date(e.startedAt))/1000):null;
   const bad=['error','crashed'].includes(e.status);
-  return`<div class="ex click" data-e="${esc(e.id)}"><span class="dot ${e.status}"></span><span>${esc(e.workflow)} <span style="color:var(--faint)">· ${ST[e.status]||e.status}</span></span><span class="d">${dur==null?'…':dur<120?dur+' s':Math.round(dur/60)+' min'}</span><time>${new Date(e.startedAt).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time></div><div class="exd" id="d${esc(e.id)}" hidden></div>`}).join('')||'<div class="empty">Brak uruchomień.</div>';
+  return`<div class="ex click" data-e="${esc(e.id)}"><span class="dot ${e.status}"></span><span class="exn"><b>${esc(nice(e.workflow))}</b><small>${esc(e.workflow)} · ${new Date(e.startedAt).toLocaleString('pl',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${dur==null?'trwa…':dur<120?dur+' s':Math.round(dur/60)+' min'}</small></span><span class="pill ${e.status}">${ST[e.status]||e.status}</span><span class="chev">›</span></div><div class="exd" id="d${esc(e.id)}" hidden></div>`}).join('')||'<div class="empty">Brak uruchomień.</div>';
  $('exl').querySelectorAll('.ex.click').forEach(r=>r.onclick=()=>detail(r.dataset.e));
  $('wfl').innerHTML=state.workflows.slice().sort((a,b)=>b.active-a.active||a.name.localeCompare(b.name)).map(w=>
   `<div class="wf"><span>${esc(w.name)}</span><span class="tag ${w.active?'':'no'}">${w.active?'aktywny':'wyłączony'}</span><small>${w.nodes} node'ów${w.schedules.length?' · ⏰ '+esc(w.schedules.map(s=>s.time||s.cron||s.every).join(', ')):''}</small>
-  <div class="acts">${(w.triggers&&w.triggers.length>1?w.triggers:[{name:''}]).map(t=>`<button class="go" data-run="${esc(w.id)}" data-trig="${esc(t.name)}">▶ ${t.name?'Uruchom jak '+esc(t.time||t.name):'Uruchom teraz'}</button>`).join('')}<button data-tog="${esc(w.id)}" data-on="${w.active?1:0}">${w.active?'Wyłącz':'Włącz'}</button>
-  <button data-exp="${esc(w.id)}" title="Pobierz plik .json (kopia / do edycji w n8n)">⬇ Pobierz</button><button data-imp="${esc(w.id)}" title="Podmień na plik wyeksportowany z n8n – stara wersja trafi do kopii">⬆ Wgraj nową wersję</button><button data-ren="${esc(w.id)}">✎ Nazwa</button></div></div>`).join('')+
+  <div class="acts">${(w.triggers&&w.triggers.length>1?w.triggers:[{name:''}]).map(t=>`<button class="go" data-run="${esc(w.id)}" data-trig="${esc(t.name)}">▶ ${t.name?'Uruchom jak '+esc(t.time||t.name):'Uruchom teraz'}</button>`).join('')}<button data-tog="${esc(w.id)}" data-on="${w.active?1:0}">${w.active?'Wyłącz':'Włącz'}</button></div>
+  <details class="mo"><summary>⋯ Edycja (pobierz, wgraj nową wersję, nazwa)</summary><div class="acts">
+  <button data-exp="${esc(w.id)}" title="Pobierz plik .json (kopia / do edycji w n8n)">⬇ Pobierz</button><button data-imp="${esc(w.id)}" title="Podmień na plik wyeksportowany z n8n – stara wersja trafi do kopii">⬆ Wgraj nową wersję</button><button data-ren="${esc(w.id)}">✎ Nazwa</button></div></details></div>`).join('')+
   `<div class="acts" style="margin-top:12px"><button class="go" data-imp="">⬆ Wgraj nowy workflow</button><button id="bkb">🗂 Kopie i przywracanie</button></div><div id="bkl"></div>`;
  $('wfl').querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{location.href='/api/n8n/export/'+b.dataset.exp});
  $('wfl').querySelectorAll('[data-imp]').forEach(b=>b.onclick=()=>pickFile(b.dataset.imp));
@@ -232,7 +318,7 @@ async function load(force){
   $('msg').innerHTML=`<b>Pipeline nie ma jeszcze danych z n8n.</b> ${esc(state.error)}<br>Na VPS: n8n → Settings → <b>n8n API</b> → utwórz klucz, potem dopisz do <code>/root/social/.env</code> linię <code>N8N_API_KEY=…</code> i zrób <code>systemctl restart social</code>.`;
   $('upd').textContent='offline';$('exl').innerHTML=$('wfl').innerHTML='<div class="empty">Czekam na połączenie z n8n.</div>'}
  else{$('msg').style.display='none';$('upd').textContent='aktualizacja '+new Date().toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'});kpis();list()}
- draw();
+ draw();nowCard();today();
 }
 // zwijanie kart (zapamiętane w przeglądarce)
 document.querySelectorAll('.fold').forEach(c=>{const k='fold-'+c.id,b=c.querySelector('.tg');

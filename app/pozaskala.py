@@ -23,7 +23,8 @@ def _schedules(nodes):
                 out.append({"cron": r.get("expression", "")})
             elif "triggerAtHour" in r or r.get("field") in ("days", "weeks", None):
                 h, m = r.get("triggerAtHour", 0), r.get("triggerAtMinute", 0)
-                out.append({"time": f"{int(h):02d}:{int(m):02d}", "every": r.get("field", "days")})
+                out.append({"time": f"{int(h):02d}:{int(m):02d}", "every": r.get("field", "days"),
+                            **({"days": [int(d) for d in r.get("triggerAtDay") or []]} if r.get("field") == "weeks" else {})})
             else:
                 out.append({"every": r.get("field"), "n": r.get(r.get("field", "") + "Interval")})
     return out
