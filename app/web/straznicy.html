@@ -116,15 +116,37 @@ function open_(id){const g=D.guardians.find(x=>x.id===id);
   <p class="mut">Zadanie: ${esc(g.task)}</p><div class="msg">${esc(g.msg||'–')}</div>
   <p class="mut">Ostatnie 48 sprawdzeń (co minutę)</p><div class="hd ${g.status}" style="margin:0">${hist(g.hist).replace('slice','')}</div>
   ${id==='inbox'?`<div style="margin-top:12px"><button class="btn" id="dg">🔍 Diagnoza połączenia</button><div class="plog" id="dgo"></div></div>`:''}
+  ${id==='costs'?`<div id="cst" style="margin-top:12px" class="mut">Liczę koszty…</div>`:''}
   ${id==='push'?`<p class="mut" style="margin-top:12px">Ostatnie wysyłki</p><div class="plog">${(D.push_log||[]).map(l=>`<div>${new Date(l.t*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${l.sent}/${l.subs} · ${esc(l.title)}${l.results.filter(r=>!r.ok).map(r=>`<div class="bad">✗ ${esc(r.host)} ${r.code} ${esc(r.err||'')}</div>`).join('')}</div>`).join('')||'brak'}</div>`:''}`;
  const h=$('sh').querySelector('.hd .hist');if(h)h.innerHTML=(g.hist||[]).map(s=>`<i class="${s}"></i>`).join('');
  $('sheet').classList.add('open');
+ if(id==='costs')costs();
  const dg=$('dg');if(dg)dg.onclick=async()=>{dg.disabled=true;dg.textContent='Sprawdzam (do 30 s)…';let r;try{r=await (await fetch('/api/guardians/diag')).json()}catch(e){r={hosts:[],log:[]}}
   $('dgo').innerHTML=r.hosts.map(h=>`<div><b>${esc(h.host)}</b> ${h.dns?`<span class="bad">DNS: ${esc(h.dns)}</span>`:`<span class="mut">v4 ${h.v4.length} · v6 ${h.v6.length}</span>`}<div class="${/BŁĄD/.test(h.httpx)?'bad':''}">httpx: ${esc(h.httpx)}</div><div class="${/BŁĄD/.test(h.curl)?'bad':''}">curl: ${esc(h.curl)}</div></div>`).join('')+
    '<p class="mut" style="margin-top:8px">Ostatnie wpisy Inboxu</p>'+r.log.map(l=>`<div class="${l.kind==='error'?'bad':''}">${new Date(l.t*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(l.text)}</div>`).join('');
   dg.disabled=false;dg.textContent='🔍 Sprawdź jeszcze raz';setTimeout(()=>load(true),25000)}}
 $('sheet').onclick=e=>{if(e.target.id==='sheet')$('sheet').classList.remove('open')};
 addEventListener('keydown',e=>{if(e.key==='Escape')$('sheet').classList.remove('open')});
+// ---- pełne koszty + środki ----
+const $u=v=>v==null?'–':(v<0.1&&v>0?v.toFixed(3):v.toFixed(2))+' $';
+const KN={'openai|tekst':'OpenAI – tekst','openai|obrazy':'OpenAI – obrazy','openai|lektor':'OpenAI – lektor','openai|transkrypcja':'OpenAI – transkrypcja','piapi|kling':'Kling (PiAPI)'};
+const PN={openai:'OpenAI',piapi:'Kling (PiAPI)',apify:'Apify'};
+async function costs(){const el=$('cst');if(!el)return;let f;
+ try{f=await (await fetch('/api/costs/full')).json()}catch(e){el.textContent='Nie udało się pobrać kosztów';return}
+ const lv=Math.min(...f.cfg.levels),B=f.balances||{};
+ const row=(a,b,cls='')=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)" class="${cls}"><span>${a}</span><b>${b}</b></div>`;
+ const per=k=>{const x=f[k];return row(k==='today'?'Dziś':k==='week'?'7 dni':'30 dni',$u(x.n8n+x.agents)+` <small class="mut">(n8n ${$u(x.n8n)} · agenci ${$u(x.agents)})</small>`)};
+ const mx=Math.max(...f.days.map(d=>d.usd),0.01);
+ el.innerHTML=`<p class="mut">Środki u dostawców</p>${['openai','piapi','apify'].map(p=>{const b=B[p];return row(PN[p],b?`<span style="color:${b.left<=lv?'var(--fail)':b.left<=Math.max(...f.cfg.levels)?'var(--warn)':'inherit'}">${$u(b.left)}</span> <small class="mut">${b.how}</small>`:'<small class="mut">nie ustawione</small>')}).join('')}
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0"><input id="cbo" class="btn" style="font:500 13px Geist,system-ui;color:var(--ink);text-align:left;width:120px" inputmode="decimal" placeholder="saldo OpenAI $"><input id="cbp" class="btn" style="font:500 13px Geist,system-ui;color:var(--ink);text-align:left;width:120px" inputmode="decimal" placeholder="saldo PiAPI $"><input id="cbl" class="btn" style="font:500 13px Geist,system-ui;color:var(--ink);text-align:left;width:110px" value="${f.cfg.levels.join(', ')}" title="progi powiadomień ($)"><button class="btn" id="cbs">Zapisz</button></div>
+  <p class="mut" style="font-size:11.5px">Po doładowaniu wpisz aktualne saldo (OpenAI: platform.openai.com → Billing). Centrum odejmuje od niego wydatki i wyśle powiadomienie, gdy zostanie mniej niż progi (${f.cfg.levels.join(' $, ')} $).</p>
+  <p class="mut" style="margin-top:12px">Wydatki</p>${per('today')}${per('week')}${per('month')}${row('Średnio na film (generator)',f.per_film==null?'–':$u(f.per_film)+` <small class="mut">z ${f.films}</small>`)}
+  <p class="mut" style="margin-top:12px">Na co (30 dni)</p>${Object.entries(f.month.kinds).map(([k,v])=>row(KN[k]||k,$u(v))).join('')||'<div class="mut">jeszcze brak danych z n8n</div>'}${row('Agenci centrum',$u(f.month.agents))}
+  <p class="mut" style="margin-top:12px">14 dni</p><div style="display:flex;align-items:flex-end;gap:3px;height:70px">${f.days.map(d=>`<i title="${d.d}: ${$u(d.usd)}" style="flex:1;background:var(--warn);opacity:.8;border-radius:3px 3px 0 0;height:${Math.max(2,d.usd/mx*100)}%"></i>`).join('')}</div>
+  <p class="mut" style="margin-top:12px">Ostatnie wykonania</p>${f.last.map(x=>row(`${esc(x.wf)} <small class="mut">${new Date(x.t*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small>`,$u(x.usd))).join('')||'<div class="mut">–</div>'}
+  <p class="mut" style="font-size:11.5px;margin-top:8px">Kling liczony po ${f.cfg.kling_price} $ za klip, tekst OpenAI z tokenów (albo szacunek z długości, gdy n8n ich nie zwraca).</p>`;
+ $('cbs').onclick=async()=>{const b={levels:$('cbl').value.split(/[,; ]+/)};if($('cbo').value)b.openai=$('cbo').value;if($('cbp').value)b.piapi=$('cbp').value;
+  $('cbs').disabled=true;$('cbs').textContent='Zapisuję…';await fetch('/api/costs/cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});costs();load(true)}}
 async function load(run){try{const r=await fetch(run?'/api/guardians/run':'/api/guardians',run?{method:'POST'}:{});if(r.ok){D=await r.json();render();window.sec3d&&sec3d()}}catch(e){}}
 $('run').onclick=async e=>{e.target.disabled=true;e.target.textContent='Sprawdzam…';await load(true);e.target.disabled=false;e.target.textContent='↻ Sprawdź wszystkich'};
 $('test').onclick=async e=>{e.target.disabled=true;let r;try{r=await (await fetch('/api/social/push/test',{method:'POST'})).json()}catch(x){r={sent:0,subs:0,results:[]}}

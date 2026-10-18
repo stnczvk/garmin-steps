@@ -165,10 +165,21 @@ def g_quality():
 
 # ---------------------------------------------------------------- agencja
 def g_costs():
+    """Wszystkie koszty: agenci centrum + n8n (OpenAI, Kling…) + saldo środków u dostawców."""
     from agency import costs
+    from costs_full import summary, cfg, LBL
     c = costs()
+    f = summary()
+    tot = f["today"]["n8n"] + c["today"]
+    B = f.get("balances") or {}
+    lo = min(cfg()["levels"])
+    left = " · ".join(f"{LBL[k]} {v['left']:.2f} $" for k, v in B.items())
+    msg = f"dziś {tot:.2f} $ (n8n {f['today']['n8n']:.2f} + agenci {c['today']:.2f})" + (f" · zostało: {left}" if left else "")
+    if any(v["left"] <= lo for v in B.values()):
+        return FAIL, msg, None
     p = c["today"] / c["limit"] * 100 if c["limit"] else 0
-    return (FAIL if p >= 100 else WARN if p >= 80 else OK), f"{c['today']:.2f} $ z {c['limit']} $ dziś ({p:.0f}%)", None
+    warn = p >= 80 or any(v["left"] <= max(cfg()["levels"]) for v in B.values())
+    return (FAIL if p >= 100 else WARN if warn else OK), msg, None
 
 
 def _agent_ran(agent, label, max_h, after_hour=None):
@@ -507,7 +518,7 @@ G = [
     ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", g_inbox),
     ("ret", "Retencja", "agencja", "📈", "Czy codzienna analiza retencji (7:00) się odbyła", _agent_ran("retention", "Retencja", 26, after_hour=8)),
     ("apicost", "Środki w API", "agencja", "🪙", "Czy w OpenAI / Apify nie kończą się środki (raz na godzinę)", g_costs_api),
-    ("costs", "Koszty AI", "agencja", "💸", "Czy agenci nie przekraczają dziennego limitu", g_costs),
+    ("costs", "Koszty AI", "agencja", "💸", "Wszystkie wydatki (n8n: OpenAI, Kling; agenci) i ile zostało środków", g_costs),
     ("tokens", "Tokeny kont", "social", "🔑", "Czy logowania do YouTube/Instagrama nie wygasają", g_tokens),
     ("macdisk", "Miejsce na Macu", "social", "🗄️", "Archiwista: wolne miejsce na Macu i stare surowe klipy", g_mac_disk),
     ("mac", "Mac (vlog)", "social", "💻", "Czy Mac jest gotowy, gdy czeka montaż vloga", g_mac),
