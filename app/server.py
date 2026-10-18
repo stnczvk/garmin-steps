@@ -104,6 +104,8 @@ from guardians import router as guardians_router  # noqa: E402
 app.include_router(guardians_router)
 from n8n_control import router as n8n_router  # noqa: E402
 app.include_router(n8n_router)
+from montaz import router as montaz_router  # noqa: E402
+app.include_router(montaz_router)
 
 
 @app.get("/")
@@ -111,7 +113,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html"}
+PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html"}
 
 
 def _page(req: Request, name: str):
@@ -139,6 +141,11 @@ def pozaskala(req: Request):
 @app.get("/straznicy")
 def straznicy(req: Request):
     return _page(req, "straznicy")
+
+
+@app.get("/montazownia")
+def montazownia(req: Request):
+    return _page(req, "montazownia")
 
 
 @app.get("/powiadomienia")

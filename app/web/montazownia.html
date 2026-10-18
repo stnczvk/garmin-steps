@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Montażownia</title>
+<script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
+<style>
+:root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--ok:#3DDC84;--warn:#F5B25A;--bad:#FF5C6C;--acc:#9E8CFC;--line:rgba(255,255,255,.08)}
+:root[data-theme=light]{--ink:#0B0B12;--soft:#4A4A57;--faint:#80808C;--ok:#16A34A;--warn:#B26A00;--bad:#DC2F45;--acc:#6E56CF;--line:rgba(0,0,0,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#06070c}html[data-theme=light]{background:#eef0f8}
+html,body{min-height:100%;color:var(--ink);font:14px/1.45 Geist,system-ui,sans-serif}
+body{background:transparent}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 20px 60px}
+.glass{position:relative;border-radius:20px;padding:16px 18px}
+.top{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.top h1{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.02em}
+.top p{color:var(--soft);margin-top:2px}
+.top .r{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.15);background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));color:var(--ink);font:600 13px Geist,system-ui;padding:9px 14px;border-radius:999px;cursor:pointer;text-decoration:none}
+.btn.pri{background:linear-gradient(145deg,#8f7bff,#5b8cff);border-color:transparent;color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:14px;align-items:start}
+.list .j{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 6px;border-top:1px solid var(--line);cursor:pointer;border-radius:10px}
+.list .j:first-of-type{border-top:0}.list .j:hover{background:rgba(255,255,255,.04)}.list .j.on{background:rgba(158,140,252,.14)}
+.list .j b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list .j small{color:var(--faint);font-size:12px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--faint)}.dot.done{background:var(--ok)}.dot.error{background:var(--bad)}.dot.working,.dot.uploading{background:var(--acc);animation:p 1s infinite}
+@keyframes p{50%{opacity:.3}}
+.tag{font:600 11px 'JetBrains Mono',monospace;padding:2px 7px;border-radius:99px}.tag.ok{background:rgba(61,220,132,.16);color:var(--ok)}.tag.bad{background:rgba(255,92,108,.16);color:var(--bad)}
+h2{font-size:15px;font-weight:650;margin-bottom:10px}
+video{width:100%;max-height:62vh;border-radius:14px;background:#000;display:block}
+.vid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.g{border-radius:14px;padding:12px 14px;margin-top:12px;font-size:13.5px;line-height:1.5}
+.g.ok{background:rgba(61,220,132,.10);border:1px solid rgba(61,220,132,.3)}.g.bad{background:rgba(255,92,108,.08);border:1px solid rgba(255,92,108,.3)}.g.wait{background:rgba(158,140,252,.08);border:1px solid rgba(158,140,252,.25)}
+.g ul{margin:6px 0 0 18px}
+textarea{width:100%;min-height:76px;margin-top:8px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--ink);font:13.5px Geist,system-ui;padding:10px;resize:vertical}
+details{margin-top:12px}summary{cursor:pointer;color:var(--soft);font-size:13px}
+pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--soft);margin-top:8px;max-height:280px;overflow:auto}
+.mut{color:var(--faint);font-size:13px}
+.vlog{margin-top:14px}
+.msg{position:fixed;left:50%;bottom:calc(20px + var(--sab,0px));transform:translateX(-50%);background:#16171f;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;z-index:9;display:none;max-width:90vw}
+@media(max-width:900px){.grid,.vid{grid-template-columns:minmax(0,1fr)}.wrap{padding:16px 14px 50px}}
+</style>
+</head>
+<body class="lg">
+<div class="lg-bg" aria-hidden="true"></div>
+<div class="wrap">
+ <div class="top"><div><h1>Montażownia</h1><p>Filmy montowane automatycznie. Strażnik montażu sprawdza każdy film, zanim go wrzucisz.</p></div>
+  <div class="r"><a class="btn pri" id="food" target="_blank" rel="noopener">🍽 Zmontuj jedzenie</a><button class="btn" id="vlogb" disabled title="Etap 2 – pomocnik na Macu">🎥 Zmontuj vloga</button></div></div>
+ <div class="grid">
+  <section class="glass list"><h2>Montaże</h2><div id="jl"><p class="mut">Ładuję…</p></div></section>
+  <section class="glass" id="det"><p class="mut">Wybierz film z listy.</p></section>
+ </div>
+ <section class="glass vlog"><h2>🎥 Vlog WNBF (Mac + CapCut)</h2><p class="mut" id="vl">Pomocnik na Macu nie jest jeszcze podłączony. Gdy będzie, ten przycisk zleci przygotowanie odcinka: Mac sprawdzi surowe klipy, zrobi napisy, plan cięć i projekt w CapCut, a strażnik pokaże tu raport przed montażem końcowym.</p></section>
+</div>
+<div class="msg" id="msg"></div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ST={done:'gotowy',error:'błąd',working:'montuje się',uploading:'wysyłanie klipów'};
+let D=null,SEL=null,J=null;
+try{SEL=localStorage.getItem('mont-sel')}catch(e){}
+const toast=t=>{const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.display='none',5000)};
+const ttl=j=>(j.title||[]).join(' · ')||j.id;
+const when=j=>{const m=j.id.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);return m?`${m[3]}.${m[2]} ${m[4]}:${m[5]}`:''};
+async function load(){
+ try{D=await (await fetch('/api/mont/jobs')).json()}catch(e){D={ok:false,error:'Brak połączenia z centrum.',jobs:[]}}
+ $('food').href=(D.dziennik||'#')+'/#montaz';
+ if(!D.ok&&!D.jobs.length){$('jl').innerHTML=`<p class="mut">${esc(D.error)}</p>`;return}
+ if(!SEL&&D.jobs[0])SEL=D.jobs[0].id;
+ $('jl').innerHTML=D.jobs.map(j=>`<div class="j ${j.id===SEL?'on':''}" data-id="${j.id}"><span class="dot ${j.state||''}"></span>
+  <div><b>${esc(ttl(j))}</b><small>${when(j)} · ${ST[j.state]||j.state||'?'}${j.step&&j.state==='working'?' · '+esc(j.step):''}</small></div>
+  ${j.check?`<span class="tag ${j.check.ok?'ok':'bad'}">${j.check.ok?'OK':'uwagi'}</span>`:''}</div>`).join('')||'<p class="mut">Brak montaży.</p>';
+ $('jl').querySelectorAll('.j').forEach(el=>el.onclick=()=>{SEL=el.dataset.id;try{localStorage.setItem('mont-sel',SEL)}catch(e){}load()});
+ if(SEL)detail(SEL);
+}
+async function detail(id,force){
+ let j;try{j=await (await fetch('/api/mont/'+id)).json()}catch(e){return}
+ if(j.error){$('det').innerHTML=`<p class="mut">${esc(j.error)}</p>`;return}
+ const same=J&&J.id===j.id&&J.state===j.state&&JSON.stringify(J.check)===JSON.stringify(j.check);J=j;if(same&&!force)return;
+ const c=j.check,act=D.can_act;
+ let g='';
+ if(j.state==='done'){
+  if(!c)g=`<div class="g wait">🛡️ Strażnik montażu sprawdza film…</div>`;
+  else g=`<div class="g ${c.ok?'ok':'bad'}"><b>🛡️ Strażnik montażu: ${c.ok?'film OK':'są uwagi'}</b> · ${c.duration} s
+   ${(c.problems.length||c.warnings.length)?`<ul>${c.problems.map(p=>`<li><b>${esc(p)}</b></li>`).join('')}${c.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
+   ${c.review?`<p style="margin-top:6px">${esc(c.review)}</p>`:''}
+   <textarea id="fx" placeholder="Co poprawić? (np. wytnij drugie podejście w klipie 2)">${esc(c.fix||'')}</textarea>
+   <div class="row"><button class="btn pri" id="fixb" ${act?'':'disabled title="Dopisz DZIENNIK_PASS do .env"'}>✂️ Popraw montaż</button><button class="btn" id="chk">🔁 Sprawdź jeszcze raz</button></div>
+   ${act?'':'<p class="mut" style="margin-top:6px">Żeby centrum mogło poprawiać i ponawiać montaż, dopisz do /root/social/.env linię <code>DZIENNIK_PASS=…</code> (hasło do dziennika) i zrób social-update.</p>'}</div>`}
+ $('det').innerHTML=`<h2>${esc(ttl(j))}</h2>
+  ${j.state==='done'?`<div class="vid"><video src="/api/mont/${j.id}/film" controls playsinline preload="metadata"></video><div>
+   <div class="row" style="margin-top:0"><a class="btn pri" href="/api/mont/${j.id}/film?dl=1">⬇ Pobierz film</a><button class="btn" id="redo" ${act?'':'disabled'}>↻ Zmontuj ponownie</button></div>${g}</div></div>`
+  :j.state==='error'?`<div class="g bad"><b>Montaż nie wyszedł</b><p>${esc(j.error)}</p></div><div class="row"><button class="btn" id="redo" ${act?'':'disabled'}>↻ Spróbuj ponownie</button></div>`
+  :`<div class="g wait">⏳ ${esc(j.step||ST[j.state]||'czekam…')}</div>`}
+  ${j.raport?`<details><summary>Raport cięć</summary><pre>${esc(j.raport)}</pre></details>`:''}
+  ${j.transkrypcja?`<details><summary>Transkrypcja klipów</summary><pre>${esc(j.transkrypcja)}</pre></details>`:''}`;
+ const post=async(a,body)=>{const r=await (await fetch(`/api/mont/${j.id}/${a}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})})).json();return r};
+ $('redo')&&($('redo').onclick=async()=>{const r=await post('redo');toast(r.ok?'Montaż ruszył od nowa.':'Nie wyszło: '+r.error);J=null;load()});
+ $('fixb')&&($('fixb').onclick=async()=>{const t=$('fx').value.trim();if(!t)return toast('Wpisz, co poprawić.');const r=await post('fix',{comment:t});toast(r.ok?'Poprawka wysłana – film montuje się ponownie.':'Nie wyszło: '+r.error);J=null;load()});
+ $('chk')&&($('chk').onclick=async e=>{e.target.disabled=true;e.target.textContent='Sprawdzam…';await post('check');J=null;load()});
+}
+load();setInterval(load,15000);
+</script>
+</body>
+</html>

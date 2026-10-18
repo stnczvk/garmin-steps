@@ -69,7 +69,7 @@ def _vapid():
 
 def _kind(url):
     h = (url or "").split("#")[-1]
-    return {"skaner": "skaner", "pozaskala": "pozaskala", "agencja": "agencja", "straznicy": "straznicy"}.get(h, "social" if "post=" in (url or "") or h == "raport" else "inne")
+    return {"skaner": "skaner", "pozaskala": "pozaskala", "agencja": "agencja", "straznicy": "straznicy", "montazownia": "montaz"}.get(h, "social" if "post=" in (url or "") or h == "raport" else "inne")
 
 
 def notify_store(title, body, url="/", kind=None, data=None):

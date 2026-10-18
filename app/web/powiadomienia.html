@@ -56,8 +56,8 @@ body{background:transparent}
 <script>
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const K={'':['Wszystkie','🔔'],skaner:['Skaner','📡'],pozaskala:['PozaSkala','🎬'],agencja:['Agencja','🤖'],straznicy:['Strażnicy','🛡️'],social:['Social','📱'],inne:['Inne','💬']};
-const VIEW={skaner:'skaner',pozaskala:'pozaskala',agencja:'agencja',straznicy:'straznicy',social:'stats'};
+const K={'':['Wszystkie','🔔'],skaner:['Skaner','📡'],pozaskala:['PozaSkala','🎬'],agencja:['Agencja','🤖'],straznicy:['Strażnicy','🛡️'],social:['Social','📱'],montaz:['Montaż','✂️'],inne:['Inne','💬']};
+const VIEW={skaner:'skaner',pozaskala:'pozaskala',agencja:'agencja',straznicy:'straznicy',social:'stats',montaz:'montazownia'};
 let D=null,F='',OPEN=null;
 try{F=localStorage.getItem('notif-f')||''}catch(e){}
 const fmt=(v,d=4)=>v==null||v===''?'–':typeof v==='number'?(+v).toLocaleString('pl',{maximumFractionDigits:d}):esc(v);
