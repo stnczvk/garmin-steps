@@ -42,6 +42,14 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--soft);font-size:13px}
 pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--soft);margin-top:8px;max-height:280px;overflow:auto}
 .mut{color:var(--faint);font-size:13px}
 .vlog{margin-top:14px}
+.nf{display:grid;grid-template-columns:160px repeat(3,minmax(0,1fr));gap:10px}
+.nf2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}
+.nf label,.nf2 label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--faint)}
+.nf input{border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);border-radius:10px;padding:9px 10px;font:14px Geist,system-ui}
+.drop{border:1.5px dashed rgba(255,255,255,.18);border-radius:14px;padding:14px;cursor:pointer;min-width:0}
+.drop b{color:var(--ink);font-size:14px}.drop span{overflow-wrap:anywhere}.drop.has{border-color:var(--acc);background:rgba(158,140,252,.08)}
+.bar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:linear-gradient(90deg,#8f7bff,#5b8cff);width:0}
+@media(max-width:900px){.nf,.nf2{grid-template-columns:minmax(0,1fr)}}
 .msg{position:fixed;left:50%;bottom:calc(20px + var(--sab,0px));transform:translateX(-50%);background:#16171f;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;z-index:9;display:none;max-width:90vw}
 @media(max-width:900px){.grid,.vid{grid-template-columns:minmax(0,1fr)}.wrap{padding:16px 14px 50px}}
 </style>
@@ -50,7 +58,19 @@ pre{white-space:pre-wrap;font:12px/1.5 'JetBrains Mono',monospace;color:var(--so
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <div class="top"><div><h1>Montażownia</h1><p>Filmy montowane automatycznie. Strażnik montażu sprawdza każdy film, zanim go wrzucisz.</p></div>
-  <div class="r"><a class="btn pri" id="food" target="_blank" rel="noopener">🍽 Zmontuj jedzenie</a><button class="btn" id="vlogb" disabled title="Etap 2 – pomocnik na Macu">🎥 Zmontuj vloga</button></div></div>
+  <div class="r"><button class="btn pri" id="food">🍽 Zmontuj jedzenie</button><button class="btn" id="vlogb" disabled title="Etap 2 – pomocnik na Macu">🎥 Zmontuj vloga</button></div></div>
+ <section class="glass" id="newp" hidden style="margin-bottom:14px">
+  <h2>Nowy montaż: daily jedzenie</h2>
+  <div class="nf">
+   <label>Data nagrania<input type="date" id="nd"></label>
+   <label>Tytuł – linia 1<input id="t1"></label><label>Linia 2 (opis dnia)<input id="t2" placeholder="np. Cheat day"></label><label>Linia 3<input id="t3"></label>
+  </div>
+  <div class="nf2">
+   <label class="drop" id="dropc"><input type="file" id="fc" accept="video/*,.mov,.mp4,.m4v" multiple hidden><b>🎞 Wybierz klipy</b><span id="fcl">każdy posiłek = osobny klip, kolejność ustali się po godzinie nagrania</span></label>
+   <label class="drop"><input type="file" id="fk" accept="image/png,image/jpeg" multiple hidden><b>🖼 Karty posiłków (opcjonalnie)</b><span id="fkl">PNG z Dziennika → Udostępnij</span></label>
+  </div>
+  <div class="row"><button class="btn pri" id="go" disabled>✂️ Zmontuj</button><button class="btn" id="cancel">Anuluj</button><span class="mut" id="up"></span></div>
+ </section>
  <div class="grid">
   <section class="glass list"><h2>Montaże</h2><div id="jl"><p class="mut">Ładuję…</p></div></section>
   <section class="glass" id="det"><p class="mut">Wybierz film z listy.</p></section>
@@ -69,7 +89,6 @@ const ttl=j=>(j.title||[]).join(' · ')||j.id;
 const when=j=>{const m=j.id.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);return m?`${m[3]}.${m[2]} ${m[4]}:${m[5]}`:''};
 async function load(){
  try{D=await (await fetch('/api/mont/jobs')).json()}catch(e){D={ok:false,error:'Brak połączenia z centrum.',jobs:[]}}
- $('food').href=(D.dziennik||'#')+'/#montaz';
  if(!D.ok&&!D.jobs.length){$('jl').innerHTML=`<p class="mut">${esc(D.error)}</p>`;return}
  if(!SEL&&D.jobs[0])SEL=D.jobs[0].id;
  $('jl').innerHTML=D.jobs.map(j=>`<div class="j ${j.id===SEL?'on':''}" data-id="${j.id}"><span class="dot ${j.state||''}"></span>
@@ -94,8 +113,8 @@ async function detail(id,force){
    ${act?'':'<p class="mut" style="margin-top:6px">Żeby centrum mogło poprawiać i ponawiać montaż, dopisz do /root/social/.env linię <code>DZIENNIK_PASS=…</code> (hasło do dziennika) i zrób social-update.</p>'}</div>`}
  $('det').innerHTML=`<h2>${esc(ttl(j))}</h2>
   ${j.state==='done'?`<div class="vid"><video src="/api/mont/${j.id}/film" controls playsinline preload="metadata"></video><div>
-   <div class="row" style="margin-top:0"><a class="btn pri" href="/api/mont/${j.id}/film?dl=1">⬇ Pobierz film</a><button class="btn" id="redo" ${act?'':'disabled'}>↻ Zmontuj ponownie</button></div>${g}</div></div>`
-  :j.state==='error'?`<div class="g bad"><b>Montaż nie wyszedł</b><p>${esc(j.error)}</p></div><div class="row"><button class="btn" id="redo" ${act?'':'disabled'}>↻ Spróbuj ponownie</button></div>`
+   <div class="row" style="margin-top:0"><a class="btn pri" href="/api/mont/${j.id}/film?dl=1">⬇ Pobierz film</a><button class="btn" id="redo">↻ Zmontuj ponownie</button><a class="btn" href="/api/mont/${j.id}/capcut" title="Klipy w kolejności montażu + karty, muzyka, plan cięć – do ręcznej poprawki w CapCut">📦 Paczka do CapCut</a></div>${g}</div></div>`
+  :j.state==='error'?`<div class="g bad"><b>Montaż nie wyszedł</b><p>${esc(j.error)}</p></div><div class="row"><button class="btn" id="redo">↻ Spróbuj ponownie</button><a class="btn" href="/api/mont/${j.id}/capcut">📦 Paczka do CapCut</a></div>`
   :`<div class="g wait">⏳ ${esc(j.step||ST[j.state]||'czekam…')}</div>`}
   ${j.raport?`<details><summary>Raport cięć</summary><pre>${esc(j.raport)}</pre></details>`:''}
   ${j.transkrypcja?`<details><summary>Transkrypcja klipów</summary><pre>${esc(j.transkrypcja)}</pre></details>`:''}`;
@@ -104,6 +123,26 @@ async function detail(id,force){
  $('fixb')&&($('fixb').onclick=async()=>{const t=$('fx').value.trim();if(!t)return toast('Wpisz, co poprawić.');const r=await post('fix',{comment:t});toast(r.ok?'Poprawka wysłana – film montuje się ponownie.':'Nie wyszło: '+r.error);J=null;load()});
  $('chk')&&($('chk').onclick=async e=>{e.target.disabled=true;e.target.textContent='Sprawdzam…';await post('check');J=null;load()});
 }
+// ---- nowy montaż: wybór plików → wysyłka → montaż na serwerze ----
+let FC=[],FK=[];
+async function sug(){try{const r=await (await fetch('/api/mont-suggest?d='+($('nd').value||''))).json();$('nd').value=r.date;$('t1').value=r.title[0];$('t3').value=r.title[2];$('nd').dataset.n=r.n}catch(e){}}
+$('food').onclick=()=>{$('newp').hidden=!$('newp').hidden;if(!$('newp').hidden&&!$('t1').value)sug()};
+$('cancel').onclick=()=>{$('newp').hidden=true};
+$('nd').onchange=sug;
+const mb=n=>(n/1048576).toFixed(n>1e8?0:1)+' MB';
+$('fc').onchange=e=>{FC=[...e.target.files];$('fcl').textContent=FC.length?`${FC.length} klip(y) · ${mb(FC.reduce((s,f)=>s+f.size,0))}`:'';$('dropc').classList.toggle('has',!!FC.length);$('go').disabled=!FC.length};
+$('fk').onchange=e=>{FK=[...e.target.files];$('fkl').textContent=FK.length?FK.map(f=>f.name).join(', '):'PNG z Dziennika → Udostępnij';e.target.closest('.drop').classList.toggle('has',!!FK.length)};
+function put(url,file,onp){return new Promise((ok,bad)=>{const x=new XMLHttpRequest();x.open('PUT',url);x.upload.onprogress=e=>onp(e.loaded/e.total);x.onload=()=>x.status<300?ok(JSON.parse(x.responseText)):bad(new Error((JSON.parse(x.responseText||'{}').error)||('HTTP '+x.status)));x.onerror=()=>bad(new Error('przerwane połączenie'));x.send(file)})}
+$('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value].map(x=>x.trim()).filter(Boolean);if(!title.length)return toast('Wpisz tytuł.');
+ $('go').disabled=true;const all=[...FC.map(f=>['clip',f]),...FK.map(f=>['card',f])],tot=all.reduce((s,[,f])=>s+f.size,0);let done=0;
+ $('up').innerHTML='Zakładam montaż…<div class="bar"><i id="pb"></i></div>';
+ try{const r=await (await fetch('/api/mont-new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,n:+($('nd').dataset.n||0),date:$('nd').value})})).json();if(!r.id)throw new Error(r.error||'nie wyszło');
+  for(let i=0;i<all.length;i++){const [k,f]=all[i];$('up').firstChild.textContent=`Wysyłam ${k==='clip'?'klip':'kartę'} ${i+1}/${all.length}: ${f.name}`;
+   await put(`/api/mont/${r.id}/file?kind=${k}&i=${i+1}&name=${encodeURIComponent(f.name)}`,f,p=>{$('pb').style.width=((done+p*f.size)/tot*100)+'%'});done+=f.size}
+  const s=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();if(!s.ok)throw new Error(s.error);
+  toast('Montaż ruszył – zwykle 2–4 minuty. Dam znać powiadomieniem.');$('newp').hidden=true;FC=[];FK=[];$('fc').value='';$('fk').value='';$('fcl').textContent='';$('dropc').classList.remove('has');$('t2').value='';$('up').textContent='';SEL=r.id;J=null;load()}
+ catch(e){$('up').textContent='Nie wyszło: '+e.message}
+ $('go').disabled=!FC.length};
 load();setInterval(load,15000);
 </script>
 </body>
