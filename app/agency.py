@@ -352,6 +352,14 @@ Odpowiedz WYŁĄCZNIE JSON: {{"score": liczba, "issues": ["krótko po polsku"], 
         new.update(ab_ch)
         seo_ch = seo(new)
         new.update(seo_ch)
+        try:  # Copywriter: osobny opis pod Instagram Reels (nie kopia opisu z YouTube)
+            from agency_extra import ig_caption
+            cap = ig_caption(new)
+            if cap:
+                new["ig_caption"] = cap
+                seo_ch["ig_caption"] = cap
+        except Exception as e:
+            log("copy", f"Opis IG pominięty: {str(e)[:120]}", "warn")
         ab_log(ab_entry, new.get("title"))
         score = float(r.get("score") or 0)
         # pełny autopilot: agencja może zaliczyć scenariusz, który sędzia odrzucił, jeśli go poprawiła
@@ -983,7 +991,7 @@ def state():
             "lessons": _read("agency_lessons.json", {}), "private": _read("agency_private.json", [])[-3:][::-1],
             "ab": ab_results(), "trends": _read("agency_trends.json", {}), "costs": costs(), "backups": backups_list(), "retention": sorted(R.values(), key=lambda v: -v["at"])[:12],
             "inbox": I["items"][-25:][::-1], "tech": [e["extra"] for e in L if e["agent"] == "tech" and e.get("extra")][-8:][::-1], "reviews": reviews[::-1], "ai": ai_ready(), "provider": provider(), "models": dict(zip(("smart", "fast"), MODELS[provider()])),
-            "plan": _read("agency_plan.json", {}),
+            "plan": _read("agency_plan.json", {}), "spokes": _read("agency_spokes.json", {}),
             "avg_score": round(sum(r["score"] for r in reviews) / len(reviews), 1) if reviews else None}
 
 

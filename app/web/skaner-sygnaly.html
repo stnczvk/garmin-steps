@@ -59,6 +59,10 @@ h2{font-size:14.5px;font-weight:650;margin:18px 4px 10px;display:flex;gap:8px;al
 code{font:12px 'JetBrains Mono',monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:5px}
 @media(max-width:700px){.wrap{padding:16px 14px 50px}.cards{grid-template-columns:minmax(0,1fr)}.okx .p{grid-template-columns:1fr 1fr}.okx .p>:last-child{grid-column:1/-1}.hide-m{display:none}}
 
+.team{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
+.tm{padding:13px 15px!important}.tm h3{font:650 13.5px Geist,system-ui,sans-serif;margin:0 0 6px;display:flex;justify-content:space-between;gap:8px;align-items:center}.tm h3 small{font:500 11px 'JetBrains Mono',monospace;color:var(--faint)}
+.tm p{margin:0;font-size:13px;color:var(--soft);line-height:1.5}.tm b{color:var(--ink)}.tm .w{color:var(--warn,#F5B25A)}
+.tm ul{margin:4px 0 0;padding:0;list-style:none;font:12px 'JetBrains Mono',monospace;color:var(--soft)}.tm li{padding:3px 0;border-top:1px solid var(--line)}.tm li:first-child{border-top:0}
 </style>
 </head>
 <body class="lg">
@@ -67,6 +71,7 @@ code{font:12px 'JetBrains Mono',monospace;background:rgba(255,255,255,.07);paddi
  <div class="top"><h1>Sygnały<small>Aktualne sygnały skanera z wejściem, SL i celami. Centrum nic nie zleca – tylko pokazuje i przypomina.</small></h1>
   <div><span class="mut" id="upd"></span> <button class="btn" id="rf">↻ Odśwież</button></div></div>
  <section class="glass okx" id="okx" hidden></section>
+ <div class="team" id="team"></div>
  <h2>Aktywne <small id="na"></small></h2>
  <div class="cards" id="act"><div class="glass empty">Ładuję…</div></div>
  <h2>Ostatnio zamknięte <small>21 dni</small></h2>
@@ -125,6 +130,16 @@ async function load(){let D;try{D=await (await fetch('/api/scanner/signals')).js
   D.closed.map(r=>`<tr><td><b>${esc(r.symbol.split('/')[0])}</b></td><td><span class="dir ${(r.direction||'?')[0]}">${esc(r.direction)}</span></td><td class="mono hide-m">${zone(r)?f(zone(r)[0])+'–'+f(zone(r)[1]):f(r.entry)}</td><td class="mono hide-m">${f(r.original_stop_loss||r.stop_loss)}</td><td class="mono hide-m">${f(r.tp1)}</td>
    <td>${esc(r.result||r.status)}</td><td class="mono">${r.pnl!=null?sp(+r.pnl):''}</td><td class="mut hide-m">${r.closed_at?ago(r.closed_at):''}</td></tr>`).join('');
  okx(D.okx||{});$('upd').textContent='odświeżone '+new Date().toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}
+
+async function team(){let T;try{T=await (await fetch('/api/scanner/team')).json()}catch(e){return}
+ const S=T.session||{},C=T.corr||{},M=T.macro||[],K=T.coach||{};
+ const tt=t=>new Date(t*1000).toLocaleString('pl',{weekday:'short',hour:'2-digit',minute:'2-digit'});
+ $('team').innerHTML=
+ `<div class="glass tm"><h3>📊 Analityk sesji<small>codziennie 21:30</small></h3>${S.day?`<p>${esc(S.day)}: nowe <b>${S.new}</b> · zamknięte <b>${S.closed}</b> (${S.wins} na plus) · PnL <b class="${S.pnl>=0?'pos':'neg'}">${S.pnl>=0?'+':''}${S.pnl}%</b> · otwarte <b>${S.open}</b></p>${S.list&&S.list.length?`<ul>${S.list.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}`:'<p>Pierwsze podsumowanie dziś o 21:30.</p>'}</div>`+
+ `<div class="glass tm"><h3>🔗 Strażnik korelacji<small>co 5 min</small></h3>${(C.warn||[]).length?C.warn.map(w=>`<p class="w">⚠️ ${w.n}× ${esc(w.dir)} na ${esc(w.cls)}: ${esc(w.symbols.join(', '))} (${w.size}% kapitału) – w praktyce jeden zakład.</p>`).join(''):`<p>Otwarte sygnały (${C.open??'–'}) nie dublują ryzyka.</p>`}</div>`+
+ `<div class="glass tm"><h3>🗓 Kalendarz makro<small>USA · ważne</small></h3>${M.length?`<ul>${M.map(e=>`<li>${tt(e.t)} · ${esc(e.pl||e.title)}</li>`).join('')}</ul>`:'<p>W tym tygodniu brak ważnych danych z USA (albo kalendarz się jeszcze nie pobrał).</p>'}</div>`+
+ `<div class="glass tm"><h3>🏋️ Trener<small>nd 20:30</small></h3>${K.n?`<p>Tydzień: <b>${K.n}</b> pozycji · w strefie <b>${K.in_zone}/${K.zone_checked||'–'}</b> · z SL <b>${K.with_sl}/${K.n}</b></p>${(K.tips||[]).map(t=>`<p class="w">• ${esc(t)}</p>`).join('')}`:'<p>Zbiera Twoje wejścia z OKX (tylko odczyt) – pierwsza ocena w niedzielę.</p>'}</div>`}
+team();setInterval(team,60000);
 $('rf').onclick=load;load();setInterval(load,30000);
 </script>
 </body>

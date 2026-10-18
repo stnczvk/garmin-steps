@@ -141,7 +141,7 @@ const DEPTS=[
  {name:'Skrypty',sub:'Scenariusz w generatorze n8n',color:'#e0a92e',icon:'✍️',agents:[
   {n:'Scenarzysta',m:'GPT-4.1',s:'n8n · Message a model',id:'wf:^generator$'},{n:'Sędzia n8n',m:'GPT-4.1-mini',s:'n8n · Judge Script',id:'wf:^generator$'}]},
  {name:'Publikacja',sub:'YouTube + Instagram',color:'#c94fc0',icon:'📲',agents:[
-  {n:'Publisher',m:'n8n',s:'n8n · Publisher',id:'wf:^publisher$'},{n:'Planer',m:'Sonnet',s:'plan tygodnia w sloty SAFE/EXPERIMENT · nd 18:00',id:'planner'}]},
+  {n:'Publisher',m:'n8n',s:'n8n · Publisher',id:'wf:^publisher$'},{n:'Copywriter IG',m:'GPT',s:'osobny opis pod Reels przy każdym filmie',id:'copy'},{n:'Planer',m:'Sonnet',s:'plan tygodnia w sloty SAFE/EXPERIMENT · nd 18:00',id:'planner'}]},
  {name:'Kreacja',sub:'Lektor, kadry, scena wideo, montaż',color:'#7a5ce0',icon:'🎨',agents:[
   {n:'Lektor',m:'OpenAI TTS',s:'n8n · lektor',id:'wf:^generator$'},{n:'Grafik',m:'OpenAI',s:'n8n · zdjęcie',id:'wf:^generator$'},
   {n:'Kling',m:'Kling',s:'n8n · scena wideo',id:'wf:^generator$'},{n:'Montażysta',m:'FFmpeg',s:'n8n · Montaż film',id:'wf:^montaż film$'}]},
@@ -152,12 +152,12 @@ const DEPTS=[
  {name:'Automatyzacje',sub:'Sterowanie n8n i autopilot',color:'#3fae5a',icon:'⚙️',panel:'ops',agents:[
   {n:'n8n Operator',m:'Haiku',s:'workflow on/off, start',id:'op'},{n:'Error Watch',m:'push',s:'powiadomienia z apki',id:'on'}]},
  {name:'Inbox',sub:'Odpowiedzi na komentarze YouTube i Instagram',color:'#e07a2e',icon:'💬',panel:'inbox',agents:[
-  {n:'Komentarze YT',m:'Haiku',s:'odpowiada sam (max 40/dzień)',id:'inbox'},{n:'Komentarze IG',m:'Haiku',s:'odpowiada sam',id:'inbox'}]},
+  {n:'Komentarze YT',m:'Haiku',s:'odpowiada sam (max 40/dzień)',id:'inbox'},{n:'Komentarze IG',m:'Haiku',s:'odpowiada sam',id:'inbox'},{n:'Rzecznik',m:'GPT',s:'pytania widzów → tematy · czw 18:00',id:'spokes'}]},
  {name:'Konta prywatne',sub:'Analiza Twoich kont i plan postów (pon. 8:00)',color:'#e6538a',icon:'👤',panel:'private',agents:[
   {n:'Analityk prywatnych',m:'Sonnet',s:'performance-analyst',id:'private'},{n:'Doradca treści',m:'Sonnet',s:'social-content + hook-generator',id:'private'}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
-const AG_NAMES={scout:'Trend Scout',trends:'Kopiarz trendów',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox',private:'Analityk prywatnych',planner:'Planer',recycle:'Recykler'};
+const AG_NAMES={scout:'Trend Scout',trends:'Kopiarz trendów',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox',private:'Analityk prywatnych',planner:'Planer',recycle:'Recykler',copy:'Copywriter IG',spokes:'Rzecznik'};
 const AG_DEPT={trends:0,scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7,private:8};
 
 // ===== SCENA =====
@@ -290,7 +290,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
    (PL.at?`<small class="mut">${ago(PL.at)} temu</small>`:'')+
    `<h3>Recykler<button class="btn" id="go-rec">${A.busy.recycle?'Szuka…':'Dorzuć kontynuacje'}</button></h3><p class="mut">Śr. 18:00 – bierze najlepsze filmy i dokłada 3 tematy na tym samym mechanizmie (oznaczone ♻️).</p></div>`;
   h+=`<div class="sec"><h3>Kolejka tematów (${A.queue.length})<button class="btn" id="go-res">${A.busy.scout?'Szuka…':'Szukaj teraz'}</button></h3>`+
-   (A.queue.map(t=>`<div class="tp"><div><b>${t.source==='trend'?'🔥 ':t.source==='recykler'?'♻️ ':''}${esc(t.topic)}</b><small>${t.plan?'🗓 '+esc(t.plan)+' · ':''}${esc(t.pillar||t.category)} · ${esc(t.hook)}</small><small class="why">${esc(t.why)}</small></div>
+   (A.queue.map(t=>`<div class="tp"><div><b>${t.source==='trend'?'🔥 ':t.source==='recykler'?'♻️ ':t.source==='widzowie'?'💬 ':''}${esc(t.topic)}</b><small>${t.plan?'🗓 '+esc(t.plan)+' · ':''}${esc(t.pillar||t.category)} · ${esc(t.hook)}</small><small class="why">${esc(t.why)}</small></div>
     <span class="acts"><button title="Następny" data-t="${t.id}" data-a="top">⬆</button><button title="Pomiń" data-t="${t.id}" data-a="skip">✕</button></span></div>`).join('')||'<p class="mut">Pusto – Trend Scout dorzuci tematy rano albo gdy generator poprosi.</p>')+
    `<h3>Trendy w niszy<button class="btn" id="go-tr">${A.busy.trends?'Szuka…':'Sprawdź trendy'}</button></h3><p class="mut">Pon. i czw. 5:00 – najpopularniejsze Shorts z niszy z 7 dni → nowe tematy z tym samym mechanizmem.</p>`+
    (A.trends?.top?.length?A.trends.top.slice(0,5).map(t=>`<div class="tp used"><div><b><a href="${esc(t.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(t.title)}</a></b><small>${(t.views||0).toLocaleString('pl')} wyśw. · ${esc(t.channel)}</small></div></div>`).join('')+`<small class="mut">${ago(A.trends.at)} temu</small>`:'')+
@@ -316,6 +316,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
    (ab.rows.length?`<div class="rt" style="grid-template-columns:22px minmax(0,1fr) 46px"><span></span><span>film · hook</span><span>3 s</span>`+ab.rows.slice(0,8).map(r=>`<b style="text-align:left">${r.variant}</b><a title="${esc(r.hook)}">${esc(r.title)}</a><b>${r.hold3s!=null?r.hold3s+'%':'…'}</b>`).join('')+'</div>':'')+'</div>';
  }
  if(d.panel==='inbox'&&A){
+  const SP=A.spokes||{};h+=`<div class="sec"><h3>Rzecznik – co mówią widzowie<button class="btn" id="go-sp">${A.busy.spokes?'Czyta…':'Podsumuj teraz'}</button></h3>${SP.summary?`<p style="font-size:13px;line-height:1.5">${esc(SP.summary)}</p><small class="mut">${SP.n} komentarzy · ${ago(SP.at)} temu</small>`:'<p class="mut">W czwartki 18:00 – najczęstsze pytania z komentarzy i 2–3 tematy od widzów (💬) do kolejki.</p>'}</div>`;
   const dr=A.inbox.filter(x=>x.status==='draft');
   h+=`<div class="sec"><h3>Do zatwierdzenia (${dr.length})<button class="btn" id="go-inb">${A.busy.inbox?'Czyta…':'Sprawdź komentarze'}</button></h3>`+
    (dr.map(x=>`<div class="cm"><small class="mut">${x.platform==='instagram'?'IG':'YT'} · ${esc(x.author)} · ${esc(x.video)}</small><p>„${esc(x.text)}”</p>${x.why?`<small class="warn">${esc(x.why)}</small>`:''}
@@ -357,6 +358,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
  on('go-res',async()=>{await post('/api/agency/research');setTimeout(poll,1500)});
  on('go-plan',async()=>{await post('/api/agency/agent/planner');setTimeout(poll,1500)});
  on('go-rec',async()=>{await post('/api/agency/agent/recycle');setTimeout(poll,1500)});
+ on('go-sp',async()=>{await post('/api/agency/agent/spokes');setTimeout(poll,1500)});
  $('pl').querySelectorAll('[data-t]').forEach(b=>b.onclick=async()=>{await post('/api/agency/topics/'+b.dataset.t,{action:b.dataset.a});poll()});
  const ap=$('ap');if(ap)ap.onchange=async()=>{await post('/api/agency/settings',{autopilot:ap.checked});poll()};
  const ms=$('ms');if(ms)ms.onchange=async()=>{await post('/api/agency/settings',{min_score:+ms.value});poll()};

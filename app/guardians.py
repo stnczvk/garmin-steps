@@ -324,6 +324,145 @@ def g_dziennik():
     return (WARN if ms > 4000 else OK), f"działa · odpowiedź {ms:.0f} ms", None
 
 
+_gc = {}
+
+
+def _cached(key, ttl, fn):
+    """Strażnicy chodzą co minutę – droższe sprawdzenia (API, AI) robimy rzadziej."""
+    c = _gc.get(key)
+    if c and time.time() - c[0] < ttl:
+        return c[1]
+    try:
+        r = fn()
+    except Exception as e:
+        r = (WARN, f"nie udało się sprawdzić: {str(e)[:100]}", None)
+    _gc[key] = (time.time(), r)
+    return r
+
+
+def _api_costs():
+    """Środki w API: OpenAI (najtańsze możliwe zapytanie), błędy „quota/billing” w n8n z ostatnich 6 h, limit Apify."""
+    import httpx
+    probs, notes = [], []
+    key = os.environ.get("OPENAI_API_KEY", "")
+    if key:
+        r = httpx.post("https://api.openai.com/v1/chat/completions", timeout=20, headers={"Authorization": "Bearer " + key},
+                       json={"model": "gpt-4.1-nano", "messages": [{"role": "user", "content": "ok"}], "max_tokens": 1})
+        if r.status_code in (429, 402) and re.search(r"quota|billing|credit", r.text, re.I):
+            probs.append("OpenAI: skończyły się środki – doładuj konto")
+        elif r.status_code == 401:
+            probs.append("OpenAI: klucz nieważny")
+        elif r.status_code < 300:
+            notes.append("OpenAI OK")
+    try:
+        s = _n8n()
+        for e in s.get("executions", [])[:30]:
+            if e["status"] in ("error", "crashed") and (_iso(e["startedAt"]) or _now()) > _now() - timedelta(hours=6):
+                from n8n_control import execution
+                d = execution(e["id"])
+                txt = (d.get("message", "") + " " + d.get("description", "")).lower()
+                if re.search(r"quota|insufficient|billing|credit|balance|payment required|402", txt):
+                    probs.append(f"{e['workflow']}: {d.get('node')} – brak środków / limit ({d.get('message', '')[:60]})")
+                    break
+    except Exception:
+        pass
+    tok = os.environ.get("APIFY_TOKEN", "")
+    if tok:
+        j = httpx.get("https://api.apify.com/v2/users/me/limits", params={"token": tok}, timeout=15).json().get("data", {})
+        used, lim = (j.get("current") or {}).get("monthlyUsageUsd"), (j.get("limits") or {}).get("maxMonthlyUsageUsd")
+        if used is not None and lim:
+            pct = used / lim * 100
+            (probs if pct >= 95 else notes).append(f"Apify {pct:.0f}% limitu (${used:.2f}/${lim:.0f})")
+    if probs:
+        return FAIL, " · ".join(probs)[:150], None
+    return OK, " · ".join(notes) or "brak sygnałów o końcu środków", None
+
+
+def g_costs_api():
+    return _cached("costs_api", 3600, _api_costs)
+
+
+def _publication():
+    """Czy filmy PozaSkali są naprawdę publiczne (YouTube + Instagram), a nie tylko „n8n przeszedł”."""
+    import httpx
+    from agency import _pz_youtube, _pz_account
+    from social import _google_access, _ig_token
+    out, bad = [], []
+    k, acc = _pz_youtube()
+    if acc:
+        h = {"Authorization": "Bearer " + _google_access(acc)}
+        api = "https://www.googleapis.com/youtube/v3"
+        up = httpx.get(f"{api}/channels", params={"part": "contentDetails", "id": acc["channel_id"]}, headers=h, timeout=20).json()
+        pl = up["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
+        it = httpx.get(f"{api}/playlistItems", params={"part": "contentDetails", "playlistId": pl, "maxResults": 8}, headers=h, timeout=20).json()
+        ids = ",".join(x["contentDetails"]["videoId"] for x in it.get("items", []))
+        vs = httpx.get(f"{api}/videos", params={"part": "status,snippet", "id": ids}, headers=h, timeout=20).json().get("items", [])
+        pub = [v for v in vs if v["status"].get("privacyStatus") == "public"]
+        stuck = [v for v in vs if v["status"].get("privacyStatus") != "public" and v["status"].get("publishAt")
+                 and (_iso(v["status"]["publishAt"]) or _now()) < _now() - timedelta(minutes=30)]
+        if stuck:
+            bad.append(f"YT: „{stuck[0]['snippet']['title'][:40]}” miał wyjść {_iso(stuck[0]['status']['publishAt']).strftime('%d.%m %H:%M')}, a dalej nie jest publiczny")
+        last = max((_iso(v["snippet"]["publishedAt"]) for v in pub), default=None)
+        if last:
+            age = (_now() - last).total_seconds() / 3600
+            (bad if age > 26 else out).append(f"YT ostatni publiczny {age:.0f} h temu")
+    k, acc = _pz_account("instagram")
+    if acc:
+        m = httpx.get("https://graph.instagram.com/me/media", params={"fields": "timestamp", "limit": 1, "access_token": _ig_token(k, acc)}, timeout=20).json()
+        if m.get("data"):
+            age = (_now() - _iso(m["data"][0]["timestamp"].replace("+0000", "+00:00"))).total_seconds() / 3600
+            (bad if age > 26 else out).append(f"IG ostatni {age:.0f} h temu")
+    if bad:
+        return FAIL, " · ".join(bad)[:150], None
+    return (OK if out else IDLE), " · ".join(out) or "brak połączonych kont PozaSkali", None
+
+
+def g_publication():
+    return _cached("publication", 1200, _publication)
+
+
+def _tg_scanner():
+    """Telegram skanera: czy bot działa i czy w logach skanera nie ma błędów wysyłki."""
+    import httpx, subprocess
+    env = {}
+    for p in ("/root/MarketScanner_git/.env", "/root/MarketScanner/.env"):
+        if os.path.exists(p):
+            for line in open(p):
+                if "=" in line and not line.strip().startswith("#"):
+                    a, b = line.split("=", 1)
+                    env[a.strip()] = b.strip().strip('"').strip("'")
+            break
+    tok = env.get("TELEGRAM_BOT_TOKEN") or env.get("TELEGRAM_TOKEN") or env.get("BOT_TOKEN")
+    if not tok:
+        return IDLE, "nie widzę tokenu bota w .env skanera", None
+    me = httpx.get(f"https://api.telegram.org/bot{tok}/getMe", timeout=15).json()
+    if not me.get("ok"):
+        return FAIL, f"bot Telegrama nie działa: {me.get('description', '')[:80]}", None
+    from scanner import CONTAINER
+    logs = subprocess.run(["docker", "logs", "--since", "6h", CONTAINER], capture_output=True, text=True, timeout=30)
+    txt = (logs.stdout + logs.stderr)
+    errs = [l for l in txt.splitlines() if re.search(r"telegram", l, re.I) and re.search(r"error|fail|błąd|blad|exception|timed out|429|403|400", l, re.I)]
+    if errs:
+        return WARN, "błędy wysyłki w logach: " + errs[-1][-110:], None
+    sent = sum(1 for l in txt.splitlines() if re.search(r"telegram", l, re.I) and re.search(r"wys[łl]ano|sent|ok", l, re.I))
+    return OK, f"@{me['result'].get('username')} działa" + (f" · wysłane w 6 h: {sent}" if sent else ""), None
+
+
+def g_tg_scanner():
+    return _cached("tg_scanner", 900, _tg_scanner)
+
+
+def g_mac_disk():
+    d = _read("mac_disk.json", {})
+    if not d.get("at"):
+        return IDLE, "Mac jeszcze nie przysłał raportu miejsca", None
+    f = d.get("free_gb") or 0
+    old = [x for x in d.get("raw", []) if x.get("days", 0) > 30]
+    gb = sum(x["gb"] for x in old)
+    msg = f"wolne {f:.0f} GB z {d.get('total_gb', 0):.0f}" + (f" · stare surowe klipy (>30 dni): {gb:.1f} GB" if old else "")
+    return (FAIL if f < 10 else WARN if f < 25 else OK), msg, None
+
+
 # ---------------------------------------------------------------- lista strażników
 G = [
     ("vps", "Serwer", "infra", "🖥️", "Dysk, pamięć i obciążenie VPS", g_vps),
@@ -335,16 +474,20 @@ G = [
     ("gen", "Generator", "pozaskala", "🎬", "Czy filmy wygenerowały się o zaplanowanych godzinach", _scheduled(r"^generator$", "Generator")),
     ("montage", "Montaż", "pozaskala", "🎞️", "Czy montaż i kontrola techniczna przeszły", g_montage),
     ("pub", "Publikacja", "pozaskala", "🚀", "Czy filmy opublikowały się o zaplanowanych godzinach", _scheduled(r"^publisher$", "Publikacja")),
+    ("live", "Filmy na żywo", "pozaskala", "📺", "Czy filmy są naprawdę publiczne na YouTube i IG (co 20 min)", g_publication),
     ("queue", "Kolejka tematów", "agencja", "🔭", "Czy generator ma z czego brać tematy", g_queue),
     ("qa", "Kontrola jakości", "agencja", "🛡️", "Czy Kontroler ocenił ostatni scenariusz", g_quality),
     ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", g_inbox),
     ("ret", "Retencja", "agencja", "📈", "Czy codzienna analiza retencji (7:00) się odbyła", _agent_ran("retention", "Retencja", 26, after_hour=8)),
+    ("apicost", "Środki w API", "agencja", "🪙", "Czy w OpenAI / Apify nie kończą się środki (raz na godzinę)", g_costs_api),
     ("costs", "Koszty AI", "agencja", "💸", "Czy agenci nie przekraczają dziennego limitu", g_costs),
     ("tokens", "Tokeny kont", "social", "🔑", "Czy logowania do YouTube/Instagrama nie wygasają", g_tokens),
+    ("macdisk", "Miejsce na Macu", "social", "🗄️", "Archiwista: wolne miejsce na Macu i stare surowe klipy", g_mac_disk),
     ("mac", "Mac (vlog)", "social", "💻", "Czy Mac jest gotowy, gdy czeka montaż vloga", g_mac),
     ("stats", "Statystyki kont", "social", "📊", "Czy dane z YouTube/IG/TikTok się odświeżają", g_stats),
     ("scanner", "Skaner", "skaner", "📡", "Czy skaner działa i skanuje rynek", g_scanner),
     ("risk", "Ryzyko", "skaner", "⚖️", "Czy ekspozycja portfela mieści się w limicie", g_risk),
+    ("tg", "Telegram skanera", "skaner", "✈️", "Czy bot działa i sygnały wychodzą na Telegram", g_tg_scanner),
     ("okx", "Pozycje OKX", "skaner", "🔒", "Czy SL na OKX zgadza się ze skanerem (tylko odczyt – przesuwasz sam)", g_okx),
     ("journal", "Dziennik", "skaner", "📝", "Czy transakcje dostają notatki po zamknięciu", lambda: (OK, "notatki po każdym zamknięciu", None)),
     ("saudit", "Audyt skanera", "skaner", "🧾", "Czy cotygodniowy audyt się odbył", g_audit),

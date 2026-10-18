@@ -105,7 +105,70 @@ Odpowiedz WYŁĄCZNIE tablicą JSON: [{{"topic": "...(EN)", "pillar": "...", "ca
         _busy.pop("recycle", None)
 
 
-AGENTS = {"planner": planner, "recycle": recycle}
+def ig_caption(script):
+    """Copywriter: opis pod Reels – mocna pierwsza linia, 2–3 krótkie linijki, CTA na zapis/udostępnienie, 5–8 hashtagów IG."""
+    if not ai_ready():
+        return ""
+    _busy["copy"] = "pisze opis pod Instagram"
+    try:
+        view = {k: script.get(k) for k in ("topic", "title", "hook", "description", "hashtags", "ig_caption")}
+        txt = claude(f"""{CHANNEL}
+
+Metadane filmu: {view}
+
+Jesteś Copywriterem Instagrama kanału. Napisz opis pod Reels PO ANGIELSKU:
+- 1. linia: hak, który zmusza do rozwinięcia opisu (max 70 znaków, bez clickbaitu),
+- 2–3 krótkie linijki z najciekawszą liczbą/porównaniem z filmu,
+- pytanie do widzów albo zachęta do zapisania/wysłania znajomemu (jedno, naturalne),
+- pusta linia i 5–8 hashtagów pasujących do IG (mieszanka niszowych i szerszych, bez #fyp/#viral).
+Bez emoji-spamu (max 2). Odpowiedz WYŁĄCZNIE gotowym tekstem opisu.""", FAST, 400).strip()
+        if 40 <= len(txt) <= 2000:
+            log("copy", f"Opis IG gotowy · {str(script.get('title') or script.get('topic'))[:60]}", "ok", {"caption": txt[:600]})
+            return txt
+        return ""
+    finally:
+        _busy.pop("copy", None)
+
+
+def spokesman(why="harmonogram"):
+    """Rzecznik: co widzowie najczęściej pytają/piszą w komentarzach → 2–3 tematy do kolejki."""
+    if _busy.get("spokes"):
+        return
+    _busy["spokes"] = "czyta komentarze widzów"
+    try:
+        I = _read("agency_inbox.json", {"items": []})
+        cut = time.time() - 21 * 86400
+        com = [f'- ({x.get("platform")}) pod „{str(x.get("video", ""))[:50]}”: {str(x.get("text", ""))[:200]}' for x in I.get("items", []) if x.get("t", 0) > cut]
+        if len(com) < 3:
+            log("spokes", f"Za mało komentarzy z 3 tygodni ({len(com)}) – nic do podsumowania", "info")
+            return
+        used = [t["topic"] for t in topics()][-80:]
+        txt = claude(f"""{CHANNEL}
+
+Komentarze widzów z ostatnich 3 tygodni:
+{chr(10).join(com[-80:])}
+
+Tematy już użyte: {', '.join(used[-40:])}
+
+Jesteś Rzecznikiem kanału. 1) Wypisz krótko, o co widzowie najczęściej pytają, co ich zaskoczyło, z czym się kłócą.
+2) Zaproponuj 2–3 NOWE tematy filmów, które bezpośrednio odpowiadają na te pytania.
+Odpowiedz WYŁĄCZNIE JSON: {{"summary": "3-4 zdania po polsku", "topics": [{{"topic": "...(EN)", "pillar": "...", "category": "...", "hook": "max 12 słów EN",
+"reference": "...", "payoff": "...", "why": "na jaki komentarz odpowiada (PL)"}}]}}""", SMART, 1500)
+        j = as_json(txt) or {}
+        new = [{"id": uuid.uuid4().hex[:8], "status": "queued", "created": time.time(), "source": "widzowie",
+                **{k: str(x.get(k, ""))[:300] for k in ("topic", "pillar", "category", "hook", "reference", "payoff", "why")}}
+               for x in (j.get("topics") or []) if isinstance(x, dict) and x.get("topic")][:3]
+        if new:
+            save_topics(topics() + new)
+        _write("agency_spokes.json", {"at": time.time(), "summary": str(j.get("summary", ""))[:1200], "n": len(com)})
+        log("spokes", f"Podsumował {len(com)} komentarzy, dodał {len(new)} tematów od widzów ({why})", "ok", {"summary": str(j.get("summary", ""))[:600]})
+    except Exception as e:
+        log("spokes", f"Rzecznik nie zadziałał: {str(e)[:150]}", "error")
+    finally:
+        _busy.pop("spokes", None)
+
+
+AGENTS = {"planner": planner, "recycle": recycle, "spokes": spokesman}
 
 
 @router.post("/api/agency/agent/{name}")
@@ -132,6 +195,10 @@ def _loop():
                 done["planner"] = today
                 _write("agency_extra_done.json", done)
                 planner()
+            if ai_ready() and now.weekday() == 3 and now.hour == 18 and done.get("spokes") != today:
+                done["spokes"] = today
+                _write("agency_extra_done.json", done)
+                spokesman()
             if ai_ready() and now.weekday() == 2 and now.hour == 18 and done.get("recycle") != today:
                 done["recycle"] = today
                 _write("agency_extra_done.json", done)

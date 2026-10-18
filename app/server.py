@@ -116,6 +116,8 @@ from montaz import router as montaz_router  # noqa: E402
 app.include_router(montaz_router)
 from agency_extra import router as agency_extra_router  # noqa: E402
 app.include_router(agency_extra_router)
+from scanner_team import router as scanner_team_router  # noqa: E402
+app.include_router(scanner_team_router)
 
 
 @app.get("/")

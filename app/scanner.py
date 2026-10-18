@@ -621,6 +621,12 @@ def okx_guard_tick():
     r = okx_watch.check(_signals_for)
     _write("okx_last.json", {"at": time.time(), "ok": r.get("ok"), "error": r.get("error"), "n": len(r.get("positions") or []),
                              "site": (okx_watch._site.get("ok") or [None])[0]})
+    if r.get("ok"):
+        try:
+            from scanner_team import coach_record
+            coach_record(r.get("positions") or [], _signals_for)
+        except Exception as e:
+            print("trener", e, flush=True)
     if not r.get("ok"):
         return "warn", "OKX: " + r.get("error", "brak odpowiedzi")[:120]
     seen = _read("okx_alerts.json", {})

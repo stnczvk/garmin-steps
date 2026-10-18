@@ -516,6 +516,7 @@ def vlog_state():
     online = bool(h.get("seen")) and time.time() - h["seen"] < 90
     return {"configured": bool(os.environ.get("MONT_TOKEN")), "online": online, "seen": h.get("seen"),
             "next_ep": (h.get("last") or 0) + 1, "loose": h.get("loose", 0),
+            "next_przepis": (h.get("plast") or 0) + 1, "ploose": h.get("ploose", 0), "disk": _rd("mac_disk.json", {}),
             "jobs": [{k: x for k, x in j.items() if k != "log_full"} for j in v["jobs"][-12:][::-1]]}
 
 
@@ -527,9 +528,12 @@ async def vlog_new(req: Request):
         if any(j["state"] in ("queued", "uploading", "working", "ask") for j in v["jobs"]):
             return {"ok": False, "error": "Poprzedni montaż vloga jeszcze trwa."}
         jid = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
-        j = {"id": jid, "ep": int(b.get("ep") or 0), "date": str(b.get("date") or "")[:10], "voiceover": bool(b.get("voiceover")),
+        j = {"id": jid, "kind": "przepis" if b.get("kind") == "przepis" else "vlog", "title": str(b.get("title") or "")[:120],
+             "ep": int(b.get("ep") or 0), "date": str(b.get("date") or "")[:10], "voiceover": bool(b.get("voiceover")),
              "state": "uploading" if b.get("upload") else "queued", "step": "Wysyłanie klipów…" if b.get("upload") else "Czekam na Maca…",
              "files": [], "lines": [], "at": time.time()}
+        if j["kind"] == "przepis" and not j["date"]:
+            j["date"] = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
         if j["ep"] <= 0 or not re.match(r"^\d{4}-\d{2}-\d{2}$", j["date"]):
             return {"ok": False, "error": "Podaj numer odcinka i datę."}
         v["jobs"] = v["jobs"][-30:] + [j]
@@ -578,12 +582,12 @@ async def vlog_act(jid: str, action: str, req: Request):
 
 # — wywoływane przez pomocnika na Macu (token X-Mont-Token) —
 @router.get("/api/mont-hook/next")
-def hook_next(req: Request, last: int = 0, loose: int = 0):
+def hook_next(req: Request, last: int = 0, loose: int = 0, plast: int = 0, ploose: int = 0):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     with _vl:
         v = _V()
-        v["helper"] = {"seen": time.time(), "last": last, "loose": loose}
+        v["helper"] = {"seen": time.time(), "last": last, "loose": loose, "plast": plast, "ploose": ploose}
         j = next((x for x in v["jobs"] if x["state"] == "queued"), None)
         if j:
             j.update(state="claimed", step="Mac otwiera montaż…", claimed=time.time())
@@ -596,7 +600,7 @@ def hook_job(jid: str, req: Request):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     j = _vjob(_V(), jid)
-    return j and {k: j[k] for k in ("id", "ep", "date", "voiceover", "files")}
+    return j and {k: j.get(k) for k in ("id", "kind", "title", "ep", "date", "voiceover", "files")}
 
 
 @router.get("/api/mont-hook/{jid}/file")
@@ -642,7 +646,8 @@ async def hook_post(jid: str, what: str, req: Request):
         else:
             ok = j["state"] == "done"
             res = next((l for l in reversed(j["lines"]) if l.startswith("GOTOWE")), "")
-            push_all("🎥 Vlog gotowy w CapCut" if ok else "❌ Montaż vloga nie wyszedł", (res or j["step"])[:150], "/#montazownia", kind="montaz")
+            nm = "Przepis" if j.get("kind") == "przepis" else "Vlog"
+            push_all(f"🎥 {nm} gotowy w CapCut" if ok else f"❌ Montaż – {nm.lower()} nie wyszedł", (res or j["step"])[:150], "/#montazownia", kind="montaz")
     return {"ok": True}
 
 
@@ -674,6 +679,71 @@ async def hook_preview(jid: str, req: Request, i: int = 0):
 def vlog_preview(jid: str, i: int):
     f = VPRE / os.path.basename(jid) / f"{int(i)}.mp4"
     return FileResponse(f, media_type="video/mp4") if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
+
+
+@router.post("/api/mont-hook/disk")
+async def hook_disk(req: Request):
+    """Archiwista: raport miejsca z Maca (co godzinę)."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    b["at"] = time.time()
+    _wr("mac_disk.json", b)
+    return {"ok": True}
+
+
+def archivist():
+    """Archiwista na VPS: sprząta tylko pliki tymczasowe centrum (nie rusza filmów ani danych)."""
+    freed, cut = 0, time.time()
+    def rm(p):
+        nonlocal freed
+        try:
+            sz = sum(f.stat().st_size for f in p.rglob("*") if f.is_file()) if p.is_dir() else p.stat().st_size
+            shutil.rmtree(p, ignore_errors=True) if p.is_dir() else p.unlink()
+            freed += sz
+        except Exception:
+            pass
+    for d, days in ((VUP, 2), (SOCIAL_ROOT / "vlog_preview", 7)):
+        if d.is_dir():
+            for x in d.iterdir():
+                if cut - x.stat().st_mtime > days * 86400:
+                    rm(x)
+    bk = SOCIAL_ROOT / "n8n_backups"
+    if bk.is_dir():
+        files = sorted(bk.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+        for f in files[40:]:  # 40 najnowszych kopii zostaje
+            rm(f)
+    if JOBS.is_dir():
+        for d in JOBS.iterdir():
+            z = d / "capcut.zip"
+            if z.exists() and cut - z.stat().st_mtime > 2 * 86400:
+                rm(z)
+    _wr("archivist.json", {"at": time.time(), "freed_mb": round(freed / 1e6, 1)})
+    return freed
+
+
+@router.get("/api/mont-archivist")
+def archivist_state():
+    return {"mac": _rd("mac_disk.json", {}), "vps": _rd("archivist.json", {})}
+
+
+@router.post("/api/mont-archivist/run")
+def archivist_run():
+    return {"ok": True, "freed_mb": round(archivist() / 1e6, 1)}
+
+
+def _arch_loop():
+    time.sleep(300)
+    while True:
+        try:
+            if time.time() - _rd("archivist.json", {}).get("at", 0) > 86400:
+                archivist()
+        except Exception as e:
+            print("archiwista", e, flush=True)
+        time.sleep(3600)
+
+
+threading.Thread(target=_arch_loop, daemon=True).start()
 
 
 @router.get("/api/mont-hook/{jid}/answer")
