@@ -1,7 +1,7 @@
 """Strażnicy – każdy pilnuje jednej rzeczy i co minutę sprawdza, czy działa i czy zrobiło się to, co miało się zrobić.
 Zmiana na błąd (albo powrót do normy) = powiadomienie push. Historia ostatnich 48 sprawdzeń na strażnika.
 """
-import os, re, shutil, threading, time
+import json, os, re, shutil, threading, time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -448,6 +448,32 @@ def _tg_scanner():
     return OK, f"@{me['result'].get('username')} działa" + (f" · wysłane w 6 h: {sent}" if sent else ""), None
 
 
+def _video_log():
+    """Czy Publisher zapisuje w logu filmu ID z YouTube i IG – bez nich Analytics Collector musi zgadywać po tytule."""
+    from agency import n8n
+    s = _n8n()
+    wf = [w for w in s.get("workflows", []) if re.search(r"^publisher$", w["name"], re.I) and w["active"]]
+    if not wf:
+        return IDLE, "Publisher wyłączony", None
+    r = n8n("GET", "/api/v1/executions", params={"workflowId": wf[0]["id"], "status": "success", "limit": 5, "includeData": "true"})
+    for e in (r.json().get("data") or []) if r.status_code < 300 else []:
+        run = (((e.get("data") or {}).get("resultData") or {}).get("runData") or {}).get("Create Video Log Entry")
+        if not run:
+            continue
+        txt = (((run[-1].get("data") or {}).get("main") or [[{}]])[0] or [{}])[0].get("json", {}).get("text") or "{}"
+        j = json.loads(txt)
+        miss = [n for k, n in (("youtubeVideoId", "YouTube"), ("igMediaId", "Instagram")) if not j.get(k)]
+        name = str(j.get("title") or j.get("movieName") or "")[:40]
+        if miss:
+            return WARN, f"log „{name}” bez ID z {' i '.join(miss)} – sprawdź w generatorze node Create Queue Entry (youtubeVideoId)", None
+        return OK, f"ostatni log „{name}” ma ID z YouTube i IG", None
+    return IDLE, "brak udanej publikacji z logiem", None
+
+
+def g_video_log():
+    return _cached("video_log", 3600, _video_log)
+
+
 def g_tg_scanner():
     return _cached("tg_scanner", 900, _tg_scanner)
 
@@ -475,6 +501,7 @@ G = [
     ("montage", "Montaż", "pozaskala", "🎞️", "Czy montaż i kontrola techniczna przeszły", g_montage),
     ("pub", "Publikacja", "pozaskala", "🚀", "Czy filmy opublikowały się o zaplanowanych godzinach", _scheduled(r"^publisher$", "Publikacja")),
     ("live", "Filmy na żywo", "pozaskala", "📺", "Czy filmy są naprawdę publiczne na YouTube i IG (co 20 min)", g_publication),
+    ("vlog", "Dane do analityki", "pozaskala", "🧷", "Czy log każdego filmu ma ID z YouTube i IG (dla Analytics Collectora)", g_video_log),
     ("queue", "Kolejka tematów", "agencja", "🔭", "Czy generator ma z czego brać tematy", g_queue),
     ("qa", "Kontrola jakości", "agencja", "🛡️", "Czy Kontroler ocenił ostatni scenariusz", g_quality),
     ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", g_inbox),
