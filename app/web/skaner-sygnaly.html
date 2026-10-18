@@ -63,6 +63,7 @@ code{font:12px 'JetBrains Mono',monospace;background:rgba(255,255,255,.07);paddi
 .tm{padding:13px 15px!important}.tm h3{font:650 13.5px Geist,system-ui,sans-serif;margin:0 0 6px;display:flex;justify-content:space-between;gap:8px;align-items:center}.tm h3 small{font:500 11px 'JetBrains Mono',monospace;color:var(--faint)}
 .tm p{margin:0;font-size:13px;color:var(--soft);line-height:1.5}.tm b{color:var(--ink)}.tm .w{color:var(--warn,#F5B25A)}
 .tm ul{margin:4px 0 0;padding:0;list-style:none;font:12px 'JetBrains Mono',monospace;color:var(--soft)}.tm li{padding:3px 0;border-top:1px solid var(--line)}.tm li:first-child{border-top:0}
+.fold{cursor:pointer;user-select:none}.fold .chev{display:inline-block;transition:transform .2s;color:var(--faint);margin-right:2px}.fold.closed .chev{transform:rotate(-90deg)}
 </style>
 </head>
 <body class="lg">
@@ -74,8 +75,8 @@ code{font:12px 'JetBrains Mono',monospace;background:rgba(255,255,255,.07);paddi
  <div class="team" id="team"></div>
  <h2>Aktywne <small id="na"></small></h2>
  <div class="cards" id="act"><div class="glass empty">Ładuję…</div></div>
- <h2>Ostatnio zamknięte <small>21 dni</small></h2>
- <section class="glass"><table class="tbl" id="cl"></table></section>
+ <h2 class="fold" id="clh" role="button" tabindex="0"><span class="chev">▾</span>Ostatnio zamknięte <small id="cln">21 dni</small></h2>
+ <section class="glass" id="cls"><table class="tbl" id="cl"></table></section>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -124,7 +125,7 @@ function okx(o){const el=$('okx');el.hidden=false;
    <div class="mono">${sp(p.uplr)}</div><div>${p.alert?`<span class="al">${esc(p.alert)}</span>`:`<span class="mut">${esc(p.note||'')}</span>`}</div></div>`).join('')||'<p class="mut" style="margin-top:6px">Brak otwartych pozycji.</p>'}`}
 async function load(){let D;try{D=await (await fetch('/api/scanner/signals')).json()}catch(e){return}
  if(!D.ok){$('act').innerHTML=`<div class="glass empty">${esc(D.error)}</div>`;return}
- $('na').textContent=D.active.length;
+ $('na').textContent=D.active.length;$('cln').textContent=`21 dni · ${D.closed.length}`;
  $('act').innerHTML=D.active.map(card).join('')||'<div class="glass empty">Teraz nie ma aktywnych sygnałów. Skaner wysyła max 4 dziennie.</div>';
  $('cl').innerHTML=`<tr><th>Symbol</th><th>Kier.</th><th class="hide-m">Entry</th><th class="hide-m">SL</th><th class="hide-m">TP1</th><th>Wynik</th><th>PnL</th><th class="hide-m">Zamknięty</th></tr>`+
   D.closed.map(r=>`<tr><td><b>${esc(r.symbol.split('/')[0])}</b></td><td><span class="dir ${(r.direction||'?')[0]}">${esc(r.direction)}</span></td><td class="mono hide-m">${zone(r)?f(zone(r)[0])+'–'+f(zone(r)[1]):f(r.entry)}</td><td class="mono hide-m">${f(r.original_stop_loss||r.stop_loss)}</td><td class="mono hide-m">${f(r.tp1)}</td>
@@ -140,6 +141,9 @@ async function team(){let T;try{T=await (await fetch('/api/scanner/team')).json(
  `<div class="glass tm"><h3>🗓 Kalendarz makro<small>USA · ważne</small></h3>${M.length?`<ul>${M.map(e=>`<li>${tt(e.t)} · ${esc(e.pl||e.title)}</li>`).join('')}</ul>`:'<p>W tym tygodniu brak ważnych danych z USA (albo kalendarz się jeszcze nie pobrał).</p>'}</div>`+
  `<div class="glass tm"><h3>🏋️ Trener<small>nd 20:30</small></h3>${K.n?`<p>Tydzień: <b>${K.n}</b> pozycji · w strefie <b>${K.in_zone}/${K.zone_checked||'–'}</b> · z SL <b>${K.with_sl}/${K.n}</b></p>${(K.tips||[]).map(t=>`<p class="w">• ${esc(t)}</p>`).join('')}`:'<p>Zbiera Twoje wejścia z OKX (tylko odczyt) – pierwsza ocena w niedzielę.</p>'}</div>`}
 team();setInterval(team,60000);
+(function(){const h=$('clh'),b=$('cls');let c=false;try{c=localStorage.getItem('sig-closed-fold')==='1'}catch(e){}
+ const set=v=>{c=v;h.classList.toggle('closed',v);b.hidden=v;try{localStorage.setItem('sig-closed-fold',v?'1':'0')}catch(e){}};
+ h.onclick=()=>set(!c);h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();set(!c)}};set(c)})();
 $('rf').onclick=load;load();setInterval(load,30000);
 </script>
 </body>

@@ -128,6 +128,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 
 /* penthouse: jasna posadzka – etykiety ciemne, żeby były czytelne */
 .lg .lbl{background:rgba(14,14,22,.86)!important;color:#f4f4f5}
+#mini .z+.z{margin-top:4px}#mini .z button.on{background:rgba(158,140,252,.35);color:#fff}
 </style>
 <link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 </head>
@@ -141,7 +142,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 </header>
 <div id="feed"></div>
 <div id="models"></div>
-<div id="mini"><div class="t"><span>MAPA</span><span id="zl">100%</span></div><canvas id="mc" width="150" height="100"></canvas><div class="z"><button id="zo">−</button><button id="zi">+</button><button id="zr">⤢</button></div></div>
+<div id="mini"><div class="t"><span>MAPA</span><span id="zl">100%</span></div><canvas id="mc" width="150" height="100"></canvas><div class="z"><button id="zo">−</button><button id="zi">+</button><button id="zr">⤢</button></div><div class="z"><button id="rl" title="Obróć w lewo">⟲</button><button id="rm" title="Przeciąganie obraca widok">🔄</button><button id="rr" title="Obróć w prawo">⟳</button></div></div>
 <div id="chartbtn"><button onclick="openChart('candles')">🕯 Świece</button><button onclick="openChart('pnl')">📈 PnL</button></div>
 <div id="chartbox"><div class="cb-in"><div class="cb-h"><b id="ctitle"></b><span class="seg2" id="ctools"></span><button class="x" id="cx">×</button></div>
 <div class="cb-c"><canvas id="bigc"></canvas><div id="ctip"></div></div><p class="mut" id="cnote"></p></div></div>
@@ -186,7 +187,9 @@ const RV=new THREE.Vector3(1,0,-1).normalize(),FV=new THREE.Vector3(-1,0,-1).nor
 const P=(sx,depth,y=0)=>new THREE.Vector3().addScaledVector(RV,sx).addScaledVector(FV,depth).setY(y);
 const target=P(1,6.5),OFF=new THREE.Vector3(78,50,22);
 function setFrustum(){const a=W()/H();camera.left=-FR*a/2;camera.right=FR*a/2;camera.top=FR/2;camera.bottom=-FR/2;camera.updateProjectionMatrix()}
-function placeCam(){camera.position.copy(target).add(OFF);camera.lookAt(target)}
+let AZ=0,ROT=false;const UPV=new THREE.Vector3(0,1,0);
+function placeCam(){camera.position.copy(target).add(OFF.clone().applyAxisAngle(UPV,AZ));camera.lookAt(target);camera.updateMatrixWorld()}
+function panBy(dx,dy,k){const R=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0).setY(0).normalize(),U=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1),F=new THREE.Vector3();camera.getWorldDirection(F);F.setY(0).normalize();const sU=Math.max(.2,F.dot(U));target.addScaledVector(R,-dx*k).addScaledVector(F,dy*k/sU);placeCam()}
 const Z0=W()<700?.6:1.08;camera.zoom=Z0;setFrustum();placeCam();
 const toWorld=(mx,my)=>({x:(mx*S2+my*S6)/2,z:(my*S6-mx*S2)/2});
 const toMap=(x,z)=>({x:(x-z)/S2,y:(x+z)/S6});
@@ -547,16 +550,20 @@ function renderDash(){if(MODE!=='dash')return;
 // ===== STEROWANIE =====
 const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=null,hover=-1;
 function pick(e){mv.set(e.clientX/W()*2-1,-(e.clientY/H())*2+1);ray.setFromCamera(mv,camera);const h=ray.intersectObjects(floors);return h.length?h[0].object.userData.i:-1}
-el.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,m:0};el.setPointerCapture(e.pointerId)});
+el.addEventListener('contextmenu',e=>e.preventDefault());
+el.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,m:0,rot:ROT||e.button===2||e.shiftKey};el.setPointerCapture(e.pointerId)});
 el.addEventListener('pointermove',e=>{
  if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.m+=Math.abs(dx)+Math.abs(dy);drag.x=e.clientX;drag.y=e.clientY;
-  if(drag.m>4){el.classList.add('drag');const k=(camera.top-camera.bottom)/(camera.zoom*H()),w=toWorld(-dx*k,-dy*k);target.x+=w.x;target.z+=w.z;placeCam()}return}
+  if(drag.m>4){el.classList.add('drag');if(drag.rot){AZ-=dx*.008;placeCam()}else{const k=(camera.top-camera.bottom)/(camera.zoom*H());panBy(dx,dy,k)}}return}
  hover=pick(e);el.classList.toggle('hov',hover!==-1)});
 el.addEventListener('pointerup',e=>{el.classList.remove('drag');if(drag&&drag.m<=4){const i=pick(e);if(i==='chart')openChart('candles');else if(i>=0)openPanel(i)}drag=null});
 const setZoom=z=>{camera.zoom=Math.min(3,Math.max(.35,z));camera.updateProjectionMatrix()};
 el.addEventListener('wheel',e=>{e.preventDefault();setZoom(camera.zoom*(e.deltaY<0?1.1:.9))},{passive:false});
 $('zi').onclick=()=>setZoom(camera.zoom*1.2);$('zo').onclick=()=>setZoom(camera.zoom/1.2);
-$('zr').onclick=()=>{target.copy(P(1,6.5));placeCam();setZoom(Z0)};
+function spin(d){const a=AZ,b=AZ+d,t0=performance.now();(function f(n){const k=Math.min(1,(n-t0)/450),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;AZ=a+(b-a)*e;placeCam();if(k<1)requestAnimationFrame(f)})(t0)}
+$('rl').onclick=()=>spin(Math.PI/4);$('rr').onclick=()=>spin(-Math.PI/4);
+$('rm').onclick=()=>{ROT=!ROT;$('rm').classList.toggle('on',ROT);$('rm').title=ROT?'Przeciąganie obraca (kliknij, by przesuwać)':'Przeciąganie obraca widok'};
+$('zr').onclick=()=>{AZ=0;target.copy(P(1,6.5));placeCam();setZoom(Z0)};
 addEventListener('resize',()=>{renderer.setSize(W(),H());setFrustum();stars()});
 
 // minimapa
