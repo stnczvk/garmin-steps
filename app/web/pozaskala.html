@@ -94,7 +94,9 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 .trs{display:flex;flex-direction:column;gap:4px;margin-top:6px}.tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:12.5px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.04)}.tr small{grid-column:1/-1;color:var(--faint);font:11px 'JetBrains Mono',monospace;overflow-wrap:anywhere}.tr.zero b{color:#F5B25A}.tr.bad b{color:#FF5C6C}
 .now{display:flex;align-items:center;gap:14px;margin:14px 0 12px;padding:16px 18px;border-radius:18px;border:1px solid var(--line);background:var(--card)}
 .now .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none;background:rgba(255,255,255,.06)}
-.now b{display:block;font-size:17px}.now span{color:var(--soft);font-size:13px}.now .r{margin-left:auto;text-align:right}
+.now b{display:block;font-size:17px}.now.run{flex-direction:column;align-items:stretch}.nrow{display:flex;align-items:center;gap:14px}.nrow>div:nth-child(2){flex:1;min-width:0}.nrow .r{margin-left:auto}
+.prog{height:3px;border-radius:3px;background:rgba(110,139,255,.2);overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;width:35%;background:#6E8BFF;border-radius:3px;animation:indet 1.4s ease-in-out infinite}@keyframes indet{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+.flash{animation:fl 2.4s ease-out}@keyframes fl{0%{background:rgba(74,222,128,.25)}100%{background:transparent}}.now span{color:var(--soft);font-size:13px}.now .r{margin-left:auto;text-align:right}
 .now.run{border-color:rgba(110,139,255,.5);background:linear-gradient(90deg,rgba(110,139,255,.16),rgba(110,139,255,.03))}.now.run .ic{background:rgba(110,139,255,.25);animation:blink 1.4s infinite}
 .now.bad{border-color:rgba(255,123,112,.45);background:linear-gradient(90deg,rgba(255,123,112,.14),rgba(255,123,112,.02))}
 .sech{font-size:14px;font-weight:650;margin:16px 2px 8px;color:var(--soft)}
@@ -145,7 +147,8 @@ function laneStatus(L){
  const wfs=state.workflows.filter(w=>L.match.test(w.name)&&!/error/i.test(w.name));
  const wf=wfs.find(w=>w.active)||wfs[0];if(!wf)return{st:'off',wf:null,last:null};
  const ids=new Set(wfs.map(w=>w.id)),last=state.executions.find(e=>ids.has(e.workflowId));
- return{st:!wf.active?'off':last?last.status:'idle',wf,wfs,last};
+ const man=(state.started||[]).some(m=>ids.has(m.workflowId));
+ return{st:man?'running':!wf.active?'off':last?last.status:'idle',wf,wfs,last};
 }
 const ago=t=>{if(!t)return'–';const s=(Date.now()-new Date(t))/1000;if(s<90)return'przed chwilą';if(s<3600)return Math.round(s/60)+' min temu';if(s<86400)return Math.round(s/3600)+' godz. temu';return Math.round(s/86400)+' dni temu'};
 const ST={success:'sukces',error:'błąd',running:'działa',waiting:'czeka',off:'wyłączony',idle:'bez uruchomień',canceled:'przerwany',crashed:'awaria'};
@@ -196,7 +199,7 @@ function lanes(){
    <div class="steps">${L.nodes.map(([ic,t])=>`<span>${ic} ${esc(t)}</span>`).join('<i>›</i>')}</div>
    <div class="lna">${s.wf?`<button class="go" data-lrun="${esc(s.wf.id)}">▶ Uruchom</button>`:''}${s.last&&['error','crashed','success'].includes(s.last.status)?`<button data-lex="${esc(s.last.id)}">${s.last.status==='success'?'🔍 Przebieg':'⚠️ Co poszło nie tak'}</button>`:''}<button data-lsel="${li}">${sel===li?'✕ Wszystkie uruchomienia':'📋 Uruchomienia'}</button></div></div>`}).join('');
  el.querySelectorAll('[data-lsel]').forEach(b=>b.onclick=()=>{const i=+b.dataset.lsel;sel=sel===i?null:i;draw();list();$('c-ex').scrollIntoView({behavior:'smooth',block:'start'})});
- el.querySelectorAll('[data-lrun]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.lrun,'Uruchomiono – za chwilę pojawi się w uruchomieniach.','Uruchomić teraz „'+(state.workflows.find(w=>w.id===b.dataset.lrun)||{}).name+'”?'));
+ el.querySelectorAll('[data-lrun]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.lrun,'▶ Uruchomiono – widać to na górze w „Teraz działa”.','Uruchomić teraz „'+(state.workflows.find(w=>w.id===b.dataset.lrun)||{}).name+'”?'));
  el.querySelectorAll('[data-lex]').forEach(b=>b.onclick=()=>{sel=+b.closest('.ln').dataset.l;draw();list();setTimeout(()=>{detail(b.dataset.lex);$('d'+b.dataset.lex)?.scrollIntoView({behavior:'smooth',block:'center'})},50)});
 }
 
@@ -205,13 +208,17 @@ function lanes(){
 const LIC={gen:'🎬',mont:'🎞️',pub:'🚀',ana:'📊'};
 function laneOf(name){return LANES.find(L=>L.match.test(name||''))}
 function nice(name){const L=laneOf(name);return L?`${LIC[L.key]} ${L.title}`:'⚙️ '+(name||'?')}
+function actives(){if(!state||!state.ok)return[];
+ const run=state.executions.filter(e=>e.status==='running'||e.status==='waiting').map(e=>({wid:e.workflowId,name:e.workflow,since:new Date(e.startedAt).getTime(),id:e.id}));
+ (state.started||[]).forEach(m=>{if(!run.some(r=>r.wid===m.workflowId))run.push({wid:m.workflowId,name:m.workflow,since:m.t*1000,manual:1})});return run}
 const fmtDur=s=>s==null?'':s<120?s+' s':Math.round(s/60)+' min';
 function nowCard(){const el=$('now');if(!state||!state.ok){el.innerHTML='';return}
- const run=state.executions.filter(e=>e.status==='running'||e.status==='waiting');
+ const run=actives();
  const bad=state.executions.find(e=>['error','crashed'].includes(e.status)&&Date.now()-new Date(e.startedAt)<6*3600e3);
  const n=nextStart();
- if(run.length){const e=run[0],s=Math.round((Date.now()-new Date(e.startedAt))/1000);
-  el.className='now run';el.innerHTML=`<div class="ic">▶</div><div><b>Teraz działa: ${esc(nice(e.workflow))}</b><span>${esc(e.workflow)} · od ${fmtDur(s)}${run.length>1?` · i jeszcze ${run.length-1}`:''}</span></div><div class="r"><button class="pill running" data-nex="${esc(e.id)}">Przebieg ›</button></div>`}
+ if(run.length){
+  el.className='now run';el.innerHTML=run.map((e,i)=>{const s=Math.round((Date.now()-e.since)/1000);
+   return`<div class="nrow"><div class="ic">▶</div><div><b>Teraz działa: ${esc(nice(e.name))}</b><span>${esc(e.name)} · od ${fmtDur(Math.max(1,s))}${e.manual?' · uruchomione z centrum, n8n pracuje':''}</span><div class="prog"><i></i></div></div>${e.id?`<div class="r"><button class="pill running" data-nex="${esc(e.id)}">Przebieg ›</button></div>`:''}</div>`}).join('')}
  else if(bad){el.className='now bad';el.innerHTML=`<div class="ic">⚠️</div><div><b>Błąd: ${esc(nice(bad.workflow))}</b><span>${ago(bad.startedAt)} · kliknij, żeby zobaczyć co poszło nie tak</span></div><div class="r"><button class="pill error" data-nex="${esc(bad.id)}">Szczegóły ›</button></div>`}
  else{el.className='now';el.innerHTML=`<div class="ic">✓</div><div><b>Nic teraz nie działa</b><span>${n?`następny start: ${esc(nice(n.w))} o ${n.d.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}`:'brak zaplanowanych startów'}</span></div>`}
  el.querySelectorAll('[data-nex]').forEach(b=>b.onclick=()=>{sel=null;list();setTimeout(()=>{detail(b.dataset.nex);$('d'+b.dataset.nex)?.scrollIntoView({behavior:'smooth',block:'center'})},50)})}
@@ -260,7 +267,7 @@ function list(){
    const n=prompt('Nowa nazwa workflow (uwaga: Pipeline rozpoznaje etapy po nazwach: generator, Montaż, Publisher, Analytics):',w.name);if(!n||n===w.name)return;
    const r=await (await fetch('/api/n8n/rename/'+w.id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})).json();toast(r.ok?'Zmieniono nazwę.':'Nie wyszło: '+r.error);load(true)});
  $('bkb').onclick=backups;
- $('wfl').querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.run+(b.dataset.trig?'?trigger='+encodeURIComponent(b.dataset.trig):''),'Uruchomiono – za chwilę pojawi się w uruchomieniach.',
+ $('wfl').querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.run+(b.dataset.trig?'?trigger='+encodeURIComponent(b.dataset.trig):''),'▶ Uruchomiono – widać to na górze w „Teraz działa”.',
    'Uruchomić teraz „'+(state.workflows.find(w=>w.id===b.dataset.run)||{}).name+'”'+(b.dataset.trig?' tak, jakby wystartował harmonogram „'+b.dataset.trig+'”':'')+'?'));
  $('wfl').querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>act(b,`/api/agency/n8n/${b.dataset.tog}/${b.dataset.on==='1'?'deactivate':'activate'}`,b.dataset.on==='1'?'Wyłączono.':'Włączono.'));
 }
@@ -291,9 +298,10 @@ function toast(t){const el=$('toast');el.textContent=t;el.style.display='block';
 async function act(b,url,okMsg,ask){
  if(ask&&!confirm(ask))return;
  b.disabled=true;const t=b.textContent;b.textContent='…';
- try{const r=await (await fetch(url,{method:'POST'})).json();toast(r.ok?okMsg:'Nie wyszło: '+(r.error||'błąd'))}
+ try{const r=await (await fetch(url,{method:'POST'})).json();toast(r.ok?okMsg:'Nie wyszło: '+(r.error||'błąd'));
+  const m=url.match(/\/api\/n8n\/run\/([^?]+)/);if(r.ok&&m&&state&&state.ok){const w=state.workflows.find(x=>x.id===m[1]);(state.started=state.started||[]).push({workflowId:m[1],workflow:w?w.name:'?',t:Date.now()/1000});prevAct.add(m[1]);draw();nowCard();scrollTo({top:0,behavior:'smooth'})}}
  catch(e){toast('Brak połączenia z centrum.')}
- b.disabled=false;b.textContent=t;setTimeout(()=>load(true),2500);
+ b.disabled=false;b.textContent=t;setTimeout(()=>{clearTimeout(lt);load(true).then(()=>{lt=setTimeout(tick,5000)})},2500);
 }
 async function detail(id){
  const d=$('d'+id);if(!d)return;if(!d.hidden){d.hidden=true;return}
@@ -326,7 +334,13 @@ document.querySelectorAll('.fold').forEach(c=>{const k='fold-'+c.id,b=c.querySel
  try{set(localStorage.getItem(k)==='1')}catch(e){}
  b.onclick=()=>{const v=!c.classList.contains('closed');set(v);try{localStorage.setItem(k,v?'1':'0')}catch(e){}}});
 $('all').onclick=()=>{sel=null;draw();list()};
-load();setInterval(load,30000);
+let prevAct=new Set(),lt=null;
+function watchDone(){const now=new Set(actives().map(a=>a.wid));
+ prevAct.forEach(wid=>{if(!now.has(wid)){const e=state.executions.find(x=>x.workflowId===wid);
+  if(e){toast(`${['error','crashed'].includes(e.status)?'❌':'✅'} ${nice(e.workflow)} – ${ST[e.status]||e.status}${e.stoppedAt?' · '+fmtDur(Math.round((new Date(e.stoppedAt)-new Date(e.startedAt))/1000)):''}`);
+   setTimeout(()=>{document.querySelector(`.ex[data-e="${e.id}"]`)?.classList.add('flash')},50)}}});prevAct=now}
+async function tick(){await load();if(state&&state.ok)watchDone();clearTimeout(lt);lt=setTimeout(tick,actives().length?5000:30000)}
+tick();
 </script>
 </body>
 </html>

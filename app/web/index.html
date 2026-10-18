@@ -598,25 +598,37 @@ body.v-ext .vframe{display:block}body.v-ext #app,body.v-ext #tabs,body.v-ext #re
 /* zakładki w ramce: cała strona = nagłówek + ramka do samego dołu ekranu (bez position:fixed – na iPhonie w trybie apki fixed zostawiał pasek) */
 body.v-ext{overflow:hidden;display:flex;flex-direction:column;height:var(--vh,100dvh);min-height:0}
 body.v-ext .head{position:relative;flex:none}
-#splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:var(--lg-base,#06070c);transition:opacity .5s ease,visibility .5s}
-#splash.out{opacity:0;visibility:hidden}
-#splash .sp{display:flex;flex-direction:column;align-items:center;gap:18px}
-#splash .ring{position:relative;width:96px;height:96px;display:grid;place-items:center}
-#splash .ring img{width:64px;height:64px;border-radius:18px;box-shadow:0 10px 40px -8px rgba(124,92,255,.7);animation:spb 1.6s ease-in-out infinite}
-#splash .ring:before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid transparent;border-top-color:#9E8CFC;border-right-color:#5ab0ff;animation:spr 1s linear infinite}
-#splash b{font:650 17px Geist,system-ui;letter-spacing:-.01em;color:var(--ink,#f4f4f5)}
-#splash small{font:12px 'JetBrains Mono',monospace;color:var(--faint,#7a7a86)}
-@keyframes spr{to{transform:rotate(360deg)}}@keyframes spb{50%{transform:scale(.94)}}
-@media(prefers-reduced-motion:reduce){#splash .ring:before,#splash .ring img{animation:none}}
+/* ekran startu: szklany kafel z logo (B) + fale i rozsunięcie od środka (F) */
+#splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;pointer-events:auto}
+#splash .half{position:absolute;left:0;right:0;height:50.5%;background:radial-gradient(70% 60% at 30% 100%,rgba(124,92,255,.32),transparent 70%),radial-gradient(60% 60% at 80% 100%,rgba(47,107,255,.28),transparent 70%),#06070c;transition:transform .75s cubic-bezier(.7,0,.2,1)}
+#splash .half.t{top:0}#splash .half.b{bottom:0;background:radial-gradient(70% 60% at 30% 0%,rgba(124,92,255,.32),transparent 70%),radial-gradient(60% 60% at 80% 0%,rgba(47,107,255,.28),transparent 70%),#06070c}
+#splash.out .half.t{transform:translateY(-101%)}#splash.out .half.b{transform:translateY(101%)}
+#splash.out{pointer-events:none}
+#splash .sp{position:relative;display:flex;flex-direction:column;align-items:center;gap:16px;transition:opacity .35s,transform .45s cubic-bezier(.7,0,.2,1)}
+#splash.out .sp{opacity:0;transform:scale(.85)}
+#splash .gl{position:relative;width:104px;height:104px;border-radius:30px;background:linear-gradient(150deg,rgba(255,255,255,.2),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.24);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 20px 60px -18px rgba(124,92,255,.8),inset 0 1px 0 rgba(255,255,255,.35);display:flex;align-items:flex-end;justify-content:center;gap:9px;padding-bottom:24px;overflow:hidden;animation:spIn .7s cubic-bezier(.2,1.4,.4,1) both}
+#splash .gl s{display:block;width:14px;border-radius:5px;background:linear-gradient(#fff,#d4ccff);height:0;text-decoration:none;animation:spBar .5s ease-out forwards}
+#splash .gl s:nth-child(1){--h:20px;animation-delay:.45s}#splash .gl s:nth-child(2){--h:34px;animation-delay:.6s}#splash .gl s:nth-child(3){--h:48px;animation-delay:.75s}
+#splash .gl:after{content:"";position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.55) 50%,transparent 60%);transform:translateX(-100%);animation:spSheen 1s 1.1s ease-in-out forwards}
+#splash .wv{position:absolute;left:50%;top:52px;width:104px;height:104px;margin:-52px;border-radius:50%;border:1.5px solid rgba(158,140,252,.55);opacity:0;animation:spWave 2.4s cubic-bezier(.2,.8,.2,1) infinite}
+#splash .wv:nth-of-type(2){animation-delay:.8s}#splash .wv:nth-of-type(3){animation-delay:1.6s}
+#splash b{font:650 17px Geist,system-ui;letter-spacing:-.01em;color:#f4f4f5;animation:spUp .5s .9s ease-out both}
+#splash small{font:12px 'JetBrains Mono',monospace;color:#7a7a86;animation:spUp .5s 1.1s ease-out both}
+@keyframes spIn{from{transform:scale(.6);opacity:0}}@keyframes spBar{to{height:var(--h)}}@keyframes spSheen{to{transform:translateX(100%)}}
+@keyframes spWave{0%{opacity:0;transform:scale(1)}25%{opacity:.8}100%{opacity:0;transform:scale(2.6)}}@keyframes spUp{from{opacity:0;transform:translateY(8px)}}
+@media(prefers-reduced-motion:reduce){#splash *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}#splash .half{transition:none}}
 </style>
 </head>
 <body>
-<div id="splash" role="status" aria-live="polite"><div class="sp"><div class="ring"><img src="/ikona-192.png" alt=""></div><b>Centrum dowodzenia</b><small id="sp-t">łączę z agentami…</small></div></div>
+<div id="splash" role="status" aria-live="polite"><i class="half t"></i><i class="half b"></i><div class="sp"><i class="wv"></i><i class="wv"></i><i class="wv"></i><div class="gl"><s></s><s></s><s></s></div><b>Centrum dowodzenia</b><small id="sp-t">łączę z agentami…</small></div></div>
 <script>
 // ekran ładowania: znika, gdy pierwsza zakładka się wczyta (najpóźniej po 7 s)
 (function(){const msgs=['łączę z agentami…','budzę strażników…','sprawdzam skaner…','pobieram statystyki…'];let i=0;
  const t=setInterval(()=>{const el=document.getElementById('sp-t');if(el)el.textContent=msgs[++i%msgs.length]},900);
- window.hideSplash=()=>{const s=document.getElementById('splash');if(!s||s.classList.contains('out'))return;clearInterval(t);s.classList.add('out');setTimeout(()=>s.remove(),600)};
+ const t0=Date.now();
+ window.hideSplash=()=>{const s=document.getElementById('splash');if(!s||s.classList.contains('out')||s.dataset.w)return;
+  const go=()=>{clearInterval(t);s.classList.add('out');setTimeout(()=>s.remove(),900)};
+  const left=2300-(Date.now()-t0);if(left>0){s.dataset.w=1;setTimeout(()=>{delete s.dataset.w;go()},left)}else go()};
  setTimeout(()=>window.hideSplash(),7000)})();
 </script>
 <div class="lg-bg" aria-hidden="true"></div>

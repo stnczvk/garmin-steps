@@ -66,7 +66,34 @@ def status(force: int = 0):
     execs = [{"id": e.get("id"), "workflowId": e.get("workflowId"), "workflow": names.get(e.get("workflowId"), "?"),
               "status": e.get("status") or ("success" if e.get("finished") else "error"), "mode": e.get("mode"),
               "startedAt": e.get("startedAt"), "stoppedAt": e.get("stoppedAt")} for e in ex.get("data", [])]
-    data = {"ok": True, "workflows": workflows, "executions": execs, "fetched": time.time()}
+    # wykonania w toku (część wersji n8n nie zwraca ich na zwykłej liście)
+    try:
+        run = httpx.get(f"{base}/api/v1/executions", params={"status": "running", "limit": 10}, headers=h, timeout=8).json()
+        have = {e["id"] for e in execs}
+        for e in run.get("data", []):
+            if e.get("id") not in have:
+                execs.insert(0, {"id": e.get("id"), "workflowId": e.get("workflowId"), "workflow": names.get(e.get("workflowId"), "?"),
+                                 "status": "running", "mode": e.get("mode"), "startedAt": e.get("startedAt"), "stoppedAt": None})
+    except Exception:
+        pass
+    # ręczne starty z centrum, dla których n8n jeszcze nie pokazał zakończonego wykonania
+    from social import _read, _write
+    from datetime import datetime as _dt
+    S, started = _read("n8n_started.json", {}), []
+    for wid, m in list(S.items()):
+        def _ts(x):
+            try:
+                return _dt.fromisoformat(str(x).replace("Z", "+00:00")).timestamp()
+            except Exception:
+                return 0
+        done = next((e for e in execs if e["workflowId"] == wid and _ts(e["startedAt"]) >= m["t"] - 90
+                     and e["status"] not in ("running", "waiting", "new")), None)
+        if done or time.time() - m["t"] > 3600:
+            S.pop(wid)
+            continue
+        started.append({"workflowId": wid, "workflow": names.get(wid, m.get("name")), "t": m["t"], "trig": m.get("trig")})
+    _write("n8n_started.json", S)
+    data = {"ok": True, "workflows": workflows, "executions": execs, "started": started, "fetched": time.time()}
     _cache.update(t=time.time(), data=data)
     return data
 

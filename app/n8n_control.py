@@ -179,6 +179,11 @@ def run(wid: str, trigger: str = ""):
             time.sleep(2)
             n8n("POST", f"/api/v1/workflows/{wid}/deactivate")
     log("op", f"Uruchomił ręcznie {name} (jak „{trig}”)" if ok else f"Nie udało się uruchomić {name}: {err}", "ok" if ok else "error")
+    if ok:  # znacznik „uruchomione” – Pipeline pokazuje start od razu, zanim n8n zgłosi wykonanie
+        from social import _read, _write
+        S = {k: v for k, v in _read("n8n_started.json", {}).items() if time.time() - v.get("t", 0) < 3600}
+        S[wid] = {"t": time.time(), "name": name, "trig": trig}
+        _write("n8n_started.json", S)
     _bust()
     return {"ok": ok, "error": None if ok else err, "trigger": trig}
 
