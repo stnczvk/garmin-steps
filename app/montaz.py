@@ -388,3 +388,178 @@ def _watch():
 
 
 threading.Thread(target=_watch, daemon=True).start()
+
+
+# ---------- vlog WNBF: zlecenia dla pomocnika na Macu (montaż robi niezmieniony zmontuj.py w CapCut) ----------
+from social import ROOT as SOCIAL_ROOT
+
+VUP = SOCIAL_ROOT / "vlog_upload"
+VCLIP = {".mov", ".mp4", ".m4v", ".png", ".jpg", ".jpeg"}
+_vl = threading.Lock()
+
+
+def _V():
+    v = _rd("mont_vlog.json", {})
+    v.setdefault("helper", {})
+    v.setdefault("jobs", [])
+    return v
+
+
+def _vjob(v, jid):
+    return next((j for j in v["jobs"] if j["id"] == jid), None)
+
+
+def _tok(req: Request):
+    t, want = req.headers.get("x-mont-token", ""), os.environ.get("MONT_TOKEN", "")
+    return bool(want) and secrets.compare_digest(t, want)
+
+
+@router.get("/api/mont-vlog/state")
+def vlog_state():
+    v = _V()
+    h = v["helper"]
+    online = bool(h.get("seen")) and time.time() - h["seen"] < 90
+    return {"configured": bool(os.environ.get("MONT_TOKEN")), "online": online, "seen": h.get("seen"),
+            "next_ep": (h.get("last") or 0) + 1, "loose": h.get("loose", 0),
+            "jobs": [{k: x for k, x in j.items() if k != "log_full"} for j in v["jobs"][-12:][::-1]]}
+
+
+@router.post("/api/mont-vlog/new")
+async def vlog_new(req: Request):
+    b = await req.json()
+    with _vl:
+        v = _V()
+        if any(j["state"] in ("queued", "uploading", "working", "ask") for j in v["jobs"]):
+            return {"ok": False, "error": "Poprzedni montaż vloga jeszcze trwa."}
+        jid = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
+        j = {"id": jid, "ep": int(b.get("ep") or 0), "date": str(b.get("date") or "")[:10], "voiceover": bool(b.get("voiceover")),
+             "state": "uploading" if b.get("upload") else "queued", "step": "Wysyłanie klipów…" if b.get("upload") else "Czekam na Maca…",
+             "files": [], "lines": [], "at": time.time()}
+        if j["ep"] <= 0 or not re.match(r"^\d{4}-\d{2}-\d{2}$", j["date"]):
+            return {"ok": False, "error": "Podaj numer odcinka i datę."}
+        v["jobs"] = v["jobs"][-30:] + [j]
+        _wr("mont_vlog.json", v)
+    return {"ok": True, "id": jid}
+
+
+@router.put("/api/mont-vlog/{jid}/file")
+async def vlog_file(jid: str, req: Request, name: str = ""):
+    name = os.path.basename(name)
+    if Path(name).suffix.lower() not in VCLIP:
+        return JSONResponse({"error": "Nieobsługiwany plik: " + name[:40]}, status_code=400)
+    d = VUP / jid
+    d.mkdir(parents=True, exist_ok=True)
+    tmp = d / (name + ".part")
+    with tmp.open("wb") as f:
+        async for chunk in req.stream():
+            f.write(chunk)
+    tmp.replace(d / name)
+    with _vl:
+        v = _V()
+        j = _vjob(v, jid)
+        if j and name not in j["files"]:
+            j["files"].append(name)
+            _wr("mont_vlog.json", v)
+    return {"ok": True}
+
+
+@router.post("/api/mont-vlog/{jid}/{action}")
+async def vlog_act(jid: str, action: str, req: Request):
+    b = await req.json() if action == "answer" else {}
+    with _vl:
+        v = _V()
+        j = _vjob(v, jid)
+        if not j:
+            return {"ok": False, "error": "nie ma"}
+        if action == "go":
+            j.update(state="queued", step="Czekam na Maca…")
+        elif action == "answer":
+            j.update(answer={"choice": b.get("choice")}, state="working", step="Zapowiedź wybrana – montuję dalej")
+        elif action == "cancel" and j["state"] in ("queued", "uploading"):
+            j.update(state="error", step="Anulowano")
+        _wr("mont_vlog.json", v)
+    return {"ok": True}
+
+
+# — wywoływane przez pomocnika na Macu (token X-Mont-Token) —
+@router.get("/api/mont-hook/next")
+def hook_next(req: Request, last: int = 0, loose: int = 0):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    with _vl:
+        v = _V()
+        v["helper"] = {"seen": time.time(), "last": last, "loose": loose}
+        j = next((x for x in v["jobs"] if x["state"] == "queued"), None)
+        if j:
+            j.update(state="claimed", step="Mac otwiera montaż…", claimed=time.time())
+        _wr("mont_vlog.json", v)
+    return {"job": j and {"id": j["id"]}}
+
+
+@router.get("/api/mont-hook/{jid}/job")
+def hook_job(jid: str, req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    j = _vjob(_V(), jid)
+    return j and {k: j[k] for k in ("id", "ep", "date", "voiceover", "files")}
+
+
+@router.get("/api/mont-hook/{jid}/file")
+def hook_file(jid: str, req: Request, name: str = ""):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    f = VUP / os.path.basename(jid) / os.path.basename(name)
+    return FileResponse(f) if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
+
+
+@router.post("/api/mont-hook/{jid}/{what}")
+async def hook_post(jid: str, what: str, req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    push = None
+    with _vl:
+        v = _V()
+        j = _vjob(v, jid)
+        if not j:
+            return {"ok": False}
+        if what == "status":
+            j["lines"] = (j.get("lines", []) + [str(x)[:300] for x in b.get("lines") or []])[-80:]
+            for k in ("state", "step"):
+                if b.get(k):
+                    j[k] = str(b[k])[:200]
+            if b.get("log"):
+                j["log_full"] = str(b["log"])[-6000:]
+            j["at"] = time.time()
+            if b.get("state") in ("done", "error"):
+                j["finished"] = time.time()
+                push = j
+                shutil.rmtree(VUP / jid, ignore_errors=True)
+        elif what == "ask":
+            j.update(ask=[str(t)[:200] for t in (b.get("texts") or [])][:12], state="ask", step="Wybierz zapowiedź", answer=None)
+            push = "ask"
+        _wr("mont_vlog.json", v)
+    if push:
+        from extra import push_all
+        if push == "ask":
+            push_all("🎬 Wybierz zapowiedź vloga", f"Odcinek #{j['ep']}: które zdanie dać na początek?", "/#montazownia", kind="montaz")
+        else:
+            ok = j["state"] == "done"
+            res = next((l for l in reversed(j["lines"]) if l.startswith("GOTOWE")), "")
+            push_all("🎥 Vlog gotowy w CapCut" if ok else "❌ Montaż vloga nie wyszedł", (res or j["step"])[:150], "/#montazownia", kind="montaz")
+    return {"ok": True}
+
+
+@router.get("/api/mont-hook/{jid}/answer")
+def hook_answer(jid: str, req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    j = _vjob(_V(), jid)
+    a = j and j.get("answer")
+    return {"answered": a is not None, "choice": a and a.get("choice")}
+
+
+@router.get("/api/mont-vlog/{jid}/log")
+def vlog_log(jid: str):
+    j = _vjob(_V(), jid)
+    return {"log": (j or {}).get("log_full") or "\n".join((j or {}).get("lines", []))}

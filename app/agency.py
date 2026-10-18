@@ -581,12 +581,20 @@ def inbox():
         auto = s.get("autopilot") and s.get("inbox_auto", True)
         n = sent = 0
         for c in new[:20]:
+            try:
+                txt = _reply_text(c["video"], c["text"])
+            except Exception as e:
+                errs.append(f"AI (odpowiedź na komentarz): {str(e)[:110]}")
+                break
             done.add(c["id"])
-            txt = _reply_text(c["video"], c["text"])
             item = {**c, "day": today, "t": time.time(), "text": c["text"][:300],
                     "reply": "" if txt == "SKIP" else txt[:400], "status": "skip" if txt == "SKIP" else "draft"}
             if item["reply"] and auto and sent_today < DAILY_REPLIES:
-                ok, why = _send(item, item["reply"])
+                try:
+                    ok, why = _send(item, item["reply"])
+                except Exception as e:
+                    ok, why = False, f"{c['platform']} (wysyłka): {str(e)[:110]}"
+                    errs.append(why)
                 if ok:
                     item["status"] = "sent"
                     sent_today += 1

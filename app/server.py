@@ -54,7 +54,7 @@ def check_pass(pw):
 @app.middleware("http")
 async def guard(req: Request, call_next):
     # /api/agency/hook/* woła n8n – tam sprawdzany jest token agencji, nie sesja
-    if req.url.path.startswith("/api/") and req.url.path != "/api/login" and not req.url.path.startswith("/api/agency/hook/") and not authed(req):
+    if req.url.path.startswith("/api/") and req.url.path != "/api/login" and not req.url.path.startswith(("/api/agency/hook/", "/api/mont-hook/")) and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if req.url.path == "/":
@@ -79,6 +79,14 @@ async def login(req: Request):
     r = JSONResponse({"ok": True})
     r.set_cookie(COOKIE, tok, max_age=400 * 86400, httponly=True, secure=True, samesite="lax")
     return r
+
+
+BOOT = str(int(time.time()))
+
+
+@app.get("/api/version")
+def version():
+    return {"v": BOOT}
 
 
 @app.post("/api/logout")

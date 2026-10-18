@@ -1319,6 +1319,20 @@ route(); addEventListener('hashchange', route);
 function nBadgeSet(n) { const b = $('#nbadge'); b.className = 's-badge' + (n ? ' w' : ''); b.textContent = n ? (n > 99 ? '99+' : n) : ''; }
 async function nBadge() { try { const r = await fetch('/api/notifs?limit=1'); if (r.ok) nBadgeSet((await r.json()).unread); } catch (e) {} }
 nBadge(); setInterval(nBadge, 60000);
+// samoodświeżanie: po aktualizacji serwera apka przeładowuje się sama, a po powrocie z tła odświeża widoczną zakładkę
+let BOOTV = null, hiddenAt = 0;
+const busy = () => [...document.querySelectorAll('#vframe iframe')].some(f => { try { return f.contentWindow.BUSY; } catch (e) { return false; } });
+async function verCheck() { try { const v = (await (await fetch('/api/version', {cache: 'no-store'})).json()).v; if (BOOTV && v !== BOOTV) { if (busy()) return; location.reload(); } BOOTV = v; } catch (e) {} }
+verCheck(); setInterval(verCheck, 120000);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  verCheck(); nBadge(); gBadge();
+  if (hiddenAt && Date.now() - hiddenAt > 60000) {
+    const f = [...document.querySelectorAll('#vframe iframe')].find(x => x.style.display !== 'none');
+    if (f && document.body.classList.contains('v-ext') && !busy()) { try { f.contentWindow.location.reload(); } catch (e) {} }
+    else if (!document.body.classList.contains('needs-login')) load().catch(() => {});
+  }
+});
 // Statystyki: serwer odświeża konta co godzinę – widok dociąga nowe liczby co 10 min (tylko gdy jest otwarty)
 setInterval(() => { if (!document.hidden && !document.body.classList.contains('v-ext') && !document.body.classList.contains('needs-login')) load().catch(() => {}); }, 600000);
 // licznik problemów strażników w menu
