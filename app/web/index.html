@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
-<link rel="stylesheet" href="/glass.css">
+<link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 <style>
 :root{
   color-scheme:light;
@@ -598,9 +598,27 @@ body.v-ext .vframe{display:block}body.v-ext #app,body.v-ext #tabs,body.v-ext #re
 /* zakładki w ramce: cała strona = nagłówek + ramka do samego dołu ekranu (bez position:fixed – na iPhonie w trybie apki fixed zostawiał pasek) */
 body.v-ext{overflow:hidden;display:flex;flex-direction:column;height:var(--vh,100dvh);min-height:0}
 body.v-ext .head{position:relative;flex:none}
+#splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:var(--lg-base,#06070c);transition:opacity .5s ease,visibility .5s}
+#splash.out{opacity:0;visibility:hidden}
+#splash .sp{display:flex;flex-direction:column;align-items:center;gap:18px}
+#splash .ring{position:relative;width:96px;height:96px;display:grid;place-items:center}
+#splash .ring img{width:64px;height:64px;border-radius:18px;box-shadow:0 10px 40px -8px rgba(124,92,255,.7);animation:spb 1.6s ease-in-out infinite}
+#splash .ring:before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid transparent;border-top-color:#9E8CFC;border-right-color:#5ab0ff;animation:spr 1s linear infinite}
+#splash b{font:650 17px Geist,system-ui;letter-spacing:-.01em;color:var(--ink,#f4f4f5)}
+#splash small{font:12px 'JetBrains Mono',monospace;color:var(--faint,#7a7a86)}
+@keyframes spr{to{transform:rotate(360deg)}}@keyframes spb{50%{transform:scale(.94)}}
+@media(prefers-reduced-motion:reduce){#splash .ring:before,#splash .ring img{animation:none}}
 </style>
 </head>
 <body>
+<div id="splash" role="status" aria-live="polite"><div class="sp"><div class="ring"><img src="/ikona-192.png" alt=""></div><b>Centrum dowodzenia</b><small id="sp-t">łączę z agentami…</small></div></div>
+<script>
+// ekran ładowania: znika, gdy pierwsza zakładka się wczyta (najpóźniej po 7 s)
+(function(){const msgs=['łączę z agentami…','budzę strażników…','sprawdzam skaner…','pobieram statystyki…'];let i=0;
+ const t=setInterval(()=>{const el=document.getElementById('sp-t');if(el)el.textContent=msgs[++i%msgs.length]},900);
+ window.hideSplash=()=>{const s=document.getElementById('splash');if(!s||s.classList.contains('out'))return;clearInterval(t);s.classList.add('out');setTimeout(()=>s.remove(),600)};
+ setTimeout(()=>window.hideSplash(),7000)})();
+</script>
 <div class="lg-bg" aria-hidden="true"></div>
 <aside class="side" id="side" aria-label="Menu">
   <div class="s-brand"><img src="/ikona-192.png" alt=""><b>Centrum</b><button class="s-col" id="s-col" title="Zwiń / rozwiń menu" aria-label="Zwiń menu">‹</button></div>
@@ -739,6 +757,7 @@ async function api(path, opt) {
 }
 
 function showLogin() {
+  window.hideSplash && hideSplash();
   if ($('.login')) return;
   $('#app').hidden = true; $('#head').hidden = true; document.body.classList.add('needs-login');
   document.body.insertAdjacentHTML('beforeend', `<form class="card login"><img src="/ikona-192.png" alt="">
@@ -1246,11 +1265,13 @@ function setView(v, push) {
   document.body.classList.remove('s-open');
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');
   const box = $('#vframe');
-  box.querySelectorAll('iframe').forEach(f => f.style.display = f.dataset.v === v ? 'block' : 'none');
+  box.querySelectorAll('iframe').forEach(f => { const on = f.dataset.v === v; f.style.display = on ? 'block' : 'none';
+    try { f.contentWindow.postMessage({active: on}, location.origin); } catch (e) {} });
   if (v !== 'stats' && !box.querySelector(`iframe[data-v="${v}"]`)) {
-    const f = document.createElement('iframe'); f.dataset.v = v; f.src = '/' + v; f.title = v; f.style.display = 'block'; box.appendChild(f);
+    const f = document.createElement('iframe'); f.dataset.v = v; f.src = '/' + v; f.title = v; f.style.display = 'block';
+    f.addEventListener('load', () => setTimeout(() => window.hideSplash && hideSplash(), 250), {once: true}); box.appendChild(f);
   }
-  if (v === 'stats') setTimeout(() => pills(), 0);
+  if (v === 'stats') { setTimeout(() => pills(), 0); setTimeout(() => window.hideSplash && hideSplash(), 600); }
   if (push) history.replaceState(null, '', '#' + v);
 }
 $('#snav').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v, true); };

@@ -65,3 +65,23 @@ body.lg{padding-bottom:var(--sab,0px)}
 .lg #models{bottom:calc(12px + var(--sab,0px)) !important}
 .lg #feed{bottom:calc(52px + var(--sab,0px)) !important}
 .lg #panel{bottom:calc(12px + var(--sab,0px))}
+
+/* ---------- Liquid Glass v2 ---------- */
+/* światło podąża za kursorem (pozycję --mx/--my ustawia glass.js) */
+.lg .glass,.lg .card,.lg .kpi,.side{--mx:50%;--my:-40%}
+.lg .glass:before,.lg .card:before,.lg .kpi:before,.side:before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:-1;
+  background:radial-gradient(260px circle at var(--mx) var(--my),rgba(255,255,255,.13),transparent 60%);opacity:0;transition:opacity .35s}
+.lg .glass:hover:before,.lg .card:hover:before,.lg .kpi:hover:before,.side:hover:before{opacity:1}
+/* krawędź jak szkło: jaśniejsza u góry-lewej, ciemniejsza u dołu-prawej */
+.lg .glass,.lg .card,.lg .kpi{box-shadow:inset 1px 1px 0 rgba(255,255,255,.30),inset -1px -1px 0 rgba(255,255,255,.06),var(--lg-sh) !important}
+:root[data-theme=light] .lg .glass,:root[data-theme=light] .lg .card,:root[data-theme=light] .lg .kpi{box-shadow:inset 1px 1px 0 #fff,inset -1px -1px 0 rgba(120,120,170,.18),var(--lg-sh) !important}
+/* klikalne kafle lekko się unoszą */
+.lg .go,.lg .kpi.go{transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
+.lg .go:hover{transform:translateY(-2px) scale(1.012)}
+/* przyciski w pasku bocznym: mini-zoom in → zoom out (sprężyście) */
+#snav button{transition:background .2s,color .2s,transform .4s cubic-bezier(.34,1.56,.64,1)}
+#snav button i{transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
+#snav button:hover{transform:scale(1.05)}
+#snav button:hover i{transform:scale(1.18)}
+#snav button:active{transform:scale(.97);transition-duration:.12s}
+@media (prefers-reduced-motion:reduce){#snav button,#snav button i,.lg .go{transition:none}#snav button:hover,#snav button:hover i,.lg .go:hover{transform:none}}

@@ -6,7 +6,7 @@
 <title>Ekran główny</title>
 <script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
-<link rel="stylesheet" href="/glass.css">
+<link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 <style>
 :root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--ok:#4ADE80;--bad:#FF7B70;--warn:#F5B25A;--acc:#9E8CFC;--yt:#E8504A;--ig:#B57BFF;--tt:#14A898}
 :root[data-theme=light]{--ink:#0B0B12;--soft:#4A4A57;--faint:#80808C;--ok:#15803D;--bad:#C2352A;--warn:#9A5B00;--acc:#6E56CF}
@@ -53,6 +53,8 @@ canvas{width:100%;display:block}
 .feed .fe{display:grid;grid-template-columns:52px 18px minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.07);font-size:13px;align-items:baseline}
 .feed .fe:first-child{border-top:0}.feed time{color:var(--faint);font:11.5px 'JetBrains Mono',monospace}
 .empty{color:var(--faint);font-size:13px}
+.tg{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:8px}.tg i{font-style:normal;color:var(--faint);transition:transform .25s}
+.fold.closed .tg i{transform:rotate(-90deg)}.fold.closed .card-h{margin-bottom:0}.fold.closed>.feed{display:none}
 .sk{height:14px;border-radius:7px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.12),rgba(255,255,255,.05));background-size:200% 100%;animation:sh 1.4s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 .in{animation:in .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0ms)}
@@ -87,7 +89,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
   <section class="glass in" style="--d:340ms"><div class="card-h"><h2>🎬 PozaSkala dziś</h2><a href="#" data-go="agencja">Agencja AI →</a></div><div id="pz"><div class="sk"></div></div></section>
   <section class="glass in" style="--d:380ms"><div class="card-h"><h2>👤 Twoje konta dziś</h2><a href="#" data-go="agencja">Raport →</a></div><div id="pv"><div class="sk"></div></div></section>
  </div>
- <section class="glass in" style="--d:420ms;margin-bottom:14px"><div class="card-h"><h2>⚡ Ostatnie zdarzenia</h2><a href="#" data-go="pozaskala">Pipeline →</a></div><div class="feed" id="feed"><div class="sk"></div></div></section>
+ <section class="glass in fold" id="f-feed" style="--d:420ms;margin-bottom:14px"><div class="card-h"><h2><button class="tg" aria-expanded="true"><i>▾</i>⚡ Ostatnie zdarzenia</button></h2><a href="#" data-go="pozaskala">Pipeline →</a></div><div class="feed" id="feed"><div class="sk"></div></div></section>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -208,6 +210,10 @@ async function load(){
  if(GD){const c=GD.count;pills.unshift([!c.fail,`Strażnicy ${c.ok}/${GD.guardians.length}${c.fail?' · '+c.fail+' problem':''}`,'straznicy'])}
  $('pills').innerHTML=pills.map(([ok,t,go])=>`<span class="pill glass ${ok?'ok':'bad'}"${go?` data-go="${go}" style="cursor:pointer"`:''}><i></i>${esc(t)}</span>`).join('');
 }
+document.querySelectorAll('.fold').forEach(c=>{const k='fold-'+c.id,b=c.querySelector('.tg');
+ const set=v=>{c.classList.toggle('closed',v);b.setAttribute('aria-expanded',!v)};
+ try{set(localStorage.getItem(k)==='1')}catch(e){}
+ b.onclick=()=>{const v=!c.classList.contains('closed');set(v);try{localStorage.setItem(k,v?'1':'0')}catch(e){}}});
 load();setInterval(load,60000);
 addEventListener('resize',()=>{const c=$('eq');if(c&&c._d)spark(c,c._d)});
 </script>

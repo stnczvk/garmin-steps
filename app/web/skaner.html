@@ -125,7 +125,7 @@ body.dash #dash{display:block}body.dash #scene,body.dash #labels,body.dash #mini
 }
 html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 </style>
-<link rel="stylesheet" href="/glass.css">
+<link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 </head>
 <body class="lg">
 <canvas id="stars"></canvas>
@@ -171,7 +171,7 @@ DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
 // ===== SCENA: parkiet giełdowy =====
 const el=document.getElementById('scene'),W=()=>innerWidth,H=()=>innerHeight;
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(W(),H());
+renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.5:2));renderer.setSize(W(),H());
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding;
 el.appendChild(renderer.domElement);
@@ -373,7 +373,7 @@ async function loadExtra(){try{FG=await (await fetch('/api/scanner/sentiment')).
 // animacja: nowy symbol/interwał = świece „wjeżdżają” od lewej; potem ostatnia świeca płynnie goni bieżącą cenę
 const AN={reveal:1,t0:0,key:'',from:null,to:null,tt:0,shown:null};
 async function loadCandles(){if(!cSym)cSym=(S?.open?.[0]?.symbol||'BTC').split('/')[0];
- let N;try{N=await (await fetch(`/api/scanner/candles?symbol=${cSym}&bar=${cBar}&limit=120`)).json()}catch(e){N={ok:false,error:'brak połączenia'}}
+ let N;try{N=await (await fetch(`/api/scanner/candles?symbol=${cSym}&bar=${cBar}&limit=300`)).json()}catch(e){N={ok:false,error:'brak połączenia'}}
  const key=cSym+cBar;
  if(N.ok&&N.candles.length){const last=N.candles.at(-1);
   if(key!==AN.key){AN.key=key;AN.reveal=0;AN.t0=performance.now();AN.shown={...last};AN.from=AN.to=null}
@@ -381,7 +381,12 @@ async function loadCandles(){if(!cSym)cSym=(S?.open?.[0]?.symbol||'BTC').split('
   else AN.shown={...last}}
  CND=N;paint();refresh()}
 function frameC(){if(!CND?.ok)return CND;const D=CND.candles.slice();if(AN.shown)D[D.length-1]=AN.shown;return{...CND,candles:D}}
-function paint(){drawCandles(chartCv,frameC(),false);wallTex.forEach(t=>t.needsUpdate=true);if(cMode==='candles'&&$('chartbox').classList.contains('open')){drawCandles($('bigc'),frameC(),true)}}
+// przybliżanie / oddalanie i przesuwanie dużego wykresu: VW.n świec w oknie, VW.off świec od końca
+const VW={n:120,off:0};
+function viewC(C,n,off){if(!C?.ok)return C;const L=C.candles.length,N=Math.min(n,L),o=Math.max(0,Math.min(off,L-N));return{...C,candles:C.candles.slice(L-o-N,L-o)}}
+function bigC(){return viewC(frameC(),VW.n,VW.off)}
+function zoomBig(f){const L=CND?.candles?.length||120;VW.n=Math.round(Math.max(20,Math.min(L,VW.n*f)));VW.off=Math.max(0,Math.min(VW.off,L-VW.n));$('zlv')&&($('zlv').textContent=VW.n+' świec');redrawBig()}
+function paint(){drawCandles(chartCv,viewC(frameC(),120,0),false);wallTex.forEach(t=>t.needsUpdate=true);if(cMode==='candles'&&$('chartbox').classList.contains('open')){drawCandles($('bigc'),bigC(),true)}}
 let lastPaint=0;
 function animTick(now){let busy=false;
  if(AN.reveal<1){AN.reveal=Math.min(1,(now-AN.t0)/1400);busy=true}
@@ -428,7 +433,7 @@ function drawCandles(cv,C,big){const x=cv.getContext('2d'),dpr=big?(window.devic
  const ch=chg(C);x.fillStyle=ch>=0?'#26d07c':'#ff4d61';x.fillText(`${ch>=0?'+':''}${ch.toFixed(2)}%`,P.l+(big?140:520),big?20:62);
  if(pos){x.fillStyle='#9fb3ff';x.font=`${fs}px Inter,sans-serif`;x.fillText(`otwarta pozycja ${pos.direction} · elite ${Math.round(pos.elite_score||0)}`,P.l+(big?230:820),big?20:62)}
  cv._c={D,X,Y,P,cw}}
-function redrawBig(){if(!$('chartbox').classList.contains('open'))return;sizeBig();cMode==='candles'?drawCandles($('bigc'),frameC(),true):drawChart($('bigc'),EQ,true)}
+function redrawBig(){if(!$('chartbox').classList.contains('open'))return;sizeBig();cMode==='candles'?drawCandles($('bigc'),bigC(),true):drawChart($('bigc'),EQ,true)}
 // wykres: skumulowany PnL real vs shadow + słupki liczby zamkniętych transakcji
 function drawChart(cv,data,big){const x=cv.getContext('2d'),W=cv.width,H=cv.height,dpr=big?(window.devicePixelRatio||1):1;
  x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,W,H);x.scale(dpr,dpr);const w=W/dpr,h=H/dpr;
@@ -458,7 +463,9 @@ function renderTools(){const t=$('ctools');
  $('ctitle').textContent='Notowania OKX (perpetual swap)';$('cnote').textContent='Świece z OKX, żółta linia: średnia 20. Przy otwartej pozycji: entry, SL i TP ze skanera.';
  const syms=[...new Set([...(S?.open||[]).map(o=>o.symbol.split('/')[0]),'BTC','ETH','SOL',...(S?.recent||[]).map(r=>r.symbol.split('/')[0])])].slice(0,9);
  t.innerHTML=syms.map(s=>`<button data-s="${s}" class="${s===cSym?'on':''}">${s}${(S?.open||[]).some(o=>o.symbol.startsWith(s+'/'))?' •':''}</button>`).join('')+'<i style="width:8px"></i>'+
-  ['15m','1H','4H','1D'].map(b=>`<button data-b="${b}" class="${b===cBar?'on':''}">${b}</button>`).join('');
+  ['15m','1H','4H','1D'].map(b=>`<button data-b="${b}" class="${b===cBar?'on':''}">${b}</button>`).join('')+
+  '<i style="width:8px"></i><button id="zminus" title="Oddal">−</button><button id="zplus" title="Przybliż">+</button><button id="zreset" title="Ostatnie świece">⟲</button><small id="zlv" style="opacity:.6;margin-left:6px">'+VW.n+' świec</small>';
+ $('zplus').onclick=()=>zoomBig(1/1.4);$('zminus').onclick=()=>zoomBig(1.4);$('zreset').onclick=()=>{VW.n=120;VW.off=0;zoomBig(1)};
  t.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{cSym=b.dataset.s;renderTools();loadCandles()});
  t.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{cBar=b.dataset.b;renderTools();loadCandles()})}
 function sizeBig(){const c=$('bigc'),r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d}
@@ -472,6 +479,15 @@ $('bigc').onmousemove=e=>{const c=$('bigc');if(cMode==='candles'){const k=c._c;i
  const t=$('ctip');t.style.display='block';t.style.left=Math.min(r.width-170,c._X(i)+10)+'px';t.style.top='30px';
  t.innerHTML=`<b>${d.d}</b><br><span style="color:#3ddc84">real ${d.real}%</span><br><span style="color:#b28cff">shadow ${d.shadow}%</span><br>zamknięte: ${d.n}`};
 $('bigc').onmouseleave=()=>$('ctip').style.display='none';
+// kółko / gest szczypania = zoom, przeciąganie = przesuwanie w czasie
+$('bigc').addEventListener('wheel',e=>{if(cMode!=='candles')return;e.preventDefault();zoomBig(e.deltaY>0?1.15:1/1.15)},{passive:false});
+{let pd=null;const pts=new Map();const bc=$('bigc');bc.style.touchAction='none';
+ bc.addEventListener('pointerdown',e=>{if(cMode!=='candles')return;pts.set(e.pointerId,e.clientX);bc.setPointerCapture(e.pointerId);pd={x:e.clientX,off:VW.off,n:VW.n,dist:null}});
+ bc.addEventListener('pointermove',e=>{if(!pd||!pts.has(e.pointerId))return;pts.set(e.pointerId,e.clientX);const k=bc._c;
+  if(pts.size===2){const [a,b]=[...pts.values()],d=Math.abs(a-b)||1;if(pd.dist==null)pd.dist=d;const L=CND?.candles?.length||120;VW.n=Math.round(Math.max(20,Math.min(L,pd.n*pd.dist/d)));$('zlv')&&($('zlv').textContent=VW.n+' świec');redrawBig();return}
+  if(!k)return;const per=k.cw/k.D.length,L=CND?.candles?.length||0;VW.off=Math.max(0,Math.min(L-VW.n,Math.round(pd.off+(e.clientX-pd.x)/per)));redrawBig()});
+ const up=e=>{pts.delete(e.pointerId);if(!pts.size)pd=null;else if(pd)pd.dist=null,pd.n=VW.n};
+ bc.addEventListener('pointerup',up);bc.addEventListener('pointercancel',up)}
 addEventListener('resize',redrawBig);
 poll().then(loadCandles);setInterval(poll,20000);loadAud();loadJR();setInterval(loadJR,120000);loadExtra();setInterval(loadExtra,300000);setInterval(loadCandles,6000);loadTickers();setInterval(loadTickers,60000);
 
@@ -544,7 +560,7 @@ const brainAnchor=P(0,17,PY+PH/2+1.1);
  tkTex.offset.x=(t*.018)%1;animTick(performance.now());
  if(t-lastMon>2.5){lastMon=t;tickMon()}
  wallLight.intensity=1.15+Math.sin(t*1.3)*.15;
- if(MODE!=="dash"){mini();renderer.render(scene,camera)}requestAnimationFrame(loop)})();
+ if(MODE!=="dash"&&window.CENTRUM_ACTIVE!==false&&!document.hidden){mini();renderer.render(scene,camera)}requestAnimationFrame(loop)})();
 setMode(MODE);
 </script>
 </body>

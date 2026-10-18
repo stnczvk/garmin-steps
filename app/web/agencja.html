@@ -114,7 +114,7 @@ body.dash #dash{display:block}body.dash #scene,body.dash #labels,body.dash #mini
 }
 html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 </style>
-<link rel="stylesheet" href="/glass.css">
+<link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 </head>
 <body class="lg">
 <canvas id="stars"></canvas>
@@ -162,7 +162,7 @@ const AG_DEPT={trends:0,scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7
 // ===== SCENA =====
 const el=document.getElementById('scene'),W=()=>innerWidth,H=()=>innerHeight;
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(W(),H());
+renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.5:2));renderer.setSize(W(),H());
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 el.appendChild(renderer.domElement);
 const scene=new THREE.Scene(),FR=44,camera=new THREE.OrthographicCamera(-1,1,1,-1,1,500);
@@ -449,7 +449,7 @@ function project(p,e){v.copy(p).project(camera);e.style.left=(v.x+1)/2*W()+'px';
  packets.forEach(p=>{const k=(t*.25+p.o)%1;p.pk.position.lerpVectors(p.from,p.to,k);p.pk.position.y=.45});
  rings.forEach((r,k)=>r.rotation.z=t*(k%2?-.3:.4));orbits.forEach((o,k)=>{o.rotation.y=t*.5+k;o.rotation.x+=.003});
  core.scale.setScalar(1+Math.sin(t*2)*.04);pl.intensity=1.4+Math.sin(t*2)*.3;
- if(MODE!=="dash"){mini();renderer.render(scene,camera)}requestAnimationFrame(loop)})();
+ if(MODE!=="dash"&&window.CENTRUM_ACTIVE!==false&&!document.hidden){mini();renderer.render(scene,camera)}requestAnimationFrame(loop)})();
 setMode(MODE);
 </script>
 </body>
