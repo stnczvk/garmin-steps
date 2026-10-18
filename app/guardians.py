@@ -183,10 +183,32 @@ def _agent_ran(agent, label, max_h, after_hour=None):
         age = (time.time() - last["t"]) / 3600
         if last.get("kind") == "error":
             return FAIL, last["text"][:120], None
+        if last.get("kind") == "warn" and age < max_h:
+            return WARN, f"{_ago(last['t'])} · {last['text'][:110]}", None
         if age > max_h and (after_hour is None or _now().hour >= after_hour):
             return WARN, f"{label}: ostatnio {_ago(last['t'])}", None
         return OK, f"{_ago(last['t'])} · {last['text'][:90]}", None
     return check
+
+
+def g_inbox():
+    """Stan z ostatniego sprawdzenia komentarzy (nie z ostatniego wpisu w logu – stary błąd nie wisi, gdy już działa)."""
+    from agency import _read as ar, ai_ready
+    if not ai_ready():
+        return IDLE, "brak klucza AI", None
+    I = ar("agency_inbox.json", {})
+    t = I.get("checked")
+    if not t:
+        return _agent_ran("inbox", "Inbox", 1.5)()
+    age = (time.time() - t) / 3600
+    errs = I.get("errs") or []
+    if age > 1.5:
+        return WARN, f"Inbox: ostatnio sprawdzał {_ago(t)}", None
+    if errs:
+        from agency import _transient
+        return (WARN if all(_transient(e) for e in errs) else FAIL), f"{_ago(t)} · {errs[0][:110]}", None
+    drafts = sum(1 for x in I.get("items", []) if x.get("status") == "draft")
+    return OK, f"sprawdzono {_ago(t)}" + (f" · {drafts} szkiców czeka na Ciebie" if drafts else " · bez błędów"), None
 
 
 # ---------------------------------------------------------------- social
@@ -256,7 +278,7 @@ G = [
     ("pub", "Publikacja", "pozaskala", "🚀", "Czy filmy opublikowały się o zaplanowanych godzinach", _scheduled(r"^publisher$", "Publikacja")),
     ("queue", "Kolejka tematów", "agencja", "🔭", "Czy generator ma z czego brać tematy", g_queue),
     ("qa", "Kontrola jakości", "agencja", "🛡️", "Czy Kontroler ocenił ostatni scenariusz", g_quality),
-    ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", _agent_ran("inbox", "Inbox", 1.5)),
+    ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", g_inbox),
     ("ret", "Retencja", "agencja", "📈", "Czy codzienna analiza retencji (7:00) się odbyła", _agent_ran("retention", "Retencja", 26, after_hour=8)),
     ("costs", "Koszty AI", "agencja", "💸", "Czy agenci nie przekraczają dziennego limitu", g_costs),
     ("stats", "Statystyki kont", "social", "📊", "Czy dane z YouTube/IG/TikTok się odświeżają", g_stats),
@@ -309,6 +331,39 @@ def guardians():
 def guardians_run():
     run_all(push=False)
     return guardians()
+
+
+@router.get("/api/guardians/diag")
+def diag():
+    """Diagnoza połączeń, których używa Inbox: DNS (IPv4/IPv6), zapytanie przez httpx i przez curl."""
+    import socket, subprocess
+    import httpx
+    hosts = ["graph.instagram.com", "www.googleapis.com", "oauth2.googleapis.com", "api.openai.com", "api.anthropic.com"]
+    out = []
+    for h in hosts:
+        r = {"host": h}
+        try:
+            ai = socket.getaddrinfo(h, 443, proto=socket.IPPROTO_TCP)
+            r["v4"] = sorted({a[4][0] for a in ai if a[0] == socket.AF_INET})[:2]
+            r["v6"] = sorted({a[4][0] for a in ai if a[0] == socket.AF_INET6})[:2]
+        except Exception as e:
+            r["dns"] = str(e)[:80]
+        t = time.time()
+        try:
+            r["httpx"] = f"HTTP {httpx.get(f'https://{h}/', timeout=10).status_code} · {int((time.time() - t) * 1000)} ms"
+        except Exception as e:
+            r["httpx"] = f"BŁĄD {type(e).__name__}: {str(e)[:90]}"
+        try:
+            c = subprocess.run(["curl", "-sS", "-4", "-o", "/dev/null", "-m", "10", "-w", "HTTP %{http_code} · %{time_total}s", f"https://{h}/"],
+                               capture_output=True, text=True, timeout=15)
+            r["curl"] = c.stdout if not c.returncode else "BŁĄD " + c.stderr.strip()[:90]
+        except Exception as e:
+            r["curl"] = f"BŁĄD {str(e)[:90]}"
+        out.append(r)
+    from agency import _read as ar, inbox
+    threading.Thread(target=inbox, daemon=True).start()  # od razu sprawdź komentarze ponownie
+    log = [e for e in ar("agency_log.json", []) if e.get("agent") == "inbox"][-8:]
+    return {"hosts": out, "log": [{"t": e["t"], "kind": e.get("kind"), "text": e["text"]} for e in log][::-1]}
 
 
 def _loop():

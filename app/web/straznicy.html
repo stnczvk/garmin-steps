@@ -106,9 +106,14 @@ function open_(id){const g=D.guardians.find(x=>x.id===id);
  $('sh').innerHTML=`<button class="x" onclick="$('sheet').classList.remove('open')">×</button><div class="hd ${g.status||'idle'}"><div class="orb"><span>${g.icon}</span></div><div><h3>${esc(g.name)}</h3><div class="st">${LBL[g.status||'idle']} · od ${ago(g.since)} · sprawdzono ${ago(g.at)}</div></div></div>
   <p class="mut">Zadanie: ${esc(g.task)}</p><div class="msg">${esc(g.msg||'–')}</div>
   <p class="mut">Ostatnie 48 sprawdzeń (co minutę)</p><div class="hd ${g.status}" style="margin:0">${hist(g.hist).replace('slice','')}</div>
+  ${id==='inbox'?`<div style="margin-top:12px"><button class="btn" id="dg">🔍 Diagnoza połączenia</button><div class="plog" id="dgo"></div></div>`:''}
   ${id==='push'?`<p class="mut" style="margin-top:12px">Ostatnie wysyłki</p><div class="plog">${(D.push_log||[]).map(l=>`<div>${new Date(l.t*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${l.sent}/${l.subs} · ${esc(l.title)}${l.results.filter(r=>!r.ok).map(r=>`<div class="bad">✗ ${esc(r.host)} ${r.code} ${esc(r.err||'')}</div>`).join('')}</div>`).join('')||'brak'}</div>`:''}`;
  const h=$('sh').querySelector('.hd .hist');if(h)h.innerHTML=(g.hist||[]).map(s=>`<i class="${s}"></i>`).join('');
- $('sheet').classList.add('open')}
+ $('sheet').classList.add('open');
+ const dg=$('dg');if(dg)dg.onclick=async()=>{dg.disabled=true;dg.textContent='Sprawdzam (do 30 s)…';let r;try{r=await (await fetch('/api/guardians/diag')).json()}catch(e){r={hosts:[],log:[]}}
+  $('dgo').innerHTML=r.hosts.map(h=>`<div><b>${esc(h.host)}</b> ${h.dns?`<span class="bad">DNS: ${esc(h.dns)}</span>`:`<span class="mut">v4 ${h.v4.length} · v6 ${h.v6.length}</span>`}<div class="${/BŁĄD/.test(h.httpx)?'bad':''}">httpx: ${esc(h.httpx)}</div><div class="${/BŁĄD/.test(h.curl)?'bad':''}">curl: ${esc(h.curl)}</div></div>`).join('')+
+   '<p class="mut" style="margin-top:8px">Ostatnie wpisy Inboxu</p>'+r.log.map(l=>`<div class="${l.kind==='error'?'bad':''}">${new Date(l.t*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(l.text)}</div>`).join('');
+  dg.disabled=false;dg.textContent='🔍 Sprawdź jeszcze raz';setTimeout(()=>load(true),25000)}}
 $('sheet').onclick=e=>{if(e.target.id==='sheet')$('sheet').classList.remove('open')};
 addEventListener('keydown',e=>{if(e.key==='Escape')$('sheet').classList.remove('open')});
 async function load(run){try{const r=await fetch(run?'/api/guardians/run':'/api/guardians',run?{method:'POST'}:{});if(r.ok){D=await r.json();render();window.sec3d&&sec3d()}}catch(e){}}

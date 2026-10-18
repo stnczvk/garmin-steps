@@ -652,6 +652,7 @@ def inbox():
                     item["why"] = why
             I["items"].append(item)
             n += 1
+        I["checked"], I["errs"] = time.time(), errs[:5]
         I["done"] = list(done)[-3000:]
         I["items"] = I["items"][-200:]
         _write("agency_inbox.json", I)
