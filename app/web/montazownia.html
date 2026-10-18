@@ -62,6 +62,29 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .hk{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}
 .hko{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
 .hko video{width:100%;aspect-ratio:9/16;max-height:300px;object-fit:cover;border-radius:10px;background:#000}.hko p{font-size:13px;flex:1}
+.sm-only{display:none}.bar2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.bar2 .vt{margin-bottom:0}
+.vt.sec{display:none}.vt.sec em{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle;visibility:hidden}.vt.sec em.on{visibility:visible}
+.fixd{margin-top:10px}.fixd summary{font-weight:600;color:var(--ink)}
+@media(max-width:700px){
+ .lg-only{display:none}.sm-only{display:inline}.bar2{flex-wrap:nowrap;gap:6px}.bar2 .vt button{padding:6px 9px;font-size:12px}
+ .top{align-items:center;margin-bottom:10px;gap:8px}.top p{display:none}.top h1{font-size:22px}.top .r{margin-left:auto}.top .btn{padding:8px 12px;font-size:12.5px}
+ .vt.sec{display:inline-flex;margin-left:auto}
+ body.m-dash.sv-food .s-vlog,body.m-dash.sv-vlog .s-food{display:none!important}
+ .glass{padding:13px 14px;border-radius:18px}
+ .grid{gap:10px}
+ .list h2{display:none}.list{padding:8px!important}
+ #jl{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}#jl::-webkit-scrollbar{display:none}
+ .list .j{flex:0 0 78%;scroll-snap-align:start;border:1px solid var(--line)!important;padding:9px 10px}
+ #det h2{font-size:14px}
+ video{max-height:46vh}
+ #det .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}#det .row .btn{justify-content:center;padding:9px 8px;font-size:12.5px}
+ #det .row .btn.pri:first-child{grid-column:1/-1}
+ .g{padding:10px 12px;font-size:13px}
+ .hk{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding-bottom:4px}
+ .hko{flex:0 0 72%;scroll-snap-align:start}.hko video{max-height:240px}
+ .vlog{margin-top:0}
+ #c3{height:calc(100vh - 150px)!important}
+}
 .msg{position:fixed;left:50%;bottom:calc(20px + var(--sab,0px));transform:translateX(-50%);background:#16171f;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px;z-index:9;display:none;max-width:90vw}
 @media(max-width:900px){.grid,.vid{grid-template-columns:minmax(0,1fr)}.wrap{padding:16px 14px 50px}}
 </style>
@@ -70,10 +93,10 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <div class="top"><div><h1>Montażownia</h1><p>Filmy montowane automatycznie. Strażnik montażu sprawdza każdy film, zanim go wrzucisz.</p></div>
-  <div class="r"><button class="btn pri" id="food">🍽 Zmontuj jedzenie</button><button class="btn pri" id="vlogb">🎥 Zmontuj vloga</button></div></div>
- <div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ Dashboard</button></div>
+  <div class="r"><button class="btn pri" id="food">🍽 <span class="lg-only">Zmontuj </span>jedzenie</button><button class="btn pri" id="vlogb">🎥 <span class="lg-only">Zmontuj </span>vloga</button></div></div>
+ <div class="bar2"><div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ <span class="lg-only">Dashboard</span><span class="sm-only">Lista</span></button></div><div class="vt sec dash-only" id="sec"><button data-s="food" class="on">🍽 Jedzenie</button><button data-s="vlog">🎥 Vlog<em id="vbadge"></em></button></div></div>
  <div class="stage3d glass office-only"><canvas id="c3" aria-label="Warsztat twórcy – biuro Montażowni"></canvas><span class="h3d">przeciągnij · obróć</span><span class="wsst" id="wsst"></span></div>
- <section class="glass dash-only" id="newp" hidden style="margin-bottom:14px">
+ <section class="glass dash-only s-food" id="newp" hidden style="margin-bottom:14px">
   <h2>Nowy montaż: daily jedzenie</h2>
   <div class="nf">
    <label>Data nagrania<input type="date" id="nd"></label>
@@ -85,7 +108,7 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
   </div>
   <div class="row"><button class="btn pri" id="go" disabled>✂️ Zmontuj</button><button class="btn" id="cancel">Anuluj</button><span class="mut" id="up"></span></div>
  </section>
- <section class="glass dash-only" id="vnew" hidden style="margin-bottom:14px">
+ <section class="glass dash-only s-vlog" id="vnew" hidden style="margin-bottom:14px">
   <h2>Nowy montaż: vlog WNBF</h2>
   <div id="vform">
    <div class="nf" style="grid-template-columns:120px 160px minmax(0,1fr)"><label>Odcinek nr<input id="vep" type="number" min="1"></label><label>Data nagrania<input id="vd" type="date"></label>
@@ -95,11 +118,11 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
    <div class="row"><button class="btn pri" id="vgo">🎥 Zmontuj odcinek</button><button class="btn" id="vcancel">Anuluj</button><span class="mut" id="vup"></span></div>
   </div>
  </section>
- <div class="grid dash-only">
+ <div class="grid dash-only s-food">
   <section class="glass list"><h2>Montaże</h2><div id="jl"><p class="mut">Ładuję…</p></div></section>
   <section class="glass" id="det"><p class="mut">Wybierz film z listy.</p></section>
  </div>
- <section class="glass vlog dash-only" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
+ <section class="glass vlog dash-only s-vlog" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
   <div id="vjobs"><p class="mut">Ładuję…</p></div>
  </section>
 </div>
@@ -137,8 +160,8 @@ async function detail(id,force){
   else g=`<div class="g ${c.ok?'ok':'bad'}"><b>🛡️ Strażnik montażu: ${c.ok?'film OK':'są uwagi'}</b> · ${c.duration} s
    ${(c.problems.length||c.warnings.length)?`<ul>${c.problems.map(p=>`<li><b>${esc(p)}</b></li>`).join('')}${c.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
    ${c.review?`<p style="margin-top:6px">${esc(c.review)}</p>`:''}
-   <textarea id="fx" placeholder="Co poprawić? (np. wytnij drugie podejście w klipie 2)">${esc(c.fix||'')}</textarea>
-   <div class="row"><button class="btn pri" id="fixb" ${act?'':'disabled title="Dopisz DZIENNIK_PASS do .env"'}>✂️ Popraw montaż</button><button class="btn" id="chk">🔁 Sprawdź jeszcze raz</button></div>
+   <details class="fixd" ${c.fix?'open':''}><summary>✂️ Coś poprawić?</summary><textarea id="fx" placeholder="Co poprawić? (np. wytnij drugie podejście w klipie 2)">${esc(c.fix||'')}</textarea>
+   <div class="row"><button class="btn pri" id="fixb" ${act?'':'disabled title="Dopisz DZIENNIK_PASS do .env"'}>✂️ Popraw montaż</button><button class="btn" id="chk">🔁 Sprawdź jeszcze raz</button></div></details>
    ${act?'':'<p class="mut" style="margin-top:6px">Żeby centrum mogło poprawiać i ponawiać montaż, dopisz do /root/social/.env linię <code>DZIENNIK_PASS=…</code> (hasło do dziennika) i zrób social-update.</p>'}</div>`}
  $('det').innerHTML=`<h2>${esc(ttl(j))}</h2>
   ${j.state==='done'?`<div class="vid"><video src="/api/mont/${j.id}/film" controls playsinline preload="metadata"></video><div>
@@ -155,7 +178,7 @@ async function detail(id,force){
 // ---- nowy montaż: wybór plików → wysyłka → montaż na serwerze ----
 let FC=[],FK=[];
 async function sug(){try{const r=await (await fetch('/api/mont-suggest?d='+($('nd').value||''))).json();DZU=r.dziennik;$('nd').value=r.date;$('nd').dataset.n=r.n;if(!DIRTY){$('t1').value=r.title[0];$('t2').value=r.title[1];$('t3').value=r.title[2]}}catch(e){}}
-$('food').onclick=()=>{setMode('dash');$('vnew').hidden=true;$('newp').hidden=!$('newp').hidden;scrollTo({top:0,behavior:'smooth'});if(!$('newp').hidden&&!$('t1').value)sug()};
+$('food').onclick=()=>{setMode('dash');setSec('food');$('vnew').hidden=true;$('newp').hidden=!$('newp').hidden;scrollTo({top:0,behavior:'smooth'});if(!$('newp').hidden&&!$('t1').value)sug()};
 $('cancel').onclick=()=>{$('newp').hidden=true};
 $('nd').onchange=sug;
 const mb=n=>(n/1048576).toFixed(n>1e8?0:1)+' MB';
@@ -188,11 +211,12 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
   ${j.state==='done'?`<pre>${esc((j.lines||[]).filter(l=>/GOTOWE|grafika|wycięte|nie dopasowano|plansza|zapowiedź/.test(l)).join('\n'))}</pre><p class="mut">Otwórz CapCut na Macu – projekt „WNBF AUTO #${j.ep}” czeka. Przejrzyj napisy i liczby na planszy, popraw i wyeksportuj.</p>`:''}
   ${['working','ask','claimed','error'].includes(j.state)&&(j.lines||[]).length?`<details ${j.state==='error'?'open':''}><summary>Postęp (${j.lines.length} linii)</summary><pre>${esc(j.lines.slice(-30).join('\n'))}</pre></details>`:''}
   ${['queued','uploading'].includes(j.state)?`<div class="row"><button class="btn" data-vc="${j.id}">Anuluj</button></div>`:''}</div>`).join('')||'<p class="mut">Jeszcze nie zlecałeś montażu vloga z centrum.</p>';
+ $('vbadge').classList.toggle('on',V.jobs.some(j=>j.state==='ask'));
  if(vh===vload.h)return;vload.h=vh;$('vjobs').innerHTML=vh;
- if(V.jobs.some(j=>j.state==='ask')&&!vload.sc){vload.sc=1;window.setMode&&setMode('dash');setTimeout(()=>$('vsec').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+ if(V.jobs.some(j=>j.state==='ask')&&!vload.sc){vload.sc=1;window.setMode&&setMode('dash');window.setSec&&setSec('vlog');setTimeout(()=>$('vsec').scrollIntoView({behavior:'smooth',block:'start'}),300)}
  document.querySelectorAll('[data-ans]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.j}/answer`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({choice:b.dataset.ans==='none'?null:+b.dataset.ans})});toast('Wybór wysłany do Maca.');vload()});
  document.querySelectorAll('[data-vc]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.vc}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});vload()})}
-$('vlogb').onclick=()=>{setMode('dash');$('newp').hidden=true;$('vnew').hidden=!$('vnew').hidden;scrollTo({top:0,behavior:'smooth'})};
+$('vlogb').onclick=()=>{setMode('dash');setSec('vlog');$('newp').hidden=true;$('vnew').hidden=!$('vnew').hidden;scrollTo({top:0,behavior:'smooth'})};
 $('vcancel').onclick=()=>{$('vnew').hidden=true};
 $('vf').onchange=e=>{VF=[...e.target.files];$('vfl').textContent=VF.length?`${VF.length} plików · ${mb(VF.reduce((s,f)=>s+f.size,0))}`:'albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd';$('vdrop').classList.toggle('has',!!VF.length)};
 $('vgo').onclick=async()=>{const ep=+$('vep').value,date=$('vd').value;if(!ep||!date)return toast('Podaj numer odcinka i datę.');
@@ -210,6 +234,12 @@ $('vgo').onclick=async()=>{const ep=+$('vep').value,date=$('vd').value;if(!ep||!
   document.querySelectorAll('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===x));try{localStorage.setItem('view-'+location.pathname,x)}catch(e){}
   setTimeout(()=>dispatchEvent(new Event('resize')),30)};
  document.querySelectorAll('#vt button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));setMode(m)})();
+
+// ---- telefon: Jedzenie / Vlog jako osobne zakładki zamiast jednej długiej strony ----
+(function(){let sv='food';try{sv=localStorage.getItem('mont-sv')||'food'}catch(e){}
+ window.setSec=x=>{sv=x;document.body.classList.toggle('sv-food',x==='food');document.body.classList.toggle('sv-vlog',x==='vlog');
+  document.querySelectorAll('#sec button').forEach(b=>b.classList.toggle('on',b.dataset.s===x));try{localStorage.setItem('mont-sv',x)}catch(e){}};
+ document.querySelectorAll('#sec button').forEach(b=>b.onclick=()=>setSec(b.dataset.s));setSec(sv)})();
 vload();setInterval(vload,8000);
 load();setInterval(load,15000);
 </script>
