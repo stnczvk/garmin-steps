@@ -574,6 +574,10 @@ async def vlog_act(jid: str, action: str, req: Request):
             j.update(state="queued", step="Czekam na Maca…")
         elif action == "answer":
             j.update(answer={"choice": b.get("choice")}, state="working", step="Zapowiedź wybrana – montuję dalej")
+        elif action == "retry" and j["state"] == "error":
+            if not all((VUP / jid / f).is_file() and (VUP / jid / f).stat().st_size for f in j.get("files", [])):
+                return {"ok": False, "error": "Klipów tego zlecenia nie ma już w centrum – wyślij je jeszcze raz"}
+            j.update(state="queued", step="Ponawiam – czekam na Maca…", ask=None, answer=None, previews=[])
         elif action == "cancel" and j["state"] in ("queued", "uploading"):
             j.update(state="error", step="Anulowano")
         _wr("mont_vlog.json", v)
@@ -633,7 +637,11 @@ async def hook_post(jid: str, what: str, req: Request):
             if b.get("state") in ("done", "error"):
                 j["finished"] = time.time()
                 push = j
-                shutil.rmtree(VUP / jid, ignore_errors=True)
+                if b.get("state") == "done":  # przy błędzie klipy zostają (do 3 dni) – można ponowić bez wysyłania jeszcze raz
+                    shutil.rmtree(VUP / jid, ignore_errors=True)
+                for old in (VUP.iterdir() if VUP.is_dir() else []):
+                    if old.is_dir() and time.time() - old.stat().st_mtime > 3 * 86400:
+                        shutil.rmtree(old, ignore_errors=True)
         elif what == "ask":
             j.update(ask=[str(t)[:200] for t in (b.get("texts") or [])][:12], state="ask", step="Wybierz zapowiedź", answer=None,
                      previews=sorted(int(i) for i in (b.get("previews") or []) if str(i).isdigit()))
