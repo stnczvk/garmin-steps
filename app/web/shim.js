@@ -552,4 +552,35 @@
   window.dzResync = resync;
 
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+
+  // Montażownia w centrum: #karty-<zadanie>-<data> → karty posiłków z tego dnia (te same co „Udostępnij”) + tytuł z kcal → start montażu
+  (function () {
+    const m = /^#karty-(\d{8}-\d{6}-[a-z0-9]{4})-(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
+    if (!m) return;
+    const jid = m[1], d = m[2];
+    const box = document.createElement("div");
+    box.style.cssText = "position:fixed;inset:0;z-index:10000;background:#08090A;color:#F4F4F5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font:16px Geist,system-ui,sans-serif;padding:24px;text-align:center";
+    box.innerHTML = '<b style="font-size:22px">Karty posiłków dla Montażowni</b><span id="dz-kr">Czekam na dane dziennika…</span>';
+    const say = t => { const e = document.getElementById("dz-kr"); if (e) e.textContent = t; };
+    const run = async () => {
+      document.body.appendChild(box);
+      for (let i = 0; i < 60; i++) { try { if (Object.keys(food).length) break; } catch (e) {} await new Promise(r => setTimeout(r, 500)); }
+      try {
+        const st = await req("GET", "/montaz/" + jid);
+        if (st.autotitle) await req("POST", `/montaz/${jid}/title`, { title: mzTitle(d) });
+        const meals = mzMeals(d), keep = fst.date;
+        for (let i = 0; i < meals.length; i++) {
+          say(`Karta ${i + 1} z ${meals.length}: ${meals[i]}`);
+          fst.date = d; const blob = await mealImage(meals[i]); fst.date = keep;
+          await mzPut(`/api/montaz/${jid}/file?kind=card&i=${i + 1}&name=${encodeURIComponent(mzCardName(meals[i], d))}`, blob, () => {});
+        }
+        say(meals.length ? "Startuję montaż…" : "W dzienniku nie ma posiłków z tego dnia – montuję bez kart…");
+        await req("POST", `/montaz/${jid}/start`, {});
+        say("Gotowe – montaż ruszył. Wróć do centrum, to okno możesz zamknąć.");
+        history.replaceState(null, "", location.pathname);
+        setTimeout(() => { try { window.close(); } catch (e) {} }, 1500);
+      } catch (e) { say("Nie wyszło: " + (e.message || e)); }
+    };
+    document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", run) : setTimeout(run, 0);
+  })();
 })();
