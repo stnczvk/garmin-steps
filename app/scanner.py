@@ -527,7 +527,7 @@ def journal_backfill():
 
 
 # ---------- zakładka „Sygnały”: aktualne sygnały z entry / SL / TP i co z nimi zrobić ----------
-SIG_COLS = "id,created_at,closed_at,symbol,timeframe,direction,status,entry,stop_loss,original_stop_loss,tp1,tp2,tp3,tp4,exit_price,result," \
+SIG_COLS = "id,created_at,closed_at,symbol,timeframe,direction,status,entry,entry_min,entry_max,stop_loss,original_stop_loss,tp1,tp2,tp3,tp4,exit_price,result," \
            "exit_reason,pnl,tp1_hit,tp2_hit,tp3_hit,break_even_set,position_size_percent,elite_score,risk_reward,market_regime,rank_label,stars," \
            "max_profit_percent,max_drawdown_percent"
 
@@ -553,7 +553,14 @@ def _advice(r, price):
         return f"TP2 osiągnięty – SL na TP1 ({sl}). Reszta pozycji jedzie do dalszych TP."
     if r.get("tp1_hit") or r.get("break_even_set"):
         return f"TP1 osiągnięty – SL na entry ({sl}). Pozycja nie może już zamknąć się stratą."
+    lo, hi = r.get("entry_min"), r.get("entry_max")
     if st in ("PENDING", "WAIT_PULLBACK", "WAITING", "OPEN") and price and e:
+        if lo and hi:
+            a, b = min(lo, hi), max(lo, hi)
+            if a <= price <= b:
+                return f"Cena jest w strefie wejścia {a}–{b} – limit w strefie powinien się realizować."
+            far = min(abs(price / a - 1), abs(price / b - 1)) * 100
+            return f"Czeka na wejście: limit w strefie {a}–{b} (cena {far:.2f}% od strefy)."
         far = abs(price / e - 1) * 100
         if far > 0.15:
             return f"Czeka na wejście: zlecenie limit na {e} (cena {far:.2f}% od entry)."
