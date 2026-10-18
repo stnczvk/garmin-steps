@@ -4,7 +4,14 @@
   const err = (msg, code) => Object.assign(new Error(msg), { code });
   let loginShown = false;
 
+  // ekran ładowania: znika, gdy dane się wczytają (albo pokaże się logowanie / po 10 s)
+  function hideSplash() {
+    const el = document.getElementById("dz-splash"); if (!el || el.dataset.out) return;
+    el.dataset.out = "1"; requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = "0"; el.style.pointerEvents = "none"; setTimeout(() => el.remove(), 400); }));
+  }
+  setTimeout(hideSplash, 10000);
   function showLogin(msg) {
+    hideSplash();
     if (loginShown) return; loginShown = true;
     const go = () => {
       const d = document.createElement("div");
@@ -376,6 +383,26 @@
   }
   async function mzList() { try { mz.list = await req("GET", "/montaz/list"); } catch (e) {} mzPaint(); }
   async function mzLoad() { mzList(); try { mz.info = await req("GET", "/montaz/info"); if (!mz.job || !(mz.up || mz.job.state === "working")) mz.job = mz.info.last; mzPaint(); mzWatch(); } catch (e) { const el = document.getElementById("dz-mz"); if (el) el.innerHTML = `<p class="note" style="margin:0">Montaż jest teraz niedostępny.</p>`; } }
+  // komputer/drugi telefon: film zmontowany gdzie indziej pojawia się sam (bez zamykania aplikacji)
+  async function mzSync() {
+    const el = document.getElementById("dz-mz");
+    if (!el || document.visibilityState !== "visible" || mz.up) return;
+    let list, info;
+    try { [list, info] = await Promise.all([req("GET", "/montaz/list"), req("GET", "/montaz/info")]); } catch (e) { return; }
+    const sig = x => JSON.stringify((x || []).map(j => [j.id, j.state, j.film]));
+    let changed = sig(list) !== sig(mz.list);
+    mz.list = list; mz.info = info;
+    const last = info && info.last;
+    if (last && (!mz.job || mz.job.state !== "working")) {
+      const fresh = !mz.job || (mz.job.id === last.id && (mz.job.state !== last.state || mz.job.film !== last.film))
+        || (mz.job.id !== last.id && last.state === "working" && !mz.pick);
+      if (fresh) { mz.job = last; mz.blob = null; changed = true; }
+    }
+    if (changed && !el.contains(document.activeElement)) { mzPaint(); mzWatch(); }
+  }
+  setInterval(mzSync, 15000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") mzSync(); });
+  window.addEventListener("focus", mzSync);
   function mzWatch() {
     if (mz.poll || !mz.job || mz.job.state !== "working") return;
     mz.poll = setInterval(async () => {
@@ -513,7 +540,7 @@
   let authP = null;
   const auth = () => authP || (authP = fetch("/api/me", { credentials: "same-origin" }).then(r => { if (!r.ok) { showLogin(); return new Promise(() => {}) } }).catch(() => { showLogin("Brak połączenia z serwerem."); return new Promise(() => {}) }));
   let dbP = null;
-  const initDb = () => dbP || (dbP = auth().then(async () => { await pull(); readyRes(); startPolling(); return db; }));
+  const initDb = () => dbP || (dbP = auth().then(async () => { await pull(); readyRes(); startPolling(); setTimeout(hideSplash, 200); return db; }).catch(e => { hideSplash(); throw e; }));
 
   window.claude = Object.freeze({
     async use(name) {
