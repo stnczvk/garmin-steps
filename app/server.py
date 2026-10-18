@@ -577,7 +577,11 @@ async def hook_asr(req: Request, key: str = ""):
     if ek:
         res = await _scribe(audio, ek)
         if res and res.get("text"):
-            return {"text": res["text"].strip(), "via": "scribe"}
+            # czasy słów z ElevenLabs – Mac układa napisy dokładnie pod mowę (zamiast z lokalnego rozpoznawania)
+            words = [{"w": w["text"].strip(), "start": round(float(w["start"]), 3), "end": round(float(w["end"]), 3)}
+                     for w in res.get("words", []) if w.get("type", "word") == "word" and str(w.get("text", "")).strip()
+                     and w.get("start") is not None and w.get("end") is not None]
+            return {"text": res["text"].strip(), "via": "scribe", "words": words}
     files = {"file": ("a.mp3", audio, "audio/mpeg")}
     data = {"model": "whisper-large-v3", "language": "pl", "response_format": "json", "temperature": "0"}
     if prompt:
