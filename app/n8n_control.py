@@ -214,3 +214,134 @@ def execution(eid: str):
                     node, msg, desc = nm, x["error"].get("message", ""), x["error"].get("description") or ""
     return {"ok": True, "status": e.get("status"), "node": node, "message": msg[:600], "description": str(desc)[:600],
             "workflowId": e.get("workflowId")}
+
+
+# ---------- edycja: eksport, wgranie nowej wersji workflow (z kopią), przywracanie ----------
+import json, re
+from datetime import datetime
+from fastapi import Request
+from fastapi.responses import Response
+from social import ROOT as SOCIAL_ROOT
+
+WB = SOCIAL_ROOT / "n8n_backups"
+
+
+def _safe(name):
+    return re.sub(r"[^\w.-]+", "_", name)[:60] or "workflow"
+
+
+def _save_backup(wf, why):
+    WB.mkdir(parents=True, exist_ok=True)
+    f = WB / f"{_safe(wf.get('name', 'wf'))}__{wf['id']}__{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.json"
+    f.write_text(json.dumps({"why": why, "workflow": wf}, ensure_ascii=False))
+    os.chmod(f, 0o600)
+    files = sorted(WB.glob(f"*__{wf['id']}__*.json"))
+    for old in files[:-15]:  # 15 ostatnich wersji każdego workflow
+        old.unlink(missing_ok=True)
+    return f.name
+
+
+@router.get("/api/n8n/export/{wid}")
+def export(wid: str):
+    r = n8n("GET", f"/api/v1/workflows/{wid}")
+    if r.status_code >= 300:
+        return JSONResponse({"error": r.text[:200]}, status_code=502)
+    wf = r.json()
+    body = {k: wf.get(k) for k in ("name", "nodes", "connections", "settings", "pinData") if wf.get(k) is not None}
+    return Response(json.dumps(body, ensure_ascii=False, indent=2), media_type="application/json",
+                    headers={"Content-Disposition": f'attachment; filename="{_safe(wf.get("name", wid))}.json"'})
+
+
+def _put(wid, wf, active):
+    p = n8n("PUT", f"/api/v1/workflows/{wid}", json=AN.put_body(wf))
+    if p.status_code >= 300:
+        p = n8n("PUT", f"/api/v1/workflows/{wid}", json=AN.put_body(wf, minimal=True))
+    if p.status_code < 300 and active:
+        n8n("POST", f"/api/v1/workflows/{wid}/deactivate")
+        n8n("POST", f"/api/v1/workflows/{wid}/activate")
+    return p
+
+
+@router.post("/api/n8n/import")
+async def import_wf(req: Request):
+    """Wgrywa plik .json wyeksportowany z n8n: podmienia istniejący workflow (po kopii) albo dodaje nowy."""
+    b = await req.json()
+    try:
+        new = b["workflow"] if isinstance(b.get("workflow"), dict) else json.loads(b.get("workflow") or "{}")
+    except Exception:
+        return {"ok": False, "error": "To nie jest poprawny plik JSON z n8n."}
+    if not isinstance(new.get("nodes"), list) or not isinstance(new.get("connections"), dict):
+        return {"ok": False, "error": "Brakuje nodes / connections – wyeksportuj workflow z n8n (Download)."}
+    target = b.get("target") or ""
+    if not target:
+        body = AN.put_body({"name": new.get("name") or "Nowy workflow", "nodes": new["nodes"], "connections": new["connections"],
+                            "settings": new.get("settings") or {}}, minimal=True)
+        r = n8n("POST", "/api/v1/workflows", json=body)
+        ok = r.status_code < 300
+        log("op", f"Wgrał nowy workflow {body['name']}" if ok else f"n8n nie przyjął nowego workflow: {r.text[:150]}", "ok" if ok else "error")
+        _bust()
+        return {"ok": ok, "error": None if ok else r.text[:200], "id": r.json().get("id") if ok else None}
+    r = n8n("GET", f"/api/v1/workflows/{target}")
+    if r.status_code >= 300:
+        return {"ok": False, "error": f"n8n: {r.text[:150]}"}
+    cur = r.json()
+    bk = _save_backup(cur, "przed wgraniem nowej wersji")
+    had_agency = AN.is_connected(cur)
+    wf = {**cur, "name": b.get("keep_name", True) and cur["name"] or new.get("name") or cur["name"],
+          "nodes": new["nodes"], "connections": new["connections"], "settings": new.get("settings") or cur.get("settings") or {}}
+    p = _put(target, wf, cur.get("active"))
+    ok = p.status_code < 300
+    note = ""
+    if ok and had_agency and not AN.is_connected(wf):
+        note = " Nowa wersja nie ma node'ów Agencji – podepnij ją ponownie w zakładce Agencja AI → Automatyzacje."
+    log("op", f"Wgrał nową wersję {cur['name']} (kopia: {bk})" if ok else f"n8n nie przyjął nowej wersji {cur['name']}: {p.text[:150]}",
+        "ok" if ok else "error")
+    _bust()
+    return {"ok": ok, "error": None if ok else p.text[:200], "backup": bk, "note": note.strip()}
+
+
+@router.get("/api/n8n/backups")
+def backups():
+    if not WB.exists():
+        return {"items": []}
+    out = []
+    for f in sorted(WB.glob("*.json"), reverse=True)[:120]:
+        name, wid, ts = (f.stem.split("__") + ["", ""])[:3]
+        out.append({"file": f.name, "name": name, "id": wid, "at": ts})
+    return {"items": out}
+
+
+@router.post("/api/n8n/restore")
+async def restore(req: Request):
+    b = await req.json()
+    f = WB / os.path.basename(b.get("file", ""))
+    if not f.exists():
+        return {"ok": False, "error": "Nie ma takiej kopii."}
+    old = json.loads(f.read_text())["workflow"]
+    r = n8n("GET", f"/api/v1/workflows/{old['id']}")
+    if r.status_code >= 300:
+        return {"ok": False, "error": f"n8n: {r.text[:150]}"}
+    cur = r.json()
+    bk = _save_backup(cur, "przed przywróceniem kopii")
+    p = _put(old["id"], {**cur, "nodes": old["nodes"], "connections": old["connections"], "settings": old.get("settings") or {}},
+             cur.get("active"))
+    ok = p.status_code < 300
+    log("op", f"Przywrócił {cur['name']} z kopii {f.name}" if ok else f"Przywracanie nie wyszło: {p.text[:150]}", "ok" if ok else "error")
+    _bust()
+    return {"ok": ok, "error": None if ok else p.text[:200], "backup": bk}
+
+
+@router.post("/api/n8n/rename/{wid}")
+async def rename(wid: str, req: Request):
+    name = str((await req.json()).get("name", "")).strip()[:120]
+    if not name:
+        return {"ok": False, "error": "Pusta nazwa."}
+    r = n8n("GET", f"/api/v1/workflows/{wid}")
+    if r.status_code >= 300:
+        return {"ok": False, "error": r.text[:150]}
+    cur = r.json()
+    p = _put(wid, {**cur, "name": name}, False)
+    ok = p.status_code < 300
+    log("op", f"Zmienił nazwę workflow „{cur['name']}” na „{name}”" if ok else f"Zmiana nazwy nie wyszła: {p.text[:150]}", "ok" if ok else "error")
+    _bust()
+    return {"ok": ok, "error": None if ok else p.text[:200]}

@@ -164,7 +164,15 @@ function list(){
  $('exl').querySelectorAll('.ex.click').forEach(r=>r.onclick=()=>detail(r.dataset.e));
  $('wfl').innerHTML=state.workflows.slice().sort((a,b)=>b.active-a.active||a.name.localeCompare(b.name)).map(w=>
   `<div class="wf"><span>${esc(w.name)}</span><span class="tag ${w.active?'':'no'}">${w.active?'aktywny':'wyłączony'}</span><small>${w.nodes} node'ów${w.schedules.length?' · ⏰ '+esc(w.schedules.map(s=>s.time||s.cron||s.every).join(', ')):''}</small>
-  <div class="acts">${(w.triggers&&w.triggers.length>1?w.triggers:[{name:''}]).map(t=>`<button class="go" data-run="${esc(w.id)}" data-trig="${esc(t.name)}">▶ ${t.name?'Uruchom jak '+esc(t.time||t.name):'Uruchom teraz'}</button>`).join('')}<button data-tog="${esc(w.id)}" data-on="${w.active?1:0}">${w.active?'Wyłącz':'Włącz'}</button></div></div>`).join('');
+  <div class="acts">${(w.triggers&&w.triggers.length>1?w.triggers:[{name:''}]).map(t=>`<button class="go" data-run="${esc(w.id)}" data-trig="${esc(t.name)}">▶ ${t.name?'Uruchom jak '+esc(t.time||t.name):'Uruchom teraz'}</button>`).join('')}<button data-tog="${esc(w.id)}" data-on="${w.active?1:0}">${w.active?'Wyłącz':'Włącz'}</button>
+  <button data-exp="${esc(w.id)}" title="Pobierz plik .json (kopia / do edycji w n8n)">⬇ Pobierz</button><button data-imp="${esc(w.id)}" title="Podmień na plik wyeksportowany z n8n – stara wersja trafi do kopii">⬆ Wgraj nową wersję</button><button data-ren="${esc(w.id)}">✎ Nazwa</button></div></div>`).join('')+
+  `<div class="acts" style="margin-top:12px"><button class="go" data-imp="">⬆ Wgraj nowy workflow</button><button id="bkb">🗂 Kopie i przywracanie</button></div><div id="bkl"></div>`;
+ $('wfl').querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{location.href='/api/n8n/export/'+b.dataset.exp});
+ $('wfl').querySelectorAll('[data-imp]').forEach(b=>b.onclick=()=>pickFile(b.dataset.imp));
+ $('wfl').querySelectorAll('[data-ren]').forEach(b=>b.onclick=async()=>{const w=state.workflows.find(x=>x.id===b.dataset.ren);
+   const n=prompt('Nowa nazwa workflow (uwaga: Pipeline rozpoznaje etapy po nazwach: generator, Montaż, Publisher, Analytics):',w.name);if(!n||n===w.name)return;
+   const r=await (await fetch('/api/n8n/rename/'+w.id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})).json();toast(r.ok?'Zmieniono nazwę.':'Nie wyszło: '+r.error);load(true)});
+ $('bkb').onclick=backups;
  $('wfl').querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>act(b,'/api/n8n/run/'+b.dataset.run+(b.dataset.trig?'?trigger='+encodeURIComponent(b.dataset.trig):''),'Uruchomiono – za chwilę pojawi się w uruchomieniach.',
    'Uruchomić teraz „'+(state.workflows.find(w=>w.id===b.dataset.run)||{}).name+'”'+(b.dataset.trig?' tak, jakby wystartował harmonogram „'+b.dataset.trig+'”':'')+'?'));
  $('wfl').querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>act(b,`/api/agency/n8n/${b.dataset.tog}/${b.dataset.on==='1'?'deactivate':'activate'}`,b.dataset.on==='1'?'Wyłączono.':'Włączono.'));
@@ -179,6 +187,19 @@ function kpis(){
  const n=nextStart();$('k4').textContent=n?n.d.toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'}):'–';$('k4s').textContent=n?n.w:'brak harmonogramu';
 }
 
+// wgranie pliku .json z n8n: podmiana istniejącego workflow (z kopią) albo nowy workflow
+function pickFile(target){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';
+ i.onchange=async()=>{const f=i.files[0];if(!f)return;let wf;try{wf=JSON.parse(await f.text())}catch(e){toast('To nie jest plik JSON.');return}
+  const w=target&&state.workflows.find(x=>x.id===target);
+  if(!confirm(w?`Podmienić „${w.name}” na „${f.name}”? Obecna wersja zostanie zapisana w kopiach (możesz ją przywrócić).`:`Dodać nowy workflow z „${f.name}”?`))return;
+  toast('Wgrywam…');const r=await (await fetch('/api/n8n/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workflow:wf,target})})).json();
+  toast(r.ok?(w?'Wgrano nową wersję. '+(r.note||''):'Dodano nowy workflow (wyłączony – włącz go, gdy będzie gotowy).'):'Nie wyszło: '+r.error);load(true)};
+ i.click()}
+async function backups(){const el=$('bkl');if(el.innerHTML){el.innerHTML='';return}
+ const d=await (await fetch('/api/n8n/backups')).json();
+ el.innerHTML=d.items.length?d.items.map(b=>`<div class="wf"><span>${esc(b.name.replace(/_/g,' '))}</span><button class="rs" data-f="${esc(b.file)}" style="font:12px Geist;background:none;border:1px solid var(--line);color:inherit;border-radius:999px;padding:3px 10px;cursor:pointer">↺ Przywróć</button><small>${esc(b.at.replace('_',' '))}</small></div>`).join(''):'<div class="empty">Brak kopii – powstają automatycznie przy wgrywaniu nowej wersji.</div>';
+ el.querySelectorAll('.rs').forEach(b=>b.onclick=async()=>{if(!confirm('Przywrócić tę wersję? Obecna też trafi do kopii.'))return;
+  const r=await (await fetch('/api/n8n/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:b.dataset.f})})).json();toast(r.ok?'Przywrócono.':'Nie wyszło: '+r.error);el.innerHTML='';load(true)})}
 function toast(t){const el=$('toast');el.textContent=t;el.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.display='none',5000)}
 async function act(b,url,okMsg,ask){
  if(ask&&!confirm(ask))return;

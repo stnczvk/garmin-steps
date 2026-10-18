@@ -1,5 +1,5 @@
 """Centrum social mediów – osobna, prywatna aplikacja (FastAPI). Logowanie hasłem, dane w /root/social."""
-import asyncio, hashlib, hmac, os, secrets, sqlite3, time
+import asyncio, hashlib, hmac, os, secrets, socket, sqlite3, time
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -14,6 +14,19 @@ for line in (ROOT / ".env").read_text().splitlines() if (ROOT / ".env").exists()
         k, v = line.split("=", 1)
         os.environ.setdefault(k.strip(), v.strip())
 PASS = os.environ.get("SOCIAL_PASS", "")  # scrypt$salt$hash
+
+# IPv4 najpierw: na VPS połączenia po IPv6 do Instagrama/Google potrafiły kończyć się „[Errno 104] Connection reset by peer”
+# (curl przełącza się sam, httpx nie). Adresy IPv6 zostają jako zapas.
+_gai = socket.getaddrinfo
+
+
+def _gai_v4_first(*a, **k):
+    res = _gai(*a, **k)
+    return sorted(res, key=lambda r: r[0] != socket.AF_INET)
+
+
+if os.environ.get("PREFER_IPV6") != "1":
+    socket.getaddrinfo = _gai_v4_first
 
 _con = sqlite3.connect(ROOT / "sesje.db", check_same_thread=False, isolation_level=None)
 _con.execute("CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, created REAL)")
