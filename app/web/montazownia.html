@@ -67,18 +67,14 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .hko video{width:100%;aspect-ratio:9/16;max-height:300px;object-fit:cover;border-radius:10px;background:#000}.hko p{font-size:13px;flex:1}
 .sm-only{display:none}.nf label[hidden],.drop[hidden]{display:none!important}
 .bar2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.bar2 .vt{margin-bottom:0}
-.vt.sec{display:none}.vt.sec em{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle;visibility:hidden}.vt.sec em.on{visibility:visible}
+.vt.sec{display:inline-flex}.vt.sec em{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle;visibility:hidden}.vt.sec em.on{visibility:visible}
 .fixd{margin-top:10px}.fixd summary{font-weight:600;color:var(--ink)}
 @media(max-width:700px){
  .lg-only{display:none}.sm-only{display:inline}.bar2{flex-wrap:nowrap;gap:6px}.bar2 .vt button{padding:6px 9px;font-size:12px}
  .top{align-items:center;margin-bottom:10px;gap:8px}.top p{display:none}.top h1{font-size:22px}.top .r{margin-left:auto}.top .btn{padding:8px 12px;font-size:12.5px}
  .vt.sec{display:inline-flex;margin-left:auto}
- body.m-dash.sv-food .s-vlog,body.m-dash.sv-vlog .s-food{display:none!important}
  .glass{padding:13px 14px;border-radius:18px}
  .grid{gap:10px}
- .list h2{display:none}.list{padding:8px!important}
- #jl{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}#jl::-webkit-scrollbar{display:none}
- .list .j{flex:0 0 78%;scroll-snap-align:start;border:1px solid var(--line)!important;padding:9px 10px}
  #det h2{font-size:14px}
  video{max-height:46vh}
  #det .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}#det .row .btn{justify-content:center;padding:9px 8px;font-size:12.5px}
@@ -109,6 +105,26 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .vfi b{display:block;font-size:12.5px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vfi small{display:block;color:var(--faint);font-size:11px}
 .vfi .w{color:var(--warn)}
 @media(max-width:600px){.vfg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+body.m-dash.sv-food .s-vlog,body.m-dash.sv-vlog .s-food{display:none!important}
+/* zwijane sekcje */
+.fold-s{margin-bottom:12px}.fold-s .fh{display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none}
+.fold-s .fh small{color:var(--faint);font-weight:500;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fold-s .fh .chev{margin-left:auto;color:var(--faint);transition:transform .2s;flex:none}.fold-s.closed .chev{transform:rotate(-90deg)}
+.fold-s:not(.closed) .fh{margin-bottom:12px}.fold-s.closed .fb{display:none}
+.grid{margin-bottom:12px}.grid .fold-s{margin-bottom:0}
+details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}details.grp>summary{font-weight:600;font-size:13px;color:var(--soft);padding:4px 0}
+.vj{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px;background:rgba(255,255,255,.03)}.vj:first-child{margin-top:0}
+.vj .vh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.vj .vh b{font-size:14px}.vj .vh small{color:var(--faint);font-size:12px}
+.chip{font:600 11px Geist,system-ui;padding:3px 8px;border-radius:99px;margin-left:auto;white-space:nowrap}
+.chip.ok{background:rgba(61,220,132,.15);color:var(--ok)}.chip.bad{background:rgba(255,92,108,.15);color:var(--bad)}.chip.wait{background:rgba(158,140,252,.18);color:#b9adff}
+.vj .vs{color:var(--soft);font-size:12.5px;margin-top:4px}.vj .row{margin-top:8px}.vj .row .btn{padding:7px 12px;font-size:12.5px}
+.morebtn{margin-top:10px;width:100%;justify-content:center}
+@media(max-width:700px){
+ .top .r{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-left:0}.top .r .btn{justify-content:center;padding:9px 6px}
+ .bar2 .vt.sec{margin-left:auto}
+ .grid{display:flex;flex-direction:column}
+ .list .j{padding:9px 6px}
+}
 </style>
 </head>
 <body class="lg">
@@ -142,16 +158,15 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
   </div>
  </section>
  <div class="grid dash-only s-food">
-  <section class="glass list"><h2>Montaże</h2><div id="jl"><p class="mut">Ładuję…</p></div></section>
+  <section class="glass list fold-s" data-fold="list"><h2 class="fh">📋 Montaże jedzenia <small id="jln"></small><span class="chev">▾</span></h2><div class="fb"><div id="jl"><p class="mut">Ładuję…</p></div></div></section>
   <section class="glass" id="det"><p class="mut">Wybierz film z listy.</p></section>
  </div>
- <section class="glass vlog dash-only s-vlog" id="vsec"><h2>🎥 Vlog WNBF <span class="mut" id="vmac" style="font-weight:500;font-size:13px"></span></h2>
-  <div id="vjobs"><p class="mut">Ładuję…</p></div>
-  <h3 style="margin:18px 0 8px;font-size:14px">🎞 Zmontowane vlogi <span class="mut" style="font-weight:500;font-size:12px">– wyeksportowane z CapCuta, podgląd 720p</span></h3>
-  <div id="vfilms" class="vfg"><p class="mut">Ładuję…</p></div>
-  <div id="wz" class="mut" style="margin-top:10px"></div>
-  <div id="arch" class="mut" style="margin-top:10px"></div>
- </section>
+ <section class="glass vlog dash-only s-vlog fold-s" id="vsec" data-fold="vjobs"><h2 class="fh">🎥 Zlecenia <small id="vmac"></small><span class="chev">▾</span></h2>
+  <div class="fb"><div id="vjobs"><p class="mut">Ładuję…</p></div></div></section>
+ <section class="glass dash-only s-vlog fold-s" data-fold="vfilms"><h2 class="fh">🎞 Zmontowane vlogi <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
+  <div class="fb"><div id="vfilms" class="vfg"><p class="mut">Ładuję…</p></div><div id="vfmore"></div></div></section>
+ <section class="glass dash-only s-vlog fold-s" data-fold="tools" data-closed="1"><h2 class="fh">🛡️ Strażnik i archiwista <small id="toolsum"></small><span class="chev">▾</span></h2>
+  <div class="fb"><div id="wz" class="mut"></div><div id="arch" class="mut" style="margin-top:12px"></div></div></section>
 </div>
 <div class="msg" id="msg"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -171,12 +186,17 @@ async function load(){
  if(!SEL&&D.jobs[0])SEL=D.jobs[0].id;
  {const w=D.jobs.find(j=>j.state==='working');window.WS_STATUS=w?('Montuję: '+ttl(w)):D.jobs[0]?('Ostatni: '+ttl(D.jobs[0])):'Montażownia';$('wsst').textContent=(w?'⏳ ':'🎬 ')+window.WS_STATUS}
  liveRender();
- $('jl').innerHTML=D.jobs.map(j=>`<div class="j ${j.id===SEL?'on':''}" data-id="${j.id}"><span class="dot ${j.state||''}"></span>
+ {const row=j=>`<div class="j ${j.id===SEL?'on':''}" data-id="${j.id}"><span class="dot ${j.state||''}"></span>
   <div><b>${esc(ttl(j))}</b><small>${when(j)} · ${ST[j.state]||j.state||'?'}${j.step&&j.state==='working'?' · '+esc(j.step):''}</small></div>
-  ${j.check?`<span class="tag ${j.check.ok?'ok':'bad'}">${j.check.ok?'OK':'uwagi'}</span>`:''}${j.state==='error'?`<button class="btn del" data-fdel="${j.id}" title="Usuń nieudaną próbę" style="margin-left:auto;padding:4px 9px">🗑</button>`:''}</div>`).join('')+(D.jobs.filter(j=>j.state==='error').length>1?'<button class="btn del" id="fdelall" style="margin-top:8px">🗑 Usuń wszystkie nieudane</button>':'')||'<p class="mut">Brak montaży.</p>';
+  ${j.check?`<span class="tag ${j.check.ok?'ok':'bad'}">${j.check.ok?'OK':'uwagi'}</span>`:''}${j.state==='error'?`<button class="btn del" data-fdel="${j.id}" title="Usuń nieudaną próbę" style="padding:4px 9px">🗑</button>`:''}</div>`;
+  const ok=D.jobs.filter(j=>j.state!=='error'),bad=D.jobs.filter(j=>j.state==='error'),N=innerWidth<700?4:6;
+  $('jln').textContent=`${ok.length} filmów`+(bad.length?` · ${bad.length} nieudanych`:'');
+  $('jl').innerHTML=(ok.slice(0,N).map(row).join('')||'<p class="mut">Brak montaży.</p>')
+   +(ok.length>N?`<details class="grp" data-g="fold" ${gopen('fold')}><summary>Starsze (${ok.length-N})</summary>${ok.slice(N).map(row).join('')}</details>`:'')
+   +(bad.length?`<details class="grp" data-g="fbad" ${gopen('fbad')}><summary>Nieudane (${bad.length})</summary>${bad.map(row).join('')}${bad.length>1?'<button class="btn del" id="fdelall" style="margin-top:8px">🗑 Usuń wszystkie nieudane</button>':''}</details>`:'');}
  $('jl').querySelectorAll('[data-fdel]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(SEL===b.dataset.fdel)SEL=null;mclean({job:b.dataset.fdel})});
  if($('fdelall'))$('fdelall').onclick=()=>{if(confirm('Usunąć wszystkie nieudane montaże i ich powiadomienia?'))mclean({all_failed:true})};
- $('jl').querySelectorAll('.j').forEach(el=>el.onclick=()=>{SEL=el.dataset.id;try{localStorage.setItem('mont-sel',SEL)}catch(e){}load()});
+ $('jl').querySelectorAll('.j').forEach(el=>el.onclick=()=>{SEL=el.dataset.id;try{localStorage.setItem('mont-sel',SEL)}catch(e){}load();if(innerWidth<900)setTimeout(()=>$('det').scrollIntoView({behavior:'smooth',block:'start'}),250)});
  if(SEL)detail(SEL);
 }
 async function detail(id,force){
@@ -241,18 +261,25 @@ $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value
 let V=null,VF=[];
 const ago=t=>{const s=Date.now()/1000-t;return s<90?'przed chwilą':s<3600?Math.round(s/60)+' min temu':Math.round(s/3600)+' h temu'};
 async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}catch(e){return}
- $('vmac').innerHTML=!V.configured?'· brak MONT_TOKEN w .env':V.online?'· <span style="color:var(--ok)">● Mac online</span>':'· <span style="color:var(--warn)">● Mac offline</span>'+(V.seen?' ('+ago(V.seen)+')':'');
  $('vsrc').textContent=V.loose?`na Macu w _SUROWE/vlog czeka ${V.loose} plików`:'na Macu w _SUROWE/vlog nie ma nowych plików';
  if(!$('vep').value)$('vep').value=V.next_ep||'';if(!$('vd').value)$('vd').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
  const ST2={queued:'czeka na Maca',uploading:'wysyłanie klipów',claimed:'Mac otwiera montaż',working:'montuje się',ask:'czeka na Twój wybór',done:'gotowy w CapCut',error:'błąd'};
- const vh=(V.jobs.length?V.jobs:[]).map(j=>`<div class="g ${j.state==='done'?'ok':j.state==='error'?'bad':'wait'}"><b>${j.kind==='przepis'?'🍳 Przepis':'🎥 Odcinek'} #${j.ep}</b> · ${esc(j.date)} · ${ST2[j.state]||j.state}${j.step&&j.state!=='done'?' – '+esc(j.step):''}
+ const CH={done:'ok',error:'bad'};
+ const card=j=>`<div class="vj"><div class="vh"><b>${j.kind==='przepis'?'🍳 Przepis':'🎥 Odcinek'} #${j.ep}</b><small>${esc(j.date||'')}${j.at?' · '+ago(j.at):''}</small><span class="chip ${CH[j.state]||'wait'}">${ST2[j.state]||j.state}</span></div>
+  ${j.step&&!['done'].includes(j.state)?`<div class="vs">${esc(j.step)}</div>`:''}
   ${j.state==='ask'&&j.ask?`<div style="margin-top:8px">Które zdanie dać na początek jako zapowiedź?</div><div class="hk">${j.ask.map((t,i)=>`<div class="hko">${(j.previews||[]).includes(i)?`<video src="/api/mont-vlog/${j.id}/preview/${i}" controls playsinline preload="metadata"></video>`:''}<p>${i+1}. ${esc(t)}</p><button class="btn pri" data-ans="${i}" data-j="${j.id}">Wybieram</button></div>`).join('')}</div><div class="row"><button class="btn" data-ans="none" data-j="${j.id}">— bez zapowiedzi —</button></div>`:''}
-  ${j.state==='done'?`<pre>${esc((j.lines||[]).filter(l=>/GOTOWE|grafika|wycięte|nie dopasowano|plansza|zapowiedź/.test(l)).join('\n'))}</pre><p class="mut">Otwórz CapCut na Macu – projekt „${j.kind==='przepis'?'PRZEPIS':'WNBF AUTO'} #${j.ep}” czeka. Przejrzyj napisy i liczby na planszy, popraw i wyeksportuj.</p>`:''}
-  ${['working','ask','claimed','error'].includes(j.state)&&(j.lines||[]).length?`<details ${j.state==='error'?'open':''}><summary>Postęp (${j.lines.length} linii)</summary><pre>${esc(j.lines.slice(-30).join('\n'))}</pre></details>`:''}
-  ${['queued','uploading'].includes(j.state)?`<div class="row"><button class="btn" data-vc="${j.id}">Anuluj</button></div>`:''}${j.state==='done'?`<div class="row"><button class="btn" data-vag="${j.id}">🔁 Zmontuj ponownie</button></div>`:''}${j.state==='error'?`<div class="row">${(j.files||[]).length?`<button class="btn pri" data-vr="${j.id}">↻ Ponów montaż</button>`:`<button class="btn pri" data-vag="${j.id}">🔁 Zmontuj ponownie</button>`}<button class="btn del" data-vdel="${j.id}">🗑 Usuń</button></div>`:''}</div>`).join('')+(V.jobs.filter(j=>j.state==='error').length>1?'<div class="row"><button class="btn del" id="vdelall">🗑 Usuń wszystkie nieudane</button></div>':'')||'<p class="mut">Jeszcze nie zlecałeś montażu vloga z centrum.</p>';
+  ${j.state==='done'?`<div class="vs">Projekt „${j.kind==='przepis'?'PRZEPIS':'WNBF AUTO'} #${j.ep}” czeka w CapCut – przejrzyj napisy i planszę, wyeksportuj.</div>`:''}
+  ${(j.lines||[]).length&&j.state!=='queued'?`<details data-g="l${j.id}" ${gopen('l'+j.id)}><summary>${j.state==='done'?'Co zrobił montaż':'Postęp'} (${j.lines.length} linii)</summary><pre>${esc((j.state==='done'?j.lines.filter(l=>/GOTOWE|grafika|wycięte|nie dopasowano|plansza|zapowiedź|ElevenLabs|⚠️/.test(l)):j.lines.slice(-30)).join('\n'))}</pre></details>`:''}
+  ${['queued','uploading'].includes(j.state)?`<div class="row"><button class="btn" data-vc="${j.id}">Anuluj</button></div>`:''}${j.state==='done'?`<div class="row"><button class="btn" data-vag="${j.id}">🔁 Zmontuj ponownie</button></div>`:''}${j.state==='error'?`<div class="row">${(j.files||[]).length?`<button class="btn pri" data-vr="${j.id}">↻ Ponów montaż</button>`:`<button class="btn pri" data-vag="${j.id}">🔁 Zmontuj ponownie</button>`}<button class="btn del" data-vdel="${j.id}">🗑 Usuń</button></div>`:''}</div>`;
+ const act=V.jobs.filter(j=>!['done','error'].includes(j.state)),done=V.jobs.filter(j=>j.state==='done'),bad=V.jobs.filter(j=>j.state==='error');
+ const top=[...act,...done.slice(0,2)];
+ $('vmac').innerHTML=(!V.configured?'brak MONT_TOKEN w .env':V.online?'<span style="color:var(--ok)">● Mac online</span>':'<span style="color:var(--warn)">● Mac offline</span>'+(V.seen?' ('+ago(V.seen)+')':''))+(act.length?` · w toku: ${act.length}`:'');
+ const vh=(top.map(card).join('')||'<p class="mut">Jeszcze nie zlecałeś montażu vloga z centrum.</p>')
+  +(done.length>2?`<details class="grp" data-g="vold" ${gopen('vold')}><summary>Starsze gotowe (${done.length-2})</summary>${done.slice(2).map(card).join('')}</details>`:'')
+  +(bad.length?`<details class="grp" data-g="vbad" ${gopen('vbad')}><summary>Nieudane (${bad.length})</summary>${bad.map(card).join('')}${bad.length>1?'<div class="row"><button class="btn del" id="vdelall">🗑 Usuń wszystkie nieudane</button></div>':''}</details>`:'');
  $('vbadge').classList.toggle('on',V.jobs.some(j=>j.state==='ask'));liveRender();
  if(vh===vload.h)return;vload.h=vh;$('vjobs').innerHTML=vh;
- if(V.jobs.some(j=>j.state==='ask')&&!vload.sc){vload.sc=1;window.setMode&&setMode('dash');window.setSec&&setSec('vlog');setTimeout(()=>$('vsec').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+ if(V.jobs.some(j=>j.state==='ask')&&!vload.sc){vload.sc=1;window.setMode&&setMode('dash');window.setSec&&setSec('vlog');openFold('vsec');setTimeout(()=>$('vsec').scrollIntoView({behavior:'smooth',block:'start'}),300)}
  document.querySelectorAll('[data-ans]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.j}/answer`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({choice:b.dataset.ans==='none'?null:+b.dataset.ans})});toast('Wybór wysłany do Maca.');vload()});
  document.querySelectorAll('[data-vag]').forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await (await fetch(`/api/mont-vlog/${b.dataset.vag}/again`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(r.ok!==false?'Montuję ponownie z klipów na Macu – postęp zobaczysz na górze.':r.error);vload.h=null;vload()});
  document.querySelectorAll('[data-vdel]').forEach(b=>b.onclick=()=>mclean({vjob:b.dataset.vdel}));
@@ -277,6 +304,12 @@ $('vgo').onclick=async()=>{const P=KIND==='przepis',ep=+$('vep').value,date=P?ne
   toast(V?.online?'Zlecone – Mac zaczyna montaż.':'Zlecone – Mac zacznie, gdy będzie włączony.');$('vnew').hidden=true;VF=[];$('vf').value='';$('vup').textContent='';$('vep').value='';vload()}
  catch(e){$('vup').textContent='Nie wyszło: '+e.message}$('vgo').disabled=false;window.BUSY=false};
 
+// ---- zwijane sekcje (stan zapamiętany na urządzeniu) ----
+const GO={};const gopen=k=>GO[k]?'open':'';
+document.addEventListener('toggle',e=>{const d=e.target;if(d.dataset&&d.dataset.g)GO[d.dataset.g]=d.open},true);
+document.querySelectorAll('[data-fold]').forEach(s=>{const k='mfold-'+s.dataset.fold;let c=s.dataset.closed==='1';try{const v=localStorage.getItem(k);if(v!==null)c=v==='1'}catch(e){}
+ s.classList.toggle('closed',c);s.querySelector('.fh').onclick=e=>{if(e.target.closest('a,button'))return;const n=!s.classList.contains('closed');s.classList.toggle('closed',n);try{localStorage.setItem(k,n?'1':'0')}catch(x){}}});
+const openFold=id=>{const s=$(id);if(s&&s.classList.contains('closed'))s.querySelector('.fh').click()};
 // ---- zakładki Biuro / Dashboard (jak w Agencji) ----
 (function(){let m='office';try{m=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}
  window.setMode=x=>{m=x;document.body.classList.toggle('m-office',x==='office');document.body.classList.toggle('m-dash',x==='dash');
@@ -296,7 +329,7 @@ async function wz(){try{const w=await (await fetch('/api/mont-wzorce')).json();
 wz();setInterval(wz,60000);
 async function arch(){try{const a=await (await fetch('/api/mont-archivist')).json(),m=a.mac||{},v=a.vps||{};
  const old=(m.raw||[]).filter(x=>x.days>30);
- $('arch').innerHTML=`<b>🗄 Archiwista</b><br>${m.at?`Mac: wolne <b style="color:${m.free_gb<25?'var(--warn)':'var(--ok)'}">${m.free_gb} GB</b> z ${m.total_gb} · eksporty w CapCut ${m.exports_gb} GB`:'Mac: czekam na pierwszy raport (co godzinę)'}${old.length?`<br>Stare surowe klipy (>30 dni, możesz przenieść na dysk zewnętrzny): ${old.slice(0,5).map(x=>`${esc(x.kind)}/${esc(x.name)} ${x.gb} GB`).join(' · ')}`:''}<br>VPS: ${v.at?`sprzątanie ${ago(v.at)} · zwolnione ${v.freed_mb} MB`:'pierwsze sprzątanie w ciągu godziny'} <button class="btn" id="archb" style="padding:4px 10px;font-size:12px">Posprzątaj teraz</button>`;
+ $('toolsum').textContent=m.at?`Mac: ${m.free_gb} GB wolne`:'';$('arch').innerHTML=`<b>🗄 Archiwista</b><br>${m.at?`Mac: wolne <b style="color:${m.free_gb<25?'var(--warn)':'var(--ok)'}">${m.free_gb} GB</b> z ${m.total_gb} · eksporty w CapCut ${m.exports_gb} GB`:'Mac: czekam na pierwszy raport (co godzinę)'}${old.length?`<br>Stare surowe klipy (>30 dni, możesz przenieść na dysk zewnętrzny): ${old.slice(0,5).map(x=>`${esc(x.kind)}/${esc(x.name)} ${x.gb} GB`).join(' · ')}`:''}<br>VPS: ${v.at?`sprzątanie ${ago(v.at)} · zwolnione ${v.freed_mb} MB`:'pierwsze sprzątanie w ciągu godziny'} <button class="btn" id="archb" style="padding:4px 10px;font-size:12px">Posprzątaj teraz</button>`;
  $('archb').onclick=async()=>{const r=await (await fetch('/api/mont-archivist/run',{method:'POST'})).json();toast(`Zwolniono ${r.freed_mb} MB na serwerze.`);arch()}}catch(e){}}
 arch();setInterval(arch,300000);
 
@@ -322,10 +355,12 @@ async function mclean(b){const r=await (await fetch('/api/mont-clean',{method:'P
 
 // ---- zmontowane vlogi (lekkie kopie z Maca) ----
 async function vfilms(){let r;try{r=await (await fetch('/api/mont-vlog/films')).json()}catch(e){return}
- const h=(r.films||[]).map(f=>`<div class="vfi"><video src="/api/mont-vlog/film/${encodeURIComponent(f.name)}" controls playsinline preload="metadata"></video>
+ const F=r.films||[],all=vfilms.all||innerWidth>900,shown=all?F:F.slice(0,4);
+ const h=shown.map(f=>`<div class="vfi"><video src="/api/mont-vlog/film/${encodeURIComponent(f.name)}" controls playsinline preload="metadata"></video>
   <b title="${esc(f.name)}">${f.kind==='przepis'?'🍳':'🎥'} ${esc(f.name)}</b><small>${new Date(f.mtime*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${f.m?` · ${Math.floor(f.m.dur/60)}:${String(Math.round(f.m.dur%60)).padStart(2,'0')} · ${f.m.lufs??'–'} LUFS`:''}</small>
   ${f.warnings&&f.warnings.length?`<small class="w">⚠️ ${esc(f.warnings.join('; '))}</small>`:f.warnings?'<small style="color:var(--ok)">✓ strażnik: OK</small>':''}</div>`).join('')||'<p class="mut">Jeszcze nic – po eksporcie z CapCuta Mac wyśle tu podgląd (do ~15 min).</p>';
- if(h!==vfilms.h){vfilms.h=h;$('vfilms').innerHTML=h}}
+ if(h!==vfilms.h){vfilms.h=h;$('vfilms').innerHTML=h}
+ $('vfmore').innerHTML=F.length>shown.length?`<button class="btn morebtn" id="vfm">Pokaż wszystkie (${F.length})</button>`:'';if($('vfm'))$('vfm').onclick=()=>{vfilms.all=1;vfilms.h=null;vfilms()}}
 vfilms();setInterval(vfilms,120000);
 vload();setInterval(vload,8000);
 load();setInterval(load,15000);
