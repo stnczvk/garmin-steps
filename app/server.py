@@ -118,6 +118,8 @@ from agency_extra import router as agency_extra_router  # noqa: E402
 app.include_router(agency_extra_router)
 from costs_full import router as costs_full_router  # noqa: E402
 app.include_router(costs_full_router)
+from notes import router as notes_router  # noqa: E402
+app.include_router(notes_router)
 from scanner_team import router as scanner_team_router  # noqa: E402
 app.include_router(scanner_team_router)
 
@@ -127,7 +129,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html"}
+PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html"}
 
 
 def _page(req: Request, name: str):
@@ -160,6 +162,11 @@ def straznicy(req: Request):
 @app.get("/montazownia")
 def montazownia(req: Request):
     return _page(req, "montazownia")
+
+
+@app.get("/notatki")
+def notatki(req: Request):
+    return _page(req, "notatki")
 
 
 @app.get("/powiadomienia")
