@@ -323,6 +323,12 @@ def review(script, judge=None):
     _busy["qa"] = "ocenia scenariusz"
     s = settings()
     judge = judge or {}
+    if isinstance(judge, str):
+        judge = as_json(judge) or {}
+    if isinstance(judge, list):   # n8n potrafi przysłać ocenę sędziego jako listę [ {...} ]
+        judge = next((x for x in judge if isinstance(x, dict)), {})
+    if not isinstance(judge, dict):
+        judge = {}
     topic = str(script.get("topic") or script.get("title") or "")[:80]
     try:
         view = {k: script.get(k) for k in ("topic", "pillar", "format", "title", "hook", "main_question", "voiceover", "key_numbers", "timeline")}
@@ -342,6 +348,9 @@ Zasady poprawki: ten sam temat, te same fakty i kolejność co sceny w timeline 
 title max 60 znaków, hook = pierwsze zdanie voiceover. Jeśli ocena ≥ {s['min_score']} i brak błędów – nie zmieniaj nic.
 Odpowiedz WYŁĄCZNIE JSON: {{"score": liczba, "issues": ["krótko po polsku"], "changes": {{tylko zmienione pola albo pusty obiekt}}}}"""
         r = as_json(claude(prompt, SMART, 2500, web=True))
+        if isinstance(r, list):       # model czasem odpowiada [ {...} ] zamiast {...}
+            r = next((x for x in r if isinstance(x, dict)), {})
+        r = r if isinstance(r, dict) else {}
         ch = {k: v for k, v in (r.get("changes") or {}).items() if k in EDITABLE and v}
         if "voiceover" in ch and not 60 <= _words(ch["voiceover"]) <= 100:
             ch.pop("voiceover")
@@ -365,7 +374,7 @@ Odpowiedz WYŁĄCZNIE JSON: {{"score": liczba, "issues": ["krótko po polsku"], 
         # pełny autopilot: agencja może zaliczyć scenariusz, który sędzia odrzucił, jeśli go poprawiła
         struct_ok = isinstance(new.get("timeline"), list) and len(new["timeline"]) == 5 and 60 <= _words(new.get("voiceover")) <= 100
         passed = bool(judge.get("pass")) or (bool(ch) and struct_ok and score >= s["min_score"] and
-                                             not any("timeline" in p or "hashtags" in p or "missing" in p for p in judge.get("problems") or []))
+                                             not any("timeline" in str(p) or "hashtags" in str(p) or "missing" in str(p) for p in (judge.get("problems") if isinstance(judge.get("problems"), list) else [])))
         out = {"score": score, "issues": [str(i) for i in (r.get("issues") or [])][:6], "rewritten": bool(ch or seo_ch or ab_ch), "changed": list(ch) + list(seo_ch) + (["hook B (test A/B)"] if ab_ch else []),
                "pass": passed, "script": new}
         log("qa", f"Ocena {score:.0f}/10 – " + (f"poprawił: {', '.join(ch)}" if ch else "zatwierdził bez zmian") + f" · {topic}",
