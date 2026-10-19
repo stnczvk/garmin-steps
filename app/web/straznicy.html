@@ -156,7 +156,7 @@ $('test').onclick=async e=>{e.target.disabled=true;let r;try{r=await (await fetc
  alert(r.subs?`Wysłano na ${r.sent}/${r.subs} urządzeń.`+(bad.length?`\n\nNie doszło:\n`+bad.map(b=>`${b.host}: ${b.code} ${b.err||''}`).join('\n'):'\n\nJeśli nic nie przyszło, sprawdź ustawienia powiadomień w systemie.'):'Żadne urządzenie nie ma włączonych powiadomień.\n\nKliknij 🔔 w nagłówku centrum (na iPhonie: w apce z ekranu początkowego).');load(true)};
 
 // ---- zakładki Biuro / Dashboard (jak w Agencji) ----
-(function(){let m='office';try{m=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}
+(function(){let m='office';try{m=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}if(matchMedia('(max-width: 700px)').matches)m='dash';  // telefon: zawsze od dashboardu
  window.setMode=x=>{m=x;document.body.classList.toggle('m-office',x==='office');document.body.classList.toggle('m-dash',x==='dash');
   document.querySelectorAll('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===x));try{localStorage.setItem('view-'+location.pathname,x)}catch(e){}
   setTimeout(()=>dispatchEvent(new Event('resize')),30)};

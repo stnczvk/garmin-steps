@@ -425,7 +425,7 @@ function deptMetric(i){const d=DEPTS[i],L=(A?.log||[]).find(e=>(AG_DEPT[e.agent]
   case 'private':{const r=A?.private?.[0];return{v:r?r.accounts.reduce((s,a)=>s+(a.followers||0),0).toLocaleString('pl'):'–',l:r?'obserwujących · raport '+ago(r.at)+' temu':'brak raportu',x}}
  }return{x}}
 // ===== DASHBOARD agentów (widok kart zamiast biura 3D) =====
-let MODE='office';try{MODE=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}
+let MODE='office';try{MODE=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}if(matchMedia('(max-width: 700px)').matches)MODE='dash';  // telefon: zawsze od dashboardu
 function setMode(m){MODE=m;document.body.classList.toggle('dash',m==='dash');document.querySelectorAll('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
  try{localStorage.setItem('view-'+location.pathname,m)}catch(e){}if(m==='dash')renderDash()}
 document.querySelectorAll('#vt button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));

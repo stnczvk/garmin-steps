@@ -538,7 +538,7 @@ function deptMetric(i){if(!S)return{};const d=DEPTS[i],mod=n=>S.modifiers?.find(
   case 'trades':{const r=S.recent.find(r=>r.result&&!r.is_shadow);return{v:S.open.length,l:'otwartych pozycji',x:r?`ostatnio: ${r.symbol.split('/')[0]} ${r.direction} ${r.result} ${fmt(r.pnl)}%`:''}}
  }return{}}
 // ===== DASHBOARD agentów (widok kart zamiast biura 3D) =====
-let MODE='office';try{MODE=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}
+let MODE='office';try{MODE=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}if(matchMedia('(max-width: 700px)').matches)MODE='dash';  // telefon: zawsze od dashboardu
 function setMode(m){MODE=m;document.body.classList.toggle('dash',m==='dash');document.querySelectorAll('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
  try{localStorage.setItem('view-'+location.pathname,m)}catch(e){}if(m==='dash')renderDash()}
 document.querySelectorAll('#vt button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));

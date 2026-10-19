@@ -336,7 +336,7 @@ document.querySelectorAll('[data-fold]').forEach(s=>{const k='mfold-'+s.dataset.
  s.classList.toggle('closed',c);s.querySelector('.fh').onclick=e=>{if(e.target.closest('a,button'))return;const n=!s.classList.contains('closed');s.classList.toggle('closed',n);try{localStorage.setItem(k,n?'1':'0')}catch(x){}}});
 const openFold=id=>{const s=$(id);if(s&&s.classList.contains('closed'))s.querySelector('.fh').click()};
 // ---- zakładki Biuro / Dashboard (jak w Agencji) ----
-(function(){let m='office';try{m=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}
+(function(){let m='office';try{m=localStorage.getItem('view-'+location.pathname)||'office'}catch(e){}if(matchMedia('(max-width: 700px)').matches)m='dash';  // telefon: zawsze od dashboardu
  window.setMode=x=>{m=x;document.body.classList.toggle('m-office',x==='office');document.body.classList.toggle('m-dash',x==='dash');
   document.querySelectorAll('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===x));try{localStorage.setItem('view-'+location.pathname,x)}catch(e){}
   setTimeout(()=>dispatchEvent(new Event('resize')),30)};
