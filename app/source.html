@@ -863,6 +863,16 @@ body{text-rendering:optimizeLegibility}
 .kc-ring .in{padding:0 20px}
 .kc-ring .left{font-size:11.5px;line-height:1.2;max-width:100%;overflow-wrap:anywhere}
 @media (max-width:400px){.kc-ring .v{font-size:30px}}
+
+/* telefon: odstępy między przyciskami, żeby nic się nie stykało */
+.meal .mealacts{margin-top:12px!important;gap:8px!important;row-gap:8px!important}
+.meal .madd{margin-bottom:2px}
+.meal .mvbox{margin-top:10px}
+.x+.x,.mshare+.x{margin-left:6px}
+.row{row-gap:8px}
+
+/* w siatkach pól: pole zawsze na dole komórki, nawet gdy etykieta zawinie się do 2 linii */
+.editgrid>label,.grid2>label,.goals>label{display:flex;flex-direction:column;justify-content:flex-end}
 </style>
 
 <div class="wrap">
@@ -2803,8 +2813,8 @@ function renderFood0(){
   ${!lastBw()&&!targets.protein?`<div class="note" style="color:var(--warn);font-weight:600">Wpisz swoją wagę w Podsumowanie → Cel wagi i kalorie, żeby zobaczyć przedziały białka i węgli.</div>`:""}
   <details><summary class="note" style="cursor:pointer">Ustaw cele${(targets.kcalTrain||targets.kcal)?"":" (brak celu kalorii)"}</summary>
     <div class="goals" style="margin-top:10px">
-      ${autoKcal()?`<div class="note" style="flex-basis:100%;font-weight:600">Kalorie: trening ${autoKcal().train} kcal, dzień wolny ${autoKcal().rest} kcal. Liczą się same z celu wagi (Podsumowanie → Cel wagi i kalorie).</div>`:`<label><span class="label">Kcal – dzień treningowy</span><input type="number" id="fd-gkt" inputmode="numeric" value="${targets.kcalTrain??targets.kcal??""}" placeholder="np. 2100"></label>
-      <label><span class="label">Kcal – dzień wolny</span><input type="number" id="fd-gkr" inputmode="numeric" value="${targets.kcalRest??targets.kcal??""}" placeholder="np. 2000"></label>`}
+      ${autoKcal()?`<div class="note" style="flex-basis:100%;font-weight:600">Kalorie: trening ${autoKcal().train} kcal, dzień wolny ${autoKcal().rest} kcal. Liczą się same z celu wagi (Podsumowanie → Cel wagi i kalorie).</div>`:`<label><span class="label">Kcal – trening</span><input type="number" id="fd-gkt" inputmode="numeric" value="${targets.kcalTrain??targets.kcal??""}" placeholder="np. 2100"></label>
+      <label><span class="label">Kcal – wolny</span><input type="number" id="fd-gkr" inputmode="numeric" value="${targets.kcalRest??targets.kcal??""}" placeholder="np. 2000"></label>`}
       <label><span class="label">Białko (g)</span><input type="number" id="fd-gp" inputmode="numeric" value="${targets.protein??""}" placeholder="${lastBw()?r0(lastBw()*PLANS[MODE].protein):"np. 170"}"></label>
       <label><span class="label">Tłuszcz (g)</span><input type="number" id="fd-gf" inputmode="numeric" value="${targets.fat??""}" placeholder="auto"></label>
       <label><span class="label">Węgle (g)</span><input type="number" id="fd-gc" inputmode="numeric" value="${targets.carbs??""}" placeholder="auto"></label>
