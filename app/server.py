@@ -901,7 +901,13 @@ def montaz_start(jid: str):
     (day / "raport.txt").unlink(missing_ok=True)
     if (d / "gotowe").is_dir():
         shutil.rmtree(d / "gotowe", ignore_errors=True)
-    st = {k: v for k, v in st.items() if k in ("date",)}
+    st = {k: v for k, v in st.items() if k in ("date", "src")}
+    busy = MZ_JOBS.is_dir() and any(x.is_dir() and MZ_ID.match(x.name) and x.name != d.name and _mz_status(x).get("state") == "working"
+                                    for x in MZ_JOBS.iterdir())
+    if busy:   # jeden montaż naraz – centrum uruchomi ten z kolejki, gdy poprzedni się skończy
+        st.update(state="queued", step="W kolejce – ruszy, gdy skończy się poprzedni montaż", at=time.time(), qat=time.time())
+        (d / "status.json").write_text(json.dumps(st, ensure_ascii=False))
+        return _mz_status(d)
     st.update(state="working", step="Start…", at=time.time())
     (d / "status.json").write_text(json.dumps(st, ensure_ascii=False))
     subprocess.Popen(["nice", "-n", "15", sys.executable, str(HERE / "montaz_job.py"), str(d)], env=env,
