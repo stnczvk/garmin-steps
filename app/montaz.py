@@ -38,6 +38,23 @@ def _job(jid):
     return d if d.is_dir() else None
 
 
+def _alive(d):
+    """Czy dla tego zadania działa jeszcze proces montażu (montaz_job.py <katalog>)."""
+    key = str(d)
+    try:
+        for p in Path("/proc").iterdir():
+            if p.name.isdigit():
+                try:
+                    c = (p / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="ignore")
+                except Exception:
+                    continue
+                if "montaz_job" in c and key in c:
+                    return True
+    except Exception:
+        return True   # nie da się sprawdzić – nie zgadujemy
+    return False
+
+
 def _status(d):
     try:
         st = json.loads((d / "status.json").read_text())
@@ -45,6 +62,13 @@ def _status(d):
         st = {}
     if st.get("state") == "working" and time.time() - st.get("at", 0) > 1800:
         st.update(state="error", error="Montaż przestał odpowiadać (ponad 30 min bez postępu).")
+    elif st.get("state") == "working" and time.time() - st.get("at", 0) > 90 and not _alive(d):
+        # status „montuje się”, a procesu montażu już nie ma (padł albo serwer się zrestartował)
+        f = d / "gotowe"
+        if f.is_dir() and any(f.glob("*.mp4")):
+            st.update(state="done", step="Gotowy", film=st.get("film") or sorted(f.glob("*.mp4"))[-1].name)
+        else:
+            st.update(state="error", error="Montaż został przerwany (proces nie działa) – kliknij Spróbuj ponownie.")
     if st.get("state") == "uploading":
         # wysyłanie z telefonu / karty z Dziennika – jeśli nic się nie dzieje od 15 min, mówimy wprost, co się stało
         try:
