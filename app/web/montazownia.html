@@ -317,8 +317,17 @@ function setKind(k){KIND=k;const p=k==='przepis';document.querySelectorAll('.von
 $('vgo').onclick=async()=>{const P=KIND==='przepis',ep=+$('vep').value,date=P?new Date().toISOString().slice(0,10):$('vd').value;if(!ep||!date)return toast(P?'Podaj numer przepisu.':'Podaj numer odcinka i datę.');
  if(!VF.length&&!(P?V?.ploose:V?.loose)&&!confirm(`Na Macu w _SUROWE/${P?'przepis':'vlog'} nie widzę nowych klipów. Montować mimo to?`))return;
  window.BUSY=true;$('vgo').disabled=true;try{const r=await (await fetch('/api/mont-vlog/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ep,date,kind:KIND,title:$('vt2').value.trim(),voiceover:$('vvo').checked&&KIND==='vlog',upload:VF.length>0})})).json();if(!r.ok)throw new Error(r.error);
-  if(VF.length){const tot=VF.reduce((s,f)=>s+f.size,0);let done=0;$('vup').innerHTML='Wysyłam…<div class="bar"><i id="vpb"></i></div>';
-   for(let i=0;i<VF.length;i++){const f=VF[i];$('vup').firstChild.textContent=`Wysyłam ${i+1}/${VF.length}: ${f.name}`;await put(`/api/mont-vlog/${r.id}/file?name=${encodeURIComponent(f.name)}`,f,p=>{$('vpb').style.width=((done+p*f.size)/tot*100)+'%'});done+=f.size}
+  if(VF.length){const tot=VF.reduce((s,f)=>s+f.size,0),t0=Date.now();let done=0,wl=null;
+   try{wl=await navigator.wakeLock?.request('screen')}catch(x){}   // ekran nie gaśnie w trakcie wysyłania
+   $('vup').innerHTML='Wysyłam…<div class="bar"><i id="vpb"></i></div><small class="mut" id="vsp"></small><small class="mut" style="display:block">Nie zamykaj tej karty i nie wygaszaj ekranu, dopóki się nie wyśle.</small>';
+   const MB=x=>(x/1048576).toFixed(0);
+   try{for(let i=0;i<VF.length;i++){const f=VF[i];$('vup').firstChild.textContent=`Wysyłam ${i+1}/${VF.length}: ${f.name}`;
+    for(let a=1;;a++){try{await put(`/api/mont-vlog/${r.id}/file?name=${encodeURIComponent(f.name)}`,f,p=>{const sent=done+p*f.size,sec=(Date.now()-t0)/1000,sp=sent/Math.max(sec,1);
+      $('vpb').style.width=(sent/tot*100)+'%';$('vsp').textContent=`${MB(sent)} z ${MB(tot)} MB · ${(sp*8/1e6).toFixed(1)} Mb/s · zostało ok. ${Math.max(1,Math.round((tot-sent)/sp/60))} min`});break}
+     catch(x){if(a>=3)throw x;$('vup').firstChild.textContent=`Połączenie przerwane – ponawiam ${f.name} (${a}/3)…`;await new Promise(z=>setTimeout(z,4000))}}
+    done+=f.size}}
+   catch(x){await fetch(`/api/mont-vlog/${r.id}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});throw new Error('wysyłanie przerwane ('+x.message+') – spróbuj jeszcze raz')}
+   finally{try{wl&&wl.release()}catch(x){}}
    await fetch(`/api/mont-vlog/${r.id}/go`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}
   toast(V?.online?'Zlecone – Mac zaczyna montaż.':'Zlecone – Mac zacznie, gdy będzie włączony.');$('vnew').hidden=true;VF=[];$('vf').value='';$('vup').textContent='';$('vep').value='';vload()}
  catch(e){$('vup').textContent='Nie wyszło: '+e.message}$('vgo').disabled=false;window.BUSY=false};

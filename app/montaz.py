@@ -705,7 +705,13 @@ def _tok(req: Request):
 
 @router.get("/api/mont-vlog/state")
 def vlog_state():
-    v = _V()
+    with _vl:
+        v = _V()
+        stale = [j for j in v["jobs"] if j["state"] == "uploading" and time.time() - max(j.get("upd") or 0, j.get("at") or 0) > 900]
+        for j in stale:   # telefon przestał wysyłać (zgaszony ekran, aplikacja w tle, brak internetu)
+            j.update(state="error", step=f"Wysyłanie klipów przerwane po {len(j.get('files', []))} plikach – wyślij jeszcze raz (ekran telefonu nie może gasnąć)")
+        if stale:
+            _wr("mont_vlog.json", v)
     h = v["helper"]
     online = bool(h.get("seen")) and time.time() - h["seen"] < 90
     return {"configured": bool(os.environ.get("MONT_TOKEN")), "online": online, "seen": h.get("seen"),
@@ -752,6 +758,9 @@ async def vlog_file(jid: str, req: Request, name: str = ""):
         j = _vjob(v, jid)
         if j and name not in j["files"]:
             j["files"].append(name)
+        if j:
+            j["upd"] = time.time()
+            j["step"] = f"Wysyłanie klipów… ({len(j['files'])} wysłanych)"
             _wr("mont_vlog.json", v)
     return {"ok": True}
 
