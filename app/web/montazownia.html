@@ -266,6 +266,11 @@ $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value
      $('pb').style.width=(sent/tot*100)+'%';$('fsp').textContent=`${MB(sent)} z ${MB(tot)} MB · ${(sp*8/1e6).toFixed(1)} Mb/s · zostało ok. ${Math.max(1,Math.round((tot-sent)/sp/60))} min`});break}
     catch(x){if(a>=3)throw x;$('up').firstChild.textContent=`Połączenie przerwane – ponawiam ${f.name} (${a}/3)…`;await new Promise(z=>setTimeout(z,4000))}}
    done+=f.size}}finally{try{wl&&wl.release()}catch(x){}}
+  if(kd&&DZU){const back=(()=>{try{return window.top.location.origin}catch(x){return location.origin}})()+'/#montazownia';
+    const url=`${DZU}/?wroc=${encodeURIComponent(back)}#karty-${r.id}-${$('nd').value}`;
+    $('up').innerHTML='<div class="g ok" style="margin-top:8px"><b>✅ Klipy wysłane.</b> Przechodzę do Dziennika – zrobi karty posiłków, uruchomi montaż i wróci tutaj.</div>';
+    try{localStorage.setItem('mont-sel',r.id)}catch(x){}
+    setTimeout(()=>{try{window.top.location.href=url}catch(x){location.href=url}},900);window.BUSY=false;return}
   if(kd){const url=`${DZU}/#karty-${r.id}-${$('nd').value}`;if(win){win.location=url}else{$('up').innerHTML=`<div class="g ok" style="margin-top:8px"><b>✅ Klipy wysłane.</b> Ostatni krok – karty posiłków robi Dziennik:</div><div class="row"><a class="btn pri" id="dzgo" href="${url}" target="_blank" rel="noopener">🖼 Zrób karty w Dzienniku i zmontuj</a><button class="btn" id="nocards">▶ Montuj bez kart</button></div>`;
     $('dzgo').onclick=()=>{toast('Dziennik zrobi karty i sam uruchomi montaż – możesz tam wrócić tutaj.');setTimeout(()=>{$('newp').hidden=true;$('up').textContent=''},1500)};
     $('nocards').onclick=async()=>{const s2=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(s2.ok?'Montaż ruszył – 2–4 minuty.':'Nie wyszło: '+s2.error);$('newp').hidden=true;$('up').textContent='';load()};
