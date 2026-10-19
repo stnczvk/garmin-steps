@@ -29,7 +29,7 @@ body{background:transparent}
 .list .j{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 6px;border-top:1px solid var(--line);cursor:pointer;border-radius:10px}
 .list .j:first-of-type{border-top:0}.list .j:hover{background:rgba(255,255,255,.04)}.list .j.on{background:rgba(158,140,252,.14)}
 .list .j b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list .j small{color:var(--faint);font-size:12px}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--faint)}.dot.done{background:var(--ok)}.dot.error{background:var(--bad)}.dot.working,.dot.uploading{background:var(--acc);animation:p 1s infinite}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--faint)}.dot.done{background:var(--ok)}.dot.error{background:var(--bad)}.dot.queued{background:var(--warn)}.dot.working,.dot.uploading{background:var(--acc);animation:p 1s infinite}
 @keyframes p{50%{opacity:.3}}
 .tag{font:600 11px 'JetBrains Mono',monospace;padding:2px 7px;border-radius:99px}.tag.ok{background:rgba(61,220,132,.16);color:var(--ok)}.tag.bad{background:rgba(255,92,108,.16);color:var(--bad)}
 h2{font-size:15px;font-weight:650;margin-bottom:10px}
@@ -181,7 +181,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 <script>
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const ST={done:'gotowy',error:'błąd',working:'montuje się',uploading:'wysyłanie klipów'};
+const ST={done:'gotowy',error:'błąd',working:'montuje się',uploading:'wysyłanie klipów',queued:'w kolejce'};
 let D=null,SEL=null,J=null;
 try{SEL=localStorage.getItem('mont-sel')}catch(e){}
 const toast=t=>{const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.display='none',5000)};
@@ -229,7 +229,7 @@ async function detail(id,force){
   ${j.raport?`<details><summary>Raport cięć</summary><pre>${esc(j.raport)}</pre></details>`:''}
   ${j.transkrypcja?`<details><summary>Transkrypcja klipów</summary><pre>${esc(j.transkrypcja)}</pre></details>`:''}`;
  const post=async(a,body)=>{const r=await (await fetch(`/api/mont/${j.id}/${a}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})})).json();return r};
- $('kick')&&($('kick').onclick=async()=>{$('kick').disabled=true;const r=await (await fetch(`/api/mont/${j.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(r.ok?'Montaż ruszył.':'Nie wyszło: '+r.error);J=null;load()});
+ $('kick')&&($('kick').onclick=async()=>{$('kick').disabled=true;const r=await (await fetch(`/api/mont/${j.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(r.ok?(r.queued?'W kolejce – ruszy po poprzednim montażu.':'Montaż ruszył.'):'Nie wyszło: '+r.error);J=null;load()});
  $('kdel')&&($('kdel').onclick=()=>{SEL=null;mclean({job:j.id})});
  $('redo')&&($('redo').onclick=async()=>{const r=await post('redo');toast(r.ok?'Montaż ruszył od nowa.':'Nie wyszło: '+r.error);J=null;load()});
  $('fixb')&&($('fixb').onclick=async()=>{const t=$('fx').value.trim();if(!t)return toast('Wpisz, co poprawić.');const r=await post('fix',{comment:t});toast(r.ok?'Poprawka wysłana – film montuje się ponownie.':'Nie wyszło: '+r.error);J=null;load()});
@@ -273,11 +273,11 @@ $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value
     setTimeout(()=>{try{window.top.location.href=url}catch(x){location.href=url}},900);window.BUSY=false;return}
   if(kd){const url=`${DZU}/#karty-${r.id}-${$('nd').value}`;if(win){win.location=url}else{$('up').innerHTML=`<div class="g ok" style="margin-top:8px"><b>✅ Klipy wysłane.</b> Ostatni krok – karty posiłków robi Dziennik:</div><div class="row"><a class="btn pri" id="dzgo" href="${url}" target="_blank" rel="noopener">🖼 Zrób karty w Dzienniku i zmontuj</a><button class="btn" id="nocards">▶ Montuj bez kart</button></div>`;
     $('dzgo').onclick=()=>{toast('Dziennik zrobi karty i sam uruchomi montaż – możesz tam wrócić tutaj.');setTimeout(()=>{$('newp').hidden=true;$('up').textContent=''},1500)};
-    $('nocards').onclick=async()=>{const s2=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(s2.ok?'Montaż ruszył – 2–4 minuty.':'Nie wyszło: '+s2.error);$('newp').hidden=true;$('up').textContent='';load()};
+    $('nocards').onclick=async()=>{const s2=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(s2.ok?(s2.queued?'W kolejce – ruszy po poprzednim montażu.':'Montaż ruszył – 2–4 minuty.'):'Nie wyszło: '+s2.error);$('newp').hidden=true;$('up').textContent='';load()};
     SEL=r.id;load();window.BUSY=false;$('go').disabled=false;FC=[];$('fc').value='';$('fcl').textContent='';$('dropc').classList.remove('has');return}
    toast('Klipy wysłane – Dziennik robi karty i uruchamia montaż (2–4 min).')}
   else{const s=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();if(!s.ok)throw new Error(s.error);
-  toast('Montaż ruszył – zwykle 2–4 minuty. Dam znać powiadomieniem.')}$('newp').hidden=true;FC=[];DIRTY=false;$('fc').value='';$('fcl').textContent='';$('dropc').classList.remove('has');$('t2').value='';$('up').textContent='';SEL=r.id;J=null;load()}
+  toast(s.queued?'Inny film się montuje – ten czeka w kolejce i ruszy sam.':'Montaż ruszył – zwykle 2–4 minuty. Dam znać powiadomieniem.')}$('newp').hidden=true;FC=[];DIRTY=false;$('fc').value='';$('fcl').textContent='';$('dropc').classList.remove('has');$('t2').value='';$('up').textContent='';SEL=r.id;J=null;load()}
  catch(e){$('up').textContent='Nie wyszło: '+e.message;if(win)try{win.close()}catch(x){}}
  window.BUSY=false;$('go').disabled=!FC.length};
 // ---- vlog: zlecenie dla Maca (montaż w CapCut robi niezmieniony automat WNBF) ----
@@ -286,7 +286,7 @@ const ago=t=>{const s=Date.now()/1000-t;return s<90?'przed chwilą':s<3600?Math.
 async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}catch(e){return}
  $('vsrc').textContent=V.loose?`na Macu w _SUROWE/vlog czeka ${V.loose} plików`:'na Macu w _SUROWE/vlog nie ma nowych plików';
  if(!$('vep').value)$('vep').value=V.next_ep||'';if(!$('vd').value)$('vd').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
- const ST2={queued:'czeka na Maca',uploading:'wysyłanie klipów',claimed:'Mac otwiera montaż',working:'montuje się',ask:'czeka na Twój wybór',done:'gotowy w CapCut',error:'błąd'};
+ const ST2={queued:'w kolejce do Maca',uploading:'wysyłanie klipów',claimed:'Mac otwiera montaż',working:'montuje się',ask:'czeka na Twój wybór',done:'gotowy w CapCut',error:'błąd'};
  const CH={done:'ok',error:'bad'};
  const vcheck=j=>{const c=j.check;if(!c)return '<div class="g wait">🛡️ Strażnik ogląda podgląd…</div>';
   return `<div class="g ${c.ok&&!c.warnings.length?'ok':'bad'}"><b>🛡️ Strażnik: ${c.ok&&!c.warnings.length?'montaż OK':'są uwagi'}</b> · ${c.duration} s
@@ -395,7 +395,7 @@ function liveRender(){const box=$('liveb');if(!box)return;const out=[];
   out.push(`<div class="live"><div class="lh"><span class="sp"></span><b>${j.kind==='przepis'?'🍳 Przepis':'🎥 Vlog'} #${j.ep} ${j.state==='ask'?'czeka na Twój wybór':j.state==='queued'?'czeka na Maca':j.state==='uploading'?'wysyłanie klipów':'montuje się na Macu'}</b><small>${j.claimed?dur(j.claimed):''}</small></div>
    <div class="stp">${VST.map((n,i)=>`<div class="${i<k?'d':i===k?'a':''}"><i></i><span>${n}</span></div>`).join('')}</div>
    <div class="ll">${esc(j.step||'')}${last?'\n'+esc(last):''}</div>${j.state==='ask'?'<div class="ask">👉 Wybierz zapowiedź niżej, w sekcji Vlog.</div>':''}</div>`)}
- for(const j of (D&&D.jobs||[]).filter(j=>['working','uploading'].includes(j.state)))
+ for(const j of (D&&D.jobs||[]).filter(j=>['working','uploading','queued'].includes(j.state)&&!j.stalled))
   out.push(`<div class="live"><div class="lh"><span class="sp"></span><b>🍽 ${esc(ttl(j))} – ${ST[j.state]||j.state}</b><small>${j.at?dur(j.at):''}</small></div><div class="ll" style="margin-top:8px">${esc(j.step||'')}</div></div>`);
  const h=out.join('');if(h!==liveRender.h){liveRender.h=h;box.innerHTML=h}
  const act=!!h;if(act!==liveRender.act){liveRender.act=act;clearInterval(liveRender.t);liveRender.t=setInterval(()=>{vload();load()},act?3000:15000)}}

@@ -277,6 +277,26 @@ async def upload(jid: str, req: Request, kind: str = "clip", i: int = 0, name: s
     return {"ok": True, "name": fn, "size": (day / fn).stat().st_size}
 
 
+def _other_working(jid):
+    """Czy inny montaż jedzenia właśnie się robi (serwer montuje jeden film naraz)."""
+    if not JOBS.is_dir():
+        return None
+    for x in JOBS.iterdir():
+        if x.is_dir() and JID.match(x.name) and x.name != jid and _status(x).get("state") == "working":
+            return x.name
+    return None
+
+
+def queue_tick():
+    """Gdy nic się nie montuje – startuje najstarszy montaż z kolejki."""
+    if not JOBS.is_dir() or _other_working(""):
+        return
+    q = [(st.get("qat") or st.get("at") or 0, x.name) for x in JOBS.iterdir()
+         if x.is_dir() and JID.match(x.name) and (st := _status(x)).get("state") == "queued"]
+    if q:
+        start(min(q)[1])
+
+
 def start(jid):
     d = _job(jid)
     st = _status(d)
@@ -288,6 +308,12 @@ def start(jid):
     env = _env()
     if not env.get("GROQ_API_KEY"):
         return {"ok": False, "error": "Brak klucza Groq w /root/dziennik/.env (potrzebny do transkrypcji)."}
+    other = _other_working(jid)
+    if other:   # jeden montaż naraz – ten czeka w kolejce, ruszy sam, gdy poprzedni się skończy
+        keep = {k: v for k, v in st.items() if k in ("date", "src")}
+        keep.update(state="queued", step="W kolejce – ruszy, gdy skończy się poprzedni montaż", at=time.time(), qat=st.get("qat") or time.time())
+        (d / "status.json").write_text(json.dumps(keep, ensure_ascii=False))
+        return {"ok": True, "queued": True}
     (day / "opis.txt").write_text("\n".join(json.loads((d / "title.json").read_text())) + "\n", encoding="utf-8")
     ko = day / "kolejnosc.txt"
     if ko.exists() and ko.read_text(encoding="utf-8").startswith(("# AUTO", "# RĘCZNY")):
@@ -686,6 +712,10 @@ def _watch():
             _wr("mont_seen.json", dict(sorted(seen.items())[-60:]))
         except Exception as e:
             print("montaz watch", e, flush=True)
+        try:
+            queue_tick()
+        except Exception as e:
+            print("kolejka montażu", e, flush=True)
         time.sleep(60)
 
 
@@ -738,8 +768,6 @@ async def vlog_new(req: Request):
     b = await req.json()
     with _vl:
         v = _V()
-        if any(j["state"] in ("queued", "uploading", "working", "ask") for j in v["jobs"]):
-            return {"ok": False, "error": "Poprzedni montaż vloga jeszcze trwa."}
         jid = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
         j = {"id": jid, "kind": "przepis" if b.get("kind") == "przepis" else "vlog", "title": str(b.get("title") or "")[:120],
              "ep": int(b.get("ep") or 0), "date": str(b.get("date") or "")[:10], "voiceover": bool(b.get("voiceover")),
@@ -792,15 +820,11 @@ async def vlog_act(jid: str, action: str, req: Request):
             j.update(answer={"choice": b.get("choice")}, state="working", step="Zapowiedź wybrana – montuję dalej")
         elif action == "again" and j["state"] in ("done", "error"):
             # ponowny montaż z klipów, które już leżą na Macu w „odc N” (bez wysyłania jeszcze raz)
-            if any(x["state"] in ("queued", "uploading", "claimed", "working", "ask") for x in v["jobs"]):
-                return {"ok": False, "error": "Poprzedni montaż jeszcze trwa."}
             nj = {k: j.get(k) for k in ("kind", "title", "ep", "date", "voiceover")}
             nj.update(id=datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2),
                       state="queued", step="Montuję ponownie – czekam na Maca…", files=[], lines=[], at=time.time(), again=jid)
             v["jobs"] = v["jobs"][-30:] + [nj]
         elif action == "fix" and j["state"] in ("done", "error") and str(b.get("comment", "")).strip():
-            if any(x["state"] in ("queued", "uploading", "claimed", "working", "ask") for x in v["jobs"]):
-                return {"ok": False, "error": "Poprzedni montaż jeszcze trwa."}
             nj = {k: j.get(k) for k in ("kind", "title", "ep", "date", "voiceover")}
             nj.update(id=datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2),
                       state="queued", step="Poprawka – czekam na Maca…", files=[], lines=[], at=time.time(), again=jid,
@@ -824,7 +848,8 @@ def hook_next(req: Request, last: int = 0, loose: int = 0, plast: int = 0, ploos
     with _vl:
         v = _V()
         v["helper"] = {"seen": time.time(), "last": last, "loose": loose, "plast": plast, "ploose": ploose}
-        j = next((x for x in v["jobs"] if x["state"] == "queued"), None)
+        busy = any(x["state"] in ("claimed", "working", "ask") for x in v["jobs"])   # Mac montuje jeden film naraz
+        j = None if busy else next((x for x in v["jobs"] if x["state"] == "queued"), None)
         if j:
             j.update(state="claimed", step="Mac otwiera montaż…", claimed=time.time())
         _wr("mont_vlog.json", v)
