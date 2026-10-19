@@ -576,9 +576,12 @@
         }
         say(meals.length ? "Startuję montaż…" : "W dzienniku nie ma posiłków z tego dnia – montuję bez kart…");
         await req("POST", `/montaz/${jid}/start`, {});
-        say("Gotowe – montaż ruszył. Wróć do centrum, to okno możesz zamknąć.");
+        // powrót do centrum (adres przekazany przez Montażownię), a gdy go brak – zamknięcie okna jak dotąd
+        const back = new URLSearchParams(location.search).get("wroc");
+        const ok = back && /^https:\/\/[^/]+\/[^"<>]*$/.test(back);
+        say(ok ? "Gotowe – montaż ruszył. Wracam do centrum…" : "Gotowe – montaż ruszył. Wróć do centrum, to okno możesz zamknąć.");
         history.replaceState(null, "", location.pathname);
-        setTimeout(() => { try { window.close(); } catch (e) {} }, 1500);
+        setTimeout(() => { if (ok) location.replace(back); else { try { window.close(); } catch (e) {} } }, 1200);
       } catch (e) { say("Nie wyszło: " + (e.message || e)); }
     };
     document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", run) : setTimeout(run, 0);
