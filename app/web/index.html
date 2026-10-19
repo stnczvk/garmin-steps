@@ -621,6 +621,11 @@ body.v-ext .head{position:relative;flex:none}
 @keyframes spIn{from{transform:scale(.6);opacity:0}}@keyframes spBar{to{height:var(--h)}}@keyframes spSheen{to{transform:translateX(100%)}}
 @keyframes spWave{0%{opacity:0;transform:scale(1)}25%{opacity:.8}100%{opacity:0;transform:scale(2.6)}}@keyframes spUp{from{opacity:0;transform:translateY(8px)}}
 @media(prefers-reduced-motion:reduce){#splash *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}#splash .half{transition:none}}
+@media(max-width:600px){
+ .kspark{position:static;width:100%;height:30px;margin-top:8px;opacity:.85}
+ .hot{flex-wrap:wrap;row-gap:4px;padding:10px 12px}.hot>span:nth-child(2){flex:1;min-width:0}
+ .hot .x{margin-left:34px;width:100%;text-align:left;display:flex;gap:8px;align-items:baseline;font-size:13px}.hot .x .more{display:inline;margin:0}
+}
 </style>
 </head>
 <body>
