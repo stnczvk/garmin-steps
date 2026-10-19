@@ -255,7 +255,7 @@ $('fc').onchange=e=>{FC=[...e.target.files];$('fcl').textContent=FC.length?`${FC
 let DZU='',DIRTY=false;['t1','t2','t3'].forEach(id=>$(id).addEventListener('input',()=>DIRTY=true));
 function put(url,file,onp){return new Promise((ok,bad)=>{const x=new XMLHttpRequest();x.open('PUT',url);x.upload.onprogress=e=>onp(e.loaded/e.total);x.onload=()=>x.status<300?ok(JSON.parse(x.responseText)):bad(new Error((JSON.parse(x.responseText||'{}').error)||('HTTP '+x.status)));x.onerror=()=>bad(new Error('przerwane połączenie'));x.send(file)})}
 $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value].map(x=>x.trim()).filter(Boolean);if(!title.length)return toast('Wpisz tytuł.');
- const kd=$('kd').checked;let win=null;if(kd){try{win=window.open('','_blank')}catch(e){}}
+ const kd=$('kd').checked;let win=null;   // karta Dziennika otwiera się dopiero po wysłaniu, na Twoje kliknięcie (bez pustego okna)
  window.BUSY=true;$('go').disabled=true;const all=FC.map(f=>['clip',f]),tot=all.reduce((s,[,f])=>s+f.size,0);let done=0;
  $('up').innerHTML='Zakładam montaż…<div class="bar"><i id="pb"></i></div>';
  try{const r=await (await fetch('/api/mont-new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,n:+($('nd').dataset.n||0),date:$('nd').value,autotitle:kd&&!DIRTY})})).json();if(!r.id)throw new Error(r.error||'nie wyszło');
@@ -266,7 +266,10 @@ $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value
      $('pb').style.width=(sent/tot*100)+'%';$('fsp').textContent=`${MB(sent)} z ${MB(tot)} MB · ${(sp*8/1e6).toFixed(1)} Mb/s · zostało ok. ${Math.max(1,Math.round((tot-sent)/sp/60))} min`});break}
     catch(x){if(a>=3)throw x;$('up').firstChild.textContent=`Połączenie przerwane – ponawiam ${f.name} (${a}/3)…`;await new Promise(z=>setTimeout(z,4000))}}
    done+=f.size}}finally{try{wl&&wl.release()}catch(x){}}
-  if(kd){const url=`${DZU}/#karty-${r.id}-${$('nd').value}`;if(win){win.location=url}else{$('up').innerHTML=`Klipy wysłane. <a class="btn pri" href="${url}" target="_blank" rel="noopener">Dodaj karty z Dziennika i zmontuj</a>`;SEL=r.id;load();return}
+  if(kd){const url=`${DZU}/#karty-${r.id}-${$('nd').value}`;if(win){win.location=url}else{$('up').innerHTML=`<div class="g ok" style="margin-top:8px"><b>✅ Klipy wysłane.</b> Ostatni krok – karty posiłków robi Dziennik:</div><div class="row"><a class="btn pri" id="dzgo" href="${url}" target="_blank" rel="noopener">🖼 Zrób karty w Dzienniku i zmontuj</a><button class="btn" id="nocards">▶ Montuj bez kart</button></div>`;
+    $('dzgo').onclick=()=>{toast('Dziennik zrobi karty i sam uruchomi montaż – możesz tam wrócić tutaj.');setTimeout(()=>{$('newp').hidden=true;$('up').textContent=''},1500)};
+    $('nocards').onclick=async()=>{const s2=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(s2.ok?'Montaż ruszył – 2–4 minuty.':'Nie wyszło: '+s2.error);$('newp').hidden=true;$('up').textContent='';load()};
+    SEL=r.id;load();window.BUSY=false;$('go').disabled=false;FC=[];$('fc').value='';$('fcl').textContent='';$('dropc').classList.remove('has');return}
    toast('Klipy wysłane – Dziennik robi karty i uruchamia montaż (2–4 min).')}
   else{const s=await (await fetch(`/api/mont/${r.id}/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();if(!s.ok)throw new Error(s.error);
   toast('Montaż ruszył – zwykle 2–4 minuty. Dam znać powiadomieniem.')}$('newp').hidden=true;FC=[];DIRTY=false;$('fc').value='';$('fcl').textContent='';$('dropc').classList.remove('has');$('t2').value='';$('up').textContent='';SEL=r.id;J=null;load()}
