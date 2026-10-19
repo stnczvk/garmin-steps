@@ -128,6 +128,9 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 .vp{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px;margin-top:10px;align-items:start}
 .vp video{width:100%;aspect-ratio:9/16;max-height:62vh;border-radius:12px;background:#000;object-fit:contain}.vp .g{margin-top:0}
 @media(max-width:700px){.vp{grid-template-columns:minmax(0,1fr)}.vp video{max-height:70vh}}
+.hvw{position:relative;cursor:pointer;border-radius:10px;overflow:hidden}.hvw video{display:block}
+.hvs{position:absolute;right:8px;bottom:8px;font-size:13px;padding:3px 7px;border-radius:99px;background:rgba(0,0,0,.55);pointer-events:none}
+.hvw:hover{outline:2px solid #9e8cfc;outline-offset:-2px}
 </style>
 </head>
 <body class="lg">
@@ -276,7 +279,7 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
    <div class="row"><button class="btn pri" data-vfix="${j.id}">✂️ Popraw montaż</button><button class="btn" data-vchk="${j.id}">🔁 Sprawdź jeszcze raz</button></div></details></div>`};
  const card=j=>`<div class="vj"><div class="vh"><b>${j.kind==='przepis'?'🍳 Przepis':'🎥 Odcinek'} #${j.ep}</b><small>${esc(j.date||'')}</small><span class="chip ${CH[j.state]||'wait'}">${ST2[j.state]||j.state}</span></div>
   ${j.step&&!['done'].includes(j.state)?`<div class="vs">${esc(j.step)}</div>`:''}
-  ${j.state==='ask'&&j.ask?`<div style="margin-top:8px">Które zdanie dać na początek jako zapowiedź?</div><div class="hk">${j.ask.map((t,i)=>`<div class="hko">${(j.previews||[]).includes(i)?`<video src="/api/mont-vlog/${j.id}/preview/${i}" controls playsinline preload="metadata"></video>`:''}<p>${i+1}. ${esc(t)}</p><button class="btn pri" data-ans="${i}" data-j="${j.id}">Wybieram</button></div>`).join('')}</div><div class="row"><button class="btn" data-ans="none" data-j="${j.id}">— bez zapowiedzi —</button></div>`:''}
+  ${j.state==='ask'&&j.ask?`<div style="margin-top:8px">Które zdanie dać na początek jako zapowiedź?</div><div class="hk">${j.ask.map((t,i)=>`<div class="hko">${(j.previews||[]).includes(i)?`<div class="hvw"><video class="hv" src="/api/mont-vlog/${j.id}/preview/${i}#t=0.1" muted loop playsinline preload="metadata"></video><span class="hvs">🔇</span></div>`:''}<p>${i+1}. ${esc(t)}</p><button class="btn pri" data-ans="${i}" data-j="${j.id}">Wybieram</button></div>`).join('')}</div><div class="row"><button class="btn" data-ans="none" data-j="${j.id}">— bez zapowiedzi —</button></div>`:''}
   ${j.state==='done'?`<div class="vs">Projekt „${j.kind==='przepis'?'PRZEPIS':'WNBF AUTO'} #${j.ep}” czeka w CapCut${j.fix?' (z poprawką: „'+esc(j.fix)+'”)':''}.</div>`:''}
   ${j.podglad?`<div class="vp"><video src="/api/mont-vlog/${j.id}/podglad" controls playsinline preload="metadata"></video><div>${vcheck(j)}</div></div>`:''}
   ${(j.lines||[]).length&&j.state!=='queued'?`<details data-g="l${j.id}" ${gopen('l'+j.id)}><summary>${j.state==='done'?'Co zrobił montaż':'Postęp'} (${j.lines.length} linii)</summary><pre>${esc((j.state==='done'?j.lines.filter(l=>/GOTOWE|grafika|wycięte|nie dopasowano|plansza|zapowiedź|ElevenLabs|⚠️/.test(l)):j.lines.slice(-30)).join('\n'))}</pre></details>`:''}
@@ -290,6 +293,7 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
  $('vbadge').classList.toggle('on',V.jobs.some(j=>j.state==='ask'));liveRender();
  if(vh===vload.h)return;vload.h=vh;$('vjobs').innerHTML=vh;
  if(V.jobs.some(j=>j.state==='ask')&&!vload.sc){vload.sc=1;window.setMode&&setMode('dash');window.setSec&&setSec('vlog');openFold('vsec');setTimeout(()=>$('vsec').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+ hoverVids();
  document.querySelectorAll('[data-ans]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.j}/answer`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({choice:b.dataset.ans==='none'?null:+b.dataset.ans})});toast('Wybór wysłany do Maca.');vload()});
  document.querySelectorAll('[data-vag]').forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await (await fetch(`/api/mont-vlog/${b.dataset.vag}/again`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(r.ok!==false?'Montuję ponownie z klipów na Macu – postęp zobaczysz na górze.':r.error);vload.h=null;vload()});
  document.querySelectorAll('[data-vfix]').forEach(b=>b.onclick=async()=>{const t=($('vfx'+b.dataset.vfix)||{}).value||'';if(!t.trim())return toast('Wpisz, co poprawić.');b.disabled=true;
@@ -318,6 +322,13 @@ $('vgo').onclick=async()=>{const P=KIND==='przepis',ep=+$('vep').value,date=P?ne
   toast(V?.online?'Zlecone – Mac zaczyna montaż.':'Zlecone – Mac zacznie, gdy będzie włączony.');$('vnew').hidden=true;VF=[];$('vf').value='';$('vup').textContent='';$('vep').value='';vload()}
  catch(e){$('vup').textContent='Nie wyszło: '+e.message}$('vgo').disabled=false;window.BUSY=false};
 
+// ---- zapowiedzi: film rusza po najechaniu myszką (na telefonie – ten widoczny w karuzeli); klik = dźwięk ----
+function hoverVids(){const touch=matchMedia('(hover: none)').matches;
+ document.querySelectorAll('video.hv').forEach(v=>{if(v.dataset.ok)return;v.dataset.ok=1;const w=v.parentNode,ic=w.querySelector('.hvs');
+  const play=()=>{v.play().catch(()=>{})},stop=()=>{v.pause();try{v.currentTime=0.1}catch(e){}};
+  if(!touch){w.onmouseenter=play;w.onmouseleave=()=>{stop();v.muted=true;ic.textContent='🔇'}}
+  w.onclick=e=>{e.preventDefault();v.muted=!v.muted;ic.textContent=v.muted?'🔇':'🔊';if(v.paused)play()};
+  if(touch&&'IntersectionObserver' in window)new IntersectionObserver(es=>es.forEach(x=>{if(x.intersectionRatio>.6)play();else{stop();v.muted=true;ic.textContent='🔇'}}),{threshold:[0,.6,1]}).observe(w)})}
 // ---- zwijane sekcje (stan zapamiętany na urządzeniu) ----
 const GO={};const gopen=k=>GO[k]?'open':'';
 document.addEventListener('toggle',e=>{const d=e.target;if(d.dataset&&d.dataset.g)GO[d.dataset.g]=d.open},true);
