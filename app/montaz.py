@@ -45,6 +45,19 @@ def _status(d):
         st = {}
     if st.get("state") == "working" and time.time() - st.get("at", 0) > 1800:
         st.update(state="error", error="Montaż przestał odpowiadać (ponad 30 min bez postępu).")
+    if st.get("state") == "uploading":
+        # wysyłanie z telefonu / karty z Dziennika – jeśli nic się nie dzieje od 15 min, mówimy wprost, co się stało
+        try:
+            files = [f for f in d.rglob("*") if f.is_file()]
+            last = max(f.stat().st_mtime for f in files)
+            clips = [f for f in files if f.suffix.lower() in (".mov", ".mp4", ".m4v") and "gotowe" not in f.parts]
+        except Exception:
+            last, clips = time.time(), []
+        if time.time() - last > 900:
+            st["stalled"] = True
+            st["clips"] = len(clips)
+            st["step"] = (f"Klipy wysłane ({len(clips)}), ale montaż nie wystartował – Dziennik nie dokończył kart. Uruchom montaż ręcznie."
+                          if clips else "Wysyłanie klipów przerwane – nic nie doszło. Zacznij jeszcze raz (ekran telefonu nie może gasnąć).")
     try:
         st["title"] = json.loads((d / "title.json").read_text())
     except Exception:
@@ -93,7 +106,7 @@ async def mont_clean(req: Request):
         shutil.rmtree(VUP / os.path.basename(jid), ignore_errors=True)
     if JOBS.is_dir():
         for d in JOBS.iterdir():
-            if d.is_dir() and JID.match(d.name) and (b.get("all_failed") or d.name == b.get("job")) and _status(d).get("state") == "error":
+            if d.is_dir() and JID.match(d.name) and (b.get("all_failed") or d.name == b.get("job")) and (lambda st: st.get("state") == "error" or st.get("stalled"))(_status(d)):
                 fj.add(d.name)
     if fj:
         _wr("mont_hidden.json", sorted({*_rd("mont_hidden.json", []), *fj})[-300:])
