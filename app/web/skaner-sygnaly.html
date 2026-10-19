@@ -67,6 +67,26 @@ code{font:12px 'JetBrains Mono',monospace;background:rgba(255,255,255,.07);paddi
 .tm ul{margin:4px 0 0;padding:0;list-style:none;font:12px 'JetBrains Mono',monospace;color:var(--soft)}.tm li{padding:3px 0;border-top:1px solid var(--line)}.tm li:first-child{border-top:0}
 .fold{cursor:pointer;user-select:none}.fold .chev{display:inline-block;transition:transform .2s;color:var(--faint);margin-right:2px}.fold.closed .chev{transform:rotate(-90deg)}
 #cls:has(.tbl:empty){display:none}
+#team[hidden]{display:none}#tmh small b{font-weight:600}#tmh .w{color:var(--warn,#F5B25A)}
+.c .sym .dir{vertical-align:middle;margin-left:4px;position:relative;top:-2px}
+.box .mv{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:5px;background:rgba(255,255,255,.08);color:var(--soft);letter-spacing:0;text-transform:none;font-weight:600}
+.box .was{display:block;font:11px 'JetBrains Mono',monospace;color:var(--faint);margin-top:2px}
+@media(max-width:700px){
+ .wrap{display:flex;flex-direction:column}
+ .top{flex-wrap:wrap;gap:8px}.top h1 small{font-size:12.5px}
+ .c .hd{padding:12px 14px 10px;gap:8px}.c .sym{font-size:20px}.c .now b{font-size:16px}.c .now small{font-size:11px}
+ .c .body{padding:10px 12px 12px;gap:10px}
+ .lv{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .box{padding:8px 10px}.box b{font-size:14px}.box small{font-size:9.5px;letter-spacing:.05em}
+ .tps{grid-template-columns:repeat(auto-fit,minmax(60px,1fr))}.tp{padding:6px 8px}.tp b{font-size:12.5px}
+ .stg span{font-size:10px;padding:5px 1px}
+ .adv{font-size:12.5px;padding:9px 10px}
+ .meta span{font-size:11px}
+ .team{grid-template-columns:minmax(0,1fr);gap:8px;margin-top:0}
+ .okx{padding:12px 13px!important}.okx .p{gap:4px 10px;font-size:12.5px}
+ .tbl{font-size:12px}
+ #tmh{flex-wrap:wrap;row-gap:2px}#tmh small{flex-basis:100%;margin-left:18px;white-space:normal}
+}
 </style>
 </head>
 <body class="lg">
@@ -75,6 +95,7 @@ code{font:12px 'JetBrains Mono',monospace;background:rgba(255,255,255,.07);paddi
  <div class="top"><h1>Sygnały<small>Aktualne sygnały skanera z wejściem, SL i celami. Centrum nic nie zleca – tylko pokazuje i przypomina.</small></h1>
   <div><span class="mut" id="upd"></span> <button class="btn" id="rf">↻ Odśwież</button></div></div>
  <section class="glass okx" id="okx" hidden></section>
+ <h2 class="fold" id="tmh" role="button" tabindex="0"><span class="chev">▾</span>🧠 Zespół skanera <small id="tms"></small></h2>
  <div class="team" id="team"></div>
  <h2>Aktywne <small id="na"></small></h2>
  <div class="cards" id="act"><div class="glass empty">Ładuję…</div></div>
@@ -101,18 +122,18 @@ function ladder(r){const d=(r.direction||'').toUpperCase(),tps=[1,2,3,4].map(i=>
   ${r.price?`<div class="px" style="left:${X(r.price)}%">${f(r.price)}</div>`:''}</div>`}
 function stage(r){const st=(r.status||'').toUpperCase(),tps=[1,2,3,4].filter(i=>r['tp'+i]);
  const inPos=r.tp1_hit||/ACTIVE|FILLED|IN_POSITION|ENTERED|RUNNING/.test(st)||r.break_even_set;
- const steps=['Strefa wejścia','W pozycji',...tps.map(i=>'TP'+i)];
+ const sm=innerWidth<600,steps=[sm?'Wejście':'Strefa wejścia',sm?'Pozycja':'W pozycji',...tps.map(i=>'TP'+i)];
  let cur=0;if(inPos)cur=1;tps.forEach((i,k)=>{if(r['tp'+i+'_hit'])cur=2+k+1});cur=Math.min(cur,steps.length-1);
  if(tps.length&&r['tp'+tps[tps.length-1]+'_hit'])cur=steps.length;
  return `<div class="stg">${steps.map((s,i)=>`<span class="${i<cur?'done':i===cur?'cur':''}">${s}</span>`).join('')}</div>`}
 function card(r){const d=(r.direction||'').toUpperCase(),Z=zone(r),moved=r.original_stop_loss&&r.original_stop_loss!==r.stop_loss;
  const ent=Z?`${f(Z[0])} – ${f(Z[1])}`:`≈ ${f(r.entry)}`;
  const tps=[1,2,3,4].filter(i=>r['tp'+i]).map(i=>`<div class="tp ${r['tp'+i+'_hit']?'hit':''}"><small>TP${i}</small><b>${f(r['tp'+i])}</b><em>${(()=>{const x=pc(r['tp'+i],r.entry,d);return x==null?'':(x>=0?'+':'')+x.toFixed(2)+'%'})()}</em></div>`).join('');
- return `<div class="glass c ${d[0]}"><div class="hd"><div class="sym">${esc(r.base)}<small>${esc(r.timeframe||'')} · ${ago(r.created_at)}</small></div><span class="dir ${d[0]}">${d}</span>
+ return `<div class="glass c ${d[0]}"><div class="hd"><div class="sym">${esc(r.base)} <span class="dir ${d[0]}">${d}</span><small>${esc(r.timeframe||'')} · ${ago(r.created_at)}</small></div>
    <div class="now">${r.price?`<b>${f(r.price)}</b><small>${sp(r.move)}${r.r_now!=null?` · ${r.r_now>=0?'+':''}${r.r_now}R`:''}</small>`:'<small class="mut">brak ceny</small>'}</div></div>
   <div class="body">${stage(r)}
-   <div class="lv"><div class="box en"><small>${Z?'Strefa wejścia':'Środek strefy · sygnał sprzed zapisu strefy'}</small><b>${ent}</b></div>
-    <div class="box sl"><small>Stop loss${moved?' · przesunięty':''}</small><b>${f(r.stop_loss)}</b><em class="${(pc(r.stop_loss,r.entry,d)||0)>=0?'pos':'neg'}">${(()=>{const x=pc(r.stop_loss,r.entry,d);return x==null?'':(x>=0?'+':'')+x.toFixed(2)+'%'})()}${moved?` <span class="mut">(był ${f(r.original_stop_loss)})</span>`:''}</em></div>
+   <div class="lv"><div class="box en"><small>${Z?'Strefa wejścia':'Wejście (środek strefy)'}</small><b>${ent}</b></div>
+    <div class="box sl"><small>Stop loss${moved?' <span class="mv">przesunięty</span>':''}</small><b>${f(r.stop_loss)}</b><em class="${(pc(r.stop_loss,r.entry,d)||0)>=0?'pos':'neg'}">${(()=>{const x=pc(r.stop_loss,r.entry,d);return x==null?'':(x>=0?'+':'')+x.toFixed(2)+'%'})()}</em>${moved?`<span class="was">był ${f(r.original_stop_loss)}</span>`:''}</div>
     <div class="tps">${tps}</div></div>
    ${r.entry&&r.stop_loss?ladder(r):''}
    <div class="adv"><span>💡</span><span>${esc(r.advice||'')}</span></div>
@@ -126,17 +147,20 @@ function okx(o){const el=$('okx');el.hidden=false;
   ${o.positions.map(p=>`<div class="p"><div><b>${esc(p.base)}</b> <span class="dir ${p.dir[0]}">${p.dir}</span> <span class="mut">x${esc(p.lev)}</span></div>
    <div class="mono"><span class="mut">śr.</span> ${f(p.avg)}</div><div class="mono"><span class="mut">SL</span> ${p.sl.length?p.sl.map(f).join(', '):'<span class="neg">brak</span>'}</div>
    <div class="mono">${sp(p.uplr)}</div><div>${p.alert?`<span class="al">${esc(p.alert)}</span>`:`<span class="mut">${esc(p.note||'')}</span>`}</div></div>`).join('')||'<p class="mut" style="margin-top:6px">Brak otwartych pozycji.</p>'}`}
+const RES={WIN:'<span class="pos">✓ zysk</span>',PARTIAL_WIN:'<span class="pos">◐ część zysku</span>',LOSS:'<span class="neg">✗ strata</span>',BREAK_EVEN:'⚖️ na zero',BE:'⚖️ na zero',EXPIRED:'<span class="mut">wygasł</span>',INVALIDATED:'<span class="mut">anulowany</span>',CANCELLED:'<span class="mut">anulowany</span>',MISSED:'<span class="mut">bez wejścia</span>'};
 async function load(){let D;try{D=await (await fetch('/api/scanner/signals')).json()}catch(e){return}
  if(!D.ok){$('act').innerHTML=`<div class="glass empty">${esc(D.error)}</div>`;return}
  $('na').textContent=D.active.length;$('cln').textContent=`21 dni · ${D.closed.length}`;
  $('act').innerHTML=D.active.map(card).join('')||'<div class="glass empty">Teraz nie ma aktywnych sygnałów. Skaner wysyła max 4 dziennie.</div>';
  $('cl').innerHTML=`<tr><th>Symbol</th><th>Kier.</th><th class="hide-m">Entry</th><th class="hide-m">SL</th><th class="hide-m">TP1</th><th>Wynik</th><th>PnL</th><th class="hide-m">Zamknięty</th></tr>`+
   D.closed.map(r=>`<tr><td><b>${esc(r.symbol.split('/')[0])}</b></td><td><span class="dir ${(r.direction||'?')[0]}">${esc(r.direction)}</span></td><td class="mono hide-m">${zone(r)?f(zone(r)[0])+'–'+f(zone(r)[1]):f(r.entry)}</td><td class="mono hide-m">${f(r.original_stop_loss||r.stop_loss)}</td><td class="mono hide-m">${f(r.tp1)}</td>
-   <td>${esc(r.result||r.status)}</td><td class="mono">${r.pnl!=null?sp(+r.pnl):''}</td><td class="mut hide-m">${r.closed_at?ago(r.closed_at):''}</td></tr>`).join('');
+   <td>${RES[(r.result||r.status||'').toUpperCase()]||esc(r.result||r.status)}</td><td class="mono">${r.pnl!=null?sp(+r.pnl):''}</td><td class="mut hide-m">${r.closed_at?ago(r.closed_at):''}</td></tr>`).join('');
  okx(D.okx||{});$('upd').textContent='odświeżone '+new Date().toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})}
 
 async function team(){let T;try{T=await (await fetch('/api/scanner/team')).json()}catch(e){return}
  const S=T.session||{},C=T.corr||{},M=T.macro||[],K=T.coach||{};
+ const nw=(C.warn||[]).length,nx=M.filter(e=>e.t-Date.now()/1000<86400).length;
+ $('tms').innerHTML=[S.day?`dziś PnL <b class="${S.pnl>=0?'pos':'neg'}">${S.pnl>=0?'+':''}${S.pnl}%</b>`:'',nw?`<b class="w">⚠️ korelacja</b>`:'',nx?`🗓 dane makro w 24 h: ${nx}`:''].filter(Boolean).join(' · ');
  const tt=t=>new Date(t*1000).toLocaleString('pl',{weekday:'short',hour:'2-digit',minute:'2-digit'});
  $('team').innerHTML=
  `<div class="glass tm"><h3>📊 Analityk sesji<small>codziennie 21:30</small></h3>${S.day?`<p>${esc(S.day)}: nowe <b>${S.new}</b> · zamknięte <b>${S.closed}</b> (${S.wins} na plus) · PnL <b class="${S.pnl>=0?'pos':'neg'}">${S.pnl>=0?'+':''}${S.pnl}%</b> · otwarte <b>${S.open}</b></p>${S.list&&S.list.length?`<ul>${S.list.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}`:'<p>Pierwsze podsumowanie dziś o 21:30.</p>'}</div>`+
@@ -144,6 +168,9 @@ async function team(){let T;try{T=await (await fetch('/api/scanner/team')).json(
  `<div class="glass tm"><h3>🗓 Kalendarz makro<small>USA · ważne</small></h3>${M.length?`<ul>${M.map(e=>`<li>${tt(e.t)} · ${esc(e.pl||e.title)}</li>`).join('')}</ul>`:'<p>W tym tygodniu brak ważnych danych z USA (albo kalendarz się jeszcze nie pobrał).</p>'}</div>`+
  `<div class="glass tm"><h3>🏋️ Trener<small>nd 20:30</small></h3>${K.n?`<p>Tydzień: <b>${K.n}</b> pozycji · w strefie <b>${K.in_zone}/${K.zone_checked||'–'}</b> · z SL <b>${K.with_sl}/${K.n}</b></p>${(K.tips||[]).map(t=>`<p class="w">• ${esc(t)}</p>`).join('')}`:'<p>Zbiera Twoje wejścia z OKX (tylko odczyt) – pierwsza ocena w niedzielę.</p>'}</div>`}
 team();setInterval(team,60000);
+(function(){const h=$('tmh'),b=$('team');let c=innerWidth<700;try{const v=localStorage.getItem('sig-team-fold');if(v!==null)c=v==='1'}catch(e){}
+ const set=v=>{c=v;h.classList.toggle('closed',v);b.hidden=v;try{localStorage.setItem('sig-team-fold',v?'1':'0')}catch(e){}};
+ h.onclick=()=>set(!c);h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();set(!c)}};set(c)})();
 (function(){const h=$('clh'),b=$('cls');let c=false;try{c=localStorage.getItem('sig-closed-fold')==='1'}catch(e){}
  const set=v=>{c=v;h.classList.toggle('closed',v);b.hidden=v;try{localStorage.setItem('sig-closed-fold',v?'1':'0')}catch(e){}};
  h.onclick=()=>set(!c);h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();set(!c)}};set(c)})();
