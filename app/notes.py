@@ -99,6 +99,20 @@ def write(path, content, mode="replace"):
     return _meta(p)
 
 
+def auto_note(folder, title, content, mode="update"):
+    """Notatki dopisywane przez centrum (sesja skanera, plan tygodnia, vlog…) – nigdy nie wywala reszty systemu.
+    mode="update": gdy notatka już jest (i może mieć Twoje dopiski), nowa wersja jest dopisywana na końcu, nic nie znika."""
+    try:
+        _init()
+        p = f"{_clean_name(folder)}/{_clean_name(title)}.md"
+        if mode == "update" and _safe(p).exists():
+            body = re.sub(r"^#[^\n]*\n+", "", str(content), count=1)
+            return write(p, f"\n---\n*Aktualizacja {datetime.now():%d.%m %H:%M}*\n\n{body}", mode="append")
+        return write(p, content)
+    except Exception as e:
+        print("auto_note", e, flush=True)
+
+
 # ---------------------------------------------------------------- API centrum
 @router.get("/api/notes/tree")
 def tree():
@@ -209,6 +223,31 @@ async def import_chatgpt(req: Request):
     return {"ok": True, "imported": n}
 
 
+@router.post("/api/notes/to-queue")
+async def to_queue(req: Request):
+    """Pomysł z notatki → kolejka tematów Agencji (generator weźmie go jak każdy inny temat)."""
+    import uuid
+    from agency import topics, save_topics, log
+    b = await req.json()
+    p = _safe(b.get("path", ""))
+    if not p.is_file():
+        return {"ok": False, "error": "nie ma notatki"}
+    txt = p.read_text(encoding="utf-8", errors="ignore")
+    body = re.sub(r"^#.*\n?", "", txt).strip()
+    body = re.sub(r"\n?—\n✅ W kolejce Agencji.*$", "", body, flags=re.S).strip()
+    topic = str(b.get("topic") or p.stem)[:200]
+    T = topics()
+    if any(t.get("note") == _rel(p) and t.get("status") == "queued" for t in T):
+        return {"ok": False, "error": "ten pomysł już czeka w kolejce"}
+    T.append({"id": uuid.uuid4().hex[:8], "status": "queued", "created": time.time(), "source": "notatki", "prio": 1 if b.get("prio") else 0,
+              "topic": topic, "pillar": "", "category": "", "hook": "", "reference": "", "payoff": "",
+              "why": ("z notatki: " + re.sub(r"\s+", " ", body))[:300], "note": _rel(p)})
+    save_topics(T)
+    log("scout", f"Pomysł z Notatek trafił do kolejki: {topic}", "ok")
+    write(_rel(p), f"\n—\n✅ W kolejce Agencji od {datetime.now():%d.%m %H:%M}", mode="append")
+    return {"ok": True}
+
+
 @router.get("/api/notes/mcp")
 def mcp_info(req: Request):
     c = _read("notes_cfg.json", {})
@@ -239,6 +278,9 @@ TOOLS = [
      "Linki do innych notatek: [[nazwa]].",
      "inputSchema": {"type": "object", "properties": {"title": {"type": "string"}, "content": {"type": "string"}, "folder": {"type": "string"}},
                      "required": ["title", "content"]}},
+    {"name": "add_video_idea", "description": "Dodaj pomysł na film do kolejki Agencji PozaSkala (generator filmów). Zapisuje też notatkę w '💡 Pomysły na filmy'.",
+     "inputSchema": {"type": "object", "properties": {"topic": {"type": "string", "description": "temat filmu, najlepiej po angielsku"}, "notes": {"type": "string"}},
+                     "required": ["topic"]}},
     {"name": "append_note", "description": "Dopisz tekst na końcu istniejącej notatki (id = ścieżka).",
      "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "content": {"type": "string"}}, "required": ["id", "content"]}},
 ]
@@ -265,6 +307,16 @@ def _tool(name, a):
         folder = a.get("folder") or "📥 Skrzynka"
         m = write(f"{_clean_name(folder)}/{_clean_name(a.get('title'))}.md", a.get("content", ""))
         return {"ok": True, "id": m["path"]}
+    if name == "add_video_idea":
+        import uuid
+        from agency import topics, save_topics, log
+        m = write(f"💡 Pomysły na filmy/{_clean_name(a.get('topic'))}.md", f"# {a.get('topic')}\n\n{a.get('notes', '')}\n\n—\n✅ W kolejce Agencji od {datetime.now():%d.%m %H:%M} (z ChatGPT)")
+        T = topics()
+        T.append({"id": uuid.uuid4().hex[:8], "status": "queued", "created": time.time(), "source": "notatki", "topic": str(a.get("topic"))[:200],
+                  "pillar": "", "category": "", "hook": "", "reference": "", "payoff": "", "why": ("z ChatGPT: " + str(a.get("notes", "")))[:300], "note": m["path"]})
+        save_topics(T)
+        log("scout", f"Pomysł z ChatGPT trafił do kolejki: {a.get('topic')}", "ok")
+        return {"ok": True, "note": m["path"]}
     if name == "append_note":
         p = _safe(a.get("id", ""))
         if not p.is_file():

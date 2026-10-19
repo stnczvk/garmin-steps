@@ -50,6 +50,10 @@ def session(day=None, push=True):
            "open": len(opn), "best": best and nm(best), "worst": worst and nm(worst),
            "list": [f"{r['symbol'].split('/')[0]} {r['direction']}: {r['result']} {r.get('pnl') or 0:+.2f}%" for r in closed][:8]}
     _write("scanner_session.json", rep)
+    from notes import auto_note
+    auto_note("📈 Trading", f"Sesja {rep['day']}", f"# Sesja skanera {rep['day']}\n\n- nowe sygnały: **{rep['new']}**\n- zamknięte: **{rep['closed']}** ({rep['wins']} na plus)\n"
+              f"- PnL: **{rep['pnl']:+.2f}%**\n- otwarte: {rep['open']}\n" + (f"- najlepszy: {rep['best']}\n- najgorszy: {rep['worst']}\n" if rep['best'] else "")
+              + ("\n## Zamknięte\n" + "\n".join(f"- {x}" for x in rep["list"]) if rep["list"] else "") + "\n\n## Moje uwagi\n\n#sesja #skaner")
     if push:
         body = (f"Nowe sygnały: {rep['new']} · zamknięte: {rep['closed']} ({wins} na plus) · PnL {pnl:+.2f}% · otwarte: {rep['open']}"
                 + (f" · najlepszy {rep['best']}" if best else ""))
@@ -171,6 +175,10 @@ def coach_week(push=True):
         tips.append(f"{n - sig} pozycji bez sygnału skanera")
     rep["tips"] = tips
     _write("scanner_coach.json", rep)
+    if push and n:
+        from notes import auto_note
+        auto_note("📈 Trading", f"Trener – tydzień do {datetime.now(TZ):%Y-%m-%d}", f"# Trener – tydzień\n\n- pozycji: **{n}**\n- w strefie wejścia: **{inz}/{len(z) or '–'}**\n"
+                  f"- z SL od początku: **{sl}/{n}**\n- z sygnałem skanera: {sig}/{n}\n\n## Do poprawy\n" + ("\n".join(f"- {t}" for t in tips) or "- bez uwag – trzymasz plan") + "\n\n#trener #skaner")
     if push and n:
         _push("🏋️ Trener tradingu – tydzień", f"{n} pozycji · w strefie {inz}/{len(z) or '–'} · z SL {sl}/{n}. " + ("; ".join(tips) or "Bez uwag – trzymasz plan."))
     return rep

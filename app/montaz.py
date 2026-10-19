@@ -557,6 +557,15 @@ def vlog_check(jid):
             jj["check"] = res
             _wr("mont_vlog.json", v)
     try:
+        from notes import auto_note
+        nm = ("Przepis" if j.get("kind") == "przepis" else "Vlog") + f" #{j.get('ep')}"
+        auto_note("🎥 Vlog", f"{nm} – {j.get('date')}", f"# {nm} ({j.get('date')})\n\n**Strażnik:** {'OK' if res['ok'] and not res['warnings'] else 'są uwagi'} · {res['duration']} s\n\n"
+                  + "\n".join(f"- {x}" for x in res["problems"] + res["warnings"]) + (f"\n\n{res['review']}" if res["review"] else "")
+                  + (f"\n\n**Sugerowana poprawka:** {res['fix']}" if res["fix"] else "") + (f"\n\n**Poprawka zlecona:** {j.get('fix')}" if j.get("fix") else "")
+                  + "\n\n## Moje notatki do odcinka\n\n#vlog")
+    except Exception:
+        pass
+    try:
         from extra import push_all
         nm = ("Przepis" if j.get("kind") == "przepis" else "Vlog") + f" #{j.get('ep')}"
         push_all(f"🛡️ Strażnik: {nm} – " + ("OK" if res["ok"] and not res["warnings"] else "są uwagi"),

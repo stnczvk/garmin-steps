@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
 <style>
 button,input,select,textarea{font-family:inherit}
+[hidden]{display:none!important}
 :root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--ok:#3DDC84;--warn:#F5B25A;--bad:#FF5C6C;--acc:#9E8CFC;--line:rgba(255,255,255,.08)}
 :root[data-theme=light]{--ink:#0B0B12;--soft:#4A4A57;--faint:#80808C;--ok:#16A34A;--warn:#B26A00;--bad:#DC2F45;--acc:#6E56CF;--line:rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -85,7 +86,7 @@ html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
    <div class="eh"><button class="btn sm back" id="bk">‹ Notatki</button><input id="tt" placeholder="Tytuł">
     <select id="fs" title="Folder"></select>
     <span class="seg" id="mode"><button data-m="edit">✏️ Pisz</button><button data-m="view" class="on">👁 Czytaj</button></span>
-    <button class="btn sm del" id="del" title="Do kosza">🗑</button></div>
+    <button class="btn sm" id="tq" title="Wyślij ten pomysł do kolejki tematów Agencji (generator zrobi z niego film)">💡 do kolejki</button><button class="btn sm del" id="del" title="Do kosza">🗑</button></div>
    <div class="body"><textarea id="tx" spellcheck="true" placeholder="Pisz w Markdown… [[ – link do innej notatki, #tag, - [ ] zadanie" hidden></textarea><div class="md" id="md"></div><div class="ac" id="ac" hidden></div></div>
    <div class="st"><span id="sv"></span><span id="wc" style="margin-left:auto"></span></div>
   </section>
@@ -142,7 +143,7 @@ async function followLink(name){const n=T.notes.find(x=>x.name.toLowerCase()===n
 function setMode(m){MODE=m;document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('tx').hidden=m!=='edit';$('md').hidden=m==='edit';if(m==='view')render();else $('tx').focus()}
 document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 async function open_(path,mode){if(DIRTY)await save();const n=await J('/api/notes/file?path='+encodeURIComponent(path));if(n.error)return toast('Nie ma takiej notatki');
- CUR=n;$('tt').value=n.name;$('tx').value=n.content;$('fs').value=n.folder||'';DIRTY=false;$('sv').textContent='zapisane '+ago(n.mtime);
+ CUR=n;$('tt').value=n.name;$('tq').hidden=!/Pomysł/i.test(n.folder||'');$('tx').value=n.content;$('fs').value=n.folder||'';DIRTY=false;$('sv').textContent='zapisane '+ago(n.mtime);
  setMode(mode||(n.content.trim()?'view':'edit'));renderSide();document.body.classList.add('ed-open');
  try{localStorage.setItem('notes-cur',path)}catch(e){}
  document.querySelectorAll('.nt').forEach(a=>a.classList.toggle('on',a.dataset.p===path))}
@@ -171,6 +172,9 @@ function ac(){const ta=$('tx'),pre=ta.value.slice(0,ta.selectionStart),m=pre.mat
 $('new').onclick=async()=>{const f=CUR?.folder||'📥 Skrzynka',name='Nowa notatka '+new Date().toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(/[:.,]/g,'-');
  const r=await J('/api/notes/file',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:`${f}/${name}.md`,content:''})});await loadTree();await open_(r.path,'edit');$('tt').select()};
 $('nf').onclick=async()=>{const n=prompt('Nazwa folderu (możesz dać emoji na początek):');if(!n)return;T=await J('/api/notes/folder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})});loadTree()};
+$('tq').onclick=async()=>{if(!CUR)return;if(DIRTY)await save();const t=prompt('Temat filmu dla generatora (najlepiej po angielsku):',CUR.name);if(!t)return;
+ const r=await J('/api/notes/to-queue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:CUR.path,topic:t})});
+ toast(r.ok?'Pomysł jest w kolejce Agencji ✅':r.error);if(r.ok)open_(CUR.path)};
 $('del').onclick=async()=>{if(!CUR||!confirm(`Przenieść „${CUR.name}” do kosza?`))return;await fetch('/api/notes/file?path='+encodeURIComponent(CUR.path),{method:'DELETE'});CUR=null;document.body.classList.remove('ed-open');await loadTree();showEmpty()};
 $('bk').onclick=async()=>{if(DIRTY)await save();document.body.classList.remove('ed-open');renderTree()};
 function showEmpty(){$('tt').value='';$('tx').value='';$('md').innerHTML='<div class="empty">Wybierz notatkę z listy albo utwórz nową.</div>';$('rp').innerHTML=''}

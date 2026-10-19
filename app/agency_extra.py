@@ -60,6 +60,9 @@ Odpowiedz WYŁĄCZNIE JSON: [{{"day": "YYYY-MM-DD", "slot": "SAFE"|"EXPERIMENT",
                 dn = p.get("day", "?")
             lines.append(f'{dn} {"🛡" if p.get("slot") == "SAFE" else "🧪"} {names[p["id"]]}')
         _write("agency_plan.json", {"at": time.time(), "plan": plan, "text": lines})
+        from notes import auto_note
+        auto_note("💡 Pomysły na filmy", f"Plan tygodnia od {days[0].isoformat()}", f"# Plan PozaSkali od {days[0].isoformat()}\n\n" + "\n".join(f"- {l}" for l in lines)
+                  + "\n\n🛡 SAFE = publikacja 0:00 · 🧪 EXPERIMENT = 21:00\n\n#plan #pozaskala")
         log("planner", f"Plan tygodnia: {len(plan)} filmów ({why})", "ok", extra={"plan": lines})
         from extra import push_all
         push_all("🗓 Plan PozaSkali na tydzień", " · ".join(lines[:4])[:170], "/#agencja", kind="agencja")
@@ -161,6 +164,9 @@ Odpowiedz WYŁĄCZNIE JSON: {{"summary": "3-4 zdania po polsku", "topics": [{{"t
         if new:
             save_topics(topics() + new)
         _write("agency_spokes.json", {"at": time.time(), "summary": str(j.get("summary", ""))[:1200], "n": len(com)})
+        from notes import auto_note
+        auto_note("💡 Pomysły na filmy", f"Co mówią widzowie {datetime.now(TZ):%Y-%m-%d}", f"# Co mówią widzowie\n\n{j.get('summary', '')}\n\n## Tematy dodane do kolejki\n"
+                  + ("\n".join(f"- {t['topic']} – {t['why']}" for t in new) or "- brak") + "\n\n#widzowie #pozaskala")
         log("spokes", f"Podsumował {len(com)} komentarzy, dodał {len(new)} tematów od widzów ({why})", "ok", {"summary": str(j.get("summary", ""))[:600]})
     except Exception as e:
         log("spokes", f"Rzecznik nie zadziałał: {str(e)[:150]}", "error")
