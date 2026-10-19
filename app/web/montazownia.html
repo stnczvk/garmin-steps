@@ -125,6 +125,9 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
  .grid{display:flex;flex-direction:column}
  .list .j{padding:9px 6px}
 }
+.vp{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px;margin-top:10px;align-items:start}
+.vp video{width:100%;aspect-ratio:9/16;max-height:62vh;border-radius:12px;background:#000;object-fit:contain}.vp .g{margin-top:0}
+@media(max-width:700px){.vp{grid-template-columns:minmax(0,1fr)}.vp video{max-height:70vh}}
 </style>
 </head>
 <body class="lg">
@@ -265,10 +268,17 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
  if(!$('vep').value)$('vep').value=V.next_ep||'';if(!$('vd').value)$('vd').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
  const ST2={queued:'czeka na Maca',uploading:'wysyłanie klipów',claimed:'Mac otwiera montaż',working:'montuje się',ask:'czeka na Twój wybór',done:'gotowy w CapCut',error:'błąd'};
  const CH={done:'ok',error:'bad'};
- const card=j=>`<div class="vj"><div class="vh"><b>${j.kind==='przepis'?'🍳 Przepis':'🎥 Odcinek'} #${j.ep}</b><small>${esc(j.date||'')}${j.at?' · '+ago(j.at):''}</small><span class="chip ${CH[j.state]||'wait'}">${ST2[j.state]||j.state}</span></div>
+ const vcheck=j=>{const c=j.check;if(!c)return '<div class="g wait">🛡️ Strażnik ogląda podgląd…</div>';
+  return `<div class="g ${c.ok&&!c.warnings.length?'ok':'bad'}"><b>🛡️ Strażnik: ${c.ok&&!c.warnings.length?'montaż OK':'są uwagi'}</b> · ${c.duration} s
+   ${(c.problems.length||c.warnings.length)?`<ul>${c.problems.map(p=>`<li><b>${esc(p)}</b></li>`).join('')}${c.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
+   ${c.review?`<p style="margin-top:6px">${esc(c.review)}</p>`:''}
+   <details class="fixd" data-g="fx${j.id}" ${c.fix||GO['fx'+j.id]?'open':''}><summary>✂️ Coś poprawić?</summary><textarea id="vfx${j.id}" oninput="GO['t${j.id}']=this.value" placeholder="Co poprawić? (np. zostaw zdanie o krokach, wytnij drugie podejście do obiadu)">${esc(GO['t'+j.id]??(c.fix||''))}</textarea>
+   <div class="row"><button class="btn pri" data-vfix="${j.id}">✂️ Popraw montaż</button><button class="btn" data-vchk="${j.id}">🔁 Sprawdź jeszcze raz</button></div></details></div>`};
+ const card=j=>`<div class="vj"><div class="vh"><b>${j.kind==='przepis'?'🍳 Przepis':'🎥 Odcinek'} #${j.ep}</b><small>${esc(j.date||'')}</small><span class="chip ${CH[j.state]||'wait'}">${ST2[j.state]||j.state}</span></div>
   ${j.step&&!['done'].includes(j.state)?`<div class="vs">${esc(j.step)}</div>`:''}
   ${j.state==='ask'&&j.ask?`<div style="margin-top:8px">Które zdanie dać na początek jako zapowiedź?</div><div class="hk">${j.ask.map((t,i)=>`<div class="hko">${(j.previews||[]).includes(i)?`<video src="/api/mont-vlog/${j.id}/preview/${i}" controls playsinline preload="metadata"></video>`:''}<p>${i+1}. ${esc(t)}</p><button class="btn pri" data-ans="${i}" data-j="${j.id}">Wybieram</button></div>`).join('')}</div><div class="row"><button class="btn" data-ans="none" data-j="${j.id}">— bez zapowiedzi —</button></div>`:''}
-  ${j.state==='done'?`<div class="vs">Projekt „${j.kind==='przepis'?'PRZEPIS':'WNBF AUTO'} #${j.ep}” czeka w CapCut – przejrzyj napisy i planszę, wyeksportuj.</div>`:''}
+  ${j.state==='done'?`<div class="vs">Projekt „${j.kind==='przepis'?'PRZEPIS':'WNBF AUTO'} #${j.ep}” czeka w CapCut${j.fix?' (z poprawką: „'+esc(j.fix)+'”)':''}.</div>`:''}
+  ${j.podglad?`<div class="vp"><video src="/api/mont-vlog/${j.id}/podglad" controls playsinline preload="metadata"></video><div>${vcheck(j)}</div></div>`:''}
   ${(j.lines||[]).length&&j.state!=='queued'?`<details data-g="l${j.id}" ${gopen('l'+j.id)}><summary>${j.state==='done'?'Co zrobił montaż':'Postęp'} (${j.lines.length} linii)</summary><pre>${esc((j.state==='done'?j.lines.filter(l=>/GOTOWE|grafika|wycięte|nie dopasowano|plansza|zapowiedź|ElevenLabs|⚠️/.test(l)):j.lines.slice(-30)).join('\n'))}</pre></details>`:''}
   ${['queued','uploading'].includes(j.state)?`<div class="row"><button class="btn" data-vc="${j.id}">Anuluj</button></div>`:''}${j.state==='done'?`<div class="row"><button class="btn" data-vag="${j.id}">🔁 Zmontuj ponownie</button></div>`:''}${j.state==='error'?`<div class="row">${(j.files||[]).length?`<button class="btn pri" data-vr="${j.id}">↻ Ponów montaż</button>`:`<button class="btn pri" data-vag="${j.id}">🔁 Zmontuj ponownie</button>`}<button class="btn del" data-vdel="${j.id}">🗑 Usuń</button></div>`:''}</div>`;
  const act=V.jobs.filter(j=>!['done','error'].includes(j.state)),done=V.jobs.filter(j=>j.state==='done'),bad=V.jobs.filter(j=>j.state==='error');
@@ -282,6 +292,10 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
  if(V.jobs.some(j=>j.state==='ask')&&!vload.sc){vload.sc=1;window.setMode&&setMode('dash');window.setSec&&setSec('vlog');openFold('vsec');setTimeout(()=>$('vsec').scrollIntoView({behavior:'smooth',block:'start'}),300)}
  document.querySelectorAll('[data-ans]').forEach(b=>b.onclick=async()=>{await fetch(`/api/mont-vlog/${b.dataset.j}/answer`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({choice:b.dataset.ans==='none'?null:+b.dataset.ans})});toast('Wybór wysłany do Maca.');vload()});
  document.querySelectorAll('[data-vag]').forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await (await fetch(`/api/mont-vlog/${b.dataset.vag}/again`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(r.ok!==false?'Montuję ponownie z klipów na Macu – postęp zobaczysz na górze.':r.error);vload.h=null;vload()});
+ document.querySelectorAll('[data-vfix]').forEach(b=>b.onclick=async()=>{const t=($('vfx'+b.dataset.vfix)||{}).value||'';if(!t.trim())return toast('Wpisz, co poprawić.');b.disabled=true;
+  const r=await (await fetch(`/api/mont-vlog/${b.dataset.vfix}/fix`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment:t})})).json();
+  toast(r.ok!==false?'Poprawka wysłana – Mac montuje odcinek jeszcze raz.':r.error);vload.h=null;vload()});
+ document.querySelectorAll('[data-vchk]').forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent='Sprawdzam…';await fetch(`/api/mont-vlog/${b.dataset.vchk}/check`,{method:'POST'});setTimeout(()=>{vload.h=null;vload()},15000)});
  document.querySelectorAll('[data-vdel]').forEach(b=>b.onclick=()=>mclean({vjob:b.dataset.vdel}));
  if($('vdelall'))$('vdelall').onclick=()=>{if(confirm('Usunąć wszystkie nieudane montaże i ich powiadomienia?'))mclean({all_failed:true})};
  document.querySelectorAll('[data-vr]').forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await (await fetch(`/api/mont-vlog/${b.dataset.vr}/retry`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();toast(r.ok?'Ponawiam – Mac pobierze klipy jeszcze raz.':r.error);vload()});

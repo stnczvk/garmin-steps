@@ -468,6 +468,111 @@ async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: flo
     return {"ok": True}
 
 
+VPOD = SOCIAL_ROOT / "vlog_podglad"
+
+
+@router.post("/api/mont-hook/{jid}/raport")
+async def hook_raport(jid: str, req: Request):
+    """Mac po montażu: co zostało / co wycięte, napisy, uwagi z montażu – do oceny strażnika."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    with _vl:
+        v = _V()
+        j = _vjob(v, jid)
+        if j:
+            j["raport"] = str(b.get("raport", ""))[:6000]
+            j["napisy"] = str(b.get("napisy", ""))[:6000]
+            _wr("mont_vlog.json", v)
+    return {"ok": True}
+
+
+@router.put("/api/mont-hook/{jid}/podglad")
+async def hook_podglad(jid: str, req: Request):
+    """Podgląd zmontowanego vloga (540x960, jak projekt w CapCut) – do obejrzenia i sprawdzenia przez strażnika."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    VPOD.mkdir(parents=True, exist_ok=True)
+    f = VPOD / (os.path.basename(jid) + ".mp4")
+    tmp = f.with_suffix(".part")
+    with tmp.open("wb") as fh:
+        async for chunk in req.stream():
+            fh.write(chunk)
+    if tmp.stat().st_size < 10000:
+        tmp.unlink(missing_ok=True)
+        return {"ok": False}
+    tmp.replace(f)
+    for old in sorted(VPOD.glob("*.mp4"), key=lambda x: x.stat().st_mtime)[:-12]:   # 12 ostatnich podglądów
+        old.unlink(missing_ok=True)
+    with _vl:
+        v = _V()
+        j = _vjob(v, jid)
+        if j:
+            j["podglad"] = True
+            j["check"] = None
+            _wr("mont_vlog.json", v)
+    threading.Thread(target=vlog_check, args=(jid,), daemon=True).start()
+    return {"ok": True}
+
+
+@router.get("/api/mont-vlog/{jid}/podglad")
+def vlog_podglad(jid: str):
+    f = VPOD / (os.path.basename(jid) + ".mp4")
+    return FileResponse(f, media_type="video/mp4") if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
+
+
+def vlog_check(jid):
+    """Strażnik montażu dla vloga: technika podglądu (czarne klatki, cisza, długość) + ocena AI cięć i napisów."""
+    f = VPOD / (os.path.basename(jid) + ".mp4")
+    j = _vjob(_V(), jid) or {}
+    try:
+        dur, probs, warns = _probe(f)
+    except Exception as e:
+        dur, probs, warns = 0, [], [f"nie udało się sprawdzić podglądu ({str(e)[:60]})"]
+    res = {"at": time.time(), "duration": round(dur), "problems": probs, "warnings": warns, "ok": not probs, "review": "", "fix": ""}
+    try:
+        from agency import ai_ready, claude, as_json
+        if ai_ready() and (j.get("raport") or j.get("napisy")):
+            txt = claude("Jesteś strażnikiem montażu vloga „Daily WNBF” (codzienny vlog fit po polsku: posiłki, trening, kardio, "
+                         "na końcu podsumowanie dnia z planszą liczb). Dostajesz raport automatycznego montażu: które zdania zostały, "
+                         "które wycięto (i dlaczego) oraz napisy w kolejności. Sprawdź: czy nie wycięto czegoś ważnego (liczby, posiłki, "
+                         "podsumowanie), czy nie zostały dwa podejścia do tego samego zdania, czy napisy nie mają dziur/błędów w liczbach, "
+                         "czy kolejność ma sens.\n\n"
+                         f"Odcinek #{j.get('ep')} z {j.get('date')}, długość podglądu {dur:.0f} s\n\nRAPORT:\n{j.get('raport', '')[:3500]}\n\n"
+                         f"NAPISY:\n{j.get('napisy', '')[:3000]}\n\n"
+                         'Odpowiedz JSON: {"ok": true/false, "review": "2-3 zdania oceny po polsku", '
+                         '"fix": "jeśli coś trzeba poprawić – polecenie dla montażu po polsku (np. zostaw zdanie o krokach, wytnij drugie podejście do zdania o obiedzie), inaczej pusty"}',
+                         max_tokens=500)
+            a = as_json(txt) or {}
+            res["review"] = str(a.get("review", ""))[:600]
+            res["fix"] = str(a.get("fix", ""))[:600]
+            if a.get("ok") is False and res["fix"]:
+                res["ok"] = False
+    except Exception as e:
+        res["review"] = f"(ocena AI niedostępna: {str(e)[:80]})"
+    with _vl:
+        v = _V()
+        jj = _vjob(v, jid)
+        if jj:
+            jj["check"] = res
+            _wr("mont_vlog.json", v)
+    try:
+        from extra import push_all
+        nm = ("Przepis" if j.get("kind") == "przepis" else "Vlog") + f" #{j.get('ep')}"
+        push_all(f"🛡️ Strażnik: {nm} – " + ("OK" if res["ok"] and not res["warnings"] else "są uwagi"),
+                 (res["review"] or "; ".join(res["problems"] + res["warnings"]) or "Podgląd gotowy w Montażowni.")[:170],
+                 "/#montazownia", kind="montaz", data={"vjob": jid})
+    except Exception:
+        pass
+    return res
+
+
+@router.post("/api/mont-vlog/{jid}/check")
+def vlog_recheck(jid: str):
+    threading.Thread(target=vlog_check, args=(jid,), daemon=True).start()
+    return {"ok": True}
+
+
 @router.get("/api/mont-vlog/films")
 def vlog_films():
     M = _rd("mont_vlog_films.json", {})
@@ -597,7 +702,7 @@ def vlog_state():
     return {"configured": bool(os.environ.get("MONT_TOKEN")), "online": online, "seen": h.get("seen"),
             "next_ep": (h.get("last") or 0) + 1, "loose": h.get("loose", 0),
             "next_przepis": (h.get("plast") or 0) + 1, "ploose": h.get("ploose", 0), "disk": _rd("mac_disk.json", {}),
-            "jobs": [{k: x for k, x in j.items() if k != "log_full"} for j in v["jobs"][-12:][::-1]]}
+            "jobs": [{k: x for k, x in j.items() if k not in ("log_full", "raport", "napisy")} for j in v["jobs"][-12:][::-1]]}
 
 
 @router.post("/api/mont-vlog/new")
@@ -644,7 +749,7 @@ async def vlog_file(jid: str, req: Request, name: str = ""):
 
 @router.post("/api/mont-vlog/{jid}/{action}")
 async def vlog_act(jid: str, action: str, req: Request):
-    b = await req.json() if action == "answer" else {}
+    b = await req.json() if action in ("answer", "fix") else {}
     with _vl:
         v = _V()
         j = _vjob(v, jid)
@@ -661,6 +766,14 @@ async def vlog_act(jid: str, action: str, req: Request):
             nj = {k: j.get(k) for k in ("kind", "title", "ep", "date", "voiceover")}
             nj.update(id=datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2),
                       state="queued", step="Montuję ponownie – czekam na Maca…", files=[], lines=[], at=time.time(), again=jid)
+            v["jobs"] = v["jobs"][-30:] + [nj]
+        elif action == "fix" and j["state"] in ("done", "error") and str(b.get("comment", "")).strip():
+            if any(x["state"] in ("queued", "uploading", "claimed", "working", "ask") for x in v["jobs"]):
+                return {"ok": False, "error": "Poprzedni montaż jeszcze trwa."}
+            nj = {k: j.get(k) for k in ("kind", "title", "ep", "date", "voiceover")}
+            nj.update(id=datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2),
+                      state="queued", step="Poprawka – czekam na Maca…", files=[], lines=[], at=time.time(), again=jid,
+                      fix=str(b["comment"]).strip()[:600])
             v["jobs"] = v["jobs"][-30:] + [nj]
         elif action == "retry" and j["state"] == "error":
             if not all((VUP / jid / f).is_file() and (VUP / jid / f).stat().st_size for f in j.get("files", [])):
@@ -692,7 +805,7 @@ def hook_job(jid: str, req: Request):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     j = _vjob(_V(), jid)
-    return j and {k: j.get(k) for k in ("id", "kind", "title", "ep", "date", "voiceover", "files")}
+    return j and {k: j.get(k) for k in ("id", "kind", "title", "ep", "date", "voiceover", "files", "fix")}
 
 
 @router.get("/api/mont-hook/{jid}/file")
