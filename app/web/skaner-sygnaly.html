@@ -87,6 +87,7 @@ code{font:12px 'JetBrains Mono',monospace;background:rgba(255,255,255,.07);paddi
  .tbl{font-size:12px}
  #tmh{flex-wrap:wrap;row-gap:2px}#tmh small{flex-basis:100%;margin-left:18px;white-space:normal}
 }
+.tp .cl{display:block;font:600 10.5px Geist,system-ui,sans-serif;color:var(--soft);margin-top:3px}.tp.hit .cl{color:var(--pos)}
 </style>
 </head>
 <body class="lg">
@@ -126,9 +127,13 @@ function stage(r){const st=(r.status||'').toUpperCase(),tps=[1,2,3,4].filter(i=>
  let cur=0;if(inPos)cur=1;tps.forEach((i,k)=>{if(r['tp'+i+'_hit'])cur=2+k+1});cur=Math.min(cur,steps.length-1);
  if(tps.length&&r['tp'+tps[tps.length-1]+'_hit'])cur=steps.length;
  return `<div class="stg">${steps.map((s,i)=>`<span class="${i<cur?'done':i===cur?'cur':''}">${s}</span>`).join('')}</div>`}
+// podział pozycji na TP – ta sama reguła co w skanerze (trade_plan_engine: wg reżimu rynku, ostatni TP zamyka resztę)
+const TPS={STRONG_TREND:[20,25,25,30],TREND:[25,30,25,20],TRANSITION:[30,35,20,15],RANGE:[40,35,15,10]};
+function tpSplit(reg,n){const w=(TPS[(reg||'').toUpperCase()]||TPS.TREND).slice(0,n),t=w.reduce((a,b)=>a+b,0)||1;const o=w.map(x=>Math.round(x/t*100));if(o.length)o[o.length-1]+=100-o.reduce((a,b)=>a+b,0);if(o.length)o[o.length-1]=100;return o}
 function card(r){const d=(r.direction||'').toUpperCase(),Z=zone(r),moved=r.original_stop_loss&&r.original_stop_loss!==r.stop_loss;
  const ent=Z?`${f(Z[0])} – ${f(Z[1])}`:`≈ ${f(r.entry)}`;
- const tps=[1,2,3,4].filter(i=>r['tp'+i]).map(i=>`<div class="tp ${r['tp'+i+'_hit']?'hit':''}"><small>TP${i}</small><b>${f(r['tp'+i])}</b><em>${(()=>{const x=pc(r['tp'+i],r.entry,d);return x==null?'':(x>=0?'+':'')+x.toFixed(2)+'%'})()}</em></div>`).join('');
+ const tpl=[1,2,3,4].filter(i=>r['tp'+i]),sp_=tpSplit(r.market_regime,tpl.length);
+ const tps=tpl.map((i,k)=>`<div class="tp ${r['tp'+i+'_hit']?'hit':''}"><small>TP${i}</small><b>${f(r['tp'+i])}</b><em>${(()=>{const x=pc(r['tp'+i],r.entry,d);return x==null?'':(x>=0?'+':'')+x.toFixed(2)+'%'})()}</em><span class="cl">➡️ wyjście ${k===tpl.length-1&&tpl.length>1?'100% (reszta)':sp_[k]+'%'}</span></div>`).join('');
  return `<div class="glass c ${d[0]}"><div class="hd"><div class="sym">${esc(r.base)} <span class="dir ${d[0]}">${d}</span><small>${esc(r.timeframe||'')} · ${ago(r.created_at)}</small></div>
    <div class="now">${r.price?`<b>${f(r.price)}</b><small>${sp(r.move)}${r.r_now!=null?` · ${r.r_now>=0?'+':''}${r.r_now}R`:''}</small>`:'<small class="mut">brak ceny</small>'}</div></div>
   <div class="body">${stage(r)}
