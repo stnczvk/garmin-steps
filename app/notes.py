@@ -1,11 +1,13 @@
 """Notatki („własny Obsidian”): zwykłe pliki Markdown w /root/social/notatki, linki [[nazwa]], wyszukiwarka,
-szybka notatka z telefonu, import rozmów z ChatGPT i serwer MCP dla aplikacji ChatGPT (bez kosztów API –
+szybka notatka z telefonu,
+import rozmów z ChatGPT i serwer MCP dla aplikacji ChatGPT (bez kosztów API –
 ChatGPT myśli na Twojej subskrypcji, centrum tylko podaje i zapisuje pliki).
 
 MCP: https://<centrum>/mcp/<token>  (token w Notatki → ⚙️ ChatGPT)
 """
 import io, json, os, re, secrets, shutil, time, zipfile
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -16,7 +18,7 @@ from social import ROOT, _read, _write
 router = APIRouter()
 NOTES = ROOT / "notatki"
 TRASH = NOTES / ".kosz"
-FOLDERS = ["📥 Skrzynka", "💡 Pomysły na filmy", "🎥 Vlog", "📈 Trading", "🏋️ Trening", "🤖 ChatGPT"]
+FOLDERS = ["📥 Skrzynka", "💡 Pomysły na filmy", "🎥 Vlog", "📈 Trading", "🏋️ Trening", "🤖 ChatGPT", "🚀 Update"]
 LINK = re.compile(r"\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]")
 
 
@@ -184,6 +186,46 @@ async def quick(req: Request):
     return write(path, txt)
 
 
+UPD = "🚀 Update"
+
+
+def add_update(project, text):
+    """Wpis do dziennika zmian projektu (🚀 Update/<projekt>.md) – najnowszy na górze, z datą."""
+    _init()
+    project = _clean_name(project or "Ogólne")
+    text = str(text or "").strip()
+    if not text:
+        raise ValueError("pusty update")
+    lines = [l.rstrip() for l in text.splitlines() if l.strip()]
+    body = "\n".join(l if l.lstrip().startswith(("-", "*", "#", ">")) else f"- {l.strip()}" for l in lines)
+    entry = f"## {datetime.now(ZoneInfo('Europe/Warsaw')):%d.%m.%Y %H:%M}\n{body}\n"
+    path = f"{UPD}/{project}.md"
+    p = _safe(path)
+    if p.exists():
+        old = p.read_text(encoding="utf-8", errors="ignore")
+        m = re.search(r"^## ", old, re.M)
+        new = old[:m.start()] + entry + "\n" + old[m.start():] if m else old.rstrip() + "\n\n" + entry
+    else:
+        new = f"# {project}\n\nDziennik zmian projektu #update\n\n" + entry
+    return write(path, new)
+
+
+@router.get("/api/notes/projects")
+def projects():
+    d = NOTES / UPD
+    fs = sorted(d.glob("*.md"), key=lambda f: -f.stat().st_mtime) if d.is_dir() else []
+    return {"projects": [f.stem for f in fs]}
+
+
+@router.post("/api/notes/update")
+async def api_update(req: Request):
+    b = await req.json()
+    try:
+        return {"ok": True, **add_update(b.get("project"), b.get("text"))}
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
+
+
 @router.put("/api/notes/import-chatgpt")
 async def import_chatgpt(req: Request):
     """Eksport z ChatGPT (zip albo conversations.json, wysłany jako surowe body) → każda rozmowa = notatka w 🤖 ChatGPT."""
@@ -281,6 +323,9 @@ TOOLS = [
     {"name": "add_video_idea", "description": "Dodaj pomysł na film do kolejki Agencji PozaSkala (generator filmów). Zapisuje też notatkę w '💡 Pomysły na filmy'.",
      "inputSchema": {"type": "object", "properties": {"topic": {"type": "string", "description": "temat filmu, najlepiej po angielsku"}, "notes": {"type": "string"}},
                      "required": ["topic"]}},
+    {"name": "add_update", "description": "Zapisz update (postęp, zmianę, decyzję) do dziennika projektu w '🚀 Update'. project = nazwa projektu "
+     "(np. 'Centrum', 'Dziennik', 'Montaż vlogów', 'PozaSkala', 'Skaner'); najnowszy wpis ląduje na górze z datą.",
+     "inputSchema": {"type": "object", "properties": {"project": {"type": "string"}, "text": {"type": "string"}}, "required": ["project", "text"]}},
     {"name": "append_note", "description": "Dopisz tekst na końcu istniejącej notatki (id = ścieżka).",
      "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "content": {"type": "string"}}, "required": ["id", "content"]}},
 ]
@@ -317,6 +362,9 @@ def _tool(name, a):
         save_topics(T)
         log("scout", f"Pomysł z ChatGPT trafił do kolejki: {a.get('topic')}", "ok")
         return {"ok": True, "note": m["path"]}
+    if name == "add_update":
+        m = add_update(a.get("project"), a.get("text"))
+        return {"ok": True, "id": m["path"]}
     if name == "append_note":
         p = _safe(a.get("id", ""))
         if not p.is_file():

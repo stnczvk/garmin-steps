@@ -79,7 +79,7 @@ html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <div class="top"><h1>📝 Notatki</h1>
-  <div class="r"><button class="btn pri" id="new">＋ <span class="lbl">Nowa notatka</span></button><button class="btn" id="nf">📁 <span class="lbl">Folder</span></button><button class="btn" id="gpt">🤖 <span class="lbl">ChatGPT</span></button></div></div>
+  <div class="r"><button class="btn pri" id="new">＋ <span class="lbl">Nowa notatka</span></button><button class="btn" id="nf">📁 <span class="lbl">Folder</span></button><button class="btn" id="upd">🚀 <span class="lbl">Update</span></button><button class="btn" id="gpt">🤖 <span class="lbl">ChatGPT</span></button></div></div>
  <div class="lay">
   <aside class="glass side"><input class="q" id="q" placeholder="🔍 Szukaj w notatkach…" type="search"><div id="tree"><p class="mut">Ładuję…</p></div></aside>
   <section class="glass ed" id="ed">
@@ -96,6 +96,12 @@ html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
 <button class="fab" id="fab" title="Szybka notatka">＋</button>
 <div class="mod" id="mq"><div class="box"><h2>⚡ Szybka notatka</h2><textarea id="qt" placeholder="Co chcesz zapisać? Pierwsza linia = tytuł. Trafi do 📥 Skrzynki."></textarea>
  <div class="row"><button class="btn pri" id="qs">Zapisz</button><button class="btn" data-close>Anuluj</button></div></div></div>
+<div class="mod" id="mu2"><div class="box"><h2>🚀 Update do projektu</h2>
+ <input id="up" list="upl" placeholder="Projekt, np. Centrum, Dziennik, Montaż vlogów" autocomplete="off" style="width:100%;margin-bottom:8px"><datalist id="upl"></datalist>
+ <div class="row" id="upc" style="flex-wrap:wrap;gap:6px;margin:0 0 8px"></div>
+ <textarea id="ut" placeholder="Co się zmieniło / co zrobione / co dalej? Każda linia = osobny punkt."></textarea>
+ <p class="mut" style="font-size:12px;margin:6px 0 0">Wpis trafi na górę notatki projektu w 🚀 Update, z datą i godziną.</p>
+ <div class="row"><button class="btn pri" id="us">Zapisz update</button><button class="btn" data-close>Anuluj</button></div></div></div>
 <div class="mod" id="mg"><div class="box"><h2>🤖 ChatGPT i Twoje notatki</h2>
  <p class="mut">ChatGPT może czytać i zapisywać notatki w ramach Twojej subskrypcji – bez kosztów API.</p>
  <ol><li>W ChatGPT (przeglądarka): <b>Ustawienia → Wtyczki → Dodaj → Utwórz aplikację MCP</b>.</li>
@@ -183,6 +189,16 @@ function showEmpty(){$('tt').value='';$('tx').value='';$('md').innerHTML='<div c
 const mopen=id=>{$(id).classList.add('open')};document.querySelectorAll('.mod').forEach(m=>{m.onclick=e=>{if(e.target===m||e.target.dataset.close!==undefined)m.classList.remove('open')}});
 $('fab').onclick=()=>{mopen('mq');setTimeout(()=>$('qt').focus(),50)};
 $('qs').onclick=async()=>{const t=$('qt').value.trim();if(!t)return;const r=await J('/api/notes/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});$('qt').value='';$('mq').classList.remove('open');toast('Zapisane w 📥 Skrzynce');loadTree()};
+// Update do projektów
+$('upd').onclick=async()=>{mopen('mu2');const r=await J('/api/notes/projects');const ps=r.projects||[];
+ if(CUR&&CUR.folder==='🚀 Update')$('up').value=CUR.name;
+ $('upl').innerHTML=ps.map(p=>`<option value="${esc(p)}">`).join('');
+ $('upc').innerHTML=ps.slice(0,6).map(p=>`<button class="btn" data-pj="${esc(p)}" style="padding:4px 10px;font-size:13px">${esc(p)}</button>`).join('');
+ $('upc').querySelectorAll('[data-pj]').forEach(b=>b.onclick=()=>{$('up').value=b.dataset.pj;$('ut').focus()});
+ setTimeout(()=>($('up').value?$('ut'):$('up')).focus(),50)};
+$('us').onclick=async()=>{const p=$('up').value.trim(),t=$('ut').value.trim();if(!p)return toast('Wpisz nazwę projektu');if(!t)return toast('Wpisz, co się zmieniło');
+ const r=await J('/api/notes/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:p,text:t})});
+ if(!r.ok)return toast(r.error||'Nie wyszło');$('ut').value='';$('mu2').classList.remove('open');toast('Update zapisany');await loadTree();open_(r.path)};
 // ChatGPT: link MCP + import
 $('gpt').onclick=async()=>{mopen('mg');const r=await J('/api/notes/mcp');$('mu').textContent=r.url;$('mused').textContent=r.used?'ostatnio używany: '+ago(r.used):'jeszcze nieużywany'};
 $('mc').onclick=()=>{navigator.clipboard.writeText($('mu').textContent).then(()=>toast('Skopiowano'),()=>toast('Zaznacz i skopiuj ręcznie'))};
