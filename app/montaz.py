@@ -777,7 +777,12 @@ def vlog_state():
         stale = [j for j in v["jobs"] if j["state"] == "uploading" and time.time() - max(j.get("upd") or 0, j.get("at") or 0) > 900]
         for j in stale:   # telefon przestał wysyłać (zgaszony ekran, aplikacja w tle, brak internetu)
             j.update(state="error", step=f"Wysyłanie klipów przerwane po {len(j.get('files', []))} plikach – wyślij jeszcze raz (ekran telefonu nie może gasnąć)")
-        if stale:
+        # Mac przestał zgłaszać postęp (wysypał się skrypt, zerwane połączenie, uśpiony Mac) – nie wisi jako „montuje się”
+        dead = [j for j in v["jobs"] if j["state"] == "working" and time.time() - (j.get("at") or 0) > 1200]
+        for j in dead:
+            j.update(state="error", step="Mac przestał odpowiadać w trakcie montażu – kliknij Ponów",
+                     lines=(j.get("lines") or []) + ["BŁĄD: brak wieści z Maca od 20 min"])
+        if stale or dead:
             _wr("mont_vlog.json", v)
     h = v["helper"]
     online = bool(h.get("seen")) and time.time() - h["seen"] < 90
@@ -860,6 +865,8 @@ async def vlog_act(jid: str, action: str, req: Request):
             j.update(state="queued", step="Ponawiam – czekam na Maca…", ask=None, answer=None, previews=[])
         elif action == "cancel" and j["state"] in ("queued", "uploading"):
             j.update(state="error", step="Anulowano")
+        elif action == "stop" and j["state"] in ("working", "ask"):
+            j.update(state="error", step="Przerwano ręcznie – możesz ponowić", ask=None)
         _wr("mont_vlog.json", v)
     return {"ok": True}
 
