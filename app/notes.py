@@ -206,7 +206,7 @@ async def import_chatgpt(req: Request):
             msg = (m or {}).get("message") or {}
             role = (msg.get("author") or {}).get("role")
             parts = ((msg.get("content") or {}).get("parts") or [])
-            text = "\n".join(p for p in parts if isinstance(p, str)).strip()
+            text = "\n".join(p if isinstance(p, str) else str(p.get("text") or "") if isinstance(p, dict) else "" for p in parts).strip()
             if role in ("user", "assistant") and text:
                 msgs.append((msg.get("create_time") or 0, role, text))
         if not msgs:

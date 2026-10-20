@@ -110,6 +110,7 @@ html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
  <div class="row"><button class="btn" data-close>Zamknij</button></div></div></div>
 <div class="msg" id="msg"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const toast=t=>{const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.display='none',2600)};
@@ -186,8 +187,23 @@ $('qs').onclick=async()=>{const t=$('qt').value.trim();if(!t)return;const r=awai
 $('gpt').onclick=async()=>{mopen('mg');const r=await J('/api/notes/mcp');$('mu').textContent=r.url;$('mused').textContent=r.used?'ostatnio używany: '+ago(r.used):'jeszcze nieużywany'};
 $('mc').onclick=()=>{navigator.clipboard.writeText($('mu').textContent).then(()=>toast('Skopiowano'),()=>toast('Zaznacz i skopiuj ręcznie'))};
 $('mr').onclick=async()=>{if(!confirm('Wygenerować nowy link? Trzeba go będzie wkleić w ChatGPT jeszcze raz.'))return;const r=await J('/api/notes/mcp/reset',{method:'POST'});$('mu').textContent=r.url};
-$('imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('impst').textContent='Wysyłam i rozpakowuję…';
- try{const r=await J('/api/notes/import-chatgpt',{method:'PUT',body:f});$('impst').textContent=r.ok?`Zaimportowano ${r.imported} rozmów do 🤖 ChatGPT`:r.error;loadTree()}catch(x){$('impst').textContent='Nie wyszło: '+x.message}};
+$('imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;const st=m=>$('impst').textContent=m;e.target.value='';
+ try{
+  // eksport bywa duży (zdjęcia w zipie) – rozpakowujemy w telefonie/przeglądarce i wysyłamy same rozmowy, paczkami
+  let convs=[];st('Rozpakowuję…');
+  if(/\.zip$/i.test(f.name)||f.type.includes('zip')){
+   const z=await JSZip.loadAsync(f);const fs=Object.keys(z.files).filter(n=>/(^|\/)conversations(-\d+)?\.json$/.test(n)).sort();
+   if(!fs.length)return st('W archiwum nie ma conversations.json – czy to na pewno eksport z ChatGPT?');
+   for(const n of fs){const d=JSON.parse(await z.file(n).async('string'));if(Array.isArray(d))convs.push(...d)}
+  }else{const d=JSON.parse(await f.text());convs=Array.isArray(d)?d:[]}
+  if(!convs.length)return st('Nie znalazłem rozmów w tym pliku.');
+  let n=0;const B=50;
+  for(let i=0;i<convs.length;i+=B){st(`Wysyłam rozmowy ${Math.min(i+B,convs.length)}/${convs.length}…`);
+   const r=await fetch('/api/notes/import-chatgpt',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(convs.slice(i,i+B))});
+   const t=await r.text();let j;try{j=JSON.parse(t)}catch(_){throw new Error(`serwer odpowiedział ${r.status}`)}
+   if(!j.ok)throw new Error(j.error||'błąd');n+=j.imported}
+  st(`Zaimportowano ${n} rozmów do 🤖 ChatGPT`);toast(`Zaimportowano ${n} rozmów`);loadTree()
+ }catch(x){st('Nie wyszło: '+x.message)}};
 (async()=>{await loadTree();let p=null;try{p=localStorage.getItem('notes-cur')}catch(e){}
  if(p&&T.notes.some(n=>n.path===p)&&innerWidth>700)open_(p);else if(T.notes[0]&&innerWidth>700)open_(T.notes[0].path);else showEmpty()})();
 setInterval(()=>{if(!DIRTY&&document.visibilityState==='visible'&&$('q').value.trim()==='')loadTree()},30000);
