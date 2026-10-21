@@ -450,8 +450,11 @@ def _tg_scanner():
     if not me.get("ok"):
         return FAIL, f"bot Telegrama nie działa: {me.get('description', '')[:80]}", None
     from scanner import CONTAINER
-    logs = subprocess.run(["docker", "logs", "--since", "6h", CONTAINER], capture_output=True, text=True, timeout=30)
-    txt = (logs.stdout + logs.stderr)
+    try:   # same końcówki logów – pełne 6 h potrafiło się mielić ponad 30 s
+        logs = subprocess.run(["docker", "logs", "--since", "6h", "--tail", "4000", CONTAINER], capture_output=True, text=True, timeout=90)
+        txt = (logs.stdout + logs.stderr)
+    except subprocess.TimeoutExpired:
+        return OK, f"@{me['result'].get('username')} działa (logów skanera nie zdążyłem przejrzeć – sprawdzę przy następnym razie)", None
     errs = [l for l in txt.splitlines() if re.search(r"telegram", l, re.I) and re.search(r"error|fail|błąd|blad|exception|timed out|429|403|400", l, re.I)]
     if errs:
         return WARN, "błędy wysyłki w logach: " + errs[-1][-110:], None
@@ -476,7 +479,21 @@ def _video_log():
         miss = [n for k, n in (("youtubeVideoId", "YouTube"), ("igMediaId", "Instagram")) if not j.get(k)]
         name = str(j.get("title") or j.get("movieName") or "")[:40]
         if miss:
-            return WARN, f"log „{name}” bez ID z {' i '.join(miss)} – sprawdź w generatorze node Create Queue Entry (youtubeVideoId)", None
+            if "YouTube" in miss:
+                g = next((w for w in s.get("workflows", []) if re.search(r"^generator$", w["name"], re.I)), None)
+                code = ""
+                if g:
+                    gr = n8n("GET", f"/api/v1/workflows/{g['id']}")
+                    node = next((n for n in (gr.json().get("nodes") or []) if n.get("name") == "Create Queue Entry"), {}) if gr.status_code < 300 else {}
+                    code = json.dumps(node.get("parameters") or {})
+                if g and "youtubeVideoId" not in code:
+                    return WARN, f"log „{name}” bez ID z YouTube – generator jest w starej wersji: wgraj generator_poprawiony.json (Pipeline → Edytuj)", None
+                upd = _iso(g.get("updatedAt")) if g else None
+                st = _iso(e.get("startedAt"))
+                if upd and st and st - upd < timedelta(hours=30):
+                    return OK, f"log „{name}” bez ID z YouTube, ale film powstał przed poprawką generatora – następne będą miały ID", None
+                return WARN, f"log „{name}” bez ID z YouTube mimo poprawionego generatora – upload na YouTube w generatorze nie zwrócił ID (sprawdź node Upload to YouTube)", None
+            return WARN, f"log „{name}” bez ID z {' i '.join(miss)} – sprawdź w Publisherze node publikacji na Instagram", None
         return OK, f"ostatni log „{name}” ma ID z YouTube i IG", None
     return IDLE, "brak udanej publikacji z logiem", None
 
