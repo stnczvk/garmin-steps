@@ -65,7 +65,7 @@ def status(force: int = 0):
     names = {w["id"]: w["name"] for w in workflows}
     execs = [{"id": e.get("id"), "workflowId": e.get("workflowId"), "workflow": names.get(e.get("workflowId"), "?"),
               "status": e.get("status") or ("success" if e.get("finished") else "error"), "mode": e.get("mode"),
-              "startedAt": e.get("startedAt"), "stoppedAt": e.get("stoppedAt")} for e in ex.get("data", [])]
+              "startedAt": e.get("startedAt"), "stoppedAt": e.get("stoppedAt"), "retryOf": e.get("retryOf")} for e in ex.get("data", [])]
     # wykonania w toku (część wersji n8n nie zwraca ich na zwykłej liście)
     try:
         run = httpx.get(f"{base}/api/v1/executions", params={"status": "running", "limit": 10}, headers=h, timeout=8).json()
@@ -117,9 +117,45 @@ def _notify(e):
     return None
 
 
+# ---------- samo-ponawianie po chwilowych błędach sieci (DNS, timeout, zerwane połączenie) ----------
+NET_ERR = re.compile(r"DNS|ENOTFOUND|EAI_AGAIN|getaddrinfo|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|timed? ?out|"
+                     r"network|server is offline|503|502|504|Bad Gateway|Service Unavailable", re.I)
+RETRY_AFTER = [5 * 60, 15 * 60]          # 1. ponowienie po 5 min, 2. po kolejnych 15 min
+
+
+def _net_error(eid):
+    try:
+        from n8n_control import execution
+        d = execution(str(eid))
+        txt = f"{d.get('message', '')} {d.get('description', '')}"
+        return (d.get("node") or "?", txt) if NET_ERR.search(txt) else None
+    except Exception:
+        return None
+
+
+def _autoretry_tick(push_all, _read, _write):
+    """Zaplanowane ponowienia, których czas minął → n8n retry (od miejsca błędu)."""
+    R = _read("n8n_autoretry.json", {})
+    ch = False
+    for eid, r in list(R.items()):
+        if r.get("done") or time.time() < r.get("at", 0):
+            if time.time() - r.get("t0", 0) > 86400:
+                R.pop(eid); ch = True
+            continue
+        from n8n_control import retry
+        res = retry(str(eid))
+        r.update(done=True, ok=res.get("ok"))
+        ch = True
+        if not res.get("ok"):
+            push_all("❌ Błąd w n8n", f"{r['wf']} – samo ponowienie nie ruszyło ({res.get('error') or ''}). Ponów ręcznie w Pipeline."[:180], url="/#pozaskala")
+    if ch:
+        _write("n8n_autoretry.json", R)
+
+
 def _watch():
     from extra import push_all
     from social import _read, _write
+    from agency import log
     while True:
         try:
             s = status(force=1)
@@ -131,12 +167,33 @@ def _watch():
                     if str(e["id"]) in seen:
                         continue
                     seen.add(str(e["id"]))
+                    if not first and e["status"] in ("error", "crashed"):
+                        R = _read("n8n_autoretry.json", {})
+                        prev = R.get(str(e.get("retryOf") or ""), {})
+                        n = prev.get("n", 0) if prev else 0
+                        net = _net_error(e["id"])
+                        if net and n < len(RETRY_AFTER):
+                            R[str(e["id"])] = {"wf": e["workflow"], "n": n + 1, "at": time.time() + RETRY_AFTER[n],
+                                               "t0": prev.get("t0") or time.time(), "node": net[0], "msg": net[1][:200]}
+                            _write("n8n_autoretry.json", R)
+                            log("op", f"{e['workflow']}: błąd sieci w „{net[0]}” – ponowię sam za {RETRY_AFTER[n] // 60} min "
+                                      f"(próba {n + 1}/{len(RETRY_AFTER)})", "warn")
+                            continue          # bez powiadomienia – najpierw próbujemy sami
+                        if net:
+                            push_all("❌ Błąd w n8n", f"{e['workflow']} – błąd sieci w „{net[0]}” nie minął mimo {n} ponowień. "
+                                                     "Sprawdź serwer / ponów ręcznie.", url="/#pozaskala")
+                            continue
+                    if not first and e["status"] == "success" and e.get("retryOf"):
+                        R = _read("n8n_autoretry.json", {})
+                        if str(e["retryOf"]) in R:
+                            log("op", f"{e['workflow']}: samo ponowienie po błędzie sieci wyszło ✅", "ok")
                     msg = None if first else _notify(e)
                     if msg:
                         push_all(*msg, url="/#pozaskala")
                 _write("n8n_seen.json", sorted(seen, key=lambda x: int(x) if x.isdigit() else 0)[-300:])
-        except Exception:
-            pass
+            _autoretry_tick(push_all, _read, _write)
+        except Exception as ex:
+            print("n8n watch:", ex, flush=True)
         time.sleep(60)
 
 
