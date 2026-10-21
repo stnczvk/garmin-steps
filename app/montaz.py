@@ -522,6 +522,10 @@ async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: flo
         return {"ok": False, "error": "pusty plik"}
     tmp.replace(VFILM / (nm + ".mp4"))
     M = _rd("mont_vlog_films.json", {})
+    base = re.sub(r"\s+v\d+$", "", nm)
+    for x in [x for x in M.values() if x["name"] != nm and re.sub(r"\s+v\d+$", "", x["name"]) == base]:
+        (VFILM / (x["name"] + ".mp4")).unlink(missing_ok=True)   # nowa wersja tego samego odcinka – stara znika
+        M.pop(x["name"], None)
     M[nm] = {"name": nm, "kind": kind if kind in ("vlog", "przepis") else "vlog", "mtime": mtime or time.time(), "at": time.time()}
     keep = sorted(M.values(), key=lambda x: -x["mtime"])[:20]   # 20 najnowszych, starsze kasujemy
     for x in M.values():
@@ -859,6 +863,12 @@ async def vlog_act(jid: str, action: str, req: Request):
                       state="queued", step="Poprawka – czekam na Maca…", files=[], lines=[], at=time.time(), again=jid,
                       fix=str(b["comment"]).strip()[:600])
             v["jobs"] = v["jobs"][-30:] + [nj]
+        if action in ("again", "fix") and any(x.get("again") == jid for x in v["jobs"]):
+            # nowe podejście już jest – stara wersja znika z listy (razem z podglądem)
+            v["jobs"] = [x for x in v["jobs"] if x["id"] != jid]
+            (VPOD / (os.path.basename(jid) + ".mp4")).unlink(missing_ok=True)
+            shutil.rmtree(VPRE / os.path.basename(jid), ignore_errors=True)
+            shutil.rmtree(VUP / os.path.basename(jid), ignore_errors=True)
         elif action == "retry" and j["state"] == "error":
             if not all((VUP / jid / f).is_file() and (VUP / jid / f).stat().st_size for f in j.get("files", [])):
                 return {"ok": False, "error": "Klipów tego zlecenia nie ma już w centrum – wyślij je jeszcze raz"}
