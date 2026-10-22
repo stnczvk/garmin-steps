@@ -849,15 +849,41 @@ body{text-rendering:optimizeLegibility}
 [data-theme="light"] .ctip{box-shadow:0 12px 30px -12px rgba(10,10,20,.25)}
 [data-theme="light"] .daypick button[aria-pressed="true"]{box-shadow:0 0 0 4px color-mix(in srgb,var(--dc) 12%,transparent)}
 
-/* clay effect (wersja A, tylko ciemny motyw) */
-:root:not([data-theme="light"]) .card,:root:not([data-theme="light"]) .ex,:root:not([data-theme="light"]) .meal,:root:not([data-theme="light"]) .stat,:root:not([data-theme="light"]) .rules,:root:not([data-theme="light"]) .plan-card,:root:not([data-theme="light"]) .hist-item,:root:not([data-theme="light"]) .qrow-wrap{border-radius:26px!important;border:0!important;
- background:linear-gradient(160deg,#1B1D24,#121318)!important;
- box-shadow:inset 0 2px 1px rgba(255,255,255,.07),inset 0 -6px 14px rgba(0,0,0,.45),0 14px 30px -14px rgba(0,0,0,.9),0 2px 0 rgba(158,140,252,.05)!important}
-:root:not([data-theme="light"]) .btn{border-radius:18px!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.35),inset 0 -4px 8px rgba(60,30,160,.45),0 10px 22px -10px rgba(126,105,245,.8)!important}
-:root:not([data-theme="light"]) .btn.ghost{background:linear-gradient(160deg,#23262F,#17191F)!important;border:0!important;box-shadow:inset 0 2px 1px rgba(255,255,255,.08),inset 0 -4px 8px rgba(0,0,0,.5),0 8px 18px -10px rgba(0,0,0,.9)!important}
-:root:not([data-theme="light"]) .seg{border-radius:18px!important;border:0!important;background:#111216!important;box-shadow:inset 0 3px 8px rgba(0,0,0,.6),inset 0 -1px 0 rgba(255,255,255,.04)!important}
-:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{border-radius:14px!important;background:linear-gradient(160deg,#2A2D38,#1D1F27)!important;box-shadow:inset 0 2px 1px rgba(255,255,255,.1),0 6px 14px -8px rgba(0,0,0,.9)!important}
-:root:not([data-theme="light"]) .rnd{box-shadow:inset 0 2px 1px rgba(255,255,255,.08),inset 0 -4px 8px rgba(0,0,0,.5),0 6px 14px -8px rgba(0,0,0,.9)!important;border:0!important}
+/* motyw Glow: miękka fioletowa łuna w kartach + neonowa krawędź (tylko ciemny motyw) */
+:root:not([data-theme="light"]){--g-a:#9E8CFC;--g-b:#6E8BFF;--g-surf:#111217;--g-surf2:#16171:root:not([data-theme="light"]);--g-edge:linear-gradient(135deg,rgba(177,162,255,.60),rgba(110,139,255,.10) 42%,rgba(255,255,255,.03) 62%,rgba(177,162,255,.30));--g-glow:radial-gradient(120% 80% at 0% 0%,rgba(126,105,245,.17),transparent 55%),radial-gradient(90% 70% at 100% 100%,rgba(70,140,255,.08),transparent 60%)}
+/* duże karty: łuna + krawędź */
+:root:not([data-theme="light"]) :is(.card,.ex,.meal,.rules,.plan-card,.hist-item,.qrow-wrap){border-radius:24px!important;border:1px solid transparent!important;
+ background:var(--g-glow) padding-box,linear-gradient(var(--g-surf),var(--g-surf)) padding-box,var(--g-edge) border-box!important;
+ box-shadow:0 22px 44px -30px rgba(126,105,245,.55)!important}
+/* karta w karcie: bez drugiej ramki */
+:root:not([data-theme="light"]) :is(.card,.meal,.ex) :is(.card,.meal){border:0!important;background:rgba(255,255,255,.025)!important;box-shadow:none!important;border-radius:18px!important}
+:root:not([data-theme="light"]) .meal .card{background:transparent!important}
+/* mniejsze kafelki: spokojniej, bez poświaty */
+:root:not([data-theme="light"]) :is(.dtile,.stat,.tooltile,.wk-t,.mvbox,.editbox,.empty){border-radius:18px!important;border:1px solid rgba(255,255,255,.07)!important;
+ background:radial-gradient(120% 90% at 0% 0%,rgba(126,105,245,.09),transparent 60%),var(--g-surf2)!important;box-shadow:none!important}
+/* przyciski */
+:root:not([data-theme="light"]) .btn{border-radius:999px!important;background:linear-gradient(90deg,var(--g-a),var(--g-b))!important;color:#fff!important;border:0!important;
+ box-shadow:0 8px 22px -8px rgba(126,120,255,.75),inset 0 1px 0 rgba(255,255,255,.25)!important}
+:root:not([data-theme="light"]) .btn.ghost{background:rgba(255,255,255,.04)!important;color:var(--ink)!important;border:1px solid rgba(177,162,255,.28)!important;box-shadow:none!important}
+:root:not([data-theme="light"]) .btn.danger{background:linear-gradient(90deg,#FF8E84,#E2554A)!important;box-shadow:0 8px 22px -10px rgba(226,85,74,.7)!important}
+:root:not([data-theme="light"]) :is(.rnd,.gearbtn,.themebtn,.mshare){border-radius:999px!important;background:rgba(255,255,255,.04)!important;border:1px solid rgba(177,162,255,.22)!important;box-shadow:none!important}
+:root:not([data-theme="light"]) .madd{border-radius:999px!important;border:1px dashed rgba(177,162,255,.45)!important;background:rgba(126,105,245,.06)!important}
+/* przełączniki i chipy */
+:root:not([data-theme="light"]) .seg{border-radius:999px!important;background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.07)!important;box-shadow:none!important}
+:root:not([data-theme="light"]) .seg button{border-radius:999px!important}
+:root:not([data-theme="light"]) :is(.seg button[aria-pressed="true"],.chips button[aria-pressed="true"],.chipsel button[aria-pressed="true"],.modesw button[aria-pressed="true"],.qtabs button[aria-selected="true"],.daypick button[aria-pressed="true"],.ktopic[aria-pressed="true"]){background:linear-gradient(90deg,var(--g-a),var(--g-b))!important;color:#fff!important;border-color:transparent!important;box-shadow:0 6px 16px -8px rgba(126,120,255,.8)!important}
+:root:not([data-theme="light"]) :is(.chips button,.chipsel button,.pill){border-radius:999px!important;border:1px solid rgba(255,255,255,.09)!important}
+:root:not([data-theme="light"]) .qtabs{background:rgba(15,16,21,.97)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+:root:not([data-theme="light"]) :is(.modesw,.qtabs){border-radius:999px!important;background-color:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)!important;box-shadow:none!important}
+:root:not([data-theme="light"]) :is(.modesw button,.qtabs button,.ktopic,.daypick button){border-radius:999px!important}
+:root:not([data-theme="light"]) .tooltile[aria-pressed="true"]{border-color:rgba(177,162,255,.6)!important;box-shadow:0 0 0 1px rgba(177,162,255,.35),0 8px 20px -12px rgba(126,120,255,.8)!important}
+/* pola */
+:root:not([data-theme="light"]) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){border-radius:14px!important;background:rgba(255,255,255,.035)!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:none!important}
+:root:not([data-theme="light"]) :is(input,select,textarea):focus{border-color:rgba(177,162,255,.7)!important;box-shadow:0 0 0 3px rgba(126,105,245,.25)!important;outline:none}
+/* dolny pasek: neonowa linia u góry */
+:root:not([data-theme="light"]) nav.tabbar{border-top:0!important;box-shadow:none!important;background:linear-gradient(90deg,transparent,rgba(177,162,255,.55),rgba(110,139,255,.45),transparent) top/100% 1px no-repeat,color-mix(in srgb,var(--bg) 80%,transparent)!important}
+:root:not([data-theme="light"]) nav.tabbar button[aria-selected="true"] svg{filter:drop-shadow(0 0 6px rgba(158,140,252,.7))}
+@media (prefers-reduced-motion:reduce){:root:not([data-theme="light"]) *{transition:none!important}}
 
 /* telefon: tekst w pierścieniu kalorii nie wchodzi na obwódkę */
 .kc-ring .in{padding:0 20px}
