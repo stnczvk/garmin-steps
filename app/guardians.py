@@ -486,13 +486,32 @@ def _video_log():
                     gr = n8n("GET", f"/api/v1/workflows/{g['id']}")
                     node = next((n for n in (gr.json().get("nodes") or []) if n.get("name") == "Create Queue Entry"), {}) if gr.status_code < 300 else {}
                     code = json.dumps(node.get("parameters") or {})
-                if g and "youtubeVideoId" not in code:
+                if g and "uploadId" not in code:
                     return WARN, f"log „{name}” bez ID z YouTube – generator jest w starej wersji: wgraj generator_poprawiony.json (Pipeline → Edytuj)", None
                 upd = _iso(g.get("updatedAt")) if g else None
                 st = _iso(e.get("startedAt"))
                 if upd and st and st - upd < timedelta(hours=30):
                     return OK, f"log „{name}” bez ID z YouTube, ale film powstał przed poprawką generatora – następne będą miały ID", None
-                return WARN, f"log „{name}” bez ID z YouTube mimo poprawionego generatora – upload na YouTube w generatorze nie zwrócił ID (sprawdź node Upload to YouTube)", None
+                # co faktycznie zwrócił node Upload to YouTube w ostatnim udanym generatorze
+                seen = "brak danych"
+                try:
+                    gr = n8n("GET", "/api/v1/executions", params={"workflowId": g["id"], "status": "success", "limit": 3, "includeData": "true"})
+                    for ge in (gr.json().get("data") or []):
+                        rd = (((ge.get("data") or {}).get("resultData") or {}).get("runData") or {})
+                        up = rd.get("Upload to YouTube")
+                        if not up:
+                            seen = "node Upload to YouTube nie uruchomił się w generatorze"
+                            continue
+                        it = (((up[-1].get("data") or {}).get("main") or [[{}]])[0] or [{}])[0].get("json") or {}
+                        seen = "Upload to YouTube zwrócił: " + (json.dumps(it, ensure_ascii=False)[:160] if it else "pusto")
+                        q = rd.get("Create Queue Entry")
+                        if q:
+                            qt = (((q[-1].get("data") or {}).get("main") or [[{}]])[0] or [{}])[0].get("json", {}).get("text") or "{}"
+                            seen += f" · w kolejce youtubeVideoId={json.loads(qt).get('youtubeVideoId')}"
+                        break
+                except Exception as ex:
+                    seen = f"nie udało się odczytać generatora ({ex.__class__.__name__})"
+                return WARN, f"log „{name}” bez ID z YouTube – {seen}", None
             return WARN, f"log „{name}” bez ID z {' i '.join(miss)} – sprawdź w Publisherze node publikacji na Instagram", None
         return OK, f"ostatni log „{name}” ma ID z YouTube i IG", None
     return IDLE, "brak udanej publikacji z logiem", None
