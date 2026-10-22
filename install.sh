@@ -22,7 +22,7 @@ ls "$HOME_DIR/data"
 say "2/6 Środowisko Pythona"
 [ -d "$HOME_DIR/venv" ] || python3 -m venv "$HOME_DIR/venv" || { apt-get update -qq && apt-get install -y -qq python3-venv && python3 -m venv "$HOME_DIR/venv"; }
 "$HOME_DIR/venv/bin/pip" install -q --upgrade pip
-"$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pillow python-multipart pywebpush garminconnect
+"$HOME_DIR/venv/bin/pip" install -q fastapi 'uvicorn[standard]' httpx pillow python-multipart pywebpush garminconnect pillow-heif
 
 say "2b Montaż filmów: ffmpeg i font"
 command -v ffmpeg >/dev/null || { apt-get update -qq && apt-get install -y -qq ffmpeg; }

@@ -171,19 +171,26 @@ def export():
 
 
 # ---------- AI (Claude) ----------
+try:                                   # zdjęcia HEIC z iPhone'a
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except Exception:
+    pass
+
+
 def _shrink(data: bytes, mt: str):
     if len(data) < 3_500_000 and mt in ("image/jpeg", "image/png", "image/webp", "image/gif"):
         try:
             from PIL import Image
             im = Image.open(io.BytesIO(data))
-            if max(im.size) <= 2000:
+            if max(im.size) <= 1600:
                 return data, mt
         except Exception:
             return data, mt
     try:
         from PIL import Image
         im = Image.open(io.BytesIO(data)).convert("RGB")
-        im.thumbnail((2000, 2000))
+        im.thumbnail((1600, 1600))
         out = io.BytesIO()
         im.save(out, "JPEG", quality=85)
         return out.getvalue(), "image/jpeg"
@@ -206,10 +213,52 @@ def _json_from(text):
     return json.loads(t)
 
 
+def _openai_key():
+    k = os.environ.get("OPENAI_API_KEY", "")
+    if not k:
+        try:                       # ten sam klucz co Agencja w centrum (jeśli jest)
+            for line in Path("/root/social/.env").read_text().splitlines():
+                if line.startswith("OPENAI_API_KEY="):
+                    k = line.split("=", 1)[1].strip().strip('"')
+        except Exception:
+            pass
+    return k
+
+
+async def _ai_fallback(content, system):
+    """Ta sama prośba (tekst + zdjęcia) przez Groq (Llama 4 – widzi zdjęcia), a gdy się nie uda – OpenAI."""
+    parts = []
+    for x in content:
+        if x["type"] == "text":
+            parts.append({"type": "text", "text": x["text"]})
+        else:
+            parts.append({"type": "image_url", "image_url": {"url": f"data:{x['source']['media_type']};base64,{x['source']['data']}"}})
+    msgs = [{"role": "system", "content": system}, {"role": "user", "content": parts}]
+    tries = []
+    gk = _mz_env().get("GROQ_API_KEY")
+    if gk:
+        for m in ("meta-llama/llama-4-maverick-17b-128e-instruct", "meta-llama/llama-4-scout-17b-16e-instruct"):
+            tries.append(("https://api.groq.com/openai/v1/chat/completions", gk, m))
+    ok = _openai_key()
+    if ok:
+        tries.append(("https://api.openai.com/v1/chat/completions", ok, "gpt-4.1-mini"))
+    err = "brak zapasowego klucza AI (Groq/OpenAI)" if not tries else ""
+    for url, key, m in tries:
+        try:
+            async with httpx.AsyncClient(timeout=120, trust_env=False) as c:
+                g = await c.post(url, json={"model": m, "temperature": 0.2, "max_completion_tokens": 4000,
+                                            "response_format": {"type": "json_object"}, "messages": msgs},
+                                 headers={"Authorization": f"Bearer {key}"})
+            if g.status_code == 200:
+                return {"json": _json_from(g.json()["choices"][0]["message"]["content"] or ""), "via": m}, ""
+            err = f"{m} {g.status_code}: {g.text[:150]}"
+        except Exception as e:
+            err = f"{m} {e.__class__.__name__}: {e}"
+    return None, err
+
+
 @app.post("/api/ai")
 async def ai(prompt: str = Form(...), tier: str = Form("default"), files: list[UploadFile] = File(default=[])):
-    if not API_KEY:
-        return JSONResponse({"error": "Brak klucza API na serwerze.", "code": "not_granted"}, status_code=503)
     day = datetime.now(TZ).strftime("%Y-%m-%d")
     row = _con.execute("SELECT n FROM ai_usage WHERE day=?", (day,)).fetchone()
     if row and row[0] >= AI_DAILY:
@@ -222,12 +271,24 @@ async def ai(prompt: str = Form(...), tier: str = Form("default"), files: list[U
     body = {"model": MODELS.get(tier, MODELS["default"]), "max_tokens": 4000,
             "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
             "messages": [{"role": "user", "content": content}]}
-    async with httpx.AsyncClient(timeout=120) as c:
-        r = await c.post("https://api.anthropic.com/v1/messages", json=body,
-                         headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
-    if r.status_code != 200:
-        code = "rate_limited" if r.status_code == 429 else "ai_error"
-        return JSONResponse({"error": r.text[:300], "code": code}, status_code=502 if code == "ai_error" else 429)
+    r = None
+    if API_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=120, trust_env=False) as c:
+                r = await c.post("https://api.anthropic.com/v1/messages", json=body,
+                                 headers={"x-api-key": API_KEY.strip(), "anthropic-version": "2023-06-01"})
+        except Exception:
+            r = None
+    if r is None or r.status_code != 200:
+        # zapas (np. brak środków na koncie Anthropic): Groq z obsługą zdjęć, potem OpenAI
+        alt, err = await _ai_fallback(content, body["system"])
+        if alt is not None:
+            _con.execute("INSERT INTO ai_usage(day,n,tin,tout,cost) VALUES(?,?,?,?,?) ON CONFLICT(day) DO UPDATE SET n=n+1",
+                         (day, 1, 0, 0, 0))
+            return alt
+        code = "rate_limited" if r is not None and r.status_code == 429 else "ai_error"
+        return JSONResponse({"error": ((r.text[:200] + " | ") if r is not None else "") + err[:200], "code": code},
+                            status_code=502 if code == "ai_error" else 429)
     res = r.json()
     u = res.get("usage", {})
     pi, po = PRICES.get(body["model"], (2.0, 10.0))
