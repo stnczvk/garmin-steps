@@ -51,6 +51,15 @@ def main():
     if rc == 0 and films:
         f = films[-1]
         save(state="done", step="Gotowe", film=f.name, size=f.stat().st_size, raport=rap, finished=time.time())
+        # karuzela na Instagram z tego samego dnia (najlepsze stop-klatki + karty) – po filmie, nie blokuje go
+        try:
+            r = subprocess.run([sys.executable, str(TOOLS / "karuzela.py"), str(day), str(job / "gotowe" / "karuzela")],
+                               capture_output=True, text=True, timeout=600)
+            with (job / "log.txt").open("a", encoding="utf-8") as lf:
+                lf.write(r.stdout + r.stderr[-1500:])
+        except Exception as e:
+            with (job / "log.txt").open("a", encoding="utf-8") as lf:
+                lf.write(f"karuzela: {e}\n")
         return 0
     err = next((l for l in reversed(tail) if l.strip()), "nieznany błąd")
     save(state="error", error=err[:300], raport=rap, log="\n".join(tail[-15:]))
