@@ -73,6 +73,11 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
  .lg-only{display:none}.sm-only{display:inline}.bar2{flex-wrap:nowrap;gap:6px}.bar2 .vt button{padding:6px 9px;font-size:12px}
  .top{align-items:center;margin-bottom:10px;gap:8px}.top p{display:none}.top h1{font-size:22px}.top .r{margin-left:auto}.top .btn{padding:8px 12px;font-size:12.5px}
  .vt.sec{display:inline-flex;margin-left:auto}
+ /* telefon: 4 przyciski montażu w jednym równym rzędzie, zakładki bez łamania */
+ .top{flex-wrap:wrap}.top .r{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%;margin-left:0}
+ .top .r .btn{padding:9px 4px;font-size:12px;white-space:nowrap;justify-content:center;text-align:center}
+ .bar2 .vt button{white-space:nowrap}
+ #cjobs .row .btn,#csec .row .btn{flex:1 1 auto}
  .glass{padding:13px 14px;border-radius:18px}
  .grid{gap:10px}
  #det h2{font-size:14px}
@@ -122,8 +127,9 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 .morebtn{margin-top:10px;width:100%;justify-content:center}
 @media(max-width:700px){
  #vform .nf{grid-template-columns:110px minmax(0,1fr)!important}#vform .nf>label:last-child{grid-column:1/-1}#vsrc{padding-top:2px!important}
- .top .r{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-left:0}.top .r .btn{justify-content:center;padding:9px 6px}
- .bar2 .vt.sec{margin-left:auto}
+ .top .r{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-left:0}.top .r .btn{justify-content:center;padding:9px 4px;font-size:12px;white-space:nowrap}
+ .bar2{flex-wrap:wrap!important}.bar2 .vt.sec{margin-left:0;width:100%;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .bar2 .vt.sec button{text-align:center;padding:7px 4px}
  .grid{display:flex;flex-direction:column}
  .list .j{padding:9px 6px}
 }
@@ -140,8 +146,8 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 <div class="wrap">
  <div id="liveb"></div>
  <div class="top"><div><h1>Montażownia</h1><p>Filmy montowane automatycznie. Strażnik montażu sprawdza każdy film, zanim go wrzucisz.</p></div>
-  <div class="r"><button class="btn pri" id="food">🍽 <span class="lg-only">Zmontuj </span>jedzenie</button><button class="btn pri" id="vlogb">🎥 <span class="lg-only">Zmontuj </span>vloga</button><button class="btn pri" id="przb">🍳 <span class="lg-only">Zmontuj </span>przepis</button><button class="btn pri" id="cheatb">🍔 <span class="lg-only">Zmontuj </span>cheat meal</button></div></div>
- <div class="bar2"><div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ <span class="lg-only">Dashboard</span><span class="sm-only">Lista</span></button></div><div class="vt sec dash-only" id="sec"><button data-s="food" class="on">🍽 Jedzenie</button><button data-s="vlog">🎥 Vlog<em id="vbadge"></em></button><button data-s="cheat">🍔 Cheat meal<em id="cbadge"></em></button></div></div>
+  <div class="r"><button class="btn pri" id="food">🍽 <span class="lg-only">Zmontuj </span>jedzenie</button><button class="btn pri" id="vlogb">🎥 <span class="lg-only">Zmontuj </span>vloga</button><button class="btn pri" id="przb">🍳 <span class="lg-only">Zmontuj </span>przepis</button><button class="btn pri" id="cheatb">🍔 <span class="lg-only">Zmontuj cheat meal</span><span class="sm-only">cheat</span></button></div></div>
+ <div class="bar2"><div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ <span class="lg-only">Dashboard</span><span class="sm-only">Lista</span></button></div><div class="vt sec dash-only" id="sec"><button data-s="food" class="on">🍽 Jedzenie</button><button data-s="vlog">🎥 Vlog<em id="vbadge"></em></button><button data-s="cheat">🍔 <span class="lg-only">Cheat meal</span><span class="sm-only">Cheat</span><em id="cbadge"></em></button></div></div>
  <div class="stage3d glass office-only"><canvas id="c3" aria-label="Warsztat twórcy – biuro Montażowni"></canvas><span class="h3d">przeciągnij · obróć</span><span class="wsst" id="wsst"></span></div>
  <section class="glass dash-only s-food" id="newp" hidden style="margin-bottom:14px">
   <h2>Nowy montaż: daily jedzenie</h2>
@@ -171,9 +177,9 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
  </div>
  <section class="glass vlog dash-only s-vlog fold-s" id="vsec" data-fold="vjobs"><h2 class="fh">🎥 Zlecenia <small id="vmac"></small><span class="chev">▾</span></h2>
   <div class="fb"><div id="vjobs"><p class="mut">Ładuję…</p></div></div></section>
- <section class="glass vlog dash-only s-cheat fold-s" id="csec" data-fold="cjobs"><h2 class="fh">🍔 Cheat meale – zlecenia <small id="cmac"></small><span class="chev">▾</span></h2>
+ <section class="glass vlog dash-only s-cheat fold-s" id="csec" data-fold="cjobs"><h2 class="fh">🍔 <span class="lg-only">Cheat meale – </span>Zlecenia <small id="cmac"></small><span class="chev">▾</span></h2>
   <div class="fb"><div class="row" style="margin:0 0 10px"><button class="btn pri" id="cheatb2">🍔 Nowy cheat meal</button></div><div id="cjobs"><p class="mut">Ładuję…</p></div></div></section>
- <section class="glass dash-only s-cheat fold-s" data-fold="cfilms"><h2 class="fh">🎞 Zmontowane cheat meale <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
+ <section class="glass dash-only s-cheat fold-s" data-fold="cfilms"><h2 class="fh">🎞 Zmontowane<span class="lg-only">&nbsp;cheat meale</span> <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
   <div class="fb"><div id="cfilms" class="vfg"><p class="mut">Ładuję…</p></div></div></section>
  <section class="glass dash-only s-vlog fold-s" data-fold="vfilms"><h2 class="fh">🎞 Zmontowane vlogi <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
   <div class="fb"><div id="vfilms" class="vfg"><p class="mut">Ładuję…</p></div><div id="vfmore"></div></div></section>
