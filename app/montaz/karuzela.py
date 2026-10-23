@@ -123,20 +123,38 @@ def shade(im, top=0.15, bottom=0.65):
 
 
 def meal_card(m):
-    """Karta posiłku (gdy nie ma PNG z dziennika): nazwa, kcal, B/W/T."""
-    img = Image.new("RGBA", (980, 260), (0, 0, 0, 0))
+    """Karta posiłku: nazwa, kcal, B/W/T i WSZYSTKIE produkty z dziennika (przy długiej liście mniejsza czcionka)."""
+    items = [i for i in (m.get("items") or []) if i.get("name")]
+    n = len(items)
+    fs = 34 if n <= 5 else 30 if n <= 8 else 26 if n <= 12 else 22
+    row = int(fs * 1.55)
+    h = 236 + (44 + n * row if n else 0)
+    img = Image.new("RGBA", (980, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle([0, 0, 979, 259], radius=40, fill=(14, 14, 16, 235))
+    d.rounded_rectangle([0, 0, 979, h - 1], radius=40, fill=(14, 14, 16, 238))
     d.text((44, 70), m.get("name", ""), font=font(58), fill="white", anchor="lm")
-    kc = f"{m.get('kcal', 0)} kcal"
-    d.text((936, 70), kc, font=font(58), fill=YEL, anchor="rm")
+    d.text((936, 70), f"{m.get('kcal', 0)} kcal", font=font(58), fill=YEL, anchor="rm")
     x = 44
     for lab, k in (("B", "p"), ("W", "c"), ("T", "f")):
         t = f"{lab} {m.get(k, 0)} g"
         tw = d.textlength(t, font=font(36, 700))
-        d.rounded_rectangle([x, 150, x + tw + 44, 214], radius=32, fill=(255, 255, 255, 30))
-        d.text((x + 22, 182), t, font=font(36, 700), fill="white", anchor="lm")
+        d.rounded_rectangle([x, 140, x + tw + 44, 204], radius=32, fill=(255, 255, 255, 30))
+        d.text((x + 22, 172), t, font=font(36, 700), fill="white", anchor="lm")
         x += tw + 64
+    if n:
+        d.line([44, 232, 936, 232], fill=(255, 255, 255, 40), width=2)
+        f, fb = font(fs, 500), font(fs, 700)
+        y = 256
+        for it in items:
+            q = str(it.get("qty") or "").strip()
+            kc = f"{it.get('kcal', 0)}"
+            name = it["name"] + (f"  ·  {q}" if q else "")
+            maxw = 892 - d.textlength(kc, font=fb) - 30
+            while d.textlength(name, font=f) > maxw and len(name) > 4:   # tylko gdy naprawdę się nie mieści
+                name = name[:-2].rstrip() + "…" if not name.endswith("…") else name[:-2].rstrip() + "…"
+            d.text((44, y + row / 2), name, font=f, fill=(235, 235, 240), anchor="lm")
+            d.text((936, y + row / 2), kc, font=fb, fill="white", anchor="rm")
+            y += row
     return img
 
 
@@ -194,11 +212,12 @@ def main():
         s = shade(s, 0.1, 0.55)
         d = ImageDraw.Draw(s)
         pill(d, 60, 70, f"{i + 1}/{len(meals)}", font(30))
-        card = Image.open(png[c]).convert("RGBA") if c in png else meal_card(karty[c])
+        # własna karta ze WSZYSTKIMI produktami; PNG z dziennika tylko gdy nie mamy listy produktów
+        card = meal_card(karty[c]) if (karty[c].get("items") or c not in png) else Image.open(png[c]).convert("RGBA")
         cw = 980
         card = card.resize((cw, round(card.height * cw / card.width)), Image.LANCZOS)
-        if card.height > 760:
-            card = card.resize((round(card.width * 760 / card.height), 760), Image.LANCZOS)
+        if card.height > 900:
+            card = card.resize((round(card.width * 900 / card.height), 900), Image.LANCZOS)
         s = s.convert("RGBA")
         s.alpha_composite(card, ((W - card.width) // 2, H - card.height - 60))
         slides.append(s.convert("RGB"))
