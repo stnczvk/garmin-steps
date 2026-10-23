@@ -139,7 +139,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 <div class="wrap">
  <div id="liveb"></div>
  <div class="top"><div><h1>Montażownia</h1><p>Filmy montowane automatycznie. Strażnik montażu sprawdza każdy film, zanim go wrzucisz.</p></div>
-  <div class="r"><button class="btn pri" id="food">🍽 <span class="lg-only">Zmontuj </span>jedzenie</button><button class="btn pri" id="vlogb">🎥 <span class="lg-only">Zmontuj </span>vloga</button><button class="btn pri" id="przb">🍳 <span class="lg-only">Zmontuj </span>przepis</button></div></div>
+  <div class="r"><button class="btn pri" id="food">🍽 <span class="lg-only">Zmontuj </span>jedzenie</button><button class="btn pri" id="vlogb">🎥 <span class="lg-only">Zmontuj </span>vloga</button><button class="btn pri" id="przb">🍳 <span class="lg-only">Zmontuj </span>przepis</button><button class="btn pri" id="cheatb">🍔 <span class="lg-only">Zmontuj </span>cheat meal</button></div></div>
  <div class="bar2"><div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ <span class="lg-only">Dashboard</span><span class="sm-only">Lista</span></button></div><div class="vt sec dash-only" id="sec"><button data-s="food" class="on">🍽 Jedzenie</button><button data-s="vlog">🎥 Vlog<em id="vbadge"></em></button></div></div>
  <div class="stage3d glass office-only"><canvas id="c3" aria-label="Warsztat twórcy – biuro Montażowni"></canvas><span class="h3d">przeciągnij · obróć</span><span class="wsst" id="wsst"></span></div>
  <section class="glass dash-only s-food" id="newp" hidden style="margin-bottom:14px">
@@ -157,7 +157,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
  <section class="glass dash-only s-vlog" id="vnew" hidden style="margin-bottom:14px">
   <h2 id="vnh">Nowy montaż: vlog WNBF</h2>
   <div id="vform">
-   <div class="nf" style="grid-template-columns:120px 160px minmax(0,1fr)"><label><span id="vepl">Odcinek nr</span><input id="vep" type="number" min="1"></label><label class="vonly">Data nagrania<input id="vd" type="date"></label><label class="ponly" hidden>Tytuł na początek filmu<input id="vt2" placeholder="np. Fit placuszki które mają tylko 500 kcal"></label>
+   <div class="nf" style="grid-template-columns:120px 160px minmax(0,1fr)"><label><span id="vepl">Odcinek nr</span><input id="vep" type="number" min="1"></label><label class="vdate">Data nagrania<input id="vd" type="date"></label><label class="ponly" hidden>Tytuł na początek filmu<input id="vt2" placeholder="np. Fit placuszki które mają tylko 500 kcal"></label>
     <label>Klipy<span id="vsrc" class="mut" style="font-size:13px;padding-top:9px"></span></label></div>
    <div class="nf2"><label class="drop" id="vdrop"><input type="file" id="vf" accept="video/*,image/*,.mov,.mp4,.m4v,.png,.jpg,.jpeg" multiple hidden><b>📤 Wyślij klipy z telefonu (opcjonalnie)</b><span id="vfl">albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd</span></label>
     <label class="drop vonly"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="vvo" style="accent-color:#8f7bff;width:18px;height:18px"><b>Dogrywam dziś głos do klipów bez mowy</b></span><span>Tak – klipy bez mowy w normalnej prędkości, do 8 s, każdy na cały ekran. Nie – jak zwykle (przyspieszone, w parach).</span></label></div>
@@ -283,6 +283,10 @@ $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value
 // ---- vlog: zlecenie dla Maca (montaż w CapCut robi niezmieniony automat WNBF) ----
 let V=null,VF=[];
 const ago=t=>{const s=Date.now()/1000-t;return s<90?'przed chwilą':s<3600?Math.round(s/60)+' min temu':Math.round(s/3600)+' h temu'};
+const KC={vlog:{h:'Nowy montaż: vlog WNBF',n:'Odcinek nr',go:'🎥 Zmontuj odcinek',dir:'vlog',next:'next_ep',loose:'loose',ic:'🎥',nm:'Odcinek'},
+ przepis:{h:'Nowy montaż: przepis',n:'Przepis nr',go:'🍳 Zmontuj przepis',dir:'przepis',next:'next_przepis',loose:'ploose',ic:'🍳',nm:'Przepis'},
+ cheat:{h:'Nowy montaż: cheat meal',n:'Cheat meal nr',go:'🍔 Zmontuj cheat meal',dir:'cheatmeal',next:'next_cheat',loose:'cloose',ic:'🍔',nm:'Cheat meal'}};
+const kc=k=>KC[k]||KC.vlog;
 async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}catch(e){return}
  $('vsrc').textContent=V.loose?`na Macu w _SUROWE/vlog czeka ${V.loose} plików`:'na Macu w _SUROWE/vlog nie ma nowych plików';
  if(!$('vep').value)$('vep').value=V.next_ep||'';if(!$('vd').value)$('vd').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
@@ -294,10 +298,10 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
    ${c.review?`<p style="margin-top:6px">${esc(c.review)}</p>`:''}
    <details class="fixd" data-g="fx${j.id}" ${c.fix||GO['fx'+j.id]?'open':''}><summary>✂️ Coś poprawić?</summary><textarea id="vfx${j.id}" oninput="GO['t${j.id}']=this.value" placeholder="Co poprawić? (np. zostaw zdanie o krokach, wytnij drugie podejście do obiadu)">${esc(GO['t'+j.id]??(c.fix||''))}</textarea>
    <div class="row"><button class="btn pri" data-vfix="${j.id}">✂️ Popraw montaż</button><button class="btn" data-vchk="${j.id}">🔁 Sprawdź jeszcze raz</button></div></details></div>`};
- const card=j=>`<div class="vj"><div class="vh"><b>${j.kind==='przepis'?'🍳 Przepis':'🎥 Odcinek'} #${j.ep}</b><small>${esc(j.date||'')}</small><span class="chip ${CH[j.state]||'wait'}">${ST2[j.state]||j.state}</span></div>
+ const card=j=>`<div class="vj"><div class="vh"><b>${kc(j.kind).ic} ${kc(j.kind).nm} #${j.ep}</b><small>${esc(j.date||'')}</small><span class="chip ${CH[j.state]||'wait'}">${ST2[j.state]||j.state}</span></div>
   ${j.step&&!['done'].includes(j.state)?`<div class="vs">${esc(j.step)}</div>`:''}
   ${j.state==='ask'&&j.ask?`<div style="margin-top:8px">Które zdanie dać na początek jako zapowiedź?</div><div class="hk">${j.ask.map((t,i)=>`<div class="hko">${(j.previews||[]).includes(i)?`<div class="hvw"><video class="hv" src="/api/mont-vlog/${j.id}/preview/${i}#t=0.1" muted loop playsinline preload="metadata"></video><span class="hvs">🔇</span></div>`:''}<p>${i+1}. ${esc(t)}</p><button class="btn pri" data-ans="${i}" data-j="${j.id}">Wybieram</button></div>`).join('')}</div><div class="row"><button class="btn" data-ans="none" data-j="${j.id}">— bez zapowiedzi —</button></div>`:''}
-  ${j.state==='done'?`<div class="vs">Projekt „${j.kind==='przepis'?'PRZEPIS':'WNBF AUTO'} #${j.ep}” czeka w CapCut${j.fix?' (z poprawką: „'+esc(j.fix)+'”)':''}.</div>`:''}
+  ${j.state==='done'?`<div class="vs">Projekt „${{przepis:'PRZEPIS',cheat:'CHEAT MEAL'}[j.kind]||'WNBF AUTO'} #${j.ep}” czeka w CapCut${j.fix?' (z poprawką: „'+esc(j.fix)+'”)':''}.</div>`:''}
   ${j.podglad?`<div class="vp"><video src="/api/mont-vlog/${j.id}/podglad" controls playsinline preload="metadata"></video><div>${vcheck(j)}</div></div>`:''}
   ${(j.lines||[]).length&&j.state!=='queued'?`<details data-g="l${j.id}" ${gopen('l'+j.id)}><summary>${j.state==='done'?'Co zrobił montaż':'Postęp'} (${j.lines.length} linii)</summary><pre>${esc((j.state==='done'?j.lines.filter(l=>/GOTOWE|grafika|wycięte|nie dopasowano|plansza|zapowiedź|ElevenLabs|⚠️/.test(l)):j.lines.slice(-30)).join('\n'))}</pre></details>`:''}
   ${['queued','uploading'].includes(j.state)?`<div class="row"><button class="btn" data-vc="${j.id}">Anuluj</button></div>`:''}${['working','ask'].includes(j.state)?`<div class="row"><button class="btn del" data-vstop="${j.id}" title="Gdy montaż utknął – przerwij i ponów">⏹ Przerwij</button></div>`:''}${j.state==='done'?`<div class="row"><button class="btn" data-vag="${j.id}">🔁 Zmontuj ponownie</button></div>`:''}${j.state==='error'?`<div class="row">${(j.files||[]).length?`<button class="btn pri" data-vr="${j.id}">↻ Ponów montaż</button>`:`<button class="btn pri" data-vag="${j.id}">🔁 Zmontuj ponownie</button>`}<button class="btn del" data-vdel="${j.id}">🗑 Usuń</button></div>`:''}</div>`;
@@ -327,12 +331,15 @@ $('vlogb').onclick=()=>{setMode('dash');setSec('vlog');setKind('vlog');$('newp')
 $('vcancel').onclick=()=>{$('vnew').hidden=true};
 $('vf').onchange=e=>{VF=[...e.target.files];$('vfl').textContent=VF.length?`${VF.length} plików · ${mb(VF.reduce((s,f)=>s+f.size,0))}`:'albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd';$('vdrop').classList.toggle('has',!!VF.length);if(VF.length){const q=document.createElement('span');$('vfl').appendChild(q);qualityNote(VF,q)}};
 let KIND='vlog';
-function setKind(k){KIND=k;const p=k==='przepis';document.querySelectorAll('.vonly').forEach(e=>e.hidden=p);document.querySelectorAll('.ponly').forEach(e=>e.hidden=!p);
- $('vnh').textContent=p?'Nowy montaż: przepis':'Nowy montaż: vlog WNBF';$('vepl').textContent=p?'Przepis nr':'Odcinek nr';$('vgo').textContent=p?'🍳 Zmontuj przepis':'🎥 Zmontuj odcinek';
- if(V){$('vep').value=p?(V.next_przepis||''):(V.next_ep||'');$('vsrc').textContent=p?(V.ploose?`na Macu w _SUROWE/przepis czeka ${V.ploose} plików`:'na Macu w _SUROWE/przepis nie ma nowych plików'):(V.loose?`na Macu w _SUROWE/vlog czeka ${V.loose} plików`:'na Macu w _SUROWE/vlog nie ma nowych plików')}
- $('vfl').textContent=VF.length?$('vfl').textContent:`albo wrzuć je na Macu do _SUROWE/${p?'przepis':'vlog'} – tak jak dotąd`}
-$('vgo').onclick=async()=>{const P=KIND==='przepis',ep=+$('vep').value,date=P?new Date().toISOString().slice(0,10):$('vd').value;if(!ep||!date)return toast(P?'Podaj numer przepisu.':'Podaj numer odcinka i datę.');
- if(!VF.length&&!(P?V?.ploose:V?.loose)&&!confirm(`Na Macu w _SUROWE/${P?'przepis':'vlog'} nie widzę nowych klipów. Montować mimo to?`))return;
+function setKind(k){KIND=k;const c=kc(k);document.querySelectorAll('.vonly').forEach(e=>e.hidden=k!=='vlog');document.querySelectorAll('.ponly').forEach(e=>e.hidden=k!=='przepis');
+ document.querySelectorAll('.vdate').forEach(e=>e.hidden=k==='przepis');document.querySelectorAll('.conly').forEach(e=>e.hidden=k!=='cheat');
+ if(k==='cheat'&&!$('vd').value)$('vd').value=new Date().toISOString().slice(0,10);
+ $('vnh').textContent=c.h;$('vepl').textContent=c.n;$('vgo').textContent=c.go;
+ if(V){$('vep').value=V[c.next]||'';$('vsrc').textContent=V[c.loose]?`na Macu w _SUROWE/${c.dir} czeka ${V[c.loose]} plików`:`na Macu w _SUROWE/${c.dir} nie ma nowych plików`}
+ $('vfl').textContent=VF.length?$('vfl').textContent:`albo wrzuć je na Macu do _SUROWE/${c.dir} – tak jak dotąd`}
+$('cheatb').onclick=()=>{setMode('dash');setSec('vlog');setKind('cheat');$('newp').hidden=true;$('vnew').hidden=false;scrollTo({top:0,behavior:'smooth'})};
+$('vgo').onclick=async()=>{const P=KIND==='przepis',c=kc(KIND),ep=+$('vep').value,date=P?new Date().toISOString().slice(0,10):$('vd').value;if(!ep||!date)return toast(P?'Podaj numer przepisu.':'Podaj numer i datę.');
+ if(!VF.length&&!V?.[c.loose]&&!confirm(`Na Macu w _SUROWE/${c.dir} nie widzę nowych klipów. Montować mimo to?`))return;
  window.BUSY=true;$('vgo').disabled=true;try{const r=await (await fetch('/api/mont-vlog/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ep,date,kind:KIND,title:$('vt2').value.trim(),voiceover:$('vvo').checked&&KIND==='vlog',upload:VF.length>0})})).json();if(!r.ok)throw new Error(r.error);
   if(VF.length){const tot=VF.reduce((s,f)=>s+f.size,0),t0=Date.now();let done=0,wl=null;
    try{wl=await navigator.wakeLock?.request('screen')}catch(x){}   // ekran nie gaśnie w trakcie wysyłania
@@ -393,7 +400,7 @@ const dur=t=>{const s=Math.max(0,Math.round(Date.now()/1000-t));return s<60?s+' 
 function liveRender(){const box=$('liveb');if(!box)return;const out=[];
  for(const j of (V&&V.jobs||[]).filter(j=>['queued','uploading','claimed','working','ask'].includes(j.state))){
   const k=j.state==='queued'||j.state==='uploading'?-1:vstage(j);const last=(j.lines||[]).filter(l=>l.trim()&&l.trim()!==(j.step||'').trim()).slice(-3).join('\n');
-  out.push(`<div class="live"><div class="lh"><span class="sp"></span><b>${j.kind==='przepis'?'🍳 Przepis':'🎥 Vlog'} #${j.ep} ${j.state==='ask'?'czeka na Twój wybór':j.state==='queued'?'czeka na Maca':j.state==='uploading'?'wysyłanie klipów':'montuje się na Macu'}</b><small>${j.claimed?dur(j.claimed):''}</small></div>
+  out.push(`<div class="live"><div class="lh"><span class="sp"></span><b>${kc(j.kind).ic} ${j.kind==='vlog'?'Vlog':kc(j.kind).nm} #${j.ep} ${j.state==='ask'?'czeka na Twój wybór':j.state==='queued'?'czeka na Maca':j.state==='uploading'?'wysyłanie klipów':'montuje się na Macu'}</b><small>${j.claimed?dur(j.claimed):''}</small></div>
    <div class="stp">${VST.map((n,i)=>`<div class="${i<k?'d':i===k?'a':''}"><i></i><span>${n}</span></div>`).join('')}</div>
    <div class="ll">${esc(j.step||'')}${last?'\n'+esc(last):''}</div>${j.state==='ask'?'<div class="ask">👉 Wybierz zapowiedź niżej, w sekcji Vlog.</div>':''}</div>`)}
  for(const j of (D&&D.jobs||[]).filter(j=>['working','uploading','queued'].includes(j.state)&&!j.stalled))
@@ -409,7 +416,7 @@ async function mclean(b){const r=await (await fetch('/api/mont-clean',{method:'P
 async function vfilms(){let r;try{r=await (await fetch('/api/mont-vlog/films')).json()}catch(e){return}
  const F=r.films||[],all=vfilms.all||innerWidth>900,shown=all?F:F.slice(0,4);
  const h=shown.map(f=>`<div class="vfi"><video src="/api/mont-vlog/film/${encodeURIComponent(f.name)}" controls playsinline preload="metadata"></video>
-  <b title="${esc(f.name)}">${f.kind==='przepis'?'🍳':'🎥'} ${esc(f.name)}</b><small>${new Date(f.mtime*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${f.m?` · ${Math.floor(f.m.dur/60)}:${String(Math.round(f.m.dur%60)).padStart(2,'0')} · ${f.m.lufs??'–'} LUFS`:''}</small>
+  <b title="${esc(f.name)}">${kc(f.kind).ic} ${esc(f.name)}</b><small>${new Date(f.mtime*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${f.m?` · ${Math.floor(f.m.dur/60)}:${String(Math.round(f.m.dur%60)).padStart(2,'0')} · ${f.m.lufs??'–'} LUFS`:''}</small>
   ${f.warnings&&f.warnings.length?`<small class="w">⚠️ ${esc(f.warnings.join('; '))}</small>`:f.warnings?'<small style="color:var(--ok)">✓ strażnik: OK</small>':''}</div>`).join('')||'<p class="mut">Jeszcze nic – po eksporcie z CapCuta Mac wyśle tu podgląd (do ~15 min).</p>';
  if(h!==vfilms.h){vfilms.h=h;$('vfilms').innerHTML=h}
  $('vfmore').innerHTML=F.length>shown.length?`<button class="btn morebtn" id="vfm">Pokaż wszystkie (${F.length})</button>`:'';if($('vfm'))$('vfm').onclick=()=>{vfilms.all=1;vfilms.h=null;vfilms()}}

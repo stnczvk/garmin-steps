@@ -526,7 +526,7 @@ async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: flo
     for x in [x for x in M.values() if x["name"] != nm and re.sub(r"\s+v\d+$", "", x["name"]) == base]:
         (VFILM / (x["name"] + ".mp4")).unlink(missing_ok=True)   # nowa wersja tego samego odcinka – stara znika
         M.pop(x["name"], None)
-    M[nm] = {"name": nm, "kind": kind if kind in ("vlog", "przepis") else "vlog", "mtime": mtime or time.time(), "at": time.time()}
+    M[nm] = {"name": nm, "kind": kind if kind in KINDS else "vlog", "mtime": mtime or time.time(), "at": time.time()}
     keep = sorted(M.values(), key=lambda x: -x["mtime"])[:20]   # 20 najnowszych, starsze kasujemy
     for x in M.values():
         if x not in keep:
@@ -625,7 +625,7 @@ def vlog_check(jid):
             _wr("mont_vlog.json", v)
     try:
         from notes import auto_note
-        nm = ("Przepis" if j.get("kind") == "przepis" else "Vlog") + f" #{j.get('ep')}"
+        nm = _kn(j) + f" #{j.get('ep')}"
         auto_note("🎥 Vlog", f"{nm} – {j.get('date')}", f"# {nm} ({j.get('date')})\n\n**Strażnik:** {'OK' if res['ok'] and not res['warnings'] else 'są uwagi'} · {res['duration']} s\n\n"
                   + "\n".join(f"- {x}" for x in res["problems"] + res["warnings"]) + (f"\n\n{res['review']}" if res["review"] else "")
                   + (f"\n\n**Sugerowana poprawka:** {res['fix']}" if res["fix"] else "") + (f"\n\n**Poprawka zlecona:** {j.get('fix')}" if j.get("fix") else "")
@@ -634,7 +634,7 @@ def vlog_check(jid):
         pass
     try:
         from extra import push_all
-        nm = ("Przepis" if j.get("kind") == "przepis" else "Vlog") + f" #{j.get('ep')}"
+        nm = _kn(j) + f" #{j.get('ep')}"
         push_all(f"🛡️ Strażnik: {nm} – " + ("OK" if res["ok"] and not res["warnings"] else "są uwagi"),
                  (res["review"] or "; ".join(res["problems"] + res["warnings"]) or "Podgląd gotowy w Montażowni.")[:170],
                  "/#montazownia", kind="montaz", data={"vjob": jid})
@@ -792,8 +792,16 @@ def vlog_state():
     online = bool(h.get("seen")) and time.time() - h["seen"] < 90
     return {"configured": bool(os.environ.get("MONT_TOKEN")), "online": online, "seen": h.get("seen"),
             "next_ep": (h.get("last") or 0) + 1, "loose": h.get("loose", 0),
-            "next_przepis": (h.get("plast") or 0) + 1, "ploose": h.get("ploose", 0), "disk": _rd("mac_disk.json", {}),
+            "next_przepis": (h.get("plast") or 0) + 1, "ploose": h.get("ploose", 0),
+            "next_cheat": (h.get("clast") or 0) + 1, "cloose": h.get("cloose", 0), "disk": _rd("mac_disk.json", {}),
             "jobs": [{k: x for k, x in j.items() if k not in ("log_full", "raport", "napisy")} for j in v["jobs"][-12:][::-1]]}
+
+
+KINDS = {"vlog": "Vlog", "przepis": "Przepis", "cheat": "Cheat meal"}
+
+
+def _kn(j):
+    return KINDS.get((j or {}).get("kind"), "Vlog")
 
 
 @router.post("/api/mont-vlog/new")
@@ -802,11 +810,11 @@ async def vlog_new(req: Request):
     with _vl:
         v = _V()
         jid = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
-        j = {"id": jid, "kind": "przepis" if b.get("kind") == "przepis" else "vlog", "title": str(b.get("title") or "")[:120],
+        j = {"id": jid, "kind": b.get("kind") if b.get("kind") in KINDS else "vlog", "title": str(b.get("title") or "")[:120],
              "ep": int(b.get("ep") or 0), "date": str(b.get("date") or "")[:10], "voiceover": bool(b.get("voiceover")),
              "state": "uploading" if b.get("upload") else "queued", "step": "Wysyłanie klipów…" if b.get("upload") else "Czekam na Maca…",
              "files": [], "lines": [], "at": time.time()}
-        if j["kind"] == "przepis" and not j["date"]:
+        if j["kind"] in ("przepis", "cheat") and not j["date"]:
             j["date"] = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
         if j["ep"] <= 0 or not re.match(r"^\d{4}-\d{2}-\d{2}$", j["date"]):
             return {"ok": False, "error": "Podaj numer odcinka i datę."}
@@ -883,12 +891,12 @@ async def vlog_act(jid: str, action: str, req: Request):
 
 # — wywoływane przez pomocnika na Macu (token X-Mont-Token) —
 @router.get("/api/mont-hook/next")
-def hook_next(req: Request, last: int = 0, loose: int = 0, plast: int = 0, ploose: int = 0):
+def hook_next(req: Request, last: int = 0, loose: int = 0, plast: int = 0, ploose: int = 0, clast: int = 0, cloose: int = 0):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     with _vl:
         v = _V()
-        v["helper"] = {"seen": time.time(), "last": last, "loose": loose, "plast": plast, "ploose": ploose}
+        v["helper"] = {"seen": time.time(), "last": last, "loose": loose, "plast": plast, "ploose": ploose, "clast": clast, "cloose": cloose}
         busy = any(x["state"] in ("claimed", "working", "ask") for x in v["jobs"])   # Mac montuje jeden film naraz
         j = None if busy else next((x for x in v["jobs"] if x["state"] == "queued"), None)
         if j:
@@ -948,11 +956,12 @@ async def hook_post(jid: str, what: str, req: Request):
     if push:
         from extra import push_all
         if push == "ask":
-            push_all("🎬 Wybierz zapowiedź vloga", f"Odcinek #{j['ep']}: które zdanie dać na początek?", "/#montazownia", kind="montaz")
+            push_all("🎬 Wybierz hook" if j.get("kind") == "cheat" else "🎬 Wybierz zapowiedź vloga",
+                     f"{_kn(j)} #{j['ep']}: " + ("który hook dać na start?" if j.get("kind") == "cheat" else "które zdanie dać na początek?"), "/#montazownia", kind="montaz")
         else:
             ok = j["state"] == "done"
             res = next((l for l in reversed(j["lines"]) if l.startswith("GOTOWE")), "")
-            nm = "Przepis" if j.get("kind") == "przepis" else "Vlog"
+            nm = _kn(j)
             push_all(f"🎥 {nm} gotowy w CapCut" if ok else f"❌ Montaż – {nm.lower()} nie wyszedł", (res or j["step"])[:150], "/#montazownia", kind="montaz", data={"vjob": j["id"]})
     return {"ok": True}
 
