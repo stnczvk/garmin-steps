@@ -577,6 +577,9 @@ async def hook_podglad(jid: str, req: Request):
         if j:
             j["podglad"] = True
             j["check"] = None
+            if j.get("state") in ("claimed", "working", "ask"):
+                # podgląd przychodzi dopiero po gotowym projekcie – jeśli „gotowe” zgubiło się po drodze, tu je nadrabiamy
+                j.update(state="done", step="Projekt gotowy w CapCut", finished=time.time())
             _wr("mont_vlog.json", v)
     threading.Thread(target=vlog_check, args=(jid,), daemon=True).start()
     return {"ok": True}
