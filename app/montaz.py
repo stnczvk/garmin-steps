@@ -1074,3 +1074,57 @@ def hook_answer(jid: str, req: Request):
 def vlog_log(jid: str):
     j = _vjob(_V(), jid)
     return {"log": (j or {}).get("log_full") or "\n".join((j or {}).get("lines", []))}
+
+
+# ---------- opis i hashtagi do publikacji (TikTok + Instagram) – dla jedzenia, vloga i cheat meala ----------
+OPIS_RULES = """Zasady (social media):
+TIKTOK: do ~150 znaków, opis to wyszukiwarka – wpleć naturalnie frazę, którą ktoś wpisze (np. „dzień na redukcji”, „co jem na redukcji”,
+„cheat meal”), na końcu 3–5 hashtagów: 1 szeroki, 2 średnie, 1–2 niszowe (bez #fyp). Może 1 emoji.
+INSTAGRAM: pierwsza linijka to hook (do 125 znaków – tyle widać przed „…więcej”), potem 2–3 krótkie linijki konkretu (liczby z filmu),
+potem PYTANIE do widzów, na które łatwo odpowiedzieć w komentarzu (nie „co myślicie?”), na końcu 3–5 hashtagów.
+Głos: Bartłomiej, luźno, po polsku, jak do kumpla, bez korpo i bez wykrzykników co zdanie. Nie wymyślaj liczb, których nie ma w danych.
+Zwróć TYLKO JSON: {"tiktok": "...", "instagram": "..."} (w instagramie nowe linie jako \\n)."""
+
+
+@router.post("/api/mont-opis")
+async def mont_opis(req: Request):
+    b = await req.json()
+    kind, jid, force = str(b.get("kind") or ""), os.path.basename(str(b.get("id") or "")), bool(b.get("force"))
+    cache = _rd("mont_opis.json", {})
+    if jid in cache and not force:
+        return {"ok": True, **cache[jid]}
+    from agency import ai_ready, claude, as_json
+    if not ai_ready():
+        return {"ok": False, "error": "AI niedostępne"}
+    if kind == "jedzenie":
+        d = JOBS / jid
+        if not d.is_dir():
+            return {"ok": False, "error": "nie ma takiego montażu"}
+        def rd(n, k=2500):
+            try:
+                return (d / n).read_text(encoding="utf-8", errors="ignore")[:k]
+            except Exception:
+                return ""
+        ctx = (f"Seria: Daily jedzenie – film „co jem w ciągu dnia na redukcji” (posiłki z kartami kcal i makro).\n"
+               f"Tytuł na filmie: {rd('title.json', 300)}\nPodsumowanie dnia (dane z dziennika): {rd('podsumowanie.json')}\n"
+               f"Co mówię w filmie / raport montażu: {rd('raport.txt', 2000)}")
+    else:
+        j = _vjob(_V(), jid)
+        if not j:
+            return {"ok": False, "error": "nie ma takiego montażu"}
+        seria = {"cheat": "Cheat meal – jem dużo jedzenia na redukcji, pokazane w całości, stoper, na koniec makro",
+                 "przepis": "Przepis fit krok po kroku z makro"}.get(j.get("kind"), "Daily WNBF vlog – cały dzień na redukcji: posiłki, trening, kardio, kroki, podsumowanie")
+        log_txt = j.get("log_full") or "\n".join(j.get("lines") or [])
+        ctx = (f"Seria: {seria}. Odcinek #{j.get('ep')}, data {j.get('date')}.\n"
+               f"Napisy z filmu (co mówię): {(j.get('napisy') or '')[:3000]}\nLog montażu (liczby z planszy, hook): {log_txt[-1500:]}")
+    try:
+        res = as_json(claude(f"Napisz opis do publikacji krótkiego filmu (TikTok i Instagram Reels) dla konta @wnbf (natural bodybuilding, redukcja).\n\n{ctx}\n\n{OPIS_RULES}",
+                             max_tokens=700)) or {}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:120]}
+    out = {"tiktok": str(res.get("tiktok") or "").strip(), "instagram": str(res.get("instagram") or "").replace("\\n", "\n").strip(), "at": time.time()}
+    if not out["tiktok"]:
+        return {"ok": False, "error": "AI nie zwróciło opisu"}
+    cache[jid] = out
+    _wr("mont_opis.json", dict(list(cache.items())[-80:]))
+    return {"ok": True, **out}

@@ -68,7 +68,10 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .sm-only{display:none}.nf label[hidden],.drop[hidden]{display:none!important}
 .bar2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.bar2 .vt{margin-bottom:0}
 .vt.sec{display:inline-flex}.vt.sec em{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle;visibility:hidden}.vt.sec em.on{visibility:visible}
-.fixd{margin-top:10px}.fixd summary{font-weight:600;color:var(--ink)}
+.fixd{margin-top:10px}
+details.opis{margin-top:10px}details.opis summary{font-weight:600;cursor:pointer}.opis .ob{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.opis .ol{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--soft)}.opis textarea{width:100%;font:inherit;font-size:13.5px;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line,rgba(255,255,255,.12));border-radius:12px;padding:9px 11px;resize:vertical}
+.opis .btn{align-self:flex-start}.fixd summary{font-weight:600;color:var(--ink)}
 @media(max-width:700px){
  .lg-only{display:none}.sm-only{display:inline}.bar2{flex-wrap:nowrap;gap:6px}.bar2 .vt button{padding:6px 9px;font-size:12px}
  .top{align-items:center;margin-bottom:10px;gap:8px}.top p{display:none}.top h1{font-size:22px}.top .r{margin-left:auto}.top .btn{padding:8px 12px;font-size:12.5px}
@@ -233,7 +236,7 @@ async function detail(id,force){
    ${act?'':'<p class="mut" style="margin-top:6px">Żeby centrum mogło poprawiać i ponawiać montaż, dopisz do /root/social/.env linię <code>DZIENNIK_PASS=…</code> (hasło do dziennika) i zrób social-update.</p>'}</div>`}
  $('det').innerHTML=`<h2>${esc(ttl(j))}</h2>
   ${j.state==='done'?`<div class="vid"><video src="/api/mont/${j.id}/film" controls playsinline preload="metadata"></video><div>
-   <div class="row" style="margin-top:0"><a class="btn pri" href="/api/mont/${j.id}/film?dl=1">⬇ Pobierz film</a><button class="btn" id="redo">↻ Zmontuj ponownie</button><a class="btn" href="/api/mont/${j.id}/capcut" title="Klipy w kolejności montażu + karty, muzyka, plan cięć – do ręcznej poprawki w CapCut">📦 Paczka do CapCut</a></div>${g}</div></div>`
+   <div class="row" style="margin-top:0"><a class="btn pri" href="/api/mont/${j.id}/film?dl=1">⬇ Pobierz film</a><button class="btn" id="redo">↻ Zmontuj ponownie</button><a class="btn" href="/api/mont/${j.id}/capcut" title="Klipy w kolejności montażu + karty, muzyka, plan cięć – do ręcznej poprawki w CapCut">📦 Paczka do CapCut</a></div>${opisBox('jedzenie',j.id)}${g}</div></div>`
   :j.state==='error'?`<div class="g bad"><b>Montaż nie wyszedł</b><p>${esc(j.error)}</p></div><div class="row"><button class="btn" id="redo">↻ Spróbuj ponownie</button><a class="btn" href="/api/mont/${j.id}/capcut">📦 Paczka do CapCut</a></div>`
   :j.stalled?`<div class="g bad"><b>⚠️ Montaż stoi</b><p>${esc(j.step)}</p></div><div class="row">${j.clips?`<button class="btn pri" id="kick">▶ Uruchom montaż</button><a class="btn" href="${D.dziennik||DZU}/#karty-${j.id}-${j.date||''}" target="_blank" rel="noopener">🖼 Dodaj karty w Dzienniku</a>`:''}<button class="btn del" id="kdel">🗑 Usuń</button></div>`
   :`<div class="g wait">⏳ ${esc(j.step||ST[j.state]||'czekam…')}</div>`}
@@ -293,6 +296,15 @@ $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value
  window.BUSY=false;$('go').disabled=!FC.length};
 // ---- vlog: zlecenie dla Maca (montaż w CapCut robi niezmieniony automat WNBF) ----
 let V=null,VF=[];
+// opis do publikacji (TikTok + Instagram) – generowany na żądanie, zapamiętany
+const opisBox=(kind,id)=>`<details class="opis" data-ok="${kind}|${id}"><summary>📝 Opis do publikacji</summary><div class="ob"><p class="mut">Kliknij, żeby AI napisało opis i hashtagi.</p></div></details>`;
+async function opisLoad(el,force){const [kind,id]=el.dataset.ok.split('|');const b=el.querySelector('.ob');b.innerHTML='<p class="mut">Piszę opis…</p>';
+ let r;try{r=await (await fetch('/api/mont-opis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,id,force})})).json()}catch(e){r={ok:false,error:e.message}}
+ if(!r.ok){b.innerHTML=`<p class="mut">Nie wyszło: ${esc(r.error||'')}</p>`;return}
+ b.innerHTML=['tiktok','instagram'].map(k=>`<label class="ol">${k==='tiktok'?'TikTok':'Instagram'}<textarea rows="${k==='tiktok'?3:7}">${esc(r[k]||'')}</textarea></label><button class="btn" data-cp>📋 Kopiuj ${k==='tiktok'?'TikTok':'Instagram'}</button>`).join('')+'<button class="btn" data-again>🔁 Napisz od nowa</button>';
+ b.querySelectorAll('[data-cp]').forEach(x=>x.onclick=()=>{navigator.clipboard.writeText(x.previousElementSibling.querySelector('textarea').value).then(()=>toast('Skopiowane'),()=>toast('Zaznacz i skopiuj ręcznie'))});
+ b.querySelector('[data-again]').onclick=()=>opisLoad(el,true);el.dataset.done=1}
+document.addEventListener('toggle',e=>{const el=e.target;if(el.matches&&el.matches('details.opis')&&el.open&&!el.dataset.done)opisLoad(el,false)},true);
 const ago=t=>{const s=Date.now()/1000-t;return s<90?'przed chwilą':s<3600?Math.round(s/60)+' min temu':Math.round(s/3600)+' h temu'};
 const KC={vlog:{h:'Nowy montaż: vlog WNBF',n:'Odcinek nr',go:'🎥 Zmontuj odcinek',dir:'vlog',next:'next_ep',loose:'loose',ic:'🎥',nm:'Odcinek'},
  przepis:{h:'Nowy montaż: przepis',n:'Przepis nr',go:'🍳 Zmontuj przepis',dir:'przepis',next:'next_przepis',loose:'ploose',ic:'🍳',nm:'Przepis'},
@@ -312,7 +324,7 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
  const card=j=>`<div class="vj"><div class="vh"><b>${kc(j.kind).ic} ${kc(j.kind).nm} #${j.ep}</b><small>${esc(j.date||'')}</small><span class="chip ${CH[j.state]||'wait'}">${ST2[j.state]||j.state}</span></div>
   ${j.step&&(!['done'].includes(j.state)||j.step.startsWith('⚠️'))?`<div class="vs"${j.step.startsWith('⚠️')?' style="color:var(--warn);font-weight:600"':''}>${esc(j.step)}</div>`:''}
   ${j.state==='ask'&&j.ask?`<div style="margin-top:8px">Które zdanie dać na początek jako zapowiedź?</div><div class="hk">${j.ask.map((t,i)=>`<div class="hko">${(j.previews||[]).includes(i)?`<div class="hvw"><video class="hv" src="/api/mont-vlog/${j.id}/preview/${i}#t=0.1" muted loop playsinline preload="metadata"></video><span class="hvs">🔇</span></div>`:''}<p>${i+1}. ${esc(t)}</p><button class="btn pri" data-ans="${i}" data-j="${j.id}">Wybieram</button></div>`).join('')}</div><div class="row"><button class="btn" data-ans="none" data-j="${j.id}">— bez zapowiedzi —</button></div>`:''}
-  ${j.state==='done'?`<div class="vs">Projekt „${{przepis:'PRZEPIS',cheat:'CHEAT MEAL'}[j.kind]||'WNBF AUTO'} #${j.ep}” czeka w CapCut${j.fix?' (z poprawką: „'+esc(j.fix)+'”)':''}.</div>`:''}
+  ${j.state==='done'?`<div class="vs">Projekt „${{przepis:'PRZEPIS',cheat:'CHEAT MEAL'}[j.kind]||'WNBF AUTO'} #${j.ep}” czeka w CapCut${j.fix?' (z poprawką: „'+esc(j.fix)+'”)':''}.</div>${opisBox(j.kind,j.id)}`:''}
   ${j.podglad?`<div class="vp"><video src="/api/mont-vlog/${j.id}/podglad" controls playsinline preload="metadata"></video><div>${vcheck(j)}</div></div>`:''}
   ${(j.lines||[]).length&&j.state!=='queued'?`<details data-g="l${j.id}" ${gopen('l'+j.id)}><summary>${j.state==='done'?'Co zrobił montaż':'Postęp'} (${j.lines.length} linii)</summary><pre>${esc((j.state==='done'?j.lines.filter(l=>/GOTOWE|grafika|wycięte|nie dopasowano|plansza|zapowiedź|ElevenLabs|⚠️/.test(l)):j.lines.slice(-30)).join('\n'))}</pre></details>`:''}
   ${['queued','uploading'].includes(j.state)?`<div class="row"><button class="btn" data-vc="${j.id}">Anuluj</button></div>`:''}${['working','ask'].includes(j.state)?`<div class="row"><button class="btn del" data-vstop="${j.id}" title="Gdy montaż utknął – przerwij i ponów">⏹ Przerwij</button></div>`:''}${j.state==='done'?`<div class="row"><button class="btn" data-vag="${j.id}">🔁 Zmontuj ponownie</button></div>`:''}${j.state==='error'?`<div class="row">${(j.files||[]).length?`<button class="btn pri" data-vr="${j.id}">↻ Ponów montaż</button>`:`<button class="btn pri" data-vag="${j.id}">🔁 Zmontuj ponownie</button>`}<button class="btn del" data-vdel="${j.id}">🗑 Usuń</button></div>`:''}</div>`;
