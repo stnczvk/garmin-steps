@@ -1097,6 +1097,10 @@ def vlog_log(jid: str):
 OPIS_RULES = """Zasady (social media):
 TIKTOK: do ~150 znaków, opis to wyszukiwarka – wpleć naturalnie frazę, którą ktoś wpisze (np. „dzień na redukcji”, „co jem na redukcji”,
 „cheat meal”), na końcu 3–5 hashtagów: 1 szeroki, 2 średnie, 1–2 niszowe (bez #fyp). Może 1 emoji.
+HASHTAGI: tylko takie, które opisują TREŚĆ TEGO filmu albo serii (np. #redukcja, #cojemwciągudnia, #cheatmeal, #dietaredukcyjna,
+#fitjedzenie, #siłownia, #dzieńzżycia, nazwy dań/produktów z filmu). Ktoś, kto kliknie hashtag, ma trafić na podobne filmy.
+NIE dawaj hashtagów z nazwy konta ani skrótów, których widz nie szuka i które nie mówią nic o filmie (np. #wnbf, #dailywnbf,
+#vlog22, nazwa kanału), chyba że film naprawdę jest o tym (np. o zawodach WNBF).
 INSTAGRAM: pierwsza linijka to hook (do 125 znaków – tyle widać przed „…więcej”), potem 2–3 krótkie linijki konkretu (liczby z filmu),
 potem PYTANIE do widzów, na które łatwo odpowiedzieć w komentarzu (nie „co myślicie?”), na końcu 3–5 hashtagów.
 Głos: Bartłomiej, luźno, po polsku, jak do kumpla, bez korpo i bez wykrzykników co zdanie. Nie wymyślaj liczb, których nie ma w danych.
@@ -1135,7 +1139,7 @@ async def mont_opis(req: Request):
         ctx = (f"Seria: {seria}. Odcinek #{j.get('ep')}, data {j.get('date')}.\n"
                f"Napisy z filmu (co mówię): {(j.get('napisy') or '')[:3000]}\nLog montażu (liczby z planszy, hook): {log_txt[-1500:]}")
     try:
-        res = as_json(claude(f"Napisz opis do publikacji krótkiego filmu (TikTok i Instagram Reels) dla konta @wnbf (natural bodybuilding, redukcja).\n\n{ctx}\n\n{OPIS_RULES}",
+        res = as_json(claude(f"Napisz opis do publikacji krótkiego filmu (TikTok i Instagram Reels) (autor: Bartłomiej – natural bodybuilding, redukcja, codzienne jedzenie i trening).\n\n{ctx}\n\n{OPIS_RULES}",
                              max_tokens=700)) or {}
     except Exception as e:
         return {"ok": False, "error": str(e)[:120]}
