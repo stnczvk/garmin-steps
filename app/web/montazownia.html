@@ -69,6 +69,8 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .bar2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.bar2 .vt{margin-bottom:0}
 .vt.sec{display:inline-flex}.vt.sec em{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle;visibility:hidden}.vt.sec em.on{visibility:visible}
 .fixd{margin-top:10px}
+.karu{margin-top:10px}.karu summary{font-weight:600;cursor:pointer}.karu .ks{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scroll-snap-type:x mandatory}
+.karu .ks img{height:220px;aspect-ratio:4/5;object-fit:cover;border-radius:12px;flex:none;scroll-snap-align:start;background:#111}
 details.opis{margin-top:10px}details.opis summary{font-weight:600;cursor:pointer}.opis .ob{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .opis .ol{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--soft)}.opis textarea{width:100%;font:inherit;font-size:13.5px;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line,rgba(255,255,255,.12));border-radius:12px;padding:9px 11px;resize:vertical}
 .opis .btn{align-self:flex-start}.fixd summary{font-weight:600;color:var(--ink)}
@@ -234,9 +236,10 @@ async function detail(id,force){
    <details class="fixd" ${c.fix?'open':''}><summary>✂️ Coś poprawić?</summary><textarea id="fx" placeholder="Co poprawić? (np. wytnij drugie podejście w klipie 2)">${esc(c.fix||'')}</textarea>
    <div class="row"><button class="btn pri" id="fixb" ${act?'':'disabled title="Dopisz DZIENNIK_PASS do .env"'}>✂️ Popraw montaż</button><button class="btn" id="chk">🔁 Sprawdź jeszcze raz</button></div></details>
    ${act?'':'<p class="mut" style="margin-top:6px">Żeby centrum mogło poprawiać i ponawiać montaż, dopisz do /root/social/.env linię <code>DZIENNIK_PASS=…</code> (hasło do dziennika) i zrób social-update.</p>'}</div>`}
+ if(j.state==='done')setTimeout(()=>karuLoad(j.id),0);
  $('det').innerHTML=`<h2>${esc(ttl(j))}</h2>
   ${j.state==='done'?`<div class="vid"><video src="/api/mont/${j.id}/film" controls playsinline preload="metadata"></video><div>
-   <div class="row" style="margin-top:0"><a class="btn pri" href="/api/mont/${j.id}/film?dl=1">⬇ Pobierz film</a><button class="btn" id="redo">↻ Zmontuj ponownie</button><a class="btn" href="/api/mont/${j.id}/capcut" title="Klipy w kolejności montażu + karty, muzyka, plan cięć – do ręcznej poprawki w CapCut">📦 Paczka do CapCut</a></div>${opisBox('jedzenie',j.id)}${g}</div></div>`
+   <div class="row" style="margin-top:0"><a class="btn pri" href="/api/mont/${j.id}/film?dl=1">⬇ Pobierz film</a><button class="btn" id="redo">↻ Zmontuj ponownie</button><a class="btn" href="/api/mont/${j.id}/capcut" title="Klipy w kolejności montażu + karty, muzyka, plan cięć – do ręcznej poprawki w CapCut">📦 Paczka do CapCut</a></div><div id="karu"></div>${opisBox('jedzenie',j.id)}${g}</div></div>`
   :j.state==='error'?`<div class="g bad"><b>Montaż nie wyszedł</b><p>${esc(j.error)}</p></div><div class="row"><button class="btn" id="redo">↻ Spróbuj ponownie</button><a class="btn" href="/api/mont/${j.id}/capcut">📦 Paczka do CapCut</a></div>`
   :j.stalled?`<div class="g bad"><b>⚠️ Montaż stoi</b><p>${esc(j.step)}</p></div><div class="row">${j.clips?`<button class="btn pri" id="kick">▶ Uruchom montaż</button><a class="btn" href="${D.dziennik||DZU}/#karty-${j.id}-${j.date||''}" target="_blank" rel="noopener">🖼 Dodaj karty w Dzienniku</a>`:''}<button class="btn del" id="kdel">🗑 Usuń</button></div>`
   :`<div class="g wait">⏳ ${esc(j.step||ST[j.state]||'czekam…')}</div>`}
@@ -296,6 +299,16 @@ $('go').onclick=async()=>{const title=[$('t1').value,$('t2').value,$('t3').value
  window.BUSY=false;$('go').disabled=!FC.length};
 // ---- vlog: zlecenie dla Maca (montaż w CapCut robi niezmieniony automat WNBF) ----
 let V=null,VF=[];
+// karuzela na Instagram (robi się sama po filmie z jedzeniem)
+async function karuLoad(id){const el=$('karu');if(!el)return;let r;try{r=await (await fetch(`/api/mont/${id}/karuzela`)).json()}catch(e){return}
+ const S=r.slides||[];if(!S.length){el.innerHTML='';return}
+ el.innerHTML=`<details class="karu" open><summary>🖼 Karuzela na Instagram (${S.length} slajdów)</summary><div class="ks">${S.map(n=>`<img src="/api/mont/${id}/karuzela/${n}" loading="lazy" alt="">`).join('')}</div>
+  <div class="row"><button class="btn pri" id="ksave">📲 Zapisz na telefon</button></div><p class="mut" style="font-size:12px;margin-top:6px">Wrzuć jako osobny post (najlepiej następnego dnia rano), opis weź z „📝 Opis do publikacji”.</p></details>`;
+ $('ksave').onclick=async()=>{const b=$('ksave');b.disabled=true;b.textContent='Przygotowuję…';
+  try{const fs=await Promise.all(S.map(async n=>new File([await (await fetch(`/api/mont/${id}/karuzela/${n}`)).blob()],`karuzela_${n}`,{type:'image/jpeg'})));
+   if(navigator.canShare&&navigator.canShare({files:fs}))await navigator.share({files:fs});
+   else for(const f of fs){const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click();await new Promise(r=>setTimeout(r,300))}
+  }catch(e){if(e.name!=='AbortError')toast('Nie wyszło: '+e.message)}b.disabled=false;b.textContent='📲 Zapisz na telefon'}}
 // opis do publikacji (TikTok + Instagram) – generowany na żądanie, zapamiętany
 const opisBox=(kind,id)=>`<details class="opis" data-ok="${kind}|${id}"><summary>📝 Opis do publikacji</summary><div class="ob"><p class="mut">Kliknij, żeby AI napisało opis i hashtagi.</p></div></details>`;
 async function opisLoad(el,force){const [kind,id]=el.dataset.ok.split('|');const b=el.querySelector('.ob');b.innerHTML='<p class="mut">Piszę opis…</p>';

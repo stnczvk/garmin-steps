@@ -157,6 +157,20 @@ def job(jid: str):
     return st
 
 
+@router.get("/api/mont/{jid}/karuzela")
+def karuzela(jid: str):
+    d = _job(jid)
+    k = d / "gotowe" / "karuzela" if d else None
+    return {"slides": sorted(f.name for f in k.glob("*.jpg")) if k and k.is_dir() else []}
+
+
+@router.get("/api/mont/{jid}/karuzela/{name}")
+def karuzela_slide(jid: str, name: str):
+    d = _job(jid)
+    f = d / "gotowe" / "karuzela" / os.path.basename(name) if d else None
+    return FileResponse(f, media_type="image/jpeg") if f and f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
+
+
 @router.get("/api/mont/{jid}/film")
 def film(jid: str, dl: int = 0):
     d = _job(jid)
