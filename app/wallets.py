@@ -31,15 +31,36 @@ def usd_pln():
         return c.get("v") or 4.0
 
 
+OKX_HOSTS = ["https://www.okx.com", "https://eea.okx.com", "https://my.okx.com", "https://us.okx.com"]
+
+
 def okx_usd(c):
+    """Konta z Polski są zwykle w OKX EEA (eea.okx.com) – klucz z EEA nie istnieje na www.okx.com („API key doesn't exist”).
+    Próbujemy kolejnych domen i zapamiętujemy tę, która działa."""
     path = "/api/v5/asset/asset-valuation?ccy=USD"
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{datetime.now(timezone.utc).microsecond // 1000:03d}Z"
-    sign = base64.b64encode(hmac.new(c["secret"].encode(), (ts + "GET" + path).encode(), hashlib.sha256).digest()).decode()
-    r = httpx.get("https://www.okx.com" + path, timeout=20, headers={"OK-ACCESS-KEY": c["key"], "OK-ACCESS-SIGN": sign,
-                                                                    "OK-ACCESS-TIMESTAMP": ts, "OK-ACCESS-PASSPHRASE": c["pass"]}).json()
-    if str(r.get("code")) != "0":
-        raise RuntimeError(f"OKX: {r.get('msg') or r.get('code')}")
-    return float(r["data"][0]["totalBal"])
+    hosts = ([c["host"]] if c.get("host") else []) + [h for h in OKX_HOSTS if h != c.get("host")]
+    last = None
+    for host in hosts:
+        now = datetime.now(timezone.utc)
+        ts = now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
+        sign = base64.b64encode(hmac.new(c["secret"].encode(), (ts + "GET" + path).encode(), hashlib.sha256).digest()).decode()
+        try:
+            r = httpx.get(host + path, timeout=20, headers={"OK-ACCESS-KEY": c["key"], "OK-ACCESS-SIGN": sign,
+                                                           "OK-ACCESS-TIMESTAMP": ts, "OK-ACCESS-PASSPHRASE": c["pass"]}).json()
+        except Exception as e:
+            last = str(e)[:80]
+            continue
+        if str(r.get("code")) == "0":
+            if c.get("host") != host:
+                C = _cfg()
+                if C.get("okx"):
+                    C["okx"]["host"] = host
+                    _write(CFG, C)
+            return float(r["data"][0]["totalBal"])
+        last = r.get("msg") or r.get("code")
+        if str(r.get("code")) not in ("50119", "50101", "50105"):   # zły klucz/środowisko – próbuj następnej domeny; inne błędy od razu
+            break
+    raise RuntimeError(f"OKX: {last}")
 
 
 def kraken_usd(c):
