@@ -73,6 +73,9 @@ Odpowiedz WYŁĄCZNIE JSON: [{{"day": "YYYY-MM-DD", "slot": "SAFE"|"EXPERIMENT",
 
 
 def recycle(why="harmonogram"):
+    from agency import settings
+    if why == "harmonogram" and settings().get("diet"):
+        return 0  # dieta kosztowa: bez powtarzania tematów
     if _busy.get("recycle"):
         return
     _busy["recycle"] = "szuka, co powtórzyć"

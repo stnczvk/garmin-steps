@@ -433,6 +433,43 @@ def api_fix_img():
     return fix_image_models()
 
 
+# ---------- dieta kosztowa PozaSkali (25.10.2026): 1 film dziennie (bez harmonogramu 10:00) ----------
+def apply_diet():
+    from agency import _read, _write
+    st = _read("agency_settings.json", {})
+    if st.get("diet_applied"):
+        return {"ok": True, "already": True}
+    try:
+        wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:150]}
+    g = AN.find_generator([w for w in wfs if not w.get("isArchived")])
+    if not g:
+        return {"ok": False, "error": "nie znalazłem generatora"}
+    new = copy.deepcopy(g)
+    off = []
+    for n in new["nodes"]:
+        if "schedule" in n["type"].lower() and "10:00" in n["name"] and not n.get("disabled"):
+            n["disabled"] = True
+            off.append(n["name"])
+    if off:
+        _save_backup(g, "przed dietą kosztową (wyłączenie drugiego filmu dziennie)")
+        r = n8n("PUT", f"/api/v1/workflows/{g['id']}", json=AN.put_body(new))
+        if r.status_code >= 400:
+            r = n8n("PUT", f"/api/v1/workflows/{g['id']}", json=AN.put_body(new, minimal=True))
+        if r.status_code >= 400:
+            log("op", f"Dieta kosztowa: n8n nie przyjął zmian: {r.text[:150]}", "error")
+            return {"ok": False, "error": r.text[:200]}
+        if g.get("active"):
+            n8n("POST", f"/api/v1/workflows/{g['id']}/activate")
+    st = _read("agency_settings.json", {})
+    st.update(diet=True, diet_applied=time.time())
+    _write("agency_settings.json", st)
+    log("op", "Dieta kosztowa PozaSkali: 1 film dziennie (" + (", ".join(off) or "harmonogram 10:00 już wyłączony") + " off), bez recyklingu tematów", "ok")
+    _bust()
+    return {"ok": True, "off": off}
+
+
 def _img_loop():
     import threading, time as _t
     def run():
@@ -442,6 +479,10 @@ def _img_loop():
                 fix_image_models()
             except Exception as e:
                 print("fix img", e, flush=True)
+            try:
+                apply_diet()
+            except Exception as e:
+                print("diet", e, flush=True)
             _t.sleep(6 * 3600)
     threading.Thread(target=run, daemon=True).start()
 
