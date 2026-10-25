@@ -8,6 +8,10 @@ Stop-klatka: z każdego klipu z posiłkiem bierzemy kilkanaście klatek ze środ
 jest ruch telefonu) i wybieramy najlepszą: ostra (bez rozmycia ruchem), kolorowa (jedzenie, nie ściana), dobrze
 naświetlona, z ostrością w środku kadru, gdzie zwykle leży talerz.
 """
+try:
+    import numpy as np
+except ImportError:      # bez numpy – zwykła ścieżka ffmpeg
+    np = None
 import json
 import shlex
 import subprocess
@@ -61,7 +65,50 @@ HDR_VF = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
           "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
 
 
+def _hlg_srgb(x, peak=1000.0, white=203.0):
+    """BT.2020 HLG (0..1) -> sRGB/BT.709 (0..1): OOTF jak w telefonie, łagodne mapowanie świateł (Reinhard).
+    Liczone w numpy – nie zależy od tego, czy ffmpeg na serwerze ma zscale."""
+    a, b, c = 0.17883277, 0.28466892, 0.55991073
+    e = np.where(x <= 0.5, x * x / 3.0, (np.exp((x - c) / a) + b) / 12.0)
+    y = 0.2627 * e[..., 0] + 0.6780 * e[..., 1] + 0.0593 * e[..., 2]
+    d = e * np.power(np.maximum(y, 1e-6), 0.2)[..., None] * peak / white
+    M = np.array([[1.6605, -0.5876, -0.0728], [-0.1246, 1.1329, -0.0083], [-0.0182, -0.1006, 1.1187]])
+    d = np.maximum(d @ M.T, 0)
+    l = 0.2126 * d[..., 0] + 0.7152 * d[..., 1] + 0.0722 * d[..., 2]
+    lm = peak / white
+    d = d * ((l * (1 + l / (lm * lm)) / (1 + l)) / np.maximum(l, 1e-6))[..., None]
+    d = np.clip(d, 0, 1)
+    return np.where(d <= 0.0031308, 12.92 * d, 1.055 * np.power(d, 1 / 2.4) - 0.055)
+
+
+def _frame_hlg(clip, t, width=None):
+    vf = (f"scale={width}:-2:" if width else "scale=iw:ih:") + "in_color_matrix=bt2020:in_range=tv:out_range=pc,format=rgb48be"
+    r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", str(clip), "-frames:v", "1", "-vf", vf,
+                        "-f", "image2pipe", "-vcodec", "ppm", "-"], capture_output=True)
+    raw = r.stdout
+    if r.returncode != 0 or not raw.startswith(b"P6"):
+        return None
+    parts, i = [], 2
+    while len(parts) < 3:                       # nagłówek PPM: szerokość, wysokość, maks.
+        while raw[i:i + 1].isspace():
+            i += 1
+        j = i
+        while not raw[j:j + 1].isspace():
+            j += 1
+        parts.append(int(raw[i:j])); i = j
+    w, h, mx = parts
+    px = np.frombuffer(raw[i + 1:i + 1 + w * h * 6], ">u2").reshape(h, w, 3).astype(np.float32) / mx
+    return Image.fromarray((_hlg_srgb(px) * 255 + 0.5).astype(np.uint8))
+
+
 def frame(clip, t, width=None):
+    if transfer(clip) == "arib-std-b67":         # iPhone HDR (HLG) – bez tego klatka jest szara / z „filtrem”
+        try:
+            im = _frame_hlg(clip, t, width)
+            if im is not None:
+                return im
+        except Exception:
+            pass
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tf:
         out = tf.name
     chain = [HDR_VF] if transfer(clip) in ("arib-std-b67", "smpte2084") else []
