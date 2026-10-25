@@ -50,8 +50,8 @@ canvas{width:100%;display:block}
 .chart{height:170px;margin:4px 0 10px}
 .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,.07);font-size:13.5px}
 .row:first-of-type{border-top:0}.row span{color:var(--soft)}.row b{font-variant-numeric:tabular-nums;text-align:right}
-.note{font-size:12.5px;color:var(--soft);line-height:1.5;margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(124,92,255,.10);border:1px solid rgba(124,92,255,.22);max-height:120px;overflow:hidden;position:relative}
-.note:after{content:"";position:absolute;left:0;right:0;bottom:0;height:30px;background:linear-gradient(transparent,rgba(20,18,40,.6))}
+.note{font-size:12.5px;color:var(--soft);line-height:1.5;margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(124,92,255,.10);border:1px solid rgba(124,92,255,.22);max-height:190px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;position:relative}
+.note::-webkit-scrollbar{width:4px}.note::-webkit-scrollbar-thumb{background:rgba(124,92,255,.4);border-radius:4px}
 .feed .fe{display:grid;grid-template-columns:52px 18px minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.07);font-size:13px;align-items:baseline}
 .feed .fe:first-child{border-top:0}.feed time{color:var(--faint);font:11.5px 'JetBrains Mono',monospace}
 .empty{color:var(--faint);font-size:13px}
@@ -150,7 +150,7 @@ function scanner(S,EQ,FG,AUD){
   <div class="row"><span>Skaner</span><b class="${S.docker?.running?'up':'down'}">${S.docker?.running?'działa':'nie działa'}${S.docker?.cycles?` · ${S.docker.cycles} cykli / 4 min`:''}</b></div>
   <div class="row"><span>Otwarte pozycje</span><b>${op.length?op.slice(0,4).map(o=>`${esc(o.symbol.split('/')[0])} ${o.direction==='LONG'?'↑':'↓'}`).join(', '):'brak'}</b></div>
   <div class="row"><span>Najlepszy przedział score</span><b>${(()=>{const c=(S.calibration||[]).filter(x=>x.closed>=5).sort((a,b)=>(b.wr||0)-(a.wr||0))[0];return c?`${c.bucket}: ${c.wr}% (${c.closed})`:'za mało danych'})()}</b></div>
-  ${AUD?.reports?.[0]?`<div class="note"><b>Audytor AI</b> · ${new Date(AUD.reports[0].at*1000).toLocaleDateString('pl')}<br>${esc(AUD.reports[0].text.slice(0,420)).replace(/\n/g,'<br>')}</div>`:''}`;
+  ${AUD?.reports?.[0]?`<div class="note"><b>Audytor AI</b> · ${new Date(AUD.reports[0].at*1000).toLocaleDateString('pl')}<br>${esc(AUD.reports[0].text.slice(0,4000)).replace(/\n/g,'<br>')}</div>`:''}`;
  requestAnimationFrame(()=>spark($('eq'),EQ?.series||[]));
 }
 
@@ -169,7 +169,7 @@ function priv(D,A){
  if(best)rows.push(['Najlepszy w tygodniu',`${esc((best.title||'bez opisu').slice(0,34))} · ${big(best.views)}`,'up']);
  const R=A?.private?.[0];let note='';
  if(R){const lines=R.text.split('\n').map(l=>l.trim()).filter(Boolean),idea=lines.filter(l=>l.startsWith('•')).slice(-3);
-  note=`<div class="note"><b>Analityk · ${new Date(R.at*1000).toLocaleDateString('pl')}</b><br>${esc(lines[0].replace(/^[•\d.\s]+/,'')).slice(0,200)}${idea.length?'<br><br><b>Pomysły na ten tydzień</b><br>'+idea.map(i=>esc(i.slice(0,110))).join('<br>'):''}</div>`}
+  note=`<div class="note"><b>Analityk · ${new Date(R.at*1000).toLocaleDateString('pl')}</b><br>${esc(lines[0].replace(/^[•\d.\s]+/,'')).slice(0,1200)}${idea.length?'<br><br><b>Pomysły na ten tydzień</b><br>'+idea.map(i=>esc(i.slice(0,110))).join('<br>'):''}</div>`}
  else note='<p class="empty" style="margin-top:8px">Raport Analityka przyjdzie w poniedziałek o 8:00 (albo Agencja AI → Konta prywatne → Analizuj teraz).</p>';
  $('pv').innerHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><b class="${r[2]}">${r[1]}</b></div>`).join('')+note;
 }

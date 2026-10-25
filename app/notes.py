@@ -328,7 +328,45 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {"project": {"type": "string"}, "text": {"type": "string"}}, "required": ["project", "text"]}},
     {"name": "append_note", "description": "Dopisz tekst na końcu istniejącej notatki (id = ścieżka).",
      "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "content": {"type": "string"}}, "required": ["id", "content"]}},
+    {"name": "centrum_data", "description": "Diagnostyka centrum (tylko odczyt, bez tokenów/haseł): bez 'file' → lista plików danych + ostatnie logi; "
+     "z 'file' (np. agency_log.json, agency_inbox.json) → zawartość pliku (ostatnie 'tail' elementów listy).",
+     "inputSchema": {"type": "object", "properties": {"file": {"type": "string"}, "tail": {"type": "integer"}}}},
 ]
+
+_SECRET = re.compile(r"token|secret|refresh|passw|api_?key|cookie|session|auth|credential", re.I)
+
+
+def _redact(x, d=0):
+    if d > 12:
+        return "…"
+    if isinstance(x, dict):
+        return {k: ("***" if _SECRET.search(str(k)) else _redact(v, d + 1)) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_redact(v, d + 1) for v in x]
+    if isinstance(x, str) and len(x) > 40 and re.fullmatch(r"[A-Za-z0-9_\-\.=/+]{40,}", x):
+        return "***"
+    return x
+
+
+def centrum_data(file=None, tail=80):
+    from social import DIR
+    tail = max(1, min(int(tail or 80), 400))
+    if not file:
+        fs = sorted(DIR.glob("*.json"), key=lambda f: -f.stat().st_mtime)
+        return {"files": [{"name": f.name, "kb": f.stat().st_size // 1024, "mtime": int(f.stat().st_mtime)} for f in fs if not _SECRET.search(f.stem)],
+                "log": _redact(_read("agency_log.json", [])[-tail:])}
+    name = Path(str(file)).name
+    if not name.endswith(".json") or _SECRET.search(Path(name).stem) or name in ("push.json",):
+        raise ValueError("tego pliku nie udostępniam")
+    d = _read(name, None)
+    if d is None:
+        raise ValueError("nie ma takiego pliku")
+    if isinstance(d, list):
+        d = d[-tail:]
+    elif isinstance(d, dict):
+        d = {k: (v[-tail:] if isinstance(v, list) else v) for k, v in d.items()}
+    out = json.dumps(_redact(d), ensure_ascii=False)
+    return {"file": name, "data": json.loads(out) if len(out) < 400_000 else out[:400_000]}
 
 
 def _tool(name, a):
@@ -371,6 +409,8 @@ def _tool(name, a):
             p = _find(a.get("id", "")) or p
         m = write(_rel(p), a.get("content", ""), mode="append")
         return {"ok": True, "id": m["path"]}
+    if name == "centrum_data":
+        return centrum_data(a.get("file"), a.get("tail") or 80)
     raise ValueError("nieznane narzędzie")
 
 

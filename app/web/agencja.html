@@ -378,7 +378,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
   if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
  on('lk-up',async e=>{e.target.disabled=true;e.target.textContent='Chwila…';const r=await post('/api/agency/link/connect').catch(()=>({ok:false}));if(!r.ok)alert('Nie wyszło: '+(r.error||''));await loadLink();poll()});
  const lim=$('lim');if(lim)lim.onchange=async()=>{await post('/api/agency/settings',{daily_limit:+lim.value});poll()};
- on('go-bk',async e=>{e.target.disabled=true;await post('/api/agency/backup');poll()});
+ on('go-bk',async e=>{e.target.disabled=true;const r=await post('/api/agency/backup');if(r&&r.ok===false)alert('Kopia nie wyszła: '+r.error);else if(r&&r.name)alert('Zrobione: '+r.name);e.target.disabled=false;poll()});
  on('go-tr',async()=>{await post('/api/agency/trends');setTimeout(poll,2500)});
  const abx=$('abx');if(abx)abx.onchange=async()=>{await post('/api/agency/settings',{ab:abx.checked});poll()};
  on('go-priv',async()=>{await post('/api/agency/private');setTimeout(poll,2000)});

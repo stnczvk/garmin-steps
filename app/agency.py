@@ -1141,15 +1141,29 @@ BK = SOCIAL_ROOT / "backups"
 
 def backup():
     BK.mkdir(parents=True, exist_ok=True)
-    name = BK / f"centrum-{datetime.now(TZ).strftime('%Y-%m-%d_%H%M')}.zip"
-    with zipfile.ZipFile(name, "w", zipfile.ZIP_DEFLATED) as z:
+    name = BK / f"centrum-{datetime.now(TZ).strftime('%Y-%m-%d_%H%M%S')}.zip"
+    tmp = name.with_suffix(".part")
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
         for f in DATA_DIR.glob("*.json"):
-            z.write(f, f"dane/{f.name}")
+            try:  # plik mógł zniknąć/zmienić się w trakcie (zapis z innego wątku) – pomijamy go zamiast wywalać całą kopię
+                z.writestr(f"dane/{f.name}", f.read_bytes())
+            except Exception as e:
+                print("backup skip", f.name, e, flush=True)
         for extra in ("sesje.db",):
-            if (SOCIAL_ROOT / extra).exists():
-                z.write(SOCIAL_ROOT / extra, extra)
+            src = SOCIAL_ROOT / extra
+            if src.exists():
+                try:
+                    import sqlite3
+                    snap = BK / "_sesje_snap.db"
+                    with sqlite3.connect(src) as a, sqlite3.connect(snap) as b:
+                        a.backup(b)
+                    z.write(snap, extra)
+                    snap.unlink(missing_ok=True)
+                except Exception as e:
+                    print("backup skip", extra, e, flush=True)
+    tmp.replace(name)
     os.chmod(name, 0o600)
-    for old in sorted(BK.glob("centrum-*.zip"))[:-14]:
+    for old in sorted(BK.glob("centrum-*.zip"), key=lambda f: f.stat().st_mtime)[:-14]:
         old.unlink()
     log("op", f"Kopia zapasowa: {name.name} ({name.stat().st_size // 1024} KB)", "ok")
     return name
@@ -1158,12 +1172,17 @@ def backup():
 def backups_list():
     if not BK.exists():
         return []
-    return [{"name": f.name, "kb": f.stat().st_size // 1024, "at": f.stat().st_mtime} for f in sorted(BK.glob("centrum-*.zip"), reverse=True)[:14]]
+    fs = sorted(BK.glob("centrum-*.zip"), key=lambda f: f.stat().st_mtime, reverse=True)[:14]
+    return [{"name": f.name, "kb": f.stat().st_size // 1024, "at": f.stat().st_mtime} for f in fs]
 
 
 @router.post("/api/agency/backup")
 def do_backup():
-    return {"ok": True, "name": backup().name}
+    try:
+        return {"ok": True, "name": backup().name}
+    except Exception as e:
+        log("op", f"Kopia zapasowa nie wyszła: {e}", "error")
+        return {"ok": False, "error": str(e)[:200]}
 
 
 @router.get("/api/agency/backup/{name}")

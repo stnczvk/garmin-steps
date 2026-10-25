@@ -1112,12 +1112,13 @@ async def mont_opis(req: Request):
     b = await req.json()
     kind, jid, force = str(b.get("kind") or ""), os.path.basename(str(b.get("id") or "")), bool(b.get("force"))
     cache = _rd("mont_opis.json", {})
-    if jid in cache and not force:
-        return {"ok": True, **cache[jid]}
+    key = ("k:" + jid) if kind == "karuzela" else jid  # karuzela ma własny opis, niezależny od filmu
+    if key in cache and not force:
+        return {"ok": True, **cache[key]}
     from agency import ai_ready, claude, as_json
     if not ai_ready():
         return {"ok": False, "error": "AI niedostępne"}
-    if kind == "jedzenie":
+    if kind in ("jedzenie", "karuzela"):
         d = JOBS / jid
         if not d.is_dir():
             return {"ok": False, "error": "nie ma takiego montażu"}
@@ -1129,6 +1130,11 @@ async def mont_opis(req: Request):
         ctx = (f"Seria: Daily jedzenie – film „co jem w ciągu dnia na redukcji” (posiłki z kartami kcal i makro).\n"
                f"Tytuł na filmie: {rd('title.json', 300)}\nPodsumowanie dnia (dane z dziennika): {rd('podsumowanie.json')}\n"
                f"Co mówię w filmie / raport montażu: {rd('raport.txt', 2000)}")
+        if kind == "karuzela":
+            ctx = ("KARUZELA na Instagram (osobny post, NIE film): slajd 1 okładka „Co zjadłem w jeden dzień na redukcji?”, potem po 1 zdjęciu "
+                   "każdego posiłku z kartą kcal i wszystkimi produktami, plansza z makro dnia, na końcu pytanie „Który posiłek wybierasz?”.\n"
+                   + ctx + "\nOpis ma zachęcać do przesunięcia do końca i ZAPISANIA posta (pomysły na posiłki), inny niż opis filmu – "
+                   "nie pisz „w filmie”/„obejrzyj”. Pole tiktok = krótka wersja do karuzeli zdjęciowej na TikToku.")
     else:
         j = _vjob(_V(), jid)
         if not j:
@@ -1139,13 +1145,14 @@ async def mont_opis(req: Request):
         ctx = (f"Seria: {seria}. Odcinek #{j.get('ep')}, data {j.get('date')}.\n"
                f"Napisy z filmu (co mówię): {(j.get('napisy') or '')[:3000]}\nLog montażu (liczby z planszy, hook): {log_txt[-1500:]}")
     try:
-        res = as_json(claude(f"Napisz opis do publikacji krótkiego filmu (TikTok i Instagram Reels) (autor: Bartłomiej – natural bodybuilding, redukcja, codzienne jedzenie i trening).\n\n{ctx}\n\n{OPIS_RULES}",
+        what = "karuzeli zdjęć (Instagram + TikTok foto)" if kind == "karuzela" else "krótkiego filmu (TikTok i Instagram Reels)"
+        res = as_json(claude(f"Napisz opis do publikacji {what} (autor: Bartłomiej – natural bodybuilding, redukcja, codzienne jedzenie i trening).\n\n{ctx}\n\n{OPIS_RULES}",
                              max_tokens=700)) or {}
     except Exception as e:
         return {"ok": False, "error": str(e)[:120]}
     out = {"tiktok": str(res.get("tiktok") or "").strip(), "instagram": str(res.get("instagram") or "").replace("\\n", "\n").strip(), "at": time.time()}
     if not out["tiktok"]:
         return {"ok": False, "error": "AI nie zwróciło opisu"}
-    cache[jid] = out
+    cache[key] = out
     _wr("mont_opis.json", dict(list(cache.items())[-80:]))
     return {"ok": True, **out}

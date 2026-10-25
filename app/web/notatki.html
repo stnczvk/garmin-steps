@@ -79,7 +79,7 @@ html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <div class="top"><h1>📝 Notatki</h1>
-  <div class="r"><button class="btn pri" id="new">＋ <span class="lbl">Nowa notatka</span></button><button class="btn" id="nf">📁 <span class="lbl">Folder</span></button><button class="btn" id="upd">🚀 <span class="lbl">Update</span></button><button class="btn" id="gpt">🤖 <span class="lbl">ChatGPT</span></button></div></div>
+  <div class="r"><button class="btn pri" id="new">＋ <span class="lbl">Nowa notatka</span></button><button class="btn" id="nf">📁 <span class="lbl">Folder</span></button><button class="btn" id="upd">🚀 <span class="lbl">Update</span></button><button class="btn" id="pw">🔑 <span class="lbl">Hasło</span></button><button class="btn" id="gpt">🤖 <span class="lbl">ChatGPT</span></button></div></div>
  <div class="lay">
   <aside class="glass side"><input class="q" id="q" placeholder="🔍 Szukaj w notatkach…" type="search"><div id="tree"><p class="mut">Ładuję…</p></div></aside>
   <section class="glass ed" id="ed">
@@ -114,6 +114,17 @@ html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
  <p class="mut">ChatGPT → Ustawienia → Kontrola danych → Eksportuj dane. Przyjdzie mail z plikiem .zip – wybierz go tutaj. Każda rozmowa stanie się notatką w 🤖 ChatGPT.</p>
  <div class="row"><label class="btn"><input type="file" id="imp" accept=".zip,.json" hidden>Wybierz plik eksportu</label><span class="mut" id="impst"></span></div>
  <div class="row"><button class="btn" data-close>Zamknij</button></div></div></div>
+<div class="mod" id="mpw"><div class="box"><h2>🔑 Generator hasła</h2>
+ <div class="row" id="pwlv" style="gap:6px;flex-wrap:wrap"><button class="btn" data-l="1">Łatwe</button><button class="btn pri" data-l="2">Średnie</button><button class="btn" data-l="3">Trudne</button></div>
+ <label class="mut" style="display:block;margin:10px 0 4px">Długość: <b id="pwn">16</b></label><input type="range" id="pwlen" min="6" max="64" value="16" style="width:100%">
+ <div class="row" style="flex-wrap:wrap;gap:12px;margin:8px 0">
+  <label><input type="checkbox" id="pwl" checked> małe litery</label><label><input type="checkbox" id="pwu" checked> duże litery</label>
+  <label><input type="checkbox" id="pwd" checked> cyfry</label><label><input type="checkbox" id="pws"> znaki specjalne</label>
+  <label><input type="checkbox" id="pwx" checked> bez mylących (0/O, 1/l/I)</label></div>
+ <div class="url" id="pwo" style="font:600 18px ui-monospace,Menlo,monospace;word-break:break-all;user-select:all">…</div>
+ <p class="mut" id="pwst" style="font-size:12px;margin:6px 0 0"></p>
+ <p class="mut" style="font-size:12px;margin:4px 0 0">Hasło powstaje tylko na tym urządzeniu – nigdzie nie jest wysyłane ani zapisywane.</p>
+ <div class="row"><button class="btn pri" id="pwc">📋 Kopiuj</button><button class="btn" id="pwg">↻ Nowe</button><button class="btn" data-close>Zamknij</button></div></div></div>
 <div class="msg" id="msg"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -223,6 +234,23 @@ $('imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;const st=m=>$
 (async()=>{await loadTree();let p=null;try{p=localStorage.getItem('notes-cur')}catch(e){}
  if(p&&T.notes.some(n=>n.path===p)&&innerWidth>700)open_(p);else if(T.notes[0]&&innerWidth>700)open_(T.notes[0].path);else showEmpty()})();
 setInterval(()=>{if(!DIRTY&&document.visibilityState==='visible'&&$('q').value.trim()==='')loadTree()},30000);
+</script>
+<script>
+(()=>{const g=id=>document.getElementById(id),LV={1:[10,1,1,1,0],2:[16,1,1,1,0],3:[24,1,1,1,1]};
+const sets={l:'abcdefghijkmnopqrstuvwxyz',L:'abcdefghijklmnopqrstuvwxyz',u:'ABCDEFGHJKLMNPQRSTUVWXYZ',U:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',d:'23456789',D:'0123456789',s:'!@#$%^&*()-_=+[]{};:,.?/~'};
+const rnd=n=>{const a=new Uint32Array(1);const lim=Math.floor(2**32/n)*n;do crypto.getRandomValues(a);while(a[0]>=lim);return a[0]%n};
+function gen(){const x=g('pwx').checked,len=+g('pwlen').value,pools=[];
+ if(g('pwl').checked)pools.push(x?sets.l:sets.L);if(g('pwu').checked)pools.push(x?sets.u:sets.U);if(g('pwd').checked)pools.push(x?sets.d:sets.D);if(g('pws').checked)pools.push(sets.s);
+ if(!pools.length){g('pwl').checked=true;return gen()}
+ const all=pools.join('');let c=pools.map(p=>p[rnd(p.length)]);while(c.length<len)c.push(all[rnd(all.length)]);c=c.slice(0,len);
+ for(let i=c.length-1;i>0;i--){const j=rnd(i+1);[c[i],c[j]]=[c[j],c[i]]}
+ g('pwo').textContent=c.join('');g('pwn').textContent=len;const bits=Math.round(len*Math.log2(all.length));
+ g('pwst').textContent=`siła: ~${bits} bitów · `+(bits<50?'słabe':bits<75?'dobre':bits<100?'mocne':'bardzo mocne')}
+document.querySelectorAll('#pwlv [data-l]').forEach(b=>b.onclick=()=>{const v=LV[b.dataset.l];g('pwlen').value=v[0];g('pwl').checked=!!v[1];g('pwu').checked=!!v[2];g('pwd').checked=!!v[3];g('pws').checked=!!v[4];
+ document.querySelectorAll('#pwlv [data-l]').forEach(o=>o.classList.toggle('pri',o===b));gen()});
+['pwlen','pwl','pwu','pwd','pws','pwx'].forEach(id=>g(id).oninput=gen);
+g('pwg').onclick=gen;g('pwc').onclick=async()=>{try{await navigator.clipboard.writeText(g('pwo').textContent);g('pwc').textContent='✓ Skopiowane';setTimeout(()=>g('pwc').textContent='📋 Kopiuj',1500)}catch(e){}};
+g('pw').onclick=()=>{g('mpw').classList.add('open');gen()}})();
 </script>
 </body>
 </html>

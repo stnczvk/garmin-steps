@@ -362,3 +362,86 @@ async def rename(wid: str, req: Request):
     log("op", f"Zmienił nazwę workflow „{cur['name']}” na „{name}”" if ok else f"Zmiana nazwy nie wyszła: {p.text[:150]}", "ok" if ok else "error")
     _bust()
     return {"ok": ok, "error": None if ok else p.text[:200]}
+
+
+# ---------- automatyczna podmiana wycofanych modeli obrazów OpenAI w workflow ----------
+# gpt-image-1 zniknął z API („model does not exist”), gpt-image-1-mini/1.5 znikają 1.12.2026.
+OLD_IMG = {"gpt-image-1", "gpt-image-1-mini", "gpt-image-1.5", "chatgpt-image-latest", "dall-e-3", "dall-e-2"}
+NEW_IMG = os.environ.get("IMAGE_MODEL", "gpt-image-2.5-flare")
+
+
+def _fix_img_node(n):
+    p = n.get("parameters") or {}
+    hit = False
+    m = p.get("modelId")
+    if isinstance(m, dict) and m.get("value") in OLD_IMG:
+        p["modelId"] = {"__rl": True, "value": NEW_IMG, "mode": "id"}
+        hit = True
+    elif isinstance(m, str) and m in OLD_IMG:
+        p["modelId"] = NEW_IMG
+        hit = True
+    if isinstance(p.get("model"), str) and p["model"] in OLD_IMG:
+        p["model"] = NEW_IMG
+        hit = True
+    # node HTTP Request z JSON-em do /v1/images/… → "model": "gpt-image-1"
+    for k in ("jsonBody", "body"):
+        v = p.get(k)
+        if isinstance(v, str) and "images" in str(p.get("url", "")) + v:
+            import re as _re
+            nv = _re.sub(r'("model"\s*:\s*")(%s)(")' % "|".join(map(_re.escape, OLD_IMG)), lambda mm: mm.group(1) + NEW_IMG + mm.group(3), v)
+            if nv != v:
+                p[k] = nv
+                hit = True
+    for bp in (p.get("bodyParameters") or {}).get("parameters", []) or []:
+        if bp.get("name") == "model" and bp.get("value") in OLD_IMG:
+            bp["value"] = NEW_IMG
+            hit = True
+    return hit
+
+
+def fix_image_models():
+    try:
+        wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:150]}
+    fixed = []
+    for wf in wfs:
+        new = copy.deepcopy(wf)
+        names = [n["name"] for n in new.get("nodes", []) if _fix_img_node(n)]
+        if not names:
+            continue
+        _save_backup(wf, f"przed podmianą modelu obrazów na {NEW_IMG}")
+        r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new))
+        if r.status_code >= 400:
+            r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new, minimal=True))
+        if r.status_code >= 400:
+            log("op", f"Nie podmieniłem modelu obrazów w {wf['name']}: {r.text[:150]}", "error")
+            continue
+        if wf.get("active"):
+            n8n("POST", f"/api/v1/workflows/{wf['id']}/activate")
+        fixed.append(f"{wf['name']} ({', '.join(names)})")
+    if fixed:
+        log("op", f"Podmienił wycofany model obrazów na {NEW_IMG}: " + "; ".join(fixed), "ok")
+        _bust()
+    return {"ok": True, "fixed": fixed, "model": NEW_IMG}
+
+
+@router.post("/api/n8n/fix-image-models")
+def api_fix_img():
+    return fix_image_models()
+
+
+def _img_loop():
+    import threading, time as _t
+    def run():
+        _t.sleep(60)
+        while True:
+            try:
+                fix_image_models()
+            except Exception as e:
+                print("fix img", e, flush=True)
+            _t.sleep(6 * 3600)
+    threading.Thread(target=run, daemon=True).start()
+
+
+_img_loop()
