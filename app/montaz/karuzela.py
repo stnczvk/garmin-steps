@@ -194,23 +194,28 @@ def main():
         if im is not None:
             shots[c] = im
     slides = []
-    # 1. okładka: najbardziej kaloryczny posiłek, rozmyty i przyciemniony
+    # 1. okładka: najbardziej kaloryczny posiłek – stop-klatka bez filtrów (naturalne światło),
+    #    tekst na półprzezroczystym panelu zamiast przyciemniania/rozmywania całego zdjęcia
     top = max((c for c in meals if c in shots), key=lambda c: karty[c].get("kcal", 0), default=None)
     bg = cover(shots[top]) if top else Image.new("RGB", (W, H), (20, 20, 24))
-    s = ImageEnhance.Brightness(bg.filter(ImageFilter.GaussianBlur(5))).enhance(0.5)
+    s = bg.copy().convert("RGBA")
+    ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(ov)
+    od.rounded_rectangle([60, 380, W - 60, 960], radius=44, fill=(12, 12, 14, 175))
+    s.alpha_composite(ov)
     d = ImageDraw.Draw(s)
     pill(d, 60, 80, f"{summ.get('label', 'DZIEŃ')} · REDUKCJA", font(34))
     for i, line in enumerate(["Co zjadłem", "w jeden dzień", "na redukcji?"]):
         center_text(d, 440 + i * 122, line, font(96, 850))
     kc = f"{summ['kcal']:,}".replace(",", " ")
     center_text(d, 860, f"{kc} kcal  ·  {summ.get('p', 0)} g białka", font(46), YEL)
-    center_text(d, 1230, "przesuń >>", font(34, 600), (230, 230, 235))
+    pill(d, (W - d.textlength("przesuń >>", font=font(34, 600)) - 52) / 2, 1200, "przesuń >>", font(34, 600), fill=(12, 12, 14), fg=(255, 255, 255))
+    s = s.convert("RGB")
     slides.append(s)
     # 2…: posiłki
     for i, c in enumerate(meals):
         s = cover(shots[c]) if c in shots else Image.new("RGB", (W, H), (20, 20, 24))
-        s = shade(s, 0.1, 0.55)
-        d = ImageDraw.Draw(s)
+        d = ImageDraw.Draw(s)  # bez przyciemniania – zdjęcie zostaje naturalne, karta i licznik mają własne tło
         pill(d, 60, 70, f"{i + 1}/{len(meals)}", font(30))
         # własna karta ze WSZYSTKIMI produktami; PNG z dziennika tylko gdy nie mamy listy produktów
         card = meal_card(karty[c]) if (karty[c].get("items") or c not in png) else Image.open(png[c]).convert("RGBA")
@@ -222,7 +227,7 @@ def main():
         s.alpha_composite(card, ((W - card.width) // 2, H - card.height - 60))
         slides.append(s.convert("RGB"))
     # podsumowanie dnia
-    s = ImageEnhance.Brightness(bg.filter(ImageFilter.GaussianBlur(28))).enhance(0.3)
+    s = Image.new("RGB", (W, H), (14, 14, 16))  # plansza informacyjna – jednolite tło zamiast rozmytego zdjęcia
     d = ImageDraw.Draw(s)
     center_text(d, 150, "Podsumowanie dnia", font(72))
     center_text(d, 300, kc, font(170, 850), YEL)
