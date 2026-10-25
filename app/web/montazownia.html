@@ -183,6 +183,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
    <div class="nf" style="grid-template-columns:120px 160px minmax(0,1fr)"><label><span id="vepl">Odcinek nr</span><input id="vep" type="number" min="1"></label><label class="vdate">Data nagrania<input id="vd" type="date"></label><label class="ponly" hidden>Tytuł na początek filmu<input id="vt2" placeholder="np. Fit placuszki które mają tylko 500 kcal"></label>
     <label>Klipy<span id="vsrc" class="mut" style="font-size:13px;padding-top:9px"></span></label></div>
    <div class="nf2"><label class="drop" id="vdrop"><input type="file" id="vf" accept="video/*,image/*,.mov,.mp4,.m4v,.png,.jpg,.jpeg" multiple hidden><b>📤 Wyślij klipy z telefonu (opcjonalnie)</b><span id="vfl">albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd</span></label>
+    <label class="drop vonly" id="pdrop"><input type="file" id="pf" accept="video/*,.mov,.mp4,.m4v" multiple hidden><b>💪 Pozowanie – update formy (opcjonalnie)</b><span id="pfl">klipy z pozowania – wejdą jako blok „UPDATE FORMY” przed podsumowaniem (na Macu: nazwij je poz_…)</span></label>
     <label class="drop vonly"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="vvo" style="accent-color:#8f7bff;width:18px;height:18px"><b>Dogrywam dziś głos do klipów bez mowy</b></span><span>Tak – klipy bez mowy w normalnej prędkości, do 8 s, każdy na cały ekran. Nie – jak zwykle (przyspieszone, w parach).</span></label></div>
    <div class="row"><button class="btn pri" id="vgo">🎥 Zmontuj odcinek</button><button class="btn" id="vcancel">Anuluj</button><span class="mut" id="vup"></span></div>
   </div>
@@ -388,6 +389,7 @@ async function vload(){try{V=await (await fetch('/api/mont-vlog/state')).json()}
 $('przb').onclick=()=>{setMode('dash');setSec('vlog');setKind('przepis');$('newp').hidden=true;$('vnew').hidden=false;scrollTo({top:0,behavior:'smooth'})};
 $('vlogb').onclick=()=>{setMode('dash');setSec('vlog');setKind('vlog');$('newp').hidden=true;$('vnew').hidden=!$('vnew').hidden;scrollTo({top:0,behavior:'smooth'})};
 $('vcancel').onclick=()=>{$('vnew').hidden=true};
+let PF=[];$('pf').onchange=e=>{PF=[...e.target.files];$('pfl').textContent=PF.length?`${PF.length} klipów z pozowania · ${mb(PF.reduce((s,f)=>s+f.size,0))}`:'klipy z pozowania – wejdą jako blok „UPDATE FORMY” przed podsumowaniem';$('pdrop').classList.toggle('has',!!PF.length)};
 $('vf').onchange=e=>{VF=[...e.target.files];$('vfl').textContent=VF.length?`${VF.length} plików · ${mb(VF.reduce((s,f)=>s+f.size,0))}`:'albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd';$('vdrop').classList.toggle('has',!!VF.length);if(VF.length){const q=document.createElement('span');$('vfl').appendChild(q);qualityNote(VF,q)}};
 let KIND='vlog';
 function setKind(k){KIND=k;const c=kc(k);document.querySelectorAll('.vonly').forEach(e=>e.hidden=k!=='vlog');document.querySelectorAll('.ponly').forEach(e=>e.hidden=k!=='przepis');
@@ -398,6 +400,7 @@ function setKind(k){KIND=k;const c=kc(k);document.querySelectorAll('.vonly').for
  $('vfl').textContent=VF.length?$('vfl').textContent:`albo wrzuć je na Macu do _SUROWE/${c.dir} – tak jak dotąd`}
 $('cheatb').onclick=$('cheatb2').onclick=()=>{setMode('dash');setSec('cheat');setKind('cheat');$('newp').hidden=true;$('vnew').hidden=false;scrollTo({top:0,behavior:'smooth'})};
 $('vgo').onclick=async()=>{const P=KIND==='przepis',c=kc(KIND),ep=+$('vep').value,date=P?new Date().toISOString().slice(0,10):$('vd').value;if(!ep||!date)return toast(P?'Podaj numer przepisu.':'Podaj numer i datę.');
+ if(KIND==='vlog'&&PF.length){VF=[...VF.filter(f=>!/^poz_/i.test(f.name)),...PF.map(f=>new File([f],'poz_'+f.name,{type:f.type}))]}
  if(!VF.length&&!V?.[c.loose]&&!confirm(`Na Macu w _SUROWE/${c.dir} nie widzę nowych klipów. Montować mimo to?`))return;
  window.BUSY=true;$('vgo').disabled=true;try{const r=await (await fetch('/api/mont-vlog/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ep,date,kind:KIND,title:$('vt2').value.trim(),voiceover:$('vvo').checked&&KIND==='vlog',upload:VF.length>0})})).json();if(!r.ok)throw new Error(r.error);
   if(VF.length){const tot=VF.reduce((s,f)=>s+f.size,0),t0=Date.now();let done=0,wl=null;
@@ -412,7 +415,7 @@ $('vgo').onclick=async()=>{const P=KIND==='przepis',c=kc(KIND),ep=+$('vep').valu
    catch(x){await fetch(`/api/mont-vlog/${r.id}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});throw new Error('wysyłanie przerwane ('+x.message+') – spróbuj jeszcze raz')}
    finally{try{wl&&wl.release()}catch(x){}}
    await fetch(`/api/mont-vlog/${r.id}/go`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}
-  toast(V?.online?'Zlecone – Mac zaczyna montaż.':'Zlecone – Mac zacznie, gdy będzie włączony.');$('vnew').hidden=true;VF=[];$('vf').value='';$('vup').textContent='';$('vep').value='';vload()}
+  toast(V?.online?'Zlecone – Mac zaczyna montaż.':'Zlecone – Mac zacznie, gdy będzie włączony.');$('vnew').hidden=true;VF=[];$('vf').value='';PF=[];$('pf').value='';$('pdrop').classList.remove('has');$('vup').textContent='';$('vep').value='';vload()}
  catch(e){$('vup').textContent='Nie wyszło: '+e.message}$('vgo').disabled=false;window.BUSY=false};
 
 // ---- zapowiedzi: film rusza po najechaniu myszką (na telefonie – ten widoczny w karuzeli); klik = dźwięk ----
