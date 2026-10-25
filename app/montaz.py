@@ -209,6 +209,12 @@ async def act(jid: str, action: str, req: Request):
         C.pop(jid, None)
         _wr("mont_checks.json", C)
         return check(jid) or {"error": "Film nie jest gotowy."}
+    if action in ("redo", "start", "fix"):
+        try:   # montaż od nowa → stare szkice postów z tego filmu znikają z „Zaplanowanych postów”
+            import planer
+            planer.drop([f"food:{jid}", f"karu:{jid}"])
+        except Exception as e:
+            print("planer drop", e, flush=True)
     if action in ("redo", "start"):
         C = _rd("mont_checks.json", {})
         C.pop(jid, None)
@@ -921,6 +927,12 @@ async def vlog_act(jid: str, action: str, req: Request):
                       fix=str(b["comment"]).strip()[:600])
             v["jobs"] = v["jobs"][-30:] + [nj]
             add_lesson(j.get("kind") or "vlog", j.get("ep"), nj["fix"])
+        if action in ("again", "fix"):
+            try:   # ponowny montaż vloga/cheat/przepisu → stare szkice postów tego odcinka znikają
+                import planer
+                planer.drop(series=j.get("kind") or "vlog", ep=j.get("ep"))
+            except Exception as e:
+                print("planer drop", e, flush=True)
         if action in ("again", "fix") and any(x.get("again") == jid for x in v["jobs"]):
             # nowe podejście już jest – stara wersja znika z listy (razem z podglądem)
             v["jobs"] = [x for x in v["jobs"] if x["id"] != jid]

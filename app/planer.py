@@ -4,6 +4,7 @@ YouTube: Shorts (upload przez YouTube Data API, uprawnienie youtube.force-ssl, k
 Pliki wystawiamy platformom pod jednorazowymi linkami /pub/<token>/… (ważne 24 h)."""
 import asyncio, json, os, re, secrets, threading, time
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -97,14 +98,14 @@ def scan():
             if not f or time.time() - f.stat().st_mtime > 3 * 86400:
                 continue
             jid = d.name
-            if f"food:{jid}" not in have:
+            if f"food:{jid}" not in have and not _dropped(f"food:{jid}", f):
                 o = _opis("jedzenie", jid)
                 w = _when("jedzenie")
                 _add({"src": f"food:{jid}", "kind": "film", "series": "jedzenie", "label": "Daily jedzenie " + " ".join((st.get("title") or [])[:1]),
                       "file": str(f), "when": w, "platforms": cfg()["platforms"]["film"],
                       "caption": (o.get("instagram") or "") if o.get("ok") else "", "tiktok": o.get("tiktok", ""), "yt_title": ""})
             k = d / "gotowe" / "karuzela"
-            if k.is_dir() and any(k.glob("*.jpg")) and f"karu:{jid}" not in have:
+            if k.is_dir() and any(k.glob("*.jpg")) and f"karu:{jid}" not in have and not _dropped(f"karu:{jid}", max(k.glob("*.jpg"), key=lambda q: q.stat().st_mtime)):
                 o = _opis("karuzela", jid)
                 film = next((x for x in plan() if x["src"] == f"food:{jid}"), None)
                 w = _when("karuzela", datetime.fromtimestamp(film["when"], TZ) if film else None)
@@ -116,7 +117,7 @@ def scan():
     V = _rd("mont_vlog.json", {}).get("jobs", [])
     for nm, m in M.items():
         f = VFILM / (nm + ".pub.mp4")
-        if not f.is_file() or f"vf:{nm}" in have or time.time() - f.stat().st_mtime > 3 * 86400:
+        if not f.is_file() or f"vf:{nm}" in have or time.time() - f.stat().st_mtime > 3 * 86400 or _dropped(f"vf:{nm}", f):
             continue
         kind = m.get("kind") or "vlog"
         ep = re.search(r"#\s*(\d+)", nm)
@@ -124,6 +125,41 @@ def scan():
         o = _opis(kind, job["id"]) if job else {"ok": False}
         _add({"src": f"vf:{nm}", "kind": "film", "series": kind, "label": nm, "file": str(f), "when": _when(kind),
               "platforms": cfg()["platforms"]["film"], "caption": (o.get("instagram") or "") if o.get("ok") else "", "tiktok": o.get("tiktok", ""), "yt_title": ""})
+
+
+DROP = "posts_dropped.json"
+
+
+def drop(srcs=(), series=None, ep=None, why="nowy montaż"):
+    """Montaż puszczony od nowa → stare, nieopublikowane posty z tego filmu znikają z planu.
+    Stary plik nie wróci przy skanie (zapamiętany czas usunięcia; wróci dopiero nowszy plik)."""
+    n = 0
+    with _lock:
+        P, D = plan(), _read(DROP, {})
+        keep = []
+        for x in P:
+            hit = x["src"] in srcs or (series and ep is not None and x.get("series") == series
+                                         and re.search(r"#\s*" + re.escape(str(ep)) + r"\b", x.get("label", "")))
+            if hit and x.get("status") not in ("published", "publishing"):
+                D[x["src"]] = time.time()
+                n += 1
+                continue
+            keep.append(x)
+        for s_ in srcs:
+            D.setdefault(s_, time.time())
+            D[s_] = time.time()
+        if n:
+            save(keep)
+        _write(DROP, {k: v for k, v in D.items() if time.time() - v < 14 * 86400})
+    return n
+
+
+def _dropped(src, f):
+    t = _read(DROP, {}).get(src)
+    try:
+        return bool(t) and Path(f).stat().st_mtime <= t
+    except Exception:
+        return False
 
 
 def on_film(name, kind):
