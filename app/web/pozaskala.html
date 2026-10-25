@@ -113,12 +113,18 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 .ptabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line);margin:4px 0 12px;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .ptabs button{flex:1;border:0;background:transparent;color:var(--soft);font:600 13px Geist,system-ui;padding:9px 6px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .ptabs button.on{background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.06));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
-body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-lanes,body:not(.t-hist) .pt-hist,body:not(.t-wf) .pt-wf{display:none!important}
+body:not(.t-long) .pt-long,body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-lanes,body:not(.t-hist) .pt-hist,body:not(.t-wf) .pt-wf{display:none!important}
 .grid2{display:block!important;margin-top:0}.grid2>.card{margin-top:0}
 .fold .tg i{display:none}.fold.closed .body{display:block!important}
 .lanes{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
 .ln .lnw{display:none}.ln .lnm{font-size:13px;color:var(--soft)}
 @media(max-width:600px){.ptabs button{font-size:12px;padding:8px 4px}.td{grid-template-columns:50px 22px minmax(0,1fr) 10px}}
+.dlc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 12px;font-size:13px;color:var(--soft)}
+.dlc label{display:flex;gap:6px;align-items:center;background:var(--v3-s3,#242536);border-radius:10px;padding:6px 10px;cursor:pointer}
+.dli{border-top:1px solid var(--line);padding:12px 0;display:grid;gap:8px}.dli:first-child{border:0}
+.dli .h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.dli b{font-size:14px}.dli small{color:var(--faint)}
+.dli video{width:100%;max-width:640px;border-radius:12px;background:#000;aspect-ratio:16/9}
+.st{font:600 11.5px Geist,system-ui;padding:3px 8px;border-radius:8px;background:var(--v3-s3,#242536)}.st.ok{color:var(--ok);background:rgba(61,220,132,.12)}.st.wr{color:var(--warn);background:rgba(255,194,75,.12)}.st.bad{color:var(--bad);background:rgba(255,107,122,.12)}
 </style>
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
 </head>
@@ -135,8 +141,10 @@ body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-lanes,body:not(.t-hist) .pt-
   <div class="kpi"><small>Następny start</small><b id="k4">–</b><span id="k4s"></span></div>
  </div>
  <div class="now" id="now"></div>
- <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="wf">⚙️ Zarządzaj</button></div>
+ <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="long">🎬 Długie</button><button data-t="wf">⚙️ Zarządzaj</button></div>
  <div class="card pt-today" id="c-today"><h2><span>📅 Dziś według harmonogramu</span><small id="tdd" class="mono" style="color:var(--faint);font-weight:400"></small></h2><div id="today"></div></div>
+ <div class="card pt-long" id="c-long"><h2><span>🎬 Długie filmy YouTube – „What If?” ze stickmanem</span><button class="btn" id="dlRun">Zrób teraz</button></h2>
+  <div class="dlc" id="dlCfg"></div><div id="dlList"><div class="empty">Ładuję…</div></div></div>
  <div class="lanes pt-lanes" id="lanes"></div>
  <details class="stage-d" hidden><summary>Schemat przepływu</summary><div class="stage"><svg id="svg" viewBox="0 0 1200 640" role="img" aria-label="Schemat pipeline'u PozaSkala"></svg></div></details>
  <div class="grid2">
@@ -351,9 +359,25 @@ document.querySelectorAll('.fold').forEach(c=>{const k='fold-'+c.id,b=c.querySel
  b.onclick=()=>{const v=!c.classList.contains('closed');set(v);try{localStorage.setItem(k,v?'1':'0')}catch(e){}}});
 $('all').onclick=()=>{sel=null;draw();list()};
 
+// ---- długie filmy ----
+async function dlLoad(){let r;try{r=await (await fetch('/api/dlugi')).json()}catch(e){return}
+ const c=r.cfg,D=['pn','wt','śr','cz','pt','sb','nd'];
+ $('dlCfg').innerHTML=`<label><input type="checkbox" id="dlEn" ${c.enabled?'checked':''}>automatycznie</label>`+D.map((d,i)=>`<label><input type="checkbox" data-dd="${i}" ${c.days.includes(i)?'checked':''}>${d}</label>`).join('')+
+  `<label><input type="checkbox" id="dlAp" ${c.auto_publish?'checked':''}>publikuj bez zatwierdzania</label>`;
+ const save=()=>fetch('/api/dlugi-cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:$('dlEn').checked,auto_publish:$('dlAp').checked,days:[...document.querySelectorAll('[data-dd]')].filter(x=>x.checked).map(x=>+x.dataset.dd)})});
+ $('dlCfg').querySelectorAll('input').forEach(i=>i.onchange=save);
+ $('dlRun').disabled=r.busy;$('dlRun').textContent=r.busy?'Robi film…':'Zrób teraz';
+ const S={working:['w trakcie','wr'],review:['do zatwierdzenia','ok'],uploading:['wysyłam','wr'],published:['opublikowany','ok'],error:['błąd','bad'],rejected:['odrzucony','']};
+ $('dlList').innerHTML=r.items.length?r.items.map(x=>{const s=S[x.status]||[x.status,''];return `<div class="dli"><div class="h"><span class="st ${s[1]}">${s[0]}</span><b>${esc(x.title||'(scenariusz w drodze)')}</b><small>${new Date(x.at*1000).toLocaleString('pl',{weekday:'short',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}${x.length?` · ${Math.floor(x.length/60)}:${String(x.length%60).padStart(2,'0')} min`:''}${x.images?` · ${x.images} kadrów`:''}</small></div>
+  <small>${esc(x.step||'')}</small>${x.status==='review'?`<video src="/api/dlugi/${x.id}/final.mp4" controls preload="none" poster="/api/dlugi/${x.id}/thumb.png"></video><div class="h"><button class="btn pri" data-dp="${x.id}">Publikuj na YouTube</button><button class="btn" data-dr="${x.id}">Odrzuć</button></div>`:''}${x.yt?`<a href="https://youtu.be/${x.yt}" target="_blank" rel="noopener">Zobacz na YouTube →</a>`:''}</div>`}).join(''):'<div class="empty">Pierwszy film powstanie w najbliższy wtorek albo piątek – albo kliknij „Zrób teraz” (ok. 10–20 min).</div>';
+ $('dlList').querySelectorAll('[data-dp]').forEach(b=>b.onclick=async()=>{b.disabled=true;await fetch(`/api/dlugi/${b.dataset.dp}/publish`,{method:'POST'});setTimeout(dlLoad,1500)});
+ $('dlList').querySelectorAll('[data-dr]').forEach(b=>b.onclick=async()=>{if(!confirm('Odrzucić ten film?'))return;await fetch(`/api/dlugi/${b.dataset.dr}/reject`,{method:'POST'});dlLoad()})}
+$('dlRun').onclick=async()=>{$('dlRun').disabled=true;await fetch('/api/dlugi/run',{method:'POST'});setTimeout(dlLoad,1500)};
+dlLoad();setInterval(dlLoad,30000);
+
 // zakładki strony (zapamiętane)
 (function(){let t='today';try{t=localStorage.getItem('pz-tab')||'today'}catch(e){}
- window.setTab=x=>{t=x;['today','lanes','hist','wf'].forEach(k=>document.body.classList.toggle('t-'+k,k===x));
+ window.setTab=x=>{t=x;['today','lanes','hist','wf','long'].forEach(k=>document.body.classList.toggle('t-'+k,k===x));
   document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===x));try{localStorage.setItem('pz-tab',x)}catch(e){}};
  document.querySelectorAll('#ptabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));setTab(t)})();
 function summary(){const el=$('sum');if(!state||!state.ok){el.innerHTML='';return}

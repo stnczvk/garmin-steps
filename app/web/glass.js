@@ -79,6 +79,7 @@
   function deco(h,big){
     if(h.dataset.hx||h.querySelector('.hx,.hi'))return;var t=(h.textContent||'').trim();if(!t)return;
     h.dataset.hx=1;var k=pick(t),s=document.createElement('span');s.className='hx'+(big?' big':'');s.style.setProperty('--c',k[2]);
+    var fe=h.firstElementChild;if(fe&&fe.tagName==='SPAN'&&!fe.className&&fe===[].find.call(h.childNodes,function(x){return x.nodeType===1||(x.nodeValue||'').trim()})){var hs=h;h=fe;}
     var fn=null;for(var c=h.firstChild;c;c=c.nextSibling){if(c.nodeType===3&&c.nodeValue.trim()){fn=c;break}if(c.nodeType===1&&(c.textContent||'').trim().length>2)break}
     if(fn&&EMO.test(fn.nodeValue)){var m=fn.nodeValue.match(EMO);s.textContent=m[1];s.classList.add('em');fn.nodeValue=fn.nodeValue.slice(m[0].length)}
     else s.innerHTML=svg(big&&H1[pth]?H1[pth]:k[1]);

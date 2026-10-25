@@ -85,6 +85,7 @@ body.lg{min-height:100dvh}
 .btn.qb:hover{border-color:rgba(143,123,255,.45)!important}.btn.qb:active{transform:scale(.97)}
 .btn.qb>i{font-style:normal;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13.5px;background:color-mix(in srgb,var(--c) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 24%,transparent)}
 .hxw{display:inline;white-space:nowrap}
+.hx svg{min-width:0!important;display:block}
 /* telefon: krótsze strony */
 @media(max-width:760px){
  .lg h1+p,.lg .top p,.lg p.sub,.lg .hero p{display:none}
