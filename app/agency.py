@@ -640,7 +640,7 @@ def inbox():
         today = datetime.now(TZ).date().isoformat()
         sent_today = sum(1 for x in I["items"] if x.get("day") == today and x.get("status") == "sent")
         new, errs = [], []
-        for name, fetch in (("YouTube", _yt_new_comments), ("Instagram", _ig_new_comments)):
+        for name, fetch in (("YouTube", _yt_new_comments),) + ((("Instagram", _ig_new_comments),) if s.get("ig_inbox") else ()):  # IG wyłączony (aplikacja Meta bez weryfikacji)
             try:
                 new += fetch(I, done)
             except Exception as e:
