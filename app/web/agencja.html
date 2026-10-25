@@ -186,10 +186,10 @@ function placeCam(){const a=AZ0+AZ;camera.position.set(target.x+RAD*Math.cos(EL)
 function panBy(dx,dy,k){const R=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0).setY(0).normalize(),U=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1),F=new THREE.Vector3();camera.getWorldDirection(F);F.setY(0).normalize();const sU=Math.max(.2,F.dot(U));target.addScaledVector(R,-dx*k).addScaledVector(F,dy*k/sU);placeCam()}
 const Z0=W()<700?.55:1;camera.zoom=Z0;setFrustum();placeCam();
 
-// ===== LOFT KREATYWNY (wybrany wygląd) =====
+// ===== NOCNE BIURO (wariant A, v3): ciemne wnętrze w kolorach apki, strefy działów świecą =====
 renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
-scene.add(new THREE.HemisphereLight(0xffd9b8,0x2b1d2a,.75));
-const sun=new THREE.DirectionalLight(0xffb070,1.6);sun.position.set(-30,40,20);sun.castShadow=true;
+scene.add(new THREE.HemisphereLight(0xb9adff,0x0b0c14,.2));
+const sun=new THREE.DirectionalLight(0xc9bcff,.55);sun.position.set(-30,40,20);sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-40,right:40,top:40,bottom:-40,far:150});sun.shadow.bias=-.0004;scene.add(sun);
 
 const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.8,...o});
@@ -199,7 +199,7 @@ const S2=Math.SQRT2,S6=Math.sqrt(6),R=15,N=DEPTS.length;
 const toWorld=(mx,my)=>({x:(mx*S2+my*S6)/2,z:(my*S6-mx*S2)/2});
 const toMap=(x,z)=>({x:(x-z)/S2,y:(x+z)/S6});
 function tex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t}
-function skyTex(){return tex(512,512,(x,W2,H2)=>{const gr=x.createLinearGradient(0,0,0,H2);gr.addColorStop(0,'#ff9a5a');gr.addColorStop(1,'#ffcf8a');x.fillStyle=gr;x.fillRect(0,0,W2,H2);let px=0,s=3;const r=()=>((s=s*9301+49297)%233280)/233280;
+function skyTex(){return tex(512,512,(x,W2,H2)=>{const gr=x.createLinearGradient(0,0,0,H2);gr.addColorStop(0,'#0e0b26');gr.addColorStop(1,'#3a2a7a');x.fillStyle=gr;x.fillRect(0,0,W2,H2);let px=0,s=3;const r=()=>((s=s*9301+49297)%233280)/233280;
  while(px<W2){const bw=W2*(.05+r()*.07),bh=H2*(.25+r()*.45);x.fillStyle='rgba(40,22,30,.88)';x.fillRect(px,H2-bh,bw,bh);for(let yy=H2-bh+6;yy<H2-4;yy+=9)for(let xx=px+3;xx<px+bw-3;xx+=7)if(r()<.25){x.fillStyle='rgba(255,215,140,.9)';x.fillRect(xx,yy,3,4)}px+=bw+2}})}
 
 const rooms=[],agents=[],floors=[],walkers=[],packets=[];
@@ -213,13 +213,13 @@ function figure(color,s=1){const g=new THREE.Group(),bm=mat(color,{roughness:.55
 // podłoga z desek, ceglane ściany z oknami na miasto o zachodzie słońca
 const plank=tex(512,512,(x,w,h)=>{for(let i=0;i<16;i++){x.fillStyle=`hsl(${26+Math.random()*6},${36+Math.random()*10}%,${30+Math.random()*8}%)`;x.fillRect(0,i*32,w,31);x.fillStyle='rgba(0,0,0,.35)';x.fillRect(((i*137)%5)*100,i*32,2,31)}});
 plank.wrapS=plank.wrapT=THREE.RepeatWrapping;plank.repeat.set(5,5);
-const FL=46;box(FL,.4,FL,new THREE.MeshStandardMaterial({map:plank,roughness:.65}),0,-.2,0,scene);
+const FL=46;box(FL,.4,FL,new THREE.MeshStandardMaterial({color:0x0f1018,roughness:.42,metalness:.35}),0,-.2,0,scene);
 const brick=tex(256,256,(x,w,h)=>{x.fillStyle='#6a3426';x.fillRect(0,0,w,h);for(let r=0;r<16;r++)for(let c=0;c<8;c++){x.fillStyle=`hsl(${8+Math.random()*8},${45+Math.random()*10}%,${28+Math.random()*10}%)`;x.fillRect(c*32+(r%2)*16+1,r*16+1,30,14)}});
-brick.wrapS=brick.wrapT=THREE.RepeatWrapping;brick.repeat.set(10,3);const wallM=new THREE.MeshStandardMaterial({map:brick,roughness:.92});
+brick.wrapS=brick.wrapT=THREE.RepeatWrapping;brick.repeat.set(10,3);const wallM=new THREE.MeshStandardMaterial({color:0x1a1b29,roughness:.85});
 const WH=9;box(FL,WH,.6,wallM,0,WH/2,-FL/2,scene);box(.6,WH,FL,wallM,-FL/2,WH/2,0,scene);
 const sky=skyTex();for(let i=0;i<5;i++){const z=-16+i*8;const w=new THREE.Mesh(new THREE.PlaneGeometry(4.2,5.6),new THREE.MeshBasicMaterial({map:sky,toneMapped:false}));w.position.set(-FL/2+.32,4.8,z);w.rotation.y=Math.PI/2;scene.add(w);
  box(.14,5.8,.18,mat(0x1c1c22,{metalness:.5}),-FL/2+.34,4.8,z,scene);box(.14,.18,4.4,mat(0x1c1c22,{metalness:.5}),-FL/2+.34,4.8,z,scene)}
-const sunSpot=new THREE.SpotLight(0xffae6b,1.6,60,.7,.6);sunSpot.position.set(-FL/2+1,7,0);sunSpot.target.position.set(6,0,0);scene.add(sunSpot,sunSpot.target);
+const sunSpot=new THREE.SpotLight(0x8f7bff,.6,60,.7,.6);sunSpot.position.set(-FL/2+1,7,0);sunSpot.target.position.set(6,0,0);scene.add(sunSpot,sunSpot.target);
 // ściana z miniaturkami filmów
 const thumbs=tex(1024,384,(x,w,h)=>{x.fillStyle='#0d0d14';x.fillRect(0,0,w,h);for(let r=0;r<3;r++)for(let c=0;c<8;c++){x.fillStyle=`hsl(${(c*47+r*90)%360},55%,${38+((c+r)%3)*8}%)`;x.fillRect(10+c*126,10+r*124,116,114);x.fillStyle='rgba(255,255,255,.85)';x.fillRect(20+c*126,98+r*124,60,7)}});
 const tw=new THREE.Mesh(new THREE.PlaneGeometry(14,5.2),new THREE.MeshBasicMaterial({map:thumbs,toneMapped:false}));tw.position.set(4,5.2,-FL/2+.32);scene.add(tw);
@@ -230,15 +230,15 @@ function sofa(x,z,ry,col){const g=new THREE.Group(),m=mat(col,{roughness:.9});bo
 sofa(18,18,-Math.PI*.75,0x5b6c8f);sofa(-18,18,Math.PI*.75,0x6b4128);
 [[20,-20],[-20,20],[20,20],[-20,-20],[0,21]].forEach(([x,z])=>plant(x,z,1.6));
 const pend=[];for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){if(!i&&!j)continue;const x=i*13,z=j*13;const sh=new THREE.Mesh(new THREE.ConeGeometry(.6,.6,20,1,true),mat(0x1b1b1f,{emissive:0xffcf8a,emissiveIntensity:.2}));sh.position.set(x,8,z);scene.add(sh);
- const b=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8),new THREE.MeshBasicMaterial({color:0xffe2b0}));b.position.set(x,7.75,z);scene.add(b);const p=new THREE.PointLight(0xffcf8a,.7,16,2);p.position.set(x,7.5,z);scene.add(p);pend.push(p)}
+ const b=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8),new THREE.MeshBasicMaterial({color:0xffe2b0}));b.position.set(x,7.75,z);scene.add(b);const p=new THREE.PointLight(0x8f7bff,1.0,16,2);p.position.set(x,7.5,z);scene.add(p);pend.push(p)}
 
 // strefy działów: kolorowy dywan (klikalny), biurka z drewna, monitory, krzesła, agenci
 DEPTS.forEach((d,i)=>{
  const a=-Math.PI/2+i*Math.PI*2/N,sx=Math.cos(a)*R,sy=Math.sin(a)*R*.62;
  const p=toWorld(sx,sy),g=new THREE.Group();g.position.set(p.x,0,p.z);scene.add(g);
  const c=new THREE.Color(d.color);
- const rug=box(7,.08,6.4,mat(tint(c,.25,0x222222),{roughness:1}),0,.04,0,g);rug.userData.i=i;floors.push(rug);
- box(6.4,.09,5.8,mat(tint(c,.05,0x000000),{roughness:1}),0,.05,0,g);
+ const rug=box(7,.08,6.4,mat(c,{roughness:.6,emissive:c,emissiveIntensity:.9}),0,.04,0,g);rug.userData.i=i;floors.push(rug);
+ box(6.4,.09,5.8,mat(0x181927,{roughness:.5,emissive:c,emissiveIntensity:.08}),0,.05,0,g);
  d.agents.forEach((ag,k)=>{
   const [dx,dz]=(d.agents.length>4?DESKS5:DESKS)[k],wood=mat(0x8a6a4c,{roughness:.55});
   box(2,.1,.95,wood,dx,1.0,dz,g);[[-.9,-.4],[.9,-.4],[-.9,.4],[.9,.4]].forEach(([u,w])=>box(.07,.95,.07,mat(0x2b2b33),dx+u,.5,dz+w,g));
@@ -480,7 +480,7 @@ mc.onclick=e=>{const b=mc.getBoundingClientRect(),sx=(e.clientX-b.left)*150/b.wi
 
 // gwiazdy
 function stars(){const c=$('stars'),x=c.getContext('2d');c.width=W();c.height=H();
- const gr=x.createRadialGradient(W()/2,H()/2,0,W()/2,H()/2,Math.max(W(),H())*.7);gr.addColorStop(0,'#2a1c22');gr.addColorStop(1,'#120c10');
+ const gr=x.createRadialGradient(W()/2,H()/2,0,W()/2,H()/2,Math.max(W(),H())*.7);gr.addColorStop(0,'#1c1636');gr.addColorStop(.55,'#0d0e17');gr.addColorStop(1,'#08090e');
  x.fillStyle=gr;x.fillRect(0,0,W(),H())}
 stars();refresh();
 
