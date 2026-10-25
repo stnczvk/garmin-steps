@@ -919,6 +919,7 @@ body{text-rendering:optimizeLegibility}
 .meal.is-cheat{border-color:rgba(255,170,90,.5)}
 .madd.cheatbtn{margin-left:0}
 .meal-empty .madd:not(.cheatbtn){margin-right:8px}
+.remrow .btn{white-space:nowrap;flex:none}
 </style>
 
 <div class="wrap">
@@ -2864,15 +2865,15 @@ function renderFood0(){
   ${!lastBw()&&!targets.protein?`<div class="note" style="color:var(--warn);font-weight:600">Wpisz swoją wagę w Podsumowanie → Cel wagi i kalorie, żeby zobaczyć przedziały białka i węgli.</div>`:""}
   <details ${fst.goalsOpen?"open":""}><summary class="note" style="cursor:pointer">Ustaw cele${(targets.kcalTrain||targets.kcal)?"":" (brak celu kalorii)"}</summary>
     <div class="goals" style="margin-top:10px">
-      <div style="flex-basis:100%"><span class="label">Kalorie</span><div class="seg" role="group" style="margin-top:4px"><button data-act="fd-kmode" data-v="fixed" aria-pressed="${targets.kcalMode==="fixed"}">Stałe co dzień</button><button data-act="fd-kmode" data-v="split" aria-pressed="${targets.kcalMode!=="fixed"}">Więcej w trening</button></div></div>
+      <div style="flex-basis:100%"><span class="label" style="display:block">Kalorie</span><div class="seg" role="group" style="margin-top:6px;display:inline-flex"><button data-act="fd-kmode" data-v="fixed" aria-pressed="${targets.kcalMode==="fixed"}">Stałe</button><button data-act="fd-kmode" data-v="split" aria-pressed="${targets.kcalMode!=="fixed"}">Trening / wolny</button></div></div>
       ${autoKcal()?`<div class="note" style="flex-basis:100%;font-weight:600">${targets.kcalMode==="fixed"?`Kalorie: ${Math.round(autoKcal().avg/10)*10} kcal każdego dnia.`:`Kalorie: trening ${autoKcal().train} kcal, dzień wolny ${autoKcal().rest} kcal.`} Liczą się same z celu wagi (Podsumowanie → Cel wagi i kalorie).</div>`:targets.kcalMode==="fixed"?`<label><span class="label">Kcal dziennie</span><input type="number" id="fd-gk" inputmode="numeric" value="${targets.kcal??targets.kcalTrain??""}" placeholder="np. 2000"></label>`:`<label><span class="label">Kcal – trening</span><input type="number" id="fd-gkt" inputmode="numeric" value="${targets.kcalTrain??targets.kcal??""}" placeholder="np. 2100"></label>
       <label><span class="label">Kcal – wolny</span><input type="number" id="fd-gkr" inputmode="numeric" value="${targets.kcalRest??targets.kcal??""}" placeholder="np. 2000"></label>`}
-      <label><span class="label">Białko (g)</span><input type="number" id="fd-gp" inputmode="numeric" value="${targets.protein??""}" placeholder="${lastBw()?r0(lastBw()*PLANS[MODE].protein):"np. 170"}"></label>
+      ${lastBw()?"":`<label><span class="label">Białko (g)</span><input type="number" id="fd-gp" inputmode="numeric" value="${targets.protein??""}" placeholder="${lastBw()?r0(lastBw()*PLANS[MODE].protein):"np. 170"}"></label>`}
       <label><span class="label">Tłuszcz (g)</span><input type="number" id="fd-gf" inputmode="numeric" value="${targets.fat??""}" placeholder="auto"></label>
       <label><span class="label">Węgle (g)</span><input type="number" id="fd-gc" inputmode="numeric" value="${targets.carbs??""}" placeholder="auto"></label>
       <label><span class="label">Kroki / dzień</span><input type="number" id="fd-gs" inputmode="numeric" value="${targets.steps??""}" placeholder="${MODE==="red"?"10000":"8000"}"></label>
       <button class="btn small" data-act="fd-goals">Zapisz cele</button></div>
-    <p class="note">Kroki: domyślnie ${MODE==="red"?"10 000 na redukcji":"8 000 na masie"}. Waga: dziennik bierze średnią z pomiarów z ostatnich 7 dni (Podsumowanie → Waga). Jeśli nie wpiszesz własnych liczb, białko, tłuszcz i węgle pokazują przedział: białko ${MODE==="red"?"2–2,4":"1,6–2,2"} g/kg, tłuszcz 20–35% kalorii, węgle to reszta. Własna liczba zamienia przedział na jeden cel. Kalorie wpisz takie, jakie masz ustawione w Fitatu.</p>
+    <p class="note">Kroki: domyślnie ${MODE==="red"?"10 000 na redukcji":"8 000 na masie"}. Waga: dziennik bierze średnią z pomiarów z ostatnich 7 dni (Podsumowanie → Waga). Białko liczy się samo z wagi: ${MODE==="red"?"2–2,4":"1,6–2,2"} g na kg. Tłuszcz i węgle bez własnych liczb pokazują przedział: tłuszcz 20–35% kalorii, węgle to reszta. Własna liczba tłuszczu albo węgli zamienia przedział na jeden cel. Kalorie wpisz takie, jakie masz ustawione w Fitatu.</p>
   </details></div>
   ${dayTilesHTML(fst.date)}
   <!--MEALS-->
@@ -3626,7 +3627,7 @@ document.addEventListener("click",async ev=>{
     try{await saveTargets({...upd,plateauSnooze:snooze,plateauLast:`${v>0?"+":"−"}${Math.abs(v)} kcal, ${fmtDate(today())}`});setMsg(`Cel kalorii ${v>0?"podniesiony":"obniżony"} o ${Math.abs(v)} kcal dziennie. Za 2 tygodnie sprawdzę, czy waga ruszyła.`)}catch(e){setMsg("Nie udało się zapisać.")}renderFood();return}
   if(a==="fd-plat-steps"){const ns=stepsGoal()+2000;try{await saveTargets({steps:ns,plateauSnooze:shiftDate(today(),14),plateauLast:`cel kroków ${ns.toLocaleString("pl-PL")}, ${fmtDate(today())}`});setMsg(`Nowy cel kroków: ${ns.toLocaleString("pl-PL")} dziennie. Za 2 tygodnie sprawdzę, czy waga ruszyła.`)}catch(e){setMsg("Nie udało się zapisać.")}renderFood();return}
   if(a==="fd-kmode"){fst.goalsOpen=true;try{await saveTargets({kcalMode:b.dataset.v})}catch(e){} renderFood(); return;}
-  if(a==="fd-goals"){const fx=targets.kcalMode==="fixed"&&!autoKcal()&&document.getElementById("fd-gk"),kk=fx?readNum("fd-gk"):(targets.kcal??null),kt=autoKcal()||fx?(targets.kcalTrain??null):readNum("fd-gkt"),kr=autoKcal()||fx?(targets.kcalRest??null):readNum("fd-gkr"),p=readNum("fd-gp"),st=readNum("fd-gs");try{await saveTargets({kcal:kk,kcalTrain:kt,kcalRest:kr,protein:p,steps:st,fat:readNum("fd-gf"),carbs:readNum("fd-gc")});setMsg("Zapisano cele.")}catch(e){setMsg("Nie udało się zapisać celów.")}}
+  if(a==="fd-goals"){const fx=targets.kcalMode==="fixed"&&!autoKcal()&&document.getElementById("fd-gk"),kk=fx?readNum("fd-gk"):(targets.kcal??null),kt=autoKcal()||fx?(targets.kcalTrain??null):readNum("fd-gkt"),kr=autoKcal()||fx?(targets.kcalRest??null):readNum("fd-gkr"),p=document.getElementById("fd-gp")?readNum("fd-gp"):(targets.protein??null),st=readNum("fd-gs");try{await saveTargets({kcal:kk,kcalTrain:kt,kcalRest:kr,protein:p,steps:st,fat:readNum("fd-gf"),carbs:readNum("fd-gc")});setMsg("Zapisano cele.")}catch(e){setMsg("Nie udało się zapisać celów.")}}
   if(a==="fd-add"){
     const name=document.getElementById("fd-name").value.trim(), unit=document.getElementById("fd-unit")?.value||"g", n=readNum("fd-g"), pw=readNum("fd-pw"), kcal=readNum("fd-kcal");
     if(!name){setMsg("Wpisz nazwę produktu.");return}
