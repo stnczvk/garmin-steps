@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Powiadomienia</title>
 <script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
 <style>
 button,input,select,textarea{font-family:inherit}
@@ -32,14 +32,14 @@ body{background:transparent}
 .n .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:rgba(255,255,255,.07)}
 .n h3{font-size:14.5px;font-weight:600;line-height:1.3}
 .n p{color:var(--soft);font-size:13px;margin-top:2px;overflow-wrap:anywhere}
-.n time{font:11.5px 'JetBrains Mono',monospace;color:var(--faint);white-space:nowrap}
+.n time{font:11.5px Geist,system-ui,sans-serif;color:var(--faint);white-space:nowrap}
 .n.unread h3:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-right:7px;vertical-align:1px;box-shadow:0 0 8px var(--acc)}
 .n .more{grid-column:2/4;display:none}
 .n.open .more{display:block}
 .sig{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
 .sig div{background:rgba(255,255,255,.05);border-radius:12px;padding:8px 10px}
 .sig small{display:block;color:var(--faint);font-size:11.5px}
-.sig b{font:600 14px 'JetBrains Mono',monospace;overflow-wrap:anywhere}
+.sig b{font:600 14px Geist,system-ui,sans-serif;overflow-wrap:anywhere}
 .why{margin-top:10px;font-size:13px;color:var(--soft);line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .go{display:inline-block;margin-top:10px;font-size:13px;color:var(--acc);text-decoration:none}
 .up{color:var(--ok)}.down{color:var(--bad)}

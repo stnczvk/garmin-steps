@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Strażnicy</title>
 <script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
 <style>
 button,input,select,textarea{font-family:inherit}
@@ -21,7 +21,7 @@ body{background:transparent}
 .top{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:18px}
 .ring{width:96px;height:96px;flex:none;position:relative}
 .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-.ring b{position:absolute;inset:0;display:grid;place-items:center;font:700 22px 'JetBrains Mono',monospace}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font:700 22px Geist,system-ui,sans-serif}
 .top h1{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.02em}
 .top p{color:var(--soft);margin-top:3px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -55,12 +55,12 @@ body{background:transparent}
 .sh .msg{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.06);font-size:14px;margin:10px 0}
 .sh .hist{max-width:none;height:16px;margin:8px 0 4px}
 .sh .x{position:absolute;right:14px;top:12px;background:none;border:0;color:var(--soft);font-size:24px;cursor:pointer}
-.plog{font:12px 'JetBrains Mono',monospace;color:var(--soft);margin-top:10px;display:flex;flex-direction:column;gap:5px}
+.plog{font:12px Geist,system-ui,sans-serif;color:var(--soft);margin-top:10px;display:flex;flex-direction:column;gap:5px}
 .plog .bad{color:var(--fail)}
 .mut{color:var(--faint);font-size:12px}
 .stage3d{padding:0!important;overflow:hidden;margin-bottom:16px;position:relative}
 #c3{display:block;width:100%;height:min(52vh,460px);min-height:300px;cursor:grab;touch-action:none}
-.h3d{position:absolute;top:10px;right:14px;font:11px 'JetBrains Mono',monospace;color:var(--faint)}
+.h3d{position:absolute;top:10px;right:14px;font:11px Geist,system-ui,sans-serif;color:var(--faint)}
 .vt{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:14px}
 .vt button{border:0;background:transparent;color:var(--soft);font:600 12.5px Geist,system-ui;padding:6px 12px;border-radius:8px;cursor:pointer}
 .vt button.on{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.07));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
@@ -193,7 +193,7 @@ load();setInterval(load,30000);
  let mons=[];const COL={ok:'#3ddc84',warn:'#f5b25a',fail:'#ff5c6c',idle:'#6b7088'};
  function draw(m,t){const g=m.g,x=m.x,w=320,h=190,st=COL[g.status||'idle'];x.fillStyle='#050912';x.fillRect(0,0,w,h);x.strokeStyle='rgba(80,110,170,.18)';for(let k=1;k<6;k++){x.beginPath();x.moveTo(0,k*h/6);x.lineTo(w,k*h/6);x.stroke()}
   x.fillStyle='#d6dcef';x.font='600 21px Geist, system-ui, sans-serif';x.fillText((g.icon||'')+' '+g.name,12,28);x.fillStyle=st;x.beginPath();x.arc(w-20,20,8,0,7);x.fill();
-  x.fillStyle='rgba(166,176,201,.75)';x.font='13px JetBrains Mono, monospace';x.fillText(String(g.msg||'').slice(0,40),12,h-30);x.fillText('sprawdzono '+ago(g.at),12,h-12);
+  x.fillStyle='rgba(166,176,201,.75)';x.font='13px Geist,system-ui,sans-serif';x.fillText(String(g.msg||'').slice(0,40),12,h-30);x.fillText('sprawdzono '+ago(g.at),12,h-12);
   x.strokeStyle=st;x.lineWidth=2.5;x.beginPath();for(let j=0;j<=60;j++){const xx=10+j*(w-20)/60,ph=(j+t*25+m.i*7)%18,v=ph<1?-1:ph<2?.7:ph<3?-.25:0;const yy=h*.5+v*h*.26*(g.status==='ok'?1:g.status==='warn'?.6:g.status==='fail'?.08:0);j?x.lineTo(xx,yy):x.moveTo(xx,yy)}x.stroke();
   if(g.status==='fail'&&Math.sin(t*6)>0){x.strokeStyle='#ff5c6c';x.lineWidth=7;x.strokeRect(3,3,w-6,h-6)}m.tx.needsUpdate=true}
  function build(){mons.forEach(m=>{scene.remove(m.frame);scene.remove(m.scr)});mons=[];const G=D.guardians,cols=Math.min(6,Math.ceil(G.length/3)),rows=Math.ceil(G.length/cols),W2=15.6/cols,H2=Math.min(1.9,5.6/rows);

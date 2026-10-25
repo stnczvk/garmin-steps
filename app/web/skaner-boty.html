@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Strategy Lab</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
 <style>
 button,input,select,textarea{font-family:inherit}
@@ -27,15 +27,15 @@ h1{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.02em}h1 small
 .g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
 h2{font-size:14.5px;font-weight:650;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}h2 small{color:var(--faint);font-weight:400;font-size:12px}
 .ch{position:relative;height:280px}.ch canvas{width:100%;height:100%;display:block}
-.tip{position:absolute;pointer-events:none;display:none;background:rgba(10,12,22,.94);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:12px 'JetBrains Mono',monospace;white-space:nowrap;z-index:2}
+.tip{position:absolute;pointer-events:none;display:none;background:rgba(10,12,22,.94);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:12px Geist,system-ui,sans-serif;white-space:nowrap;z-index:2}
 .bars{display:flex;flex-direction:column;gap:6px}
 .bar{display:grid;grid-template-columns:62px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:12.5px}
-.bar em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar b{font:600 12px 'JetBrains Mono',ui-monospace,monospace;text-align:right}
+.bar em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar b{font:600 12px Geist,system-ui,sans-serif;text-align:right}
 .track{height:14px;position:relative}.track i{position:absolute;top:0;bottom:0;border-radius:4px}.track:before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;border-left:1px solid rgba(255,255,255,.18)}
 .tb{width:100%;border-collapse:collapse;font-size:12.5px}.tb th{text-align:left;font-weight:500;color:var(--faint);font-size:11.5px;padding:5px 6px;border-bottom:1px solid var(--line)}
 .tb td{padding:6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}.tb td.r,.tb th.r{text-align:right}
 .heat{display:grid;grid-template-columns:34px repeat(6,minmax(0,1fr));gap:3px;font-size:11px}
-.heat span{color:var(--faint);display:grid;place-items:center}.heat div{height:30px;border-radius:6px;display:grid;place-items:center;font:600 11px 'JetBrains Mono',ui-monospace,monospace;cursor:default}
+.heat span{color:var(--faint);display:grid;place-items:center}.heat div{height:30px;border-radius:6px;display:grid;place-items:center;font:600 11px Geist,system-ui,sans-serif;cursor:default}
 .empty{color:var(--faint);font-size:13px;padding:12px 0}
 .scroll{max-height:380px;overflow:auto}
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.g2,.g3{grid-template-columns:minmax(0,1fr)}}

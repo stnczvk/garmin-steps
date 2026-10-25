@@ -44,3 +44,19 @@ body:not(.s-mini) .s-grp{color:var(--faint)!important;font-weight:500!important;
 .s-foot{color:var(--faint)!important}
 .lg .head,.lg header.head{background:var(--lg-base)!important;border:0!important;border-bottom:1px solid var(--line)!important;box-shadow:none!important}
 .s-badge{background:var(--bad)!important;color:#fff!important}
+
+/* ---- jednolity wygląd z ekranem głównym ---- */
+body.lg,html body.lg{background:radial-gradient(60% 45% at 15% -8%,rgba(143,123,255,.15),transparent 70%) no-repeat fixed,radial-gradient(40% 30% at 100% 0%,rgba(61,220,132,.05),transparent 70%) no-repeat fixed,#0d0e14 !important}
+body.dash #stars{display:none!important}
+:root[data-theme=light] body.lg{background:radial-gradient(60% 45% at 15% -8%,rgba(110,86,207,.10),transparent 70%) no-repeat fixed,#f3f3f7 !important}
+html{background:#0d0e14!important}:root[data-theme=light]{background:#f3f3f7!important}
+.lg pre,.lg code,.lg kbd,.lg samp{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important}
+/* kafle działów (Agencja, Skaner): neutralne jak na ekranie głównym, kolor tylko na górnej krawędzi */
+.lg .dc{background:linear-gradient(180deg,var(--v3-s2),var(--v3-s1))!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ border:1px solid var(--line)!important;box-shadow:inset 0 1px 0 var(--v3-hi),var(--v3-sh)!important;border-radius:22px!important}
+.lg .dc:after{display:none!important}.lg .dc:before{height:2px!important;opacity:.85}
+/* nagłówki stron */
+.lg h1{font-weight:650!important;letter-spacing:-.025em}
+.lg h2,.lg h3{letter-spacing:-.01em}
+/* paski górne zakładek z 3D (Agencja, Skaner) – bez szkła */
+.lg #top,.lg .topbar,.lg .bar.top{background:var(--v3-s1)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid var(--line)!important;box-shadow:none!important}
