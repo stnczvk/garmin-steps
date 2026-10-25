@@ -44,12 +44,36 @@ def duration(clip):
         return 0.0
 
 
+_TRC = {}
+
+
+def transfer(clip):
+    """HDR z iPhone'a (HLG/PQ) bez mapowania tonów wychodzi w JPG szaro i z dziwnymi kolorami."""
+    k = str(clip)
+    if k not in _TRC:
+        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=color_transfer",
+                            "-of", "csv=p=0", k], capture_output=True, text=True)
+        _TRC[k] = r.stdout.strip()
+    return _TRC[k]
+
+
+HDR_VF = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
+          "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
+
+
 def frame(clip, t, width=None):
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tf:
         out = tf.name
-    vf = ["-vf", f"scale={width}:-2"] if width else []
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", str(clip), "-frames:v", "1", *vf, "-q:v", "2", out],
-                   capture_output=True)
+    chain = [HDR_VF] if transfer(clip) in ("arib-std-b67", "smpte2084") else []
+    if width:
+        chain.append(f"scale={width}:-2")
+    vf = ["-vf", ",".join(chain)] if chain else []
+    r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", str(clip), "-frames:v", "1", *vf, "-q:v", "2", out],
+                       capture_output=True)
+    if r.returncode != 0 and chain and chain[0] == HDR_VF:   # ffmpeg bez zscale – zwykła klatka zamiast żadnej
+        vf = ["-vf", f"scale={width}:-2"] if width else []
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", str(clip), "-frames:v", "1", *vf, "-q:v", "2", out],
+                       capture_output=True)
     try:
         im = Image.open(out).convert("RGB")
         im.load()
