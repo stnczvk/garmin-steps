@@ -96,6 +96,13 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .note{font-size:13px;color:var(--mu);line-height:1.55;margin-top:10px;padding:12px 14px;border-radius:14px;background:rgba(127,127,160,.06);max-height:220px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .note b{color:var(--tx)}
 .rep{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mod{position:fixed;inset:0;background:rgba(5,5,12,.6);display:none;align-items:flex-start;justify-content:center;padding:40px 14px;z-index:50;overflow-y:auto}.mod.open{display:flex}
+.mod .box{background:var(--s1);border:1px solid var(--ln);border-radius:22px;padding:22px;max-width:520px;width:100%}
+.mod h2{font-size:19px;font-weight:650;margin-bottom:6px}.mod p{color:var(--mu);font-size:13px;line-height:1.5}
+.mod fieldset{border:1px solid var(--ln);border-radius:14px;padding:12px 14px;margin-top:12px}.mod legend{font-weight:600;padding:0 6px}
+.mod label{display:block;font-size:12.5px;color:var(--mu);margin-top:8px}.mod input{width:100%;margin-top:4px;background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:9px 11px;color:var(--tx);font:inherit}
+.mod .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}.mod .st{font-size:12px;margin-left:6px}
+.lnk{background:none;border:0;color:var(--fa);font-size:12.5px}.lnk:hover{color:var(--tx)}
 @media(max-width:1180px){.mg{grid-template-columns:300px minmax(0,1fr)}.c7,.c5{grid-column:span 12}}
 @media(max-width:760px){
  .wrap{padding:14px 12px calc(30px + env(safe-area-inset-bottom))}
@@ -124,7 +131,7 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
  <div class="mg">
   <aside class="t"><h3>Twój dzień<span class="r chip" id="dname"></span></h3><div class="tlx" id="tl"><div class="sk" style="margin-top:10px"></div></div></aside>
   <div class="mr">
-   <section class="t c7" id="pf"><h3>Portfel razem<a class="r" href="#" data-go="skaner">Skaner →</a></h3><div id="pfb"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
+   <section class="t c7" id="pf"><h3>Portfel razem<button class="r lnk" id="wcfg">Ustawienia portfeli</button></h3><div id="pfb"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
    <section class="t c5"><h3>Obserwujący, wszystkie konta<span class="r" id="f28"></span></h3><div id="soc"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
    <section class="t c5"><h3>Czeka na Ciebie<span class="r chip" id="apn">0</span></h3><div id="appr"><div class="sk" style="margin-top:10px"></div></div></section>
    <section class="t c7"><h3>Skaner w tym miesiącu<span class="r" id="skc"></span></h3><div id="scan"><div class="sk" style="margin-top:10px;height:120px"></div></div></section>
@@ -133,6 +140,13 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
   </div>
  </div>
 </div>
+<div class="mod" id="wm"><div class="box"><h2>Portfele</h2>
+ <p>Klucze API zakładasz w ustawieniach giełdy z uprawnieniem <b>tylko do odczytu</b> (bez handlu i wypłat). Zapisują się tylko na Twoim serwerze. XTB wyłączył API w marcu 2025, więc stan konta XTB wpisujesz ręcznie.</p>
+ <fieldset><legend>OKX <span class="st" id="wst-okx"></span></legend><label>API key<input id="okx-k" autocomplete="off"></label><label>Secret key<input id="okx-s" type="password" autocomplete="off"></label><label>Passphrase<input id="okx-p" type="password" autocomplete="off"></label></fieldset>
+ <fieldset><legend>Kraken <span class="st" id="wst-kraken"></span></legend><label>API key<input id="kr-k" autocomplete="off"></label><label>Private key<input id="kr-s" type="password" autocomplete="off"></label></fieldset>
+ <fieldset><legend>XTB</legend><label>Stan konta (zł) – zaktualizuj, kiedy chcesz<input id="xtb-v" inputmode="decimal" placeholder="np. 8500"></label></fieldset>
+ <p id="wmsg" style="margin-top:10px"></p>
+ <div class="row"><button class="btn g" id="wclose">Zamknij</button><button class="btn" id="wsave">Zapisz</button></div></div></div>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -202,12 +216,12 @@ function timeline(A,P,V,F){
 // ---------- portfel (na razie: wynik skanera; portfele OKX/Kraken/XTB po podpięciu kluczy) ----------
 function wallet(W,EQ,S){
  if(W&&W.ok&&W.total!=null){
-  const pts=(W.history||[]).map(x=>x.v);
+  const pts=(W.history||[]).map(x=>x.v);if(pts.length<2)pts.unshift(W.total);
   $('pfb').innerHTML=`<div class="big tn">${fmt(W.total)} zł</div><div class="d">${W.change_7d!=null?`<span class="chip ${W.change_7d>=0?'ok':'bad'}">${W.change_7d>=0?'+':''}${fmt(W.change_7d,1)}%</span>w 7 dni`:''}</div>${area(pts,css('--ac'))}
-   <div class="acc">${(W.accounts||[]).map(a=>`<div><small>${esc(a.name)}${a.change!=null?`<span class="${a.change>=0?'up':'dn'}">${a.change>=0?'+':''}${fmt(a.change,1)}%</span>`:''}</small><b class="tn">${fmt(a.value)} zł</b></div>`).join('')}</div>`;return}
+   ${(W.errors||[]).length?`<div class="dn" style="font-size:12.5px;margin-top:6px">${esc(W.errors.join('; '))}</div>`:''}<div class="acc" style="grid-template-columns:repeat(${Math.max(1,(W.accounts||[]).length)},minmax(0,1fr))">${(W.accounts||[]).map(a=>`<div><small>${esc(a.name)}${a.manual?' (ręcznie)':''}${a.change!=null?`<span class="${a.change>=0?'up':'dn'}">${a.change>=0?'+':''}${fmt(a.change,1)}%</span>`:''}</small><b class="tn">${fmt(a.value)} zł</b></div>`).join('')}</div>`;return}
  const ser=(EQ?.series||[]).map(p=>p.real),r=S?.real||{};
  $('pfb').innerHTML=`<div class="big tn ${r.pnl>=0?'up':'dn'}">${sgn(r.pnl)}%</div><div class="d"><span class="chip">wynik skanera, 30 dni</span>${r.wr!=null?`${r.wr}% trafionych, ${r.wins||0} z ${r.closed||0}`:''}</div>${area(ser,css('--ac'))}
-  <div class="connect"><b>Podepnij portfele OKX, Kraken i XTB</b> – tu pojawi się łączny stan konta i ile urosło. Wystarczą klucze API tylko do odczytu.</div>`;
+  <div class="connect"><b>Podepnij portfele OKX, Kraken i XTB</b> – tu pojawi się łączny stan konta i ile urosło. Wystarczą klucze API tylko do odczytu.<div style="margin-top:10px"><button class="btn" onclick="wopen()">Podepnij portfele</button></div>${(W?.errors||[]).length?`<div class="dn" style="margin-top:8px">${esc(W.errors.join('; '))}</div>`:''}</div>`;
 }
 
 // ---------- social ----------
@@ -290,6 +304,16 @@ async function load(){
   health(G);const now=timeline(A,P,V,F);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);
  }finally{busy=false}
 }
+// ---------- ustawienia portfeli ----------
+async function wopen(){$('wm').classList.add('open');$('wmsg').textContent='';const c=await get('/api/wallets/cfg')||{};
+ $('wst-okx').textContent=c.okx?'– podpięty (wpisz nowe, żeby zmienić)':'';$('wst-kraken').textContent=c.kraken?'– podpięty (wpisz nowe, żeby zmienić)':'';$('xtb-v').value=c.xtb??''}
+$('wcfg').onclick=wopen;$('wclose').onclick=()=>$('wm').classList.remove('open');$('wm').onclick=e=>{if(e.target===$('wm'))$('wm').classList.remove('open')};
+$('wsave').onclick=async()=>{const b=$('wsave');b.disabled=true;$('wmsg').textContent='Sprawdzam połączenie…';
+ const body={okx:{key:$('okx-k').value,secret:$('okx-s').value,pass:$('okx-p').value},kraken:{key:$('kr-k').value,secret:$('kr-s').value},xtb:$('xtb-v').value};
+ try{const r=await (await fetch('/api/wallets/cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  if(!r.ok)$('wmsg').textContent=r.error;else{const W=r.wallets;$('wmsg').innerHTML=W.ok?`Zapisane. Razem: <b>${fmt(W.total)} zł</b>`+((W.errors||[]).length?`<br><span class="dn">${esc(W.errors.join('; '))}</span>`:''):`<span class="dn">${esc((W.errors||[]).join('; ')||'Nic nie podpięte')}</span>`;
+   ['okx-k','okx-s','okx-p','kr-k','kr-s'].forEach(i=>$(i).value='');load()}}
+ catch(e){$('wmsg').textContent='Brak połączenia z centrum.'}b.disabled=false};
 load();setInterval(load,90000);
 </script>
 </body>
