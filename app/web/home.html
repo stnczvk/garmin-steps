@@ -113,6 +113,18 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .pi input[type=datetime-local],.pi input[type=text]{background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:7px 9px;color:var(--tx);font:inherit;font-size:13px;min-width:0}
 .pi .pf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pi .pf label{display:flex;gap:5px;align-items:center;font-size:12.5px;background:var(--s3);border-radius:9px;padding:5px 9px;cursor:pointer}
 .pi .ac{display:flex;gap:6px;flex-wrap:wrap}.pi .er{color:var(--bad);font-size:12.5px}
+.hi{width:26px;height:26px;border-radius:8px;display:inline-grid;place-items:center;flex:none;color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 22%,transparent)}
+.hi svg{width:15px;height:15px}
+.t h3{font-size:13.5px;font-weight:600;color:var(--tx);gap:10px}
+.t:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(120% 60% at 0% 0%,rgba(143,123,255,.07),transparent 50%)}
+.qa{display:flex;gap:10px;margin:-4px 0 14px;flex-wrap:wrap}
+.qa button{display:flex;align-items:center;gap:9px;border:1px solid var(--ln);background:linear-gradient(180deg,var(--s2),var(--s1));color:var(--tx);font-weight:600;font-size:13px;padding:7px 14px 7px 8px;border-radius:14px;box-shadow:inset 0 1px 0 var(--hi);transition:transform .12s,border-color .2s}
+.qa button:hover{border-color:color-mix(in srgb,var(--ac) 40%,var(--ln))}.qa button:active{transform:scale(.97)}
+.kp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.k{padding:16px 18px 12px}.kv{font-size:30px;font-weight:700;letter-spacing:-.03em;margin-top:10px;line-height:1}.kd{font-size:12.5px;color:var(--mu);margin-top:6px;min-height:17px}
+.ks svg{width:100%;height:44px;display:block;margin-top:6px}
+@media(max-width:1180px){.kp{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.kp{gap:10px}.kv{font-size:24px}.qa{overflow-x:auto;flex-wrap:nowrap;margin-right:-12px;padding-right:12px}.qa button{flex:none}}
 @media(max-width:1180px){.mg{grid-template-columns:300px minmax(0,1fr)}.c7,.c5{grid-column:span 12}}
 @media(max-width:760px){
  .wrap{padding:14px 12px calc(30px + env(safe-area-inset-bottom))}
@@ -137,17 +149,19 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
   <div class="health" id="health" data-go="straznicy"><div class="bars" id="gbars"></div><div><b id="gtxt">Strażnicy</b><small id="gsub"></small></div></div>
   <div class="thm" id="thm" role="group" aria-label="Motyw"><button data-t="auto">Auto</button><button data-t="light">Jasny</button><button data-t="dark">Ciemny</button></div>
  </div>
+<div class="qa"><button data-go="notatki"><span class="hi" style="--c:#8f7bff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></span><span>Notatka</span></button><button data-go="montazownia"><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2v8l-4-2"/></svg></span><span>Nowy montaż</span></button><button data-go="hasla"><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg></span><span>Hasło</span></button><button onclick="document.getElementById('plc').scrollIntoView({behavior:'smooth'})"><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span><span>Posty</span></button></div>
+ <div class="kp" id="kp"><div class="t k"><h3><span class="hi" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></span>Obserwujący</h3><div class="kv tn" id="kv0">–</div><div class="kd" id="kd0"></div><div class="ks" id="ks0"></div></div><div class="t k"><h3><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Wyświetlenia 7 dni</h3><div class="kv tn" id="kv1">–</div><div class="kd" id="kd1"></div><div class="ks" id="ks1"></div></div><div class="t k"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Skaner 30 dni</h3><div class="kv tn" id="kv2">–</div><div class="kd" id="kd2"></div><div class="ks" id="ks2"></div></div><div class="t k"><h3><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>Do zrobienia</h3><div class="kv tn" id="kv3">–</div><div class="kd" id="kd3"></div><div class="ks" id="ks3"></div></div></div>
  <div id="nowtop" style="display:none;margin-bottom:10px"></div>
  <div class="mg">
-  <aside class="t"><h3>Twój dzień<span class="r chip" id="dname"></span></h3><div class="tlx" id="tl"><div class="sk" style="margin-top:10px"></div></div></aside>
+  <aside class="t"><h3><span class="hi" style="--c:#8f7bff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>Twój dzień<span class="r chip" id="dname"></span></h3><div class="tlx" id="tl"><div class="sk" style="margin-top:10px"></div></div></aside>
   <div class="mr">
-   <section class="t c7" id="pf"><h3>Portfel razem<button class="r lnk" id="wcfg">Ustawienia portfeli</button></h3><div id="pfb"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
-   <section class="t c5"><h3>Obserwujący, wszystkie konta<span class="r" id="f28"></span></h3><div id="soc"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
-   <section class="t c5"><h3>Czeka na Ciebie<span class="r chip" id="apn">0</span></h3><div id="appr"><div class="sk" style="margin-top:10px"></div></div></section>
-   <section class="t c7"><h3>Skaner w tym miesiącu<span class="r" id="skc"></span></h3><div id="scan"><div class="sk" style="margin-top:10px;height:120px"></div></div></section>
-   <section class="t c12" id="plc"><h3>Zaplanowane posty<span class="r" style="display:flex;gap:8px;align-items:center"><span class="chip" id="pln">0</span><button class="lnk" id="plh">Godziny publikacji</button></span></h3><div id="pl"><div class="sk" style="margin-top:10px"></div></div></section>
-   <section class="t c12"><h3>Biura<a class="r" href="#" data-go="agencja">Agencja AI →</a></h3><div class="offg" id="off"></div></section>
-   <section class="t c12"><h3>Raporty AI</h3><div class="rep" id="rep"></div></section>
+   <section class="t c7" id="pf"><h3><span class="hi" style="--c:#8f7bff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20M16 15h2"/></svg></span>Portfel razem<button class="r lnk" id="wcfg">Ustawienia portfeli</button></h3><div id="pfb"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
+   <section class="t c5"><h3><span class="hi" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></span>Obserwujący, wszystkie konta<span class="r" id="f28"></span></h3><div id="soc"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
+   <section class="t c5"><h3><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>Czeka na Ciebie<span class="r chip" id="apn">0</span></h3><div id="appr"><div class="sk" style="margin-top:10px"></div></div></section>
+   <section class="t c7"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Skaner w tym miesiącu<span class="r" id="skc"></span></h3><div id="scan"><div class="sk" style="margin-top:10px;height:120px"></div></div></section>
+   <section class="t c12" id="plc"><h3><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span>Zaplanowane posty<span class="r" style="display:flex;gap:8px;align-items:center"><span class="chip" id="pln">0</span><button class="lnk" id="plh">Godziny publikacji</button></span></h3><div id="pl"><div class="sk" style="margin-top:10px"></div></div></section>
+   <section class="t c12"><h3><span class="hi" style="--c:#b5a8ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></svg></span>Biura<a class="r" href="#" data-go="agencja">Agencja AI →</a></h3><div class="offg" id="off"></div></section>
+   <section class="t c12"><h3><span class="hi" style="--c:#ff9f6b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>Raporty AI</h3><div class="rep" id="rep"></div></section>
   </div>
  </div>
 </div>
@@ -310,12 +324,28 @@ function summary(now,napr,S){
  const s=p.join(', ');$('sum').textContent=new Date().toLocaleDateString('pl',{day:'numeric',month:'long'})+'. '+s.charAt(0).toUpperCase()+s.slice(1)+'.';
 }
 
+// ---------- pasek liczb z wykresikami ----------
+function spk(pts,c){return pts&&pts.length>1?area(pts,c,44,200).replace('class="ch"','class="ch" ').replace('style="height:44px"','style="height:44px;margin:0"'):''}
+function kpis(D,S,EQ,napr,A){
+ const acc=Object.values(D?.accounts||{}).filter(a=>!a.error);
+ // obserwujący: suma historii kont (ostatnie 30 dni)
+ const by={};acc.forEach(a=>(a.history||[]).forEach(h=>{by[h.date]=(by[h.date]||0)+(h.followers||0)}));const fd=Object.keys(by).sort().slice(-30);
+ const fol=acc.reduce((s,a)=>s+(a.followers||0),0),f28=acc.reduce((s,a)=>s+(a.followers_28d||0),0);
+ $('kv0').textContent=fmt(fol);$('kd0').innerHTML=`<span class="${f28>=0?'up':'dn'}">${f28>=0?'+':''}${fmt(f28)}</span> w 28 dni`;$('ks0').innerHTML=spk(fd.map(d=>by[d]),'#ff6fa5');
+ // wyświetlenia: posty z 7 ostatnich dni wg daty
+ const days=[...Array(7)].map((_,i)=>{const d=new Date(Date.now()-(6-i)*864e5);return d.toISOString().slice(0,10)}),v={};days.forEach(d=>v[d]=0);
+ acc.forEach(a=>(a.posts||[]).forEach(p=>{const d=(p.date||'').slice(0,10);if(d in v)v[d]+=p.views||0}));const vs=days.map(d=>v[d]),tot=vs.reduce((a,b)=>a+b,0);
+ $('kv1').textContent=big(tot);$('kd1').textContent='z postów opublikowanych w tym tygodniu';$('ks1').innerHTML=spk(vs,'#5ad1ff');
+ const r=S?.real||{};$('kv2').textContent=sgn(r.pnl)+'%';$('kv2').className='kv tn '+(r.pnl>=0?'up':'dn');$('kd2').textContent=r.wr!=null?`${r.wr}% trafionych, ${r.closed||0} transakcji`:'';$('ks2').innerHTML=spk((EQ?.series||[]).map(p=>p.real),'#3ddc84');
+ const q=(A?.queue||[]).length;$('kv3').textContent=napr;$('kd3').textContent=napr?'rzeczy czeka na Ciebie':'wszystko ogarnięte';$('ks3').innerHTML=`<div class="kd" style="margin-top:14px">${q} tematów w kolejce Agencji</div>`;
+}
+
 let busy=false;
 async function load(){
  if(busy)return;busy=true;
  try{
   const [D,S,EQ,FG,A,P,AUD,G,V,F,W]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit'),get('/api/guardians'),get('/api/mont-vlog/state'),get('/api/mont/jobs'),get('/api/wallets')]);
-  const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);
+  const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
  }finally{busy=false}
 }
 // ---------- planer postów ----------

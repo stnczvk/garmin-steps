@@ -71,3 +71,7 @@ body.dash #stars{display:none!important}
 .lg .wrap>h1:first-child,.lg .wrap>.top h1,.lg .wrap>.hero h1,.lg .wrap>div:first-child>h1,.lg .wrap>header h1{font-size:26px!important;font-weight:650!important;letter-spacing:-.025em!important}
 .lg .wrap>p.sub,.lg .wrap>.top p,.lg .wrap>.hero p,.lg .wrap>div:first-child>p{color:var(--mut)!important;font-size:14px}
 body.lg{min-height:100dvh}
+/* kafle działów i karty: lekka poświata w rogu jak na ekranie głównym */
+.lg .dc{background:radial-gradient(120% 70% at 0% 0%,color-mix(in srgb,var(--c,#8f7bff) 10%,transparent),transparent 55%),linear-gradient(180deg,var(--v3-s2),var(--v3-s1))!important}
+/* puste stany – czytelniejsze */
+.lg .empty,.lg .mut.empty{color:var(--mut)}
