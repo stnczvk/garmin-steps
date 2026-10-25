@@ -1238,6 +1238,8 @@ Szukaj TYLKO realnych błędów:
 4. błędy w napisach: przekręcone słowa (słownik kulinarny/siłowy), godziny i liczby słownie zamiast cyfr („siedemnasta” → „17”),
    napis niezgodny z sensem. Napisy mają być SŁOWO W SŁOWO jak mówię, po polsku.
 Nie wycinaj zapowiedzi (hook) z początku, nie wycinaj więcej niż ~6 s w jednym miejscu, nie skracaj filmu „dla tempa”.
+WAŻNE: napisy oznaczone (hook) to celowa zapowiedź – zdanie SKOPIOWANE z dalszej części filmu. To samo zdanie później w filmie
+to oryginał i NIE jest dublem – nigdy go nie wycinaj z powodu powtórzenia zapowiedzi (dubel liczy się tylko poza hookiem).
 Jeśli wszystko OK – zwróć pustą listę. Lepiej nic nie zmienić niż zepsuć.
 Zwróć TYLKO JSON: {"fixes": [{"type": "cut", "t0": 12.3, "t1": 14.1, "why": "..."}, {"type": "caption", "i": 17, "text": "...", "why": "..."}],
 "notes": ["krótka uwaga dla mnie, jeśli coś jest podejrzane, ale nie da się tego poprawić automatycznie"]}
