@@ -13,6 +13,8 @@ router = APIRouter()
 DNI = ["pon", "wt", "śr", "czw", "pt", "sob", "nd"]
 
 
+from skills import sk
+
 def planner(why="harmonogram"):
     if _busy.get("planner"):
         return
@@ -98,7 +100,7 @@ Tematy już użyte (nie powtarzaj 1:1):
 Jesteś Recyklerem. Zaproponuj 3 NOWE tematy, które wykorzystują to, co zadziałało w najlepszych filmach
 (ta sama mechanika/porównanie/emocja, ale inny obiekt albo „część 2” z nowym zaskoczeniem).
 Odpowiedz WYŁĄCZNIE tablicą JSON: [{{"topic": "...(EN)", "pillar": "...", "category": "...", "hook": "max 12 słów EN",
-"reference": "...", "payoff": "...", "why": "na którym filmie bazuje i dlaczego (PL, 1 zdanie)"}}]""", SMART, 1500)
+"reference": "...", "payoff": "...", "why": "na którym filmie bazuje i dlaczego (PL, 1 zdanie)"}}]""", SMART, 1500, system=sk("hook", "repurpose"))
         new = [{"id": uuid.uuid4().hex[:8], "status": "queued", "created": time.time(), "source": "recykler",
                 **{k: str(x.get(k, ""))[:300] for k in ("topic", "pillar", "category", "hook", "reference", "payoff", "why")}}
                for x in (as_json(txt) or []) if isinstance(x, dict) and x.get("topic")][:3]
@@ -127,7 +129,7 @@ Jesteś Copywriterem Instagrama kanału. Napisz opis pod Reels PO ANGIELSKU:
 - 2–3 krótkie linijki z najciekawszą liczbą/porównaniem z filmu,
 - pytanie do widzów albo zachęta do zapisania/wysłania znajomemu (jedno, naturalne),
 - pusta linia i 5–8 hashtagów pasujących do IG (mieszanka niszowych i szerszych, bez #fyp/#viral).
-Bez emoji-spamu (max 2). Odpowiedz WYŁĄCZNIE gotowym tekstem opisu.""", FAST, 400).strip()
+Bez emoji-spamu (max 2). Odpowiedz WYŁĄCZNIE gotowym tekstem opisu.""", FAST, 400, system=sk("caption", "seo", "slop")).strip()
         if 40 <= len(txt) <= 2000:
             log("copy", f"Opis IG gotowy · {str(script.get('title') or script.get('topic'))[:60]}", "ok", {"caption": txt[:600]})
             return txt
@@ -159,7 +161,7 @@ Tematy już użyte: {', '.join(used[-40:])}
 Jesteś Rzecznikiem kanału. 1) Wypisz krótko, o co widzowie najczęściej pytają, co ich zaskoczyło, z czym się kłócą.
 2) Zaproponuj 2–3 NOWE tematy filmów, które bezpośrednio odpowiadają na te pytania.
 Odpowiedz WYŁĄCZNIE JSON: {{"summary": "3-4 zdania po polsku", "topics": [{{"topic": "...(EN)", "pillar": "...", "category": "...", "hook": "max 12 słów EN",
-"reference": "...", "payoff": "...", "why": "na jaki komentarz odpowiada (PL)"}}]}}""", SMART, 1500)
+"reference": "...", "payoff": "...", "why": "na jaki komentarz odpowiada (PL)"}}]}}""", SMART, 1500, system=sk("hook", "trend"))
         j = as_json(txt) or {}
         new = [{"id": uuid.uuid4().hex[:8], "status": "queued", "created": time.time(), "source": "widzowie",
                 **{k: str(x.get(k, ""))[:300] for k in ("topic", "pillar", "category", "hook", "reference", "payoff", "why")}}

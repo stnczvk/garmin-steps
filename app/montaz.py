@@ -1180,7 +1180,7 @@ async def mont_opis(req: Request):
     try:
         what = "karuzeli zdjęć (Instagram + TikTok foto)" if kind == "karuzela" else "krótkiego filmu (TikTok i Instagram Reels)"
         res = as_json(claude(f"Napisz opis do publikacji {what} (autor: Bartłomiej – natural bodybuilding, redukcja, codzienne jedzenie i trening).\n\n{ctx}\n\n{OPIS_RULES}",
-                             max_tokens=700)) or {}
+                             max_tokens=700, system=__import__("skills").sk("caption", "seo", "slop"))) or {}
     except Exception as e:
         return {"ok": False, "error": str(e)[:120]}
     out = {"tiktok": str(res.get("tiktok") or "").strip(), "instagram": str(res.get("instagram") or "").replace("\\n", "\n").strip(), "at": time.time()}

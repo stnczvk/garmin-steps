@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from social import _read, _write
 from extra import _ai_key, insights, push_all
 
+from skills import sk  # skrócone zasady skilli social media dla agentów
 router = APIRouter()
 TZ = ZoneInfo("Europe/Warsaw")
 # dostawca AI: OpenAI gdy jest OPENAI_API_KEY (albo AGENCY_PROVIDER=openai), inaczej Claude
@@ -275,7 +276,7 @@ Zaproponuj {n} nowych tematów, faworyzując to, co działa najlepiej, i unikaj�
 Każdy temat musi dać się POKAZAĆ obrazami (skala przez porównanie ze znanym obiektem) i mieć jedno konkretne pytanie. Rotuj filary.
 Odpowiedz WYŁĄCZNIE tablicą JSON: [{{"topic": "...(EN, konkretny)", "pillar": "jeden z filarów", "category": "jedna z kategorii", "hook": "pierwsze zdanie lektora EN, max 12 słów",
 "reference": "punkt odniesienia znany widzowi", "payoff": "zaskakujący fakt na koniec", "why": "dlaczego teraz / dlaczego zadziała (PL, 1 zdanie)"}}]"""
-        items = as_json(claude(prompt, SMART, 2500, web=True))
+        items = as_json(claude(prompt, SMART, 2500, system=sk('trend', 'hook'), web=True))
         new = [{"id": uuid.uuid4().hex[:8], "status": "queued", "created": time.time(), **{k: str(x.get(k, ""))[:300] for k in
                 ("topic", "pillar", "category", "hook", "reference", "payoff", "why")}} for x in items if x.get("topic")]
         t = topics() + new
@@ -347,7 +348,7 @@ Jeśli ocena < {s['min_score']} albo sędzia odrzucił scenariusz albo jest bł�
 Zasady poprawki: ten sam temat, te same fakty i kolejność co sceny w timeline (obrazy już tak zaplanowano), voiceover 72–92 słów,
 title max 60 znaków, hook = pierwsze zdanie voiceover. Jeśli ocena ≥ {s['min_score']} i brak błędów – nie zmieniaj nic.
 Odpowiedz WYŁĄCZNIE JSON: {{"score": liczba, "issues": ["krótko po polsku"], "changes": {{tylko zmienione pola albo pusty obiekt}}}}"""
-        r = as_json(claude(prompt, SMART, 2500, web=True))
+        r = as_json(claude(prompt, SMART, 2500, system=sk('reel', 'hook'), web=True))
         if isinstance(r, list):       # model czasem odpowiada [ {...} ] zamiast {...}
             r = next((x for x in r if isinstance(x, dict)), {})
         r = r if isinstance(r, dict) else {}
@@ -410,7 +411,7 @@ Prawdziwe podpowiedzi wyszukiwania YouTube dla tego tematu: {json.dumps(sug, ens
 Popraw metadane pod te wyszukiwania, zachowując ciekawość (bez clickbaitu, bez zmiany tematu):
 title max 60 znaków z głównym słowem kluczowym, description 2–3 zdania z naturalnymi frazami, dokładnie 8 hashtagów, 6–8 search_keywords.
 Jeśli już są dobre – zwróć pusty obiekt. Odpowiedz WYŁĄCZNIE JSON z polami do zmiany: {{"title":..,"description":..,"hashtags":[..],"search_keywords":[..]}}"""
-        r = as_json(claude(prompt, FAST, 900))
+        r = as_json(claude(prompt, FAST, 900, system=sk('seo')))
         ch = {}
         if isinstance(r, dict):
             if r.get("title") and len(str(r["title"])) <= 60:
@@ -493,7 +494,7 @@ def retention(force=False):
                              f"vs podobne Shorts {v['rel']}, największy odpływ przy {v['drop']}% filmu" for v in vids[:25])
             txt = claude("Jesteś Analitykiem retencji kanału YouTube Shorts „Poza Skala” (filmy o skali, EN). Dane retencji filmów:\n" + desc +
                          "\n\nNapisz 5 krótkich, konkretnych lekcji (po polsku, każda od „• ”): jakie hooki i tematy trzymają widzów "
-                         "w pierwszych 3 s, gdzie ludzie odpadają i co zmienić w scenariuszach. Bez wstępu.", SMART, 700)
+                         "w pierwszych 3 s, gdzie ludzie odpadają i co zmienić w scenariuszach. Bez wstępu.", SMART, 700, system=sk('perf', 'hook'))
             if txt.strip():
                 _write("agency_lessons.json", {"at": time.time(), "text": txt.strip(), "n": len(vids)})
         # zawsze wpis – inaczej strażnik nie odróżni „nic nowego” od „nie uruchomił się”
@@ -524,7 +525,7 @@ def _reply_text(video, comment):
 "{comment[:500]}"
 Napisz krótką (max 2 zdania), naturalną odpowiedź ZAWSZE PO ANGIELSKU (kanał jest anglojęzyczny), nawet gdy komentarz jest w innym języku: podziękuj, odpowiedz rzeczowo na pytanie albo dorzuć ciekawy fakt,
 czasem zadaj pytanie, żeby rozkręcić dyskusję. Bez linków, bez emoji-spamu, bez proszenia o suba.
-Jeśli to spam, hejt, coś obraźliwego, prowokacja polityczna albo nie ma na co odpowiedzieć – odpowiedz dokładnie: SKIP""", FAST, 150).strip()
+Jeśli to spam, hejt, coś obraźliwego, prowokacja polityczna albo nie ma na co odpowiedzieć – odpowiedz dokładnie: SKIP""", FAST, 150, system=sk('slop')).strip()
 
 
 def _send(item, text):
@@ -617,8 +618,9 @@ def _ig_new_comments(I, done):
             out.append({"id": c["id"], "platform": "instagram", "video": (m.get("caption") or "")[:60],
                         "author": "@" + (c.get("username") or "?"), "text": c.get("text", "")})
     if hidden:
-        I["_warn"] = (f"Instagram: {hidden} postów ma komentarze, ale API ich nie oddaje – połącz konto @{me} ponownie w ustawieniach centrum "
-                           "(zgoda na zarządzanie komentarzami)")
+        I["_warn"] = (f"Instagram: {hidden} postów ma komentarze, ale API ich nie oddaje. Ponowne łączenie konta nie pomoże – "
+                      "aplikacja Meta jest prawdopodobnie w trybie deweloperskim (widzi tylko komentarze testerów). "
+                      "developers.facebook.com → Twoja aplikacja → przełącz App Mode na Live")
     return out
 
 
@@ -758,7 +760,7 @@ Napisz po polsku zwięzły raport tygodniowy:
 2. Co działa – 3 punkty (tematy, format, długość, hook, pora) oparte na danych powyżej.
 3. Co nie działa – 2 punkty.
 4. Plan na najbliższy tydzień: 3 konkretne pomysły na posty (temat + hook na pierwsze 2 s + format) dopasowane do tego, co działa.
-Każdy punkt od „• ”. Bez wstępu, bez ogólników, nie wymyślaj liczb spoza danych.""", SMART, 1400)
+Każdy punkt od „• ”. Bez wstępu, bez ogólników, nie wymyślaj liczb spoza danych.""", SMART, 1400, system=sk('perf', 'hook', 'repurpose'))
         rep = {"at": time.time(), "text": txt.strip(), "accounts": [{"name": a.get("name"), "platform": a.get("platform"),
                "followers": a.get("followers"), "followers_28d": a.get("followers_28d"), "views_28d": a.get("views_28d")} for a in accs.values()]}
         hist = _read("agency_private.json", [])
@@ -905,7 +907,7 @@ Jesteś Kopiarzem trendów. Nie kopiuj tytułów – wyciągnij, CO w nich dzia�
 i zaproponuj 4 NOWE tematy w formacie Poza Skalą, które wykorzystują ten sam mechanizm na innym obiekcie.
 Odpowiedz WYŁĄCZNIE tablicą JSON: [{{"topic":"(EN)","pillar":"","category":"","hook":"(EN, max 12 słów)","reference":"","payoff":"",
 "why":"(PL, 1 zdanie: jaki trend i dlaczego zadziała)","inspired_by":"tytuł filmu z listy"}}]"""
-        items = as_json(claude(prompt, SMART, 1800))
+        items = as_json(claude(prompt, SMART, 1800, system=sk('trend', 'hook')))
         new = [{"id": uuid.uuid4().hex[:8], "status": "queued", "created": time.time(), "source": "trend",
                 **{k: str(x.get(k, ""))[:300] for k in ("topic", "pillar", "category", "hook", "reference", "payoff", "why", "inspired_by")}}
                for x in items if x.get("topic")]

@@ -166,6 +166,8 @@ const DEPTS=[
   {n:'Analityk prywatnych',m:'Sonnet',s:'performance-analyst',id:'private'},{n:'Doradca treści',m:'Sonnet',s:'social-content + hook-generator',id:'private'}]}
 ];
 DEPTS.forEach(d=>d.agents.forEach(a=>a.st=0));
+const SKL={'Trend Scout':'trend, hook','Kopiarz trendów':'trend, hook','SEO Hunter':'seo','Kontroler':'reel, hook','Hook Master':'hook, reel','Retencja':'performance','Komentarze YT':'stop-slop','Komentarze IG':'stop-slop','Analityk prywatnych':'performance, repurpose','Copywriter IG':'caption, seo, stop-slop','Recykler':'hook, repurpose','Rzecznik':'hook, trend'};
+DEPTS.forEach(d=>(d.agents||[]).forEach(a=>{if(SKL[a.n])a.s=(a.s?a.s+' · ':'')+'✦ skille: '+SKL[a.n]}));
 const AG_NAMES={scout:'Trend Scout',trends:'Kopiarz trendów',qa:'Kontroler',op:'n8n Operator',n8n:'n8n',seo:'SEO Hunter',tech:'Technik',retention:'Retencja',inbox:'Inbox',private:'Analityk prywatnych',planner:'Planer',recycle:'Recykler',copy:'Copywriter IG',spokes:'Rzecznik'};
 const AG_DEPT={trends:0,scout:0,qa:5,op:6,n8n:6,seo:0,tech:5,retention:4,inbox:7,private:8};
 

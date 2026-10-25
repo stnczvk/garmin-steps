@@ -70,7 +70,10 @@ textarea#tx{width:100%;min-height:calc(100dvh - 220px);background:transparent!im
 .md hr{border:0;border-top:1px solid var(--o-div);margin:1.5em 0}.md table{border-collapse:collapse}.md td,.md th{border:1px solid var(--o-div);padding:5px 9px}
 .md .wl{color:var(--o-ac);cursor:pointer;text-decoration:none}.md .wl:hover{text-decoration:underline}.md .wl.miss{opacity:.6}
 .md .tag,.rp .tag{display:inline-block;background:var(--o-sel);color:var(--o-ac2);border-radius:10px;padding:0 8px;font-size:.88em;cursor:pointer}
-.md input[type=checkbox]{accent-color:var(--o-ac);margin-right:6px}
+.md input[type=checkbox]{accent-color:var(--o-ac);margin:0 8px 0 0;width:16px;height:16px;vertical-align:-3px;cursor:pointer}
+.md li:has(>input[type=checkbox]){list-style:none;margin-left:-1.3em}
+.md li:has(>input[type=checkbox]:checked){color:var(--o-fa);text-decoration:line-through;text-decoration-color:rgba(160,160,190,.5)}
+.tkp{font-size:12px;color:var(--o-mu);margin-right:6px;white-space:nowrap}.tkp b{color:var(--o-ac2)}
 .ac{position:absolute;z-index:20;background:var(--o-bg2);border:1px solid var(--o-div);border-radius:7px;box-shadow:0 10px 30px rgba(0,0,0,.4);min-width:240px;padding:4px}
 .ac div{padding:5px 9px;border-radius:5px;cursor:pointer;font-size:13.5px}.ac div.on,.ac div:hover{background:var(--o-sel)}
 .empty{color:var(--o-fa);text-align:center;padding:80px 20px}
@@ -130,6 +133,7 @@ textarea#tx{width:100%;min-height:calc(100dvh - 220px);background:transparent!im
   <div class="tabs" id="tabs"></div>
   <div class="vh"><button class="ic back" id="bk" title="Wróć do listy"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
    <span class="crumb" id="crumb"></span><select id="fs" title="Przenieś do folderu"></select>
+   <button class="ic" id="tk" title="Zamień listę na checkboxy (do odhaczania)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><path d="M4.5 7.5l1.5 1.5 2.5-3"/><path d="M13 7.5h8M3 15.5h7M13 15.5h8"/></svg></button><span class="tkp" id="tkp"></span>
    <span class="seg" id="mode"><button data-m="edit" title="Edycja">Edycja</button><button data-m="view" class="on" title="Czytanie">Czytanie</button></span>
    <button class="btn sm" id="tq" title="Wyślij ten pomysł do kolejki tematów Agencji">Do kolejki</button><button class="btn sm del" id="del" title="Do kosza">Usuń</button></div>
   <div class="page"><div class="page-in"><input id="tt" placeholder="Bez tytułu"><textarea id="tx" spellcheck="true" placeholder="Pisz w Markdown… [[ – link do innej notatki, #tag, - [ ] zadanie" hidden></textarea><div class="md" id="md"></div><div class="ac" id="ac" hidden></div></div></div>
@@ -188,7 +192,9 @@ function render(){const txt=$('tx').value;const names=new Set(T.notes.map(n=>n.n
  $('md').querySelectorAll('.wl').forEach(s=>s.onclick=()=>followLink(s.dataset.l));
  $('md').querySelectorAll('.tag').forEach(s=>s.onclick=()=>{$('q').value='#'+s.dataset.t;$('q').oninput();document.body.classList.remove('ed-open')});
  $('md').querySelectorAll('input[type=checkbox]').forEach((c,i)=>{c.disabled=false;c.onclick=()=>{let k=-1;$('tx').value=$('tx').value.replace(/^(\s*[-*] )\[( |x)\]/gim,(m,p,s)=>{k++;return k===i?`${p}[${s===' '?'x':' '}]`:m});DIRTY=true;save()}});
- const w=txt.trim()?txt.trim().split(/\s+/).length:0;$('wc').textContent=w+' słów'}
+ const w=txt.trim()?txt.trim().split(/\s+/).length:0;$('wc').textContent=w+' słów';
+ const all=(txt.match(/^\s*[-*] \[( |x)\]/gim)||[]).length,dn=(txt.match(/^\s*[-*] \[x\]/gim)||[]).length;$('tkp').innerHTML=all?`<b>${dn}/${all}</b> zrobione`:''}
+$('tk').onclick=()=>{if(!CUR)return;const v=$('tx').value,n=v.replace(/^(\s*[-*] )(?!\[[ xX]\])/gm,'$1[ ] ');if(n===v){alert('Brak zwykłych punktów listy (linie zaczynające się od „- ”) do zamiany.');return}$('tx').value=n;DIRTY=true;save();render()};
 async function followLink(name){const n=T.notes.find(x=>x.name.toLowerCase()===name.toLowerCase());
  if(n)return open_(n.path);if(!confirm(`Nie ma notatki „${name}”. Utworzyć?`))return;
  const r=await J('/api/notes/file',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:`${CUR?.folder||'📥 Skrzynka'}/${name}.md`,content:`# ${name}\n\n`})});await loadTree();open_(r.path,'edit')}
