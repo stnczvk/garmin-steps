@@ -103,6 +103,14 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .mod label{display:block;font-size:12.5px;color:var(--mu);margin-top:8px}.mod input{width:100%;margin-top:4px;background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:9px 11px;color:var(--tx);font:inherit}
 .mod .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}.mod .st{font-size:12px;margin-left:6px}
 .lnk{background:none;border:0;color:var(--fa);font-size:12.5px}.lnk:hover{color:var(--tx)}
+.pl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px}
+.pi{border:1px solid var(--ln);border-radius:18px;padding:12px;background:rgba(127,127,160,.05);display:flex;flex-direction:column;gap:9px;min-width:0}
+.pi .hd{display:flex;gap:10px;align-items:flex-start}.pi .pv{width:64px;height:112px;border-radius:10px;background:#000;object-fit:cover;flex:none}
+.pi .hd b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pi .hd small{color:var(--mu);font-size:12.5px;display:block}
+.pi textarea{width:100%;min-height:84px;resize:vertical;background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;color:var(--tx);font:13px/1.45 inherit;font-family:inherit}
+.pi input[type=datetime-local],.pi input[type=text]{background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:7px 9px;color:var(--tx);font:inherit;font-size:13px;min-width:0}
+.pi .pf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pi .pf label{display:flex;gap:5px;align-items:center;font-size:12.5px;background:var(--s3);border-radius:9px;padding:5px 9px;cursor:pointer}
+.pi .ac{display:flex;gap:6px;flex-wrap:wrap}.pi .er{color:var(--bad);font-size:12.5px}
 @media(max-width:1180px){.mg{grid-template-columns:300px minmax(0,1fr)}.c7,.c5{grid-column:span 12}}
 @media(max-width:760px){
  .wrap{padding:14px 12px calc(30px + env(safe-area-inset-bottom))}
@@ -135,6 +143,7 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
    <section class="t c5"><h3>Obserwujący, wszystkie konta<span class="r" id="f28"></span></h3><div id="soc"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
    <section class="t c5"><h3>Czeka na Ciebie<span class="r chip" id="apn">0</span></h3><div id="appr"><div class="sk" style="margin-top:10px"></div></div></section>
    <section class="t c7"><h3>Skaner w tym miesiącu<span class="r" id="skc"></span></h3><div id="scan"><div class="sk" style="margin-top:10px;height:120px"></div></div></section>
+   <section class="t c12" id="plc"><h3>Zaplanowane posty<span class="r" style="display:flex;gap:8px;align-items:center"><span class="chip" id="pln">0</span><button class="lnk" id="plh">Godziny publikacji</button></span></h3><div id="pl"><div class="sk" style="margin-top:10px"></div></div></section>
    <section class="t c12"><h3>Biura<a class="r" href="#" data-go="agencja">Agencja AI →</a></h3><div class="offg" id="off"></div></section>
    <section class="t c12"><h3>Raporty AI</h3><div class="rep" id="rep"></div></section>
   </div>
@@ -187,7 +196,7 @@ function health(G,busyMac){
 // ---------- oś dnia ----------
 const SCHED=[[3,20,'Kopia zapasowa','codziennie'],[7,0,'Retencja filmów','Analityk'],[8,0,'PozaSkala: nowy film','generator'],[18,0,'Rzecznik: komentarze widzów','agencja']];
 const AG={scout:['Trend Scout','🔭'],qa:['Kontrola scenariusza',''],seo:['SEO',''],tech:['Kontrola techniczna',''],retention:['Analityk retencji',''],inbox:['Inbox',''],op:['Centrum',''],copy:['Copywriter',''],trends:['Trendy',''],recycle:['Recykler',''],spokes:['Rzecznik',''],private:['Analityk kont','']};
-function timeline(A,P,V,F){
+function timeline(A,P,V,F,PL){
  const t0=today0(),ev=[];
  (A?.log||[]).filter(e=>e.t*1000>=t0).forEach(e=>ev.push({t:e.t*1000,b:(AG[e.agent]||[e.agent])[0],s:e.text,err:e.kind==='error'}));
  (P?.executions||[]).filter(e=>Date.parse(e.startedAt)>=t0&&e.status!=='running').forEach(e=>ev.push({t:Date.parse(e.startedAt),b:`n8n: ${e.workflow}`,s:({success:'zakończony',error:'błąd',crashed:'przerwany'})[e.status]||e.status,err:['error','crashed'].includes(e.status)}));
@@ -200,7 +209,9 @@ function timeline(A,P,V,F){
  (F?.jobs||[]).filter(j=>j.state==='working').forEach(j=>now.push({b:'Daily jedzenie – montaż',s:j.step||'',p:50,go:'montazownia'}));
  Object.entries(A?.busy||{}).forEach(([k,v])=>now.push({b:(AG[k]||[k])[0],s:String(v),p:50,go:'agencja'}));
  const hNow=new Date().getHours()*60+new Date().getMinutes();
- const later=SCHED.filter(([hh,mm])=>hh*60+mm>hNow).map(([hh,mm,b,s])=>({tt:`${hh}:${String(mm).padStart(2,'0')}`,b,s}));
+ const eod=today0()+864e5;
+ const later=[...SCHED.filter(([hh,mm])=>hh*60+mm>hNow).map(([hh,mm,b,s])=>({tt:`${hh}:${String(mm).padStart(2,'0')}`,b,s,k:hh*60+mm})),
+  ...(PL||[]).filter(x=>['approved','draft'].includes(x.status)&&x.when*1000<eod&&x.when*1000>Date.now()).map(x=>{const d=new Date(x.when*1000);return {tt:hm(x.when*1000),b:`Post: ${x.label}`,s:x.status==='draft'?'czeka na zatwierdzenie':'zaplanowany',k:d.getHours()*60+d.getMinutes()}})].sort((a,b)=>a.k-b.k);
  const row=(e,cls)=>`<div class="ev ${cls||''}"><time>${e.tt||hm(e.t)}</time><span class="dt ${e.err?'err':cls==='f'?'f':''}"></span><div><b title="${esc(e.b)}">${esc(e.b)}</b>${e.s?`<small title="${esc(e.s)}">${esc(e.s)}</small>`:''}</div></div>`;
  const nowHtml=now.map(n=>`<div class="now" data-go="${n.go}"><small>Teraz</small><b>${esc(n.b)}</b>${n.s?`<small>${esc(n.s.slice(0,90))}</small>`:''}<div class="prog"><i style="width:${n.p}%"></i></div></div>`).join('');
  const morning=ev.filter(e=>new Date(e.t).getHours()<12),aft=ev.filter(e=>new Date(e.t).getHours()>=12);
@@ -240,8 +251,10 @@ function social(D){
 }
 
 // ---------- czeka na Ciebie ----------
-function approvals(A,V,F,G){
+function approvals(A,V,F,G,PL){
  const it=[];
+ (PL||[]).filter(x=>x.status==='draft').slice(0,3).forEach(x=>it.push([`Post: ${x.label}`,`publikacja ${new Date(x.when*1000).toLocaleString('pl',{weekday:'short',hour:'2-digit',minute:'2-digit'})}`,'Zatwierdź','',1,'#plc']));
+ (PL||[]).filter(x=>x.status==='error').slice(0,2).forEach(x=>it.push([`Publikacja nie wyszła: ${x.label}`,x.step||'','Zobacz','',0,'#plc']));
  (V?.jobs||[]).filter(j=>j.state==='ask').forEach(j=>it.push([`Wybierz zapowiedź: ${j.kind==='cheat'?'cheat meal':'vlog'} #${j.ep}`,'3 propozycje z podglądem','Wybierz','montazownia',1]));
  const dr=(A?.inbox||[]).filter(x=>x.status==='draft');if(dr.length)it.push([`${dr.length} ${dr.length===1?'odpowiedź':'odpowiedzi'} na komentarze`,'szkice czekają na wysyłkę','Zobacz','agencja']);
  (V?.jobs||[]).filter(j=>j.state==='done'&&j.check&&(!j.check.ok||(j.check.warnings||[]).length)).slice(0,2).forEach(j=>it.push([`Uwagi strażnika: ${j.kind==='cheat'?'cheat meal':'vlog'} #${j.ep}`,(j.check.problems||j.check.warnings||[])[0]||'zobacz podgląd','Zobacz','montazownia']));
@@ -249,7 +262,7 @@ function approvals(A,V,F,G){
  (V?.jobs||[]).filter(j=>j.state==='error').slice(0,2).forEach(j=>it.push([`Montaż nie wyszedł: #${j.ep}`,j.step||'','Ponów','montazownia']));
  (G?.guardians||[]).filter(g=>g.status==='fail').slice(0,3).forEach(g=>it.push([`${g.name}: problem`,g.msg||'','Sprawdź','straznicy']));
  $('apn').textContent=it.length;$('apn').className='r chip'+(it.length?' wr':' ok');
- $('appr').innerHTML=it.length?it.slice(0,6).map(x=>`<div class="it"><div><b title="${esc(x[0])}">${esc(x[0])}</b><small title="${esc(x[1])}">${esc(x[1])}</small></div><button class="btn${x[4]?'':' g'}" data-go="${x[3]}">${x[2]}</button></div>`).join('')
+ $('appr').innerHTML=it.length?it.slice(0,6).map(x=>`<div class="it"><div><b title="${esc(x[0])}">${esc(x[0])}</b><small title="${esc(x[1])}">${esc(x[1])}</small></div>${x[5]?`<button class="btn${x[4]?'':' g'}" onclick="document.querySelector('${x[5]}').scrollIntoView({behavior:'smooth'})">${x[2]}</button>`:`<button class="btn${x[4]?'':' g'}" data-go="${x[3]}">${x[2]}</button>`}</div>`).join('')
   :'<p class="empty">Nic nie czeka – wszystko ogarnięte.</p>';
  return it.length;
 }
@@ -301,9 +314,36 @@ async function load(){
  if(busy)return;busy=true;
  try{
   const [D,S,EQ,FG,A,P,AUD,G,V,F,W]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit'),get('/api/guardians'),get('/api/mont-vlog/state'),get('/api/mont/jobs'),get('/api/wallets')]);
-  health(G);const now=timeline(A,P,V,F);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);
+  const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);
  }finally{busy=false}
 }
+// ---------- planer postów ----------
+const PST={draft:['do zatwierdzenia','wr'],approved:['zaplanowany','ac'],publishing:['publikuję…','wr'],published:['opublikowany','ok'],error:['błąd','bad'],skipped:['pominięty','']};
+const dtl=t=>{const d=new Date(t*1000);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
+let PLD=null;
+async function planer(){const r=await get('/api/planer');PLD=r;if(!r){$('pl').innerHTML='<p class="empty">Planer niedostępny.</p>';return []}
+ const L=(r.items||[]).filter(x=>x.status!=='skipped');$('pln').textContent=L.filter(x=>x.status==='draft').length+' do zatwierdzenia';
+ if(!L.length){$('pl').innerHTML='<p class="empty">Gdy film albo karuzela będą gotowe w Montażowni, pojawią się tu jako szkic posta z opisem i godziną – zatwierdzasz jednym kliknięciem.</p>';return L}
+ if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#pl'))return L;   // nie przerywaj edycji
+ $('pl').innerHTML=(r.public?'':'<p class="dn" style="font-size:12.5px;margin-top:8px">Brak SOCIAL_DOMAIN w .env – Instagram nie pobierze plików.</p>')+'<div class="pl">'+L.map(x=>{const st=PST[x.status]||[x.status,''],ed=['draft','approved','error'].includes(x.status);
+  const pv=x.kind==='film'?`<video class="pv" src="/api/planer/${x.id}/preview#t=1" muted playsinline preload="metadata"></video>`:`<img class="pv" src="/api/planer/${x.id}/preview" alt="" loading="lazy">`;
+  return `<div class="pi" data-id="${x.id}"><div class="hd">${pv}<div style="min-width:0;flex:1"><b title="${esc(x.label)}">${esc(x.label)}</b><small>${x.kind==='film'?'film':'karuzela '+(x.files||[]).length+' zdjęć'}</small><span class="chip ${st[1]}" style="display:inline-block;margin-top:6px">${st[0]}</span>
+   ${x.status==='published'?`<small style="margin-top:6px">${new Date((x.done_at||x.when)*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small>`:''}</div></div>
+   ${x.status==='error'?`<div class="er">${esc(x.step||'')}</div>`:''}
+   ${ed?`<textarea data-f="caption" placeholder="Opis posta">${esc(x.caption||'')}</textarea>
+   ${x.kind==='film'?`<input type="text" data-f="yt_title" placeholder="Tytuł na YouTube (puste = pierwsze zdanie opisu)" value="${esc(x.yt_title||'')}">`:''}
+   <div class="pf"><input type="datetime-local" data-f="when" value="${dtl(x.when)}">${(x.kind==='film'?['instagram','youtube']:['instagram']).map(p=>`<label><input type="checkbox" data-p="${p}" ${x.platforms.includes(p)?'checked':''}>${p==='instagram'?'Instagram':'YouTube'}</label>`).join('')}</div>
+   <div class="ac">${x.status==='approved'?`<button class="btn g" data-a="unapprove">Cofnij</button><button class="btn g" data-a="save">Zapisz zmiany</button>`:x.status==='error'?`<button class="btn" data-a="retry">Ponów</button>`:`<button class="btn" data-a="approve">Zatwierdź</button>`}<button class="btn g" data-a="now">Opublikuj teraz</button><button class="btn g" data-a="skip">Pomiń</button></div>`:''}</div>`}).join('')+'</div>';
+ return L}
+document.addEventListener('click',async e=>{const b=e.target.closest('#pl [data-a]');if(!b)return;const c=b.closest('.pi'),a=b.dataset.a;
+ if(a==='now'&&!confirm('Opublikować teraz?'))return;
+ const body={};c.querySelectorAll('[data-f]').forEach(i=>body[i.dataset.f]=i.value);body.platforms=[...c.querySelectorAll('[data-p]:checked')].map(i=>i.dataset.p);
+ b.disabled=true;const r=await (await fetch(`/api/planer/${c.dataset.id}/${a}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json().catch(()=>({ok:false,error:'brak połączenia'}));
+ if(r.ok===false)alert(r.error);document.activeElement?.blur?.();planer()});
+$('plh').onclick=async()=>{const h=(PLD?.cfg?.hours)||{};const nm={jedzenie:'Daily jedzenie',karuzela:'Karuzela jedzenia',vlog:'Vlog',cheat:'Cheat meal',przepis:'Przepis'};const nh={};
+ for(const k of Object.keys(nm)){const v=prompt(`Godzina publikacji: ${nm[k]} (GG:MM)`,h[k]||'');if(v===null)return;nh[k]=v.trim()}
+ await fetch('/api/planer-cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hours:nh})});planer()};
+
 // ---------- ustawienia portfeli ----------
 async function wopen(){$('wm').classList.add('open');$('wmsg').textContent='';const c=await get('/api/wallets/cfg')||{};
  $('wst-okx').textContent=c.okx?'– podpięty (wpisz nowe, żeby zmienić)':'';$('wst-kraken').textContent=c.kraken?'– podpięty (wpisz nowe, żeby zmienić)':'';$('xtb-v').value=c.xtb??''}

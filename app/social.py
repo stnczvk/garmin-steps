@@ -244,7 +244,7 @@ def fetch_youtube(acc):
 
 
 # ---- Instagram (Instagram API z logowaniem przez Instagram – konta firmowe i twórcy)
-IG_SCOPES = "instagram_business_basic,instagram_business_manage_insights,instagram_business_manage_comments"
+IG_SCOPES = "instagram_business_basic,instagram_business_manage_insights,instagram_business_manage_comments,instagram_business_content_publish"
 IG = "https://graph.instagram.com"
 
 

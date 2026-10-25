@@ -124,6 +124,8 @@ from scanner_team import router as scanner_team_router  # noqa: E402
 app.include_router(scanner_team_router)
 from wallets import router as wallets_router  # noqa: E402
 app.include_router(wallets_router)
+from planer import router as planer_router  # noqa: E402
+app.include_router(planer_router)
 
 
 @app.get("/")

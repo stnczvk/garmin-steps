@@ -522,12 +522,28 @@ VFILM = SOCIAL_ROOT / "vlog_films"
 
 
 @router.put("/api/mont-hook/film")
-async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: float = 0):
-    """Mac wysyła lekką kopię (720p) gotowego, wyeksportowanego vloga/przepisu – do obejrzenia w Montażowni."""
+async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: float = 0, full: int = 0):
+    """Mac wysyła lekką kopię (720p) gotowego, wyeksportowanego vloga/przepisu – do obejrzenia w Montażowni.
+    full=1: kopia 1080p do publikacji (planer postów) – zapisywana obok jako <nazwa>.pub.mp4."""
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100] or "film"
     VFILM.mkdir(parents=True, exist_ok=True)
+    if full:
+        tmp = VFILM / (nm + ".pub.part")
+        with tmp.open("wb") as f:
+            async for chunk in req.stream():
+                f.write(chunk)
+        if tmp.stat().st_size < 10000:
+            tmp.unlink(missing_ok=True)
+            return {"ok": False, "error": "pusty plik"}
+        tmp.replace(VFILM / (nm + ".pub.mp4"))
+        try:
+            import planer
+            planer.on_film(nm, kind)
+        except Exception as e:
+            print("planer", e, flush=True)
+        return {"ok": True}
     tmp = VFILM / (nm + ".part")
     with tmp.open("wb") as f:
         async for chunk in req.stream():
@@ -540,12 +556,14 @@ async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: flo
     base = re.sub(r"\s+v\d+$", "", nm)
     for x in [x for x in M.values() if x["name"] != nm and re.sub(r"\s+v\d+$", "", x["name"]) == base]:
         (VFILM / (x["name"] + ".mp4")).unlink(missing_ok=True)   # nowa wersja tego samego odcinka – stara znika
+        (VFILM / (x["name"] + ".pub.mp4")).unlink(missing_ok=True)
         M.pop(x["name"], None)
     M[nm] = {"name": nm, "kind": kind if kind in KINDS else "vlog", "mtime": mtime or time.time(), "at": time.time()}
     keep = sorted(M.values(), key=lambda x: -x["mtime"])[:20]   # 20 najnowszych, starsze kasujemy
     for x in M.values():
         if x not in keep:
             (VFILM / (x["name"] + ".mp4")).unlink(missing_ok=True)
+            (VFILM / (x["name"] + ".pub.mp4")).unlink(missing_ok=True)
     _wr("mont_vlog_films.json", {x["name"]: x for x in keep})
     return {"ok": True}
 
