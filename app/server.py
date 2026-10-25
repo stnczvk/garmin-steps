@@ -56,7 +56,19 @@ async def guard(req: Request, call_next):
     # /api/agency/hook/* woła n8n – tam sprawdzany jest token agencji, nie sesja
     if req.url.path.startswith("/api/") and req.url.path != "/api/login" and not req.url.path.startswith(("/api/agency/hook/", "/api/mont-hook/")) and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
-    resp = await call_next(req)
+    try:
+        resp = await call_next(req)
+    except Exception as e:  # zapis błędu (czytany przez diagnostykę MCP: errors_log.json) zamiast gołego „Internal Server Error”
+        import traceback
+        from social import _read as _rd, _write as _wr
+        try:
+            L = _rd("errors_log.json", [])
+            L.append({"t": time.time(), "path": req.url.path, "method": req.method, "err": f"{type(e).__name__}: {e}"[:300],
+                      "tb": traceback.format_exc()[-1800:]})
+            _wr("errors_log.json", L[-60:])
+        except Exception:
+            pass
+        return JSONResponse({"error": f"Błąd serwera ({type(e).__name__}) – zapisany w errors_log.json"}, status_code=500)
     if req.url.path == "/":
         resp.headers["Cache-Control"] = "no-cache"
     return resp
