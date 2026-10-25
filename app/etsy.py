@@ -252,7 +252,14 @@ async def keys(req: Request):
     c = _cfg()
     c.update(keystring=ks, secret=sec)
     _write(CFG, c)
-    return {"ok": True}
+    # test klucza: openapi-ping odpowiada 200 tylko dla aktywnej (zatwierdzonej) aplikacji z poprawnym kluczem
+    try:
+        r = httpx.get(API + "/openapi-ping", headers={"x-api-key": f"{ks}:{sec}"}, timeout=20)
+        if r.status_code == 200:
+            return {"ok": True, "ping": True}
+        return {"ok": True, "ping": False, "error": f"Etsy nie przyjmuje klucza ({r.status_code}): {r.text[:160]} – sprawdź, czy aplikacja ma status zatwierdzonej i czy keystring/secret są wklejone bez spacji."}
+    except Exception as e:
+        return {"ok": True, "ping": None, "error": "Nie udało się sprawdzić klucza: " + str(e)[:120]}
 
 
 @router.get("/api/etsy/connect")
