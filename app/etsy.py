@@ -125,6 +125,10 @@ def sync():
     if not D.get("notified_once"):
         D["notified_once"] = True
         _write(DATA, D)
+    try:
+        auto_pers()
+    except Exception as e:
+        print("etsy pers", e, flush=True)
     return {"ok": True, "new": new}
 
 
@@ -203,6 +207,7 @@ def import_csv(text):
             n += 1
         D.update(orders=sorted(old.values(), key=lambda o: o["t"] or 0), csv_at=time.time())
         _write(DATA, D)
+    threading.Thread(target=auto_pers, daemon=True).start()
     return {"ok": True, "added": n}
 
 
@@ -238,7 +243,8 @@ def state():
         p = prod.setdefault(l["id"], {"title": l["title"], "sales": 0, "revenue": 0.0})
         p.update(views=l["views"], favorites=l["favorites"], price=l["price"], url=l["url"])
         p["conv"] = round(p["sales"] / l["views"], 4) if l["views"] else None
-    pers = [{"id": o["id"], "t": o["t"], "buyer": o["buyer"], "title": i["title"], "text": i["personalization"], "done": o.get("pers_done")}
+    pers = [{"id": o["id"], "t": o["t"], "buyer": o["buyer"], "title": i["title"], "text": i["personalization"], "done": o.get("pers_done"),
+             "url": o.get("pers_url"), "msg": o.get("pers_msg"), "parsed": o.get("pers_parsed")}
             for o in reversed(O) for i in o["items"] if i.get("personalization")][:30]
     return {"connected": bool(c.get("refresh")), "has_keys": bool(c.get("keystring")), "shop": D.get("shop"), "synced": D.get("synced"),
             "error": D.get("error"), "currency": (D.get("shop") or {}).get("currency") or (O[-1]["currency"] if O else "EUR"),
@@ -367,3 +373,109 @@ def disconnect():
         c.pop(k, None)
     _write(CFG, c)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- personalizacja zamówień (Small Business Tracker)
+from fastapi.responses import FileResponse  # noqa: E402
+from social import DIR  # noqa: E402
+
+PERS = DIR / "etsy_pers"
+
+
+def _public_base():
+    import os
+    d = os.environ.get("SOCIAL_DOMAIN", "").strip()
+    return f"https://{d}" if d else "https://centrum-dowodzenia.duckdns.org"
+
+
+def parse_pers(text, currency_hint="USD"):
+    """Tekst personalizacji od klienta → nazwa firmy, waluta, kategorie (AI, z bezpiecznym fallbackiem)."""
+    out = {"name": "", "currency": currency_hint, "inc": [], "exp": []}
+    try:
+        from agency import claude, as_json, FAST
+        j = as_json(claude(f"""A customer bought a personalized small-business income & expense tracker and wrote:
+"{text[:900]}"
+Extract JSON only: {{"name":"business name or empty","currency":"3-letter ISO code (guess from symbols/country, default {currency_hint})",
+"inc":["income categories they listed, max 20, short Title Case"],"exp":["expense categories they listed, max 20, short Title Case"]}}
+If they listed categories without saying income/expense, put sales/services/products-type items in inc and costs in exp.""", FAST, 500)) or {}
+        if isinstance(j, list):
+            j = j[0] if j else {}
+        out.update({k: j[k] for k in ("name", "currency", "inc", "exp") if j.get(k)})
+    except Exception:
+        out["name"] = text.split(",")[0].strip()[:60]
+    out["currency"] = re.sub(r"[^A-Z]", "", str(out["currency"]).upper())[:3] or currency_hint
+    out["inc"] = [str(x)[:40] for x in out["inc"]][:20]
+    out["exp"] = [str(x)[:40] for x in out["exp"]][:20]
+    return out
+
+
+def make_pers(oid, override=None):
+    import etsy_tpl
+    with _lock:
+        D = _read(DATA, {})
+        o = next((x for x in D.get("orders", []) if x["id"] == oid), None)
+    if not o:
+        return {"ok": False, "error": "nie ma zamówienia"}
+    text = "; ".join(i["personalization"] for i in o["items"] if i.get("personalization"))
+    p = (override or None) or o.get("pers_parsed") or parse_pers(text, o.get("currency") or "USD")
+    tok = o.get("pers_tok") or secrets.token_urlsafe(12)
+    safe = re.sub(r"[^A-Za-z0-9]+", "_", p.get("name") or "Business").strip("_")[:40] or "Business"
+    fn = f"PlanPerfect_Profit_Tracker_{safe}.xlsx"
+    d = PERS / tok
+    d.mkdir(parents=True, exist_ok=True)
+    for old in d.glob("*.xlsx"):
+        old.unlink()
+    etsy_tpl.build(str(d / fn), NAME=p.get("name") or "Your Business Name", CURRENCY=p.get("currency") or "USD",
+                   INC=p.get("inc") or None, EXP=p.get("exp") or None, EXAMPLE=False)
+    url = f"{_public_base()}/pub/etsy/{tok}/{fn}"
+    first = (o.get("buyer") or "").split(" ")[0] or "there"
+    msg = (f"Hi {first}! Thank you so much for your order 💚\n\n"
+           f"Your personalized Small Business Profit & Expense Tracker{(' for ' + p['name']) if p.get('name') else ''} is ready:\n{url}\n\n"
+           "How to open it in Google Sheets: upload the file to your Google Drive, right-click it → Open with → Google Sheets "
+           "(then File → Save as Google Sheets). It also opens directly in Excel.\n\n"
+           "Your business name, currency and categories are already set up – just start adding income and expenses. "
+           "If you'd like any changes, reply here and I'll update it for you.\n\nEnjoy! – PlanPerfect Sheets")
+    with _lock:
+        D = _read(DATA, {})
+        for x in D.get("orders", []):
+            if x["id"] == oid:
+                x.update(pers_tok=tok, pers_file=fn, pers_parsed=p, pers_msg=msg, pers_url=url, pers_at=time.time())
+        _write(DATA, D)
+    return {"ok": True, "url": url, "msg": msg, "parsed": p}
+
+
+def auto_pers():
+    """Nowe zamówienia z personalizacją → plik robi się sam, push z gotową wiadomością."""
+    D = _read(DATA, {})
+    for o in D.get("orders", []):
+        if any(i.get("personalization") for i in o["items"]) and not o.get("pers_tok") and not o.get("pers_done"):
+            r = make_pers(o["id"])
+            if r.get("ok"):
+                try:
+                    from extra import push_all
+                    push_all("✨ Personalizacja gotowa", f"Zamówienie {o['buyer'] or o['id']} – skopiuj wiadomość w zakładce Etsy i wyślij klientowi.", "/#etsy")
+                except Exception:
+                    pass
+
+
+@router.post("/api/etsy/pers/{oid}/make")
+async def api_make(oid: str, req: Request):
+    b = {}
+    try:
+        b = await req.json()
+    except Exception:
+        pass
+    ov = None
+    if b.get("name") is not None:
+        split = lambda v: [x.strip() for x in (v if isinstance(v, list) else str(v).split(",")) if x.strip()]
+        ov = {"name": str(b.get("name", ""))[:60], "currency": str(b.get("currency", "USD"))[:3].upper(),
+              "inc": split(b.get("inc", "")), "exp": split(b.get("exp", ""))}
+    return make_pers(oid, ov)
+
+
+@router.get("/pub/etsy/{tok}/{name}")
+def pub_file(tok: str, name: str):
+    if not re.fullmatch(r"[\w-]{8,40}", tok) or "/" in name or ".." in name:
+        return JSONResponse({"error": "nie"}, status_code=404)
+    f = PERS / tok / name
+    return FileResponse(f, filename=name) if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)

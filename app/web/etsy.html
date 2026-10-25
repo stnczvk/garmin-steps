@@ -35,6 +35,7 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 .msg{margin-top:10px;font-size:13px}
 @media(max-width:900px){.kp{grid-template-columns:repeat(2,minmax(0,1fr))}.gr{grid-template-columns:1fr}.f{grid-template-columns:1fr}}
 @media(max-width:600px){.wrap{padding:16px 12px calc(96px + var(--sab,0px))}.k .v{font-size:24px}.top p{display:none}h1{font-size:22px}}
+.ped input{height:36px;padding:0 12px}.ped[hidden]{display:none!important}
 </style>
 </head>
 <body class="lg">
@@ -69,7 +70,7 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 </div>
 <script>
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let CUR='EUR';const m=v=>(+v||0).toLocaleString('pl',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+(CUR==='EUR'?'€':CUR);
+let CUR='EUR',PERS=[];const m=v=>(+v||0).toLocaleString('pl',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+(CUR==='EUR'?'€':CUR);
 const ago=t=>{const s=Date.now()/1000-t;return s<3600?Math.round(s/60)+' min temu':s<86400?Math.round(s/3600)+' h temu':Math.round(s/86400)+' dni temu'};
 async function load(){let r;try{r=await (await fetch('/api/etsy')).json()}catch(e){return}
  CUR=r.currency||'EUR';$('cb').textContent=location.origin+'/api/etsy/callback';
@@ -91,8 +92,19 @@ async function load(){let r;try{r=await (await fetch('/api/etsy')).json()}catch(
  $('ch').innerHTML=r.days.map(d=>`<i style="height:${Math.max(1,d.rev/mx*100)}%" data-t="${d.d}: ${m(d.rev)} (${d.n})"></i>`).join('');
  $('ax').innerHTML=`<span>${r.days[0].d}</span><span>${r.days[14].d}</span><span>dziś</span>`;
  const P=r.pers.filter(x=>!x.done);$('pn').textContent=P.length?P.length+' czeka':'';
- $('pers').innerHTML=r.pers.length?r.pers.map(x=>`<div class="it"><div><b>${esc(x.buyer||'Klient')} · ${esc(x.title.slice(0,50))}</b><small>${esc(x.text)}</small></div><button class="ib${x.done?'':' pri'}" data-p="${x.id}">${x.done?'Zrobione ✓':'Oznacz jako wysłane'}</button></div>`).join(''):'<p class="empty">Brak zamówień z personalizacją.</p>';
+ PERS=r.pers;
+ $('pers').innerHTML=r.pers.length?r.pers.map((x,i)=>{const P=x.parsed||{};return `<div class="it" style="align-items:flex-start;flex-wrap:wrap"><div><b>${esc(x.buyer||'Klient')} · ${esc(x.title.slice(0,50))}</b><small>Klient napisał: ${esc(x.text)}</small>
+  ${x.url?`<small style="margin-top:6px">Plik: <a href="${esc(x.url)}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(P.name||'pobierz')}</a> · ${esc(P.currency||'')} · ${(P.inc||[]).length} kat. przychodu, ${(P.exp||[]).length} kat. wydatków</small>`:'<small style="margin-top:6px">Plik robi się automatycznie…</small>'}</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">${x.msg?`<button class="ib pri" data-cp="${i}">Kopiuj wiadomość</button>`:''}<button class="ib" data-ed="${i}">${x.url?'Popraw':'Zrób plik'}</button><button class="ib" data-p="${x.id}">${x.done?'Wysłane ✓':'Oznacz jako wysłane'}</button></div>
+  <div class="ped" id="ped${i}" hidden style="flex-basis:100%;display:grid;gap:8px;margin-top:8px">
+   <input placeholder="Nazwa firmy" value="${esc(P.name||'')}" data-f="name"><input placeholder="Waluta (np. USD, EUR, PLN)" value="${esc(P.currency||'')}" data-f="currency">
+   <input placeholder="Kategorie przychodów – po przecinku" value="${esc((P.inc||[]).join(', '))}" data-f="inc"><input placeholder="Kategorie wydatków – po przecinku" value="${esc((P.exp||[]).join(', '))}" data-f="exp">
+   <button class="ib pri" data-mk="${x.id}" data-i="${i}">Zrób plik od nowa</button></div></div>`}).join(''):'<p class="empty">Brak zamówień z personalizacją. Gdy przyjdzie, plik zrobi się sam, a Ty tylko kopiujesz wiadomość z linkiem do klienta.</p>';
  $('pers').querySelectorAll('[data-p]').forEach(b=>b.onclick=async()=>{await fetch('/api/etsy/pers/'+b.dataset.p,{method:'POST'});load()});
+ $('pers').querySelectorAll('[data-cp]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(PERS[+b.dataset.cp].msg);b.textContent='Skopiowane ✓'}catch(e){prompt('Skopiuj wiadomość:',PERS[+b.dataset.cp].msg)}});
+ $('pers').querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{const e=$('ped'+b.dataset.ed);e.hidden=!e.hidden});
+ $('pers').querySelectorAll('[data-mk]').forEach(b=>b.onclick=async()=>{const box=$('ped'+b.dataset.i),v={};box.querySelectorAll('[data-f]').forEach(x=>v[x.dataset.f]=x.value);b.textContent='Robię…';
+  const r=await (await fetch(`/api/etsy/pers/${b.dataset.mk}/make`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)})).json();b.textContent=r.ok?'Gotowe ✓':(r.error||'Błąd');load()});
  $('prod').innerHTML=r.products.length?`<table><tr><th>Produkt</th><th class="n">Sprzedaże</th><th class="n">Przychód</th><th class="n">Wyświetl.</th><th class="n">Ulubione</th><th class="n">Konwersja</th></tr>`+
   r.products.map(p=>`<tr><td>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.title.slice(0,60))}</a>`:esc(p.title.slice(0,60))}</td><td class="n">${p.sales}</td><td class="n">${m(p.revenue)}</td><td class="n">${p.views??'–'}</td><td class="n">${p.favorites??'–'}</td><td class="n">${p.conv!=null?(p.conv*100).toFixed(1)+'%':'–'}</td></tr>`).join('')+'</table>':'<p class="empty">Produkty pojawią się po połączeniu sklepu albo imporcie CSV.</p>';
  $('rec').innerHTML=r.recent.length?r.recent.map(o=>`<div class="it"><div><b>${esc(o.items)}</b><small>${new Date(o.t*1000).toLocaleString('pl',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small></div><b>${m(o.total)}</b></div>`).join(''):'<p class="empty">Jeszcze nie ma zamówień – pierwsze na pewno przyjdzie 🙂</p>'}
