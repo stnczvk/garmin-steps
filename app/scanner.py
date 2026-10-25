@@ -641,3 +641,18 @@ def okx_guard_tick():
     if r["alerts"]:
         return "warn", f"{len(r['alerts'])} do zrobienia ręcznie: " + r["alerts"][0]["title"][2:80]
     return "ok", f"{n} {'pozycja' if n == 1 else 'pozycji'} na OKX · SL zgodne ze skanerem" if n else "brak otwartych pozycji na OKX"
+
+
+@router.get("/api/scanner/lab")
+def lab():
+    """Strategy Lab (boty paper-tradingowe) i przepływy on-chain - z API skanera."""
+    out = {"ok": True}
+    try:
+        out["lab"] = httpx.get(URL + "/strategy-lab", timeout=8).json()
+    except Exception as e:
+        return {"ok": False, "error": f"Brak odpowiedzi skanera: {e}"[:160]}
+    try:
+        out["onchain"] = httpx.get(URL + "/onchain", params={"limit": 48}, timeout=8).json().get("snapshots", [])
+    except Exception:
+        out["onchain"] = []
+    return out

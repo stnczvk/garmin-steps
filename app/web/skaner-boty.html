@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pl" class="lg-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Strategy Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
+<style>
+button,input,select,textarea{font-family:inherit}
+
+:root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--pos:#3DDC84;--neg:#FF6B6B;--acc:#9FB3FF;--line:rgba(255,255,255,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;color:var(--ink);font:14px/1.45 Geist,system-ui,sans-serif;background:transparent}
+.wrap{max-width:1300px;margin:0 auto;padding:22px 20px 60px}
+.glass{position:relative;border-radius:20px;padding:16px 18px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.02em}h1 small{display:block;font-size:13px;color:var(--soft);font-weight:400;letter-spacing:0;margin-top:2px}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;color:var(--soft);font:600 12.5px Geist,system-ui,sans-serif;padding:7px 12px;border-radius:9px;cursor:pointer}
+.seg button.on{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.07));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.kpi small{color:var(--faint);font-size:12px;display:block}.kpi b{display:block;font-size:24px;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}.kpi span{font-size:12px;color:var(--soft)}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.g2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+h2{font-size:14.5px;font-weight:650;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}h2 small{color:var(--faint);font-weight:400;font-size:12px}
+.ch{position:relative;height:280px}.ch canvas{width:100%;height:100%;display:block}
+.tip{position:absolute;pointer-events:none;display:none;background:rgba(10,12,22,.94);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:12px 'JetBrains Mono',monospace;white-space:nowrap;z-index:2}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar{display:grid;grid-template-columns:62px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:12.5px}
+.bar em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar b{font:600 12px 'JetBrains Mono',ui-monospace,monospace;text-align:right}
+.track{height:14px;position:relative}.track i{position:absolute;top:0;bottom:0;border-radius:4px}.track:before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;border-left:1px solid rgba(255,255,255,.18)}
+.tb{width:100%;border-collapse:collapse;font-size:12.5px}.tb th{text-align:left;font-weight:500;color:var(--faint);font-size:11.5px;padding:5px 6px;border-bottom:1px solid var(--line)}
+.tb td{padding:6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}.tb td.r,.tb th.r{text-align:right}
+.heat{display:grid;grid-template-columns:34px repeat(6,minmax(0,1fr));gap:3px;font-size:11px}
+.heat span{color:var(--faint);display:grid;place-items:center}.heat div{height:30px;border-radius:6px;display:grid;place-items:center;font:600 11px 'JetBrains Mono',ui-monospace,monospace;cursor:default}
+.empty{color:var(--faint);font-size:13px;padding:12px 0}
+.scroll{max-height:380px;overflow:auto}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.g2,.g3{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:16px 14px 50px}.ch{height:220px}}
+html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
+.bots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.bot h3{font-size:14px;font-weight:650;display:flex;justify-content:space-between}.bot h3 small{color:var(--faint);font-weight:400;font-size:11.5px}
+.bot b.big{display:block;font-size:26px;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.bot .row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--soft);padding:2px 0}
+.bot p.d{font-size:12px;color:var(--faint);margin-top:6px}
+@media(max-width:1100px){.bots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.bots{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body class="lg">
+<div class="lg-bg" aria-hidden="true"></div>
+<div class="wrap">
+ <div class="top"><h1>Strategy Lab<small id="sub">Boty paper-tradingowe · wirtualne 20 USDT każdy</small></h1></div>
+ <div class="bots" id="bots"></div>
+ <div class="g2">
+  <section class="glass"><h2>Kapitał botów <small>USDT, po każdej zamkniętej transakcji</small></h2><div class="ch" id="eqw"><canvas id="eq"></canvas></div></section>
+  <section class="glass"><h2>On-chain (Etherscan) <small>przepływy na giełdy, ostatnie odczyty</small></h2><div class="scroll" id="oc"></div></section>
+ </div>
+ <section class="glass"><h2>Otwarte pozycje botów</h2><div class="scroll" id="open"></div></section>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(v,d=2)=>v==null||isNaN(v)?'–':(+v).toLocaleString('pl',{maximumFractionDigits:d});
+const cls=v=>v>0?'pos':v<0?'neg':'';
+const COL=['#9FB3FF','#3DDC84','#FFB86B','#E58CFF'];
+const DESC={EMA_TREND:'Trend: EMA20/50 + filtr EMA200',DONCHIAN:'Wybicie kanału 20 świec (Turtle)',RSI2_REVERT:'Powrót do średniej: RSI(2) z trendem',TS_MOMENTUM:'Momentum: kierunek zmiany z 48h'};
+let D=null;
+function chart(bots,start){const cv=$('eq'),w=$('eqw'),dpr=devicePixelRatio||1,r=w.getBoundingClientRect();cv.width=r.width*dpr;cv.height=r.height*dpr;
+ const x=cv.getContext('2d');x.scale(dpr,dpr);const W=r.width,H=r.height,P={l:44,r:10,t:10,b:20};
+ const all=bots.flatMap(b=>b.equity_curve.map(p=>p.equity)).concat([start]);
+ if(all.length<2){x.fillStyle='#7A7A86';x.font='13px Geist';x.fillText('Boty nie zamknęły jeszcze żadnej transakcji.',P.l,H/2);return}
+ const mn=Math.min(...all),mx=Math.max(...all),rg=(mx-mn)||1,Y=v=>P.t+(mx-v)/rg*(H-P.t-P.b);
+ const ts=bots.flatMap(b=>b.equity_curve.map(p=>Date.parse(p.t))).filter(Boolean),t0=Math.min(...ts),t1=Math.max(...ts),X=t=>P.l+((t-t0)/((t1-t0)||1))*(W-P.l-P.r);
+ x.font='11px JetBrains Mono';for(let k=0;k<=4;k++){const v=mn+rg*k/4;x.strokeStyle='rgba(255,255,255,.06)';x.beginPath();x.moveTo(P.l,Y(v));x.lineTo(W-P.r,Y(v));x.stroke();x.fillStyle='#7A7A86';x.fillText(v.toFixed(1),4,Y(v)+4)}
+ x.strokeStyle='rgba(255,255,255,.25)';x.setLineDash([3,4]);x.beginPath();x.moveTo(P.l,Y(start));x.lineTo(W-P.r,Y(start));x.stroke();x.setLineDash([]);
+ bots.forEach((b,i)=>{if(!b.equity_curve.length)return;x.strokeStyle=COL[i%4];x.lineWidth=2;x.beginPath();x.moveTo(X(Date.parse(b.equity_curve[0].t)),Y(start));
+  b.equity_curve.forEach(p=>x.lineTo(X(Date.parse(p.t)),Y(p.equity)));x.stroke()})}
+async function load(){let r;try{r=await (await fetch('/api/scanner/lab')).json()}catch(e){r={ok:false,error:'Brak połączenia'}}
+ if(!r.ok){$('bots').innerHTML=`<div class="glass" style="grid-column:1/-1"><p class="empty">${esc(r.error)}</p></div>`;return}
+ D=r;const L=r.lab,st=L.start_capital;
+ $('sub').textContent=`Boty paper-tradingowe · ${st} USDT każdy · ${L.instruments.map(s=>s.split('/')[0]).join(', ')} · świece 1h`;
+ $('bots').innerHTML=L.bots.map((b,i)=>`<div class="glass bot"><h3><span style="color:${COL[i%4]}">●</span> ${esc(b.bot)}<small>#${i+1}</small></h3>
+  <b class="big ${cls(b.return_pct)}">${fmt(b.equity,2)} <small style="font-size:13px">USDT</small></b>
+  <div class="row"><span>Wynik</span><b class="${cls(b.return_pct)}">${b.return_pct>0?'+':''}${fmt(b.return_pct)}%</b></div>
+  <div class="row"><span>Transakcje</span><b>${b.trades}</b></div>
+  <div class="row"><span>Win rate</span><b>${b.winrate==null?'–':b.winrate+'%'}</b></div>
+  <div class="row"><span>Maks. obsunięcie</span><b class="neg">${fmt(b.max_drawdown_pct)}%</b></div>
+  <div class="row"><span>Otwarte</span><b>${b.open_positions.length}</b></div>
+  <p class="d">${esc(DESC[b.bot]||'')}</p></div>`).join('');
+ chart(L.bots,st);
+ const op=L.bots.flatMap(b=>b.open_positions.map(o=>({...o,bot:b.bot})));
+ $('open').innerHTML=op.length?'<table class="tb"><tr><th>bot</th><th>symbol</th><th>kierunek</th><th class="r">wejście</th><th class="r">stop</th><th>od</th></tr>'+op.map(o=>`<tr><td>${esc(o.bot)}</td><td>${esc(o.symbol.split('/')[0])}</td><td>${o.side==='LONG'?'↑ LONG':'↓ SHORT'}</td><td class="r">${fmt(o.entry,4)}</td><td class="r">${fmt(o.stop,4)}</td><td>${esc(String(o.entry_time).slice(5,16))}</td></tr>`).join('')+'</table>':'<p class="empty">Brak otwartych pozycji.</p>';
+ const oc=r.onchain||[];
+ $('oc').innerHTML=oc.length?'<table class="tb"><tr><th>czas</th><th class="r">ETH/h na giełdy</th><th class="r">stable USD/h</th><th class="r">wieloryby</th></tr>'+oc.slice(0,24).map(s=>`<tr><td>${esc(String(s.created_at).slice(5,16))}</td><td class="r ${cls(-s.eth_netflow_h)}">${fmt(s.eth_netflow_h,1)}</td><td class="r ${cls(s.stable_netflow_h)}">${fmt(s.stable_netflow_h,0)}</td><td class="r">${s.whale_moves}</td></tr>`).join('')+'</table><p class="empty">ETH na giełdy (+) zwykle = presja sprzedaży; stablecoiny na giełdy (+) = kapitał do kupowania. Tryb obserwacji.</p>':'<p class="empty">Brak odczytów — dodaj ETHERSCAN_API_KEY do .env skanera.</p>'}
+load();setInterval(load,120000);addEventListener('resize',()=>D?.ok&&chart(D.lab.bots,D.lab.start_capital));
+</script>
+</body>
+</html>
