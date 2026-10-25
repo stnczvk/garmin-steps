@@ -219,7 +219,7 @@ async function load(){
  try{D=await (await fetch('/api/mont/jobs')).json()}catch(e){D={ok:false,error:'Brak połączenia z centrum.',jobs:[]}}
  if(!D.ok&&!D.jobs.length){$('jl').innerHTML=`<p class="mut">${esc(D.error)}</p>`;return}
  if(!SEL&&D.jobs[0])SEL=D.jobs[0].id;
- {const w=D.jobs.find(j=>j.state==='working');window.WS_STATUS=w?('Montuję: '+ttl(w)):D.jobs[0]?('Ostatni: '+ttl(D.jobs[0])):'Montażownia';$('wsst').textContent=(w?'⏳ ':'🎬 ')+window.WS_STATUS}
+ {const w=D.jobs.find(j=>j.state==='working');window.WS_BUSY=!!w;window.WS_PROG=w?Math.min(.95,((w.lines||[]).length||1)/30):0;window.WS_STATUS=w?('Montuję: '+ttl(w)):D.jobs[0]?('Ostatni: '+ttl(D.jobs[0])):'Montażownia';$('wsst').textContent=(w?'⏳ ':'🎬 ')+window.WS_STATUS}
  liveRender();
  {const row=j=>`<div class="j ${j.id===SEL?'on':''}" data-id="${j.id}"><span class="dot ${j.state||''}"></span>
   <div><b>${esc(ttl(j))}</b><small>${when(j)} · ${ST[j.state]||j.state||'?'}${j.step&&j.state==='working'?' · '+esc(j.step):''}</small></div>

@@ -52,18 +52,18 @@ function timelineTex(){return screenTex(512,200,(x,w,h,t)=>{x.fillStyle='#0d0f15
  for(let tr=0;tr<4;tr++){let px=10;for(let k=0;k<7;k++){const ww=30+((k*37+tr*53)%60);x.fillStyle=cols[(k+tr)%5];x.globalAlpha=.85;x.fillRect(px,20+tr*40,ww,30);x.globalAlpha=1;px+=ww+4}}
  const ph=(t*60)%w;x.fillStyle='#ff3b4e';x.fillRect(ph,8,2,h-16)})}
 /* ---------- WARSZTAT TWÓRCY v2 ---------- */
-function workshop(){scene.background=new THREE.Color('#140d09');scene.fog=new THREE.Fog('#140d09',45,95);lights('#ffd8b0','#1a110a','#ffcf9a',1.15,[-9,12,7]);
+function workshop(){scene.background=new THREE.Color('#0a0b12');scene.fog=new THREE.Fog('#0a0b12',45,95);lights('#cfc4ff','#0b0c14','#d9ccff',.8,[-9,12,7]);
  const g=new THREE.Group();scene.add(g);
  const wood=screenTex(512,512,(x,w,h)=>{for(let i=0;i<16;i++){x.fillStyle=`hsl(${24+Math.random()*6},${38+Math.random()*10}%,${28+Math.random()*8}%)`;x.fillRect(0,i*32,w,31);for(let k=0;k<6;k++){x.strokeStyle='rgba(0,0,0,.12)';x.beginPath();x.moveTo(Math.random()*w,i*32+Math.random()*30);x.lineTo(Math.random()*w,i*32+Math.random()*30);x.stroke()}x.fillStyle='rgba(0,0,0,.35)';x.fillRect(((i*137)%5)*100,i*32,2,31)}});
  wood.wrapS=wood.wrapT=THREE.RepeatWrapping;wood.repeat.set(3,2);rbox(g,16,.2,12,new THREE.MeshStandardMaterial({map:wood,roughness:.6}),0,-.2,0);
  const brick=screenTex(256,256,(x,w,h)=>{x.fillStyle='#2e2420';x.fillRect(0,0,w,h);for(let r=0;r<16;r++)for(let c=0;c<8;c++){x.fillStyle=`hsl(${14+Math.random()*10},${22+Math.random()*14}%,${26+Math.random()*10}%)`;x.fillRect(c*32+(r%2)*16+1,r*16+1,30,14)}});brick.wrapS=brick.wrapT=THREE.RepeatWrapping;brick.repeat.set(4,2);
  const wm=new THREE.MeshStandardMaterial({map:brick,roughness:.95});rbox(g,16,6,.3,wm,0,0,-6);rbox(g,.3,6,12,wm,-8,0,0);
  // okno z wieczornym światłem
- const sky=skyline(512,512,'#ff8a4a','#ffd08a',.15);screen(g,3.2,2.6,sky,-7.83,3.2,2.6,Math.PI/2);rbox(g,.12,2.8,3.4,M('#1c1c20',{m:.5}),-7.86,1.9,2.6);
- const sun=new THREE.SpotLight('#ffb070',2.6,24,.5,.6);sun.position.set(-7.6,3.4,2.6);sun.target.position.set(1,0,2);sun.castShadow=true;scene.add(sun,sun.target);
+ const sky=skyline(512,512,'#0e0b26','#3a2a7a',.15);screen(g,3.2,2.6,sky,-7.83,3.2,2.6,Math.PI/2);rbox(g,.12,2.8,3.4,M('#1c1c20',{m:.5}),-7.86,1.9,2.6);
+ const sun=new THREE.SpotLight('#8f7bff',1.6,24,.5,.6);sun.position.set(-7.6,3.4,2.6);sun.target.position.set(1,0,2);sun.castShadow=true;scene.add(sun,sun.target);
  // neon nad biurkiem
- const neon=screenTex(512,128,(x,w,h,t)=>{x.clearRect(0,0,w,h);x.shadowColor='#ff4fd8';x.shadowBlur=24;x.fillStyle=Math.sin(t*7)>-.92?'#ffd6f6':'#5a2a4c';x.font='bold 84px Bricolage Grotesque, sans-serif';x.textAlign='center';x.fillText('MONTAŻ',w/2,92)});
- const nm=new THREE.Mesh(new THREE.PlaneGeometry(4,1),new THREE.MeshBasicMaterial({map:neon,transparent:true,toneMapped:false}));nm.position.set(0,4.6,-5.82);scene.add(nm);upd.push(t=>{neon.userData.draw(neon.userData.x,512,128,t);neon.needsUpdate=true});plight('#ff4fd8',2.2,7,0,4.4,-5);
+ const neon=screenTex(512,128,(x,w,h,t)=>{x.clearRect(0,0,w,h);x.shadowColor='#8f7bff';x.shadowBlur=28;x.fillStyle=Math.sin(t*7)>-.92?'#e6e0ff':'#3a2f6a';x.font='bold 84px Bricolage Grotesque, sans-serif';x.textAlign='center';x.fillText('MONTAŻ',w/2,92)});
+ const nm=new THREE.Mesh(new THREE.PlaneGeometry(4,1),new THREE.MeshBasicMaterial({map:neon,transparent:true,toneMapped:false}));nm.position.set(0,4.6,-5.82);scene.add(nm);upd.push(t=>{neon.userData.draw(neon.userData.x,512,128,t);neon.needsUpdate=true});plight('#8f7bff',2.4,7,0,4.4,-5);
  // panele akustyczne
  for(let i=0;i<4;i++)for(let j=0;j<2;j++)rbox(g,.9,.9,.1,M(['#3a2f4a','#4a2f3a'][(i+j)%2],{r:1}),-5.2+i*1.05+(i>1?7.2:0),2.6+j*1.0,-5.82);
  // biurko z dwoma dużymi monitorami i laptopem
@@ -79,16 +79,21 @@ function workshop(){scene.background=new THREE.Color('#140d09');scene.fog=new TH
  const sh=new THREE.Group();sh.position.set(-7.4,0,-2.4);sh.rotation.y=Math.PI/2;g.add(sh);rbox(sh,3,3.2,.5,M('#4a3524',{r:.6}),0,0,0);
  for(let r=0;r<3;r++)for(let k=0;k<4;k++){const x=-1.1+k*.72,y=.55+r*1;if((r+k)%3===0){rbox(sh,.42,.3,.3,M('#1a1a1e',{m:.4}),x,y,.05);add(sh,new THREE.Mesh(CY(.1,.1,.18,16),M('#0c0c0e',{m:.6})),x,y+.15,.27).rotation.x=Math.PI/2}else if((r+k)%3===1){add(sh,new THREE.Mesh(CY(.11,.11,.32,16),M('#202024',{m:.5})),x,y+.16,.05)}else{const re=add(sh,new THREE.Mesh(CY(.22,.22,.06,24),M('#9aa0ab',{m:.8})),x,y+.24,.05);re.rotation.x=Math.PI/2}}
  // strefa nagrań: ring light + statyw + tło
- const ring=add(g,new THREE.Mesh(new THREE.TorusGeometry(.7,.07,12,48),new THREE.MeshBasicMaterial({color:'#fff4e0'})),5,2.4,1.4);add(g,new THREE.Mesh(CY(.03,.03,2.4),M('#222')),5,1.1,1.4);plight('#fff4e0',2.2,6,5,2.4,2);
+ const ring=add(g,new THREE.Mesh(new THREE.TorusGeometry(.7,.07,12,48),new THREE.MeshBasicMaterial({color:'#3a3b4a'})),5,2.4,1.4);add(g,new THREE.Mesh(CY(.03,.03,2.4),M('#222')),5,1.1,1.4);const rl=plight('#c4b8ff',0,6,5,2.4,2);
+ // ring light świeci, gdy trwa montaż (window.WS_BUSY ustawia Montażownia)
+ upd.push(t=>{const on=!!window.WS_BUSY;ring.material.color.set(on?(Math.sin(t*3)>-.6?'#d9d0ff':'#a898ff'):'#3a3b4a');rl.intensity=on?2.2:0});
  const tri=new THREE.Group();tri.position.set(4,0,3);g.add(tri);for(let k=0;k<3;k++){const l=add(tri,new THREE.Mesh(CY(.025,.025,1.7),M('#333')),Math.cos(k*2.1)*.3,.8,Math.sin(k*2.1)*.3);l.rotation.z=Math.cos(k*2.1)*.18;l.rotation.x=-Math.sin(k*2.1)*.18}rbox(tri,.35,.3,.6,M('#111',{m:.3}),0,1.6,0);
  rbox(g,3,3.2,.05,M('#2c4a3a',{r:1}),5.6,0,-1);
  // kącik strażnika: dywan, fotel, lampa, roślina
  const rug=add(g,new THREE.Mesh(CY(1.8,1.8,.03,40),M('#7a3b2c',{r:1})),-3.6,.02,3.2);rug.castShadow=false;
  sofa(g,-4,4.4,Math.PI,'#8a5a34');agent(g,'#5ab0ff',-4,4.5,Math.PI,3).position.y=.15;tag(g,'Strażnik montażu',-4,2.7,4.4,'#5ab0ff',2.1);
- rbox(g,1.1,.4,.7,M('#3a2a1e'),-3.4,0,2.8);add(g,new THREE.Mesh(CY(.02,.02,2),M('#222')),-6.2,1,4.4);add(g,new THREE.Mesh(new THREE.ConeGeometry(.35,.4,20,1,true),M('#222',{e:'#ffcf8a',ei:.4})),-6.2,2.1,4.4);plight('#ffcf8a',1.2,5,-6.2,1.9,4.4);
+ rbox(g,1.1,.4,.7,M('#3a2a1e'),-3.4,0,2.8);add(g,new THREE.Mesh(CY(.02,.02,2),M('#222')),-6.2,1,4.4);add(g,new THREE.Mesh(new THREE.ConeGeometry(.35,.4,20,1,true),M('#222',{e:'#ffcf8a',ei:.4})),-6.2,2.1,4.4);plight('#b9a8ff',1.0,5,-6.2,1.9,4.4);
  plant(g,7.2,-5,1.4);plant(g,7.2,5,1.2);
- for(let i=0;i<3;i++){add(g,new THREE.Mesh(CY(.005,.005,1.2),M('#111')),-3+i*3,5.4,-1);add(g,new THREE.Mesh(SP(.13,12),new THREE.MeshBasicMaterial({color:'#ffd9a0'})),-3+i*3,4.8,-1);plight('#ffcf8a',1,6,-3+i*3,4.6,-1)}
- upd.push(t=>{if(Math.floor(t*12)%2===0){tl.userData.draw(tl.userData.x,512,200,t);tl.needsUpdate=true;pv.userData.draw(pv.userData.x,320,180,t);pv.needsUpdate=true}})}
+ for(let i=0;i<3;i++){add(g,new THREE.Mesh(CY(.005,.005,1.2),M('#111')),-3+i*3,5.4,-1);add(g,new THREE.Mesh(SP(.13,12),new THREE.MeshBasicMaterial({color:'#d9d0ff'})),-3+i*3,4.8,-1);plight('#a898ff',.9,6,-3+i*3,4.6,-1)}
+ upd.push(t=>{if(Math.floor(t*12)%2===0){tl.userData.draw(tl.userData.x,512,200,t);
+  // pasek postępu aktualnego montażu na monitorze z osią czasu
+  if(window.WS_BUSY){const x=tl.userData.x,p=Math.max(.04,Math.min(1,window.WS_PROG||0));x.fillStyle='rgba(10,11,18,.85)';x.fillRect(0,168,512,32);x.fillStyle='#8f7bff';x.fillRect(8,180,(512-16)*p,8);x.fillStyle='#e6e0ff';x.font='600 13px Geist,system-ui';x.fillText(String(window.WS_STATUS||'').slice(0,48),8,176)}
+  tl.needsUpdate=true;pv.userData.draw(pv.userData.x,320,180,t);pv.needsUpdate=true}})}
 
 scene=new THREE.Scene();cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,200);size();camSet();workshop();
 window.WS_STATUS=window.WS_STATUS||'';
