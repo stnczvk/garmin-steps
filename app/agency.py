@@ -594,15 +594,17 @@ def _ig_new_comments(I, done):
     tok = _ig_token(key, acc)
     me = acc.get("name", "").lstrip("@").lower()
     media = http("GET", "https://graph.instagram.com/me/media", timeout=30,
-                      params={"fields": "id,caption,timestamp", "limit": 10, "access_token": tok}).json()
+                      params={"fields": "id,caption,timestamp,comments_count", "limit": 10, "access_token": tok}).json()
     if "error" in media:
         raise RuntimeError("Instagram: " + media["error"].get("message", "")[:150])
-    out = []
+    out, hidden = [], 0
     for m in media.get("data", []):
         cs = http("GET", f"https://graph.instagram.com/{m['id']}/comments", timeout=30, params={
             "fields": "id,text,username,timestamp,replies{username}", "limit": 30, "access_token": tok}).json()
         if "error" in cs:
             raise RuntimeError("Instagram komentarze: " + cs["error"].get("message", "")[:150])
+        if (m.get("comments_count") or 0) > 0 and not cs.get("data"):
+            hidden += 1
         for c in cs.get("data", []):
             replied = any((r.get("username") or "").lower() == me for r in (c.get("replies") or {}).get("data", []))
             if c["id"] in done or replied or (c.get("username") or "").lower() == me:
@@ -614,6 +616,9 @@ def _ig_new_comments(I, done):
                 pass
             out.append({"id": c["id"], "platform": "instagram", "video": (m.get("caption") or "")[:60],
                         "author": "@" + (c.get("username") or "?"), "text": c.get("text", "")})
+    if hidden:
+        I["_warn"] = (f"Instagram: {hidden} postów ma komentarze, ale API ich nie oddaje – połącz konto @{me} ponownie w ustawieniach centrum "
+                           "(zgoda na zarządzanie komentarzami)")
     return out
 
 
@@ -634,6 +639,8 @@ def inbox():
             except Exception as e:
                 m = str(e)[:120]
                 errs.append(m if m.startswith(name) else f"{name}: {m}")
+        if I.get("_warn"):
+            errs.append(I.pop("_warn"))
         auto = s.get("autopilot") and s.get("inbox_auto", True)
         n = sent = 0
         # szkice, których wysyłka padła na chwilowym błędzie sieci (np. [Errno 104]) – ponów (max 5 razy)

@@ -406,6 +406,8 @@ def fix_image_models():
         return {"ok": False, "error": str(e)[:150]}
     fixed = []
     for wf in wfs:
+        if wf.get("isArchived"):
+            continue
         new = copy.deepcopy(wf)
         names = [n["name"] for n in new.get("nodes", []) if _fix_img_node(n)]
         if not names:

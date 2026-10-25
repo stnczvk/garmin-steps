@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter
 
-from agency import SMART, TZ, CHANNEL, _busy, _read, _write, ai_ready, as_json, claude, lessons_text, log, save_topics, topics
+from agency import FAST, SMART, TZ, CHANNEL, _busy, _read, _write, ai_ready, as_json, claude, lessons_text, log, save_topics, topics
 
 router = APIRouter()
 DNI = ["pon", "wt", "śr", "czw", "pt", "sob", "nd"]
