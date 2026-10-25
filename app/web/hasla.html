@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hasła</title>
+<script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=Geist+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css"><script src="/glass.js"></script>
+<style>
+body{margin:0;color:var(--ink);background:var(--lg-base);font:14px/1.45 Geist,system-ui,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--mu,var(--soft));margin:4px 0 18px}
+.t{background:linear-gradient(180deg,var(--v3-s2),var(--v3-s1));border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--v3-hi),var(--v3-sh);border-radius:22px;padding:20px 22px;margin-bottom:14px}
+.out{display:flex;align-items:center;gap:12px;background:var(--v3-s3);border-radius:16px;padding:16px 18px}
+.out code{flex:1;font:600 24px/1.3 'Geist Mono',ui-monospace,Menlo,monospace;word-break:break-all;user-select:all;letter-spacing:.02em}
+.meter{height:8px;border-radius:4px;background:var(--v3-s3);margin-top:14px;overflow:hidden}.meter i{display:block;height:100%;border-radius:4px;transition:width .2s,background .2s}
+.st{display:flex;justify-content:space-between;color:var(--soft);font-size:13px;margin-top:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{padding:10px 15px;cursor:pointer;font-size:14px}
+.lv button.on{background:var(--ink)!important;color:var(--lg-base)!important}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:16px}
+.opts label{display:flex;gap:10px;align-items:center;background:var(--v3-s3);border-radius:12px;padding:11px 13px;cursor:pointer}
+.opts input{width:18px;height:18px;accent-color:var(--acc)}
+.len{display:flex;align-items:center;gap:14px;margin-top:16px}.len input{flex:1;accent-color:var(--acc)}.len b{font-size:20px;min-width:2.5ch;text-align:right}
+.hist{margin-top:6px}.hist div{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}.hist div:first-child{border:0}
+.hist code{flex:1;font:500 14px 'Geist Mono',ui-monospace,monospace;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note{color:var(--faint);font-size:12.5px;margin-top:12px}
+.mode{margin-bottom:14px}
+@media(max-width:600px){.out code{font-size:19px}.wrap{padding:16px 12px 60px}}
+</style>
+</head>
+<body class="lg">
+<div class="wrap">
+ <h1>Hasła</h1><p class="sub">Generator mocnych haseł. Hasło powstaje tylko na tym urządzeniu – nigdzie nie jest wysyłane ani zapisywane.</p>
+ <section class="t">
+  <div class="row mode seg" id="mode" style="display:inline-flex;padding:3px"><button class="btn on" data-m="znaki">Ze znaków</button><button class="btn" data-m="slowa">Ze słów (łatwe do zapamiętania)</button></div>
+  <div class="out"><code id="o">…</code><button class="btn pri" id="cp">Kopiuj</button><button class="btn" id="nw" title="Nowe hasło">↻</button></div>
+  <div class="meter"><i id="mt"></i></div><div class="st"><span id="sl"></span><span id="sb"></span></div>
+ </section>
+ <section class="t" id="cfgz">
+  <div class="row lv" id="lv"><span style="color:var(--soft);margin-right:4px">Poziom:</span><button class="btn" data-l="1">Łatwe</button><button class="btn on" data-l="2">Średnie</button><button class="btn" data-l="3">Trudne</button></div>
+  <div class="len"><span style="color:var(--soft)">Długość</span><input type="range" id="ln" min="6" max="64" value="16"><b id="lb">16</b></div>
+  <div class="opts">
+   <label><input type="checkbox" id="l" checked>Małe litery (a–z)</label><label><input type="checkbox" id="u" checked>Duże litery (A–Z)</label>
+   <label><input type="checkbox" id="d" checked>Cyfry (0–9)</label><label><input type="checkbox" id="s">Znaki specjalne (!@#…)</label>
+   <label><input type="checkbox" id="x" checked>Bez mylących (0/O, 1/l/I)</label>
+  </div>
+ </section>
+ <section class="t" id="cfgw" hidden>
+  <div class="len"><span style="color:var(--soft)">Liczba słów</span><input type="range" id="wn" min="3" max="8" value="4"><b id="wb">4</b></div>
+  <div class="opts"><label><input type="checkbox" id="wd" checked>Dodaj cyfrę</label><label><input type="checkbox" id="wc" checked>Wielka litera w słowach</label><label><input type="checkbox" id="ws" checked>Łącznik między słowami</label></div>
+ </section>
+ <section class="t"><b>Ostatnie w tej sesji</b><div class="hist" id="hs"><p class="note">Pojawią się tu wygenerowane hasła (znikają po zamknięciu karty).</p></div></section>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const S={l:'abcdefghijkmnopqrstuvwxyz',L:'abcdefghijklmnopqrstuvwxyz',u:'ABCDEFGHJKLMNPQRSTUVWXYZ',U:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',d:'23456789',D:'0123456789',s:'!@#$%^&*()-_=+[]{};:,.?/~'};
+const W='auto,baton,blok,brat,burza,cebula,chmura,cukier,dach,deska,dom,droga,dzik,fala,film,gitara,gora,grom,hantel,hotel,jagoda,jazda,kanapa,kawa,klucz,koc,kogut,kometa,kot,kran,krok,kubek,lampa,las,lato,lew,lody,lustro,malina,mapa,marchew,miasto,miod,most,motyl,mysz,noc,nora,obiad,ogien,okno,orzel,owies,pajak,papier,pies,plaza,polka,pomidor,rakieta,rower,ryba,rzeka,sad,sztanga,serce,sok,sowa,szafa,szkola,tort,trawa,tygrys,ucho,waga,wiatr,woda,zamek,zebra,zegar,zima,zupa'.split(',');
+const rnd=n=>{const a=new Uint32Array(1),lim=Math.floor(2**32/n)*n;do crypto.getRandomValues(a);while(a[0]>=lim);return a[0]%n};
+let M='znaki';const H=[];
+const LV={1:[10,1,1,1,0],2:[16,1,1,1,0],3:[24,1,1,1,1]};
+function genZ(){const x=$('x').checked,len=+$('ln').value,P=[];
+ if($('l').checked)P.push(x?S.l:S.L);if($('u').checked)P.push(x?S.u:S.U);if($('d').checked)P.push(x?S.d:S.D);if($('s').checked)P.push(S.s);
+ if(!P.length){$('l').checked=true;return genZ()}
+ const all=P.join('');let c=P.map(p=>p[rnd(p.length)]);while(c.length<len)c.push(all[rnd(all.length)]);c=c.slice(0,len);
+ for(let i=c.length-1;i>0;i--){const j=rnd(i+1);[c[i],c[j]]=[c[j],c[i]]}return [c.join(''),len*Math.log2(all.length)]}
+function genW(){const n=+$('wn').value,cap=$('wc').checked,ws=[];for(let i=0;i<n;i++){let w=W[rnd(W.length)];if(cap)w=w[0].toUpperCase()+w.slice(1);ws.push(w)}
+ let p=ws.join($('ws').checked?'-':'');let bits=n*Math.log2(W.length);if($('wd').checked){p+=($('ws').checked?'-':'')+rnd(100);bits+=6.6}return [p,bits]}
+function gen(){const [p,b]=M==='znaki'?genZ():genW();$('o').textContent=p;$('lb').textContent=$('ln').value;$('wb').textContent=$('wn').value;
+ const lvl=b<45?['słabe','var(--bad)',25]:b<65?['średnie','var(--warn)',50]:b<90?['mocne','var(--ok)',78]:['bardzo mocne','var(--ok)',100];
+ $('mt').style.width=lvl[2]+'%';$('mt').style.background=lvl[1];$('sl').textContent='Siła: '+lvl[0];$('sb').textContent=`~${Math.round(b)} bitów`}
+document.querySelectorAll('#lv [data-l]').forEach(b=>b.onclick=()=>{const v=LV[b.dataset.l];$('ln').value=v[0];$('l').checked=!!v[1];$('u').checked=!!v[2];$('d').checked=!!v[3];$('s').checked=!!v[4];
+ document.querySelectorAll('#lv [data-l]').forEach(o=>o.classList.toggle('on',o===b));gen()});
+document.querySelectorAll('#mode [data-m]').forEach(b=>b.onclick=()=>{M=b.dataset.m;document.querySelectorAll('#mode [data-m]').forEach(o=>o.classList.toggle('on',o===b));$('cfgz').hidden=M!=='znaki';$('cfgw').hidden=M==='znaki';gen()});
+['ln','l','u','d','s','x','wn','wd','wc','ws'].forEach(i=>$(i).oninput=gen);$('nw').onclick=gen;
+$('cp').onclick=async()=>{const p=$('o').textContent;try{await navigator.clipboard.writeText(p);$('cp').textContent='Skopiowane';setTimeout(()=>$('cp').textContent='Kopiuj',1400)}catch(e){}
+ if(!H.includes(p)){H.unshift(p);H.length=Math.min(H.length,8)}
+ $('hs').innerHTML=H.map((h,i)=>`<div><code>${h.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</code><button class="btn" data-i="${i}">Kopiuj</button></div>`).join('');
+ $('hs').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(H[+b.dataset.i]))};
+addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.theme){const t=e.data.theme;if(t==='auto')delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t}});
+gen();
+</script>
+</body>
+</html>

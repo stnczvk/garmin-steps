@@ -6,101 +6,132 @@
 <title>Notatki</title>
 <script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
-<link rel="stylesheet" href="/glass.css"><script src="/glass.js"></script>
+<link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
 <style>
 button,input,select,textarea{font-family:inherit}
 [hidden]{display:none!important}
-:root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--ok:#3DDC84;--warn:#F5B25A;--bad:#FF5C6C;--acc:#9E8CFC;--line:rgba(255,255,255,.08)}
-:root[data-theme=light]{--ink:#0B0B12;--soft:#4A4A57;--faint:#80808C;--ok:#16A34A;--warn:#B26A00;--bad:#DC2F45;--acc:#6E56CF;--line:rgba(0,0,0,.08)}
-*{box-sizing:border-box;margin:0;padding:0}
-html{background:#06070c}html[data-theme=light]{background:#eef0f8}
-html,body{min-height:100%;color:var(--ink);font:14px/1.5 Geist,system-ui,sans-serif}
-body{background:transparent}
-.wrap{max-width:1400px;margin:0 auto;padding:18px 18px 40px}
-.glass{position:relative;border-radius:18px;padding:14px 16px}
-.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.top h1{font-size:24px;font-weight:700;letter-spacing:-.02em}.top .r{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.15);background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));color:var(--ink);font:600 13px Geist,system-ui,sans-serif;padding:8px 13px;border-radius:999px;cursor:pointer;text-decoration:none}
-.btn.pri{background:linear-gradient(145deg,#8f7bff,#5b8cff);border-color:transparent;color:#fff}.btn.sm{padding:5px 10px;font-size:12px}.btn.del{color:#ff8b80;border-color:rgba(255,120,110,.35)}
-.lay{display:grid;grid-template-columns:290px minmax(0,1fr) 250px;gap:12px;align-items:start}
-.side{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding:12px!important}
-.q{width:100%;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);border-radius:10px;padding:9px 11px;font:14px Geist,system-ui,sans-serif;margin-bottom:10px}
-.fd{margin-top:6px}.fd>summary{list-style:none;cursor:pointer;font:650 13px Geist,system-ui,sans-serif;color:var(--soft);padding:5px 4px;display:flex;align-items:center;gap:6px;border-radius:8px}
-.fd>summary::-webkit-details-marker{display:none}.fd>summary:hover{background:rgba(255,255,255,.04)}.fd>summary small{margin-left:auto;color:var(--faint);font-weight:500}
-.fd>summary:before{content:"▸";color:var(--faint);transition:transform .15s}.fd[open]>summary:before{transform:rotate(90deg)}
-.nt{display:block;padding:6px 8px 6px 20px;border-radius:8px;cursor:pointer;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
-.nt:hover{background:rgba(255,255,255,.05)}.nt.on{background:rgba(158,140,252,.18)}.nt small{display:block;color:var(--faint);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.res .nt{padding-left:8px;border-bottom:1px solid var(--line);border-radius:0}
-.ed{min-height:70vh;display:flex;flex-direction:column;padding:0!important;overflow:hidden}
-.eh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.eh input{flex:1;min-width:140px;background:transparent;border:0;color:var(--ink);font:700 20px Geist,system-ui,sans-serif;outline:none}
-.eh select{background:rgba(0,0,0,.25);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:13px Geist,system-ui,sans-serif;max-width:170px}
-.seg{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
-.seg button{border:0;background:transparent;color:var(--soft);font:600 12px Geist,system-ui,sans-serif;padding:5px 10px;border-radius:7px;cursor:pointer}.seg button.on{background:rgba(255,255,255,.14);color:var(--ink)}
-.body{position:relative;flex:1;display:flex}
-textarea#tx{flex:1;width:100%;min-height:60vh;resize:none;border:0;outline:none;background:transparent;color:var(--ink);font:14.5px/1.65 'JetBrains Mono',ui-monospace,monospace;padding:16px 18px}
-.md{flex:1;padding:16px 20px;overflow:auto;line-height:1.65}
-.md h1,.md h2,.md h3{margin:14px 0 8px;letter-spacing:-.01em}.md h1{font-size:22px}.md h2{font-size:18px}.md h3{font-size:15.5px}
-.md p,.md ul,.md ol,.md pre,.md blockquote,.md table{margin:0 0 10px}.md ul,.md ol{padding-left:22px}.md li{margin:2px 0}
-.md code{font:12.5px 'JetBrains Mono',monospace;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:5px}.md pre{background:rgba(0,0,0,.3);padding:10px 12px;border-radius:10px;overflow:auto}.md pre code{background:none;padding:0}
-.md blockquote{border-left:3px solid var(--acc);padding:2px 12px;color:var(--soft)}.md a{color:#b9adff}.md table{border-collapse:collapse}.md td,.md th{border:1px solid var(--line);padding:5px 8px}
-.md .wl{color:#b9adff;cursor:pointer;border-bottom:1px dashed rgba(185,173,255,.5)}.md .wl.miss{color:var(--warn);border-bottom-color:rgba(245,178,90,.5)}
-.md input[type=checkbox]{margin-right:6px;accent-color:#8f7bff}
-.st{font-size:12px;color:var(--faint);padding:8px 14px;border-top:1px solid var(--line);display:flex;gap:10px}
-.ac{position:absolute;z-index:5;background:#17161f;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:220px;overflow:auto;min-width:220px}
-.ac div{padding:7px 11px;cursor:pointer;font-size:13px}.ac div.on,.ac div:hover{background:rgba(158,140,252,.2)}
-.rp{position:sticky;top:12px;padding:12px!important}.rp h3{font-size:12.5px;color:var(--faint);font-weight:600;margin:4px 0 6px;text-transform:uppercase;letter-spacing:.06em}
-.rp .nt{padding-left:6px}.mut{color:var(--faint);font-size:12.5px}
-.tag{display:inline-block;font:600 11px Geist,system-ui,sans-serif;padding:2px 8px;border-radius:99px;background:rgba(158,140,252,.15);color:#c4b9ff;margin:0 4px 4px 0;cursor:pointer}
-.empty{padding:40px 20px;text-align:center;color:var(--soft)}
-.fab{position:fixed;right:18px;bottom:calc(18px + var(--sab,0px));z-index:6;width:56px;height:56px;border-radius:50%;border:0;background:linear-gradient(145deg,#8f7bff,#5b8cff);color:#fff;font-size:28px;box-shadow:0 10px 30px rgba(91,140,255,.45);cursor:pointer;display:none}
-.mod{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;padding:12px}
-.mod.open{display:flex}.mod .box{width:min(560px,100%);max-height:88vh;overflow:auto;background:#15141d;border:1px solid var(--line);border-radius:18px;padding:16px}
-html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
-.mod h2{font-size:17px;margin-bottom:8px}.mod textarea{width:100%;min-height:150px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);border-radius:12px;padding:10px;font:15px/1.5 Geist,system-ui,sans-serif}
+/* ===== wygląd Obsidiana ===== */
+html:root{--o-bg:#1e1e1e;--o-bg2:#262626;--o-bg3:#2f2f2f;--o-div:#363636;--o-tx:#dadada;--o-mu:#a3a3a3;--o-fa:#6b6b6b;--o-ac:#8a7cf5;--o-ac2:#a99df8;--o-hov:rgba(255,255,255,.06);--o-sel:rgba(138,124,245,.18);
+ --ink:var(--o-tx);--soft:var(--o-mu);--faint:var(--o-fa);--line:var(--o-div);--acc:var(--o-ac)}
+html:root[data-theme=light]{--o-bg:#ffffff;--o-bg2:#f6f6f6;--o-bg3:#ececec;--o-div:#e0e0e0;--o-tx:#222222;--o-mu:#5c5c5c;--o-fa:#9e9e9e;--o-ac:#7055e6;--o-ac2:#5b41d6;--o-hov:rgba(0,0,0,.05);--o-sel:rgba(112,85,230,.12)}
+@media (prefers-color-scheme:light){html:root:not([data-theme=dark]){--o-bg:#ffffff;--o-bg2:#f6f6f6;--o-bg3:#ececec;--o-div:#e0e0e0;--o-tx:#222222;--o-mu:#5c5c5c;--o-fa:#9e9e9e;--o-ac:#7055e6;--o-ac2:#5b41d6;--o-hov:rgba(0,0,0,.05);--o-sel:rgba(112,85,230,.12)}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--o-bg)!important;color:var(--o-tx);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Geist,system-ui,sans-serif}
+.lg-bg{display:none}
+.app{display:grid;grid-template-columns:44px 270px minmax(0,1fr) 270px;height:100dvh;overflow:hidden}
+body.no-right .app{grid-template-columns:44px 270px minmax(0,1fr) 0}body.no-left .app{grid-template-columns:44px 0 minmax(0,1fr) 270px}body.no-left.no-right .app{grid-template-columns:44px 0 minmax(0,1fr) 0}
+/* pasek ikon */
+.rib{background:var(--o-bg2);border-right:1px solid var(--o-div);display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0}
+.rib button{width:32px;height:32px;border:0;border-radius:6px;background:transparent;color:var(--o-mu);display:grid;place-items:center;cursor:pointer}
+.rib button:hover{background:var(--o-hov);color:var(--o-tx)}.rib button.on{color:var(--o-ac)}
+.rib svg,.ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rib .sp{flex:1}
+/* boczne panele */
+.side,.rp{background:var(--o-bg2);border-right:1px solid var(--o-div);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.rp{border-right:0;border-left:1px solid var(--o-div)}
+.ph{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid var(--o-div);min-height:40px}
+.ph b{font-size:12.5px;color:var(--o-mu);font-weight:600;margin-right:auto;padding-left:6px}
+.ic{width:28px;height:28px;border:0;border-radius:5px;background:transparent;color:var(--o-mu);display:grid;place-items:center;cursor:pointer}.ic:hover{background:var(--o-hov);color:var(--o-tx)}.ic.on{color:var(--o-ac)}
+.q{margin:8px;width:calc(100% - 16px);background:var(--o-bg)!important;border:1px solid var(--o-div)!important;border-radius:6px!important;color:var(--o-tx)!important;padding:6px 10px;font-size:13px}
+.scroll{overflow-y:auto;flex:1;padding:2px 6px 16px}
+.fd>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 6px;border-radius:5px;color:var(--o-tx);font-size:13.5px;font-weight:500;user-select:none}
+.fd>summary::-webkit-details-marker{display:none}
+.fd>summary:before{content:"";width:0;height:0;border:4px solid transparent;border-left:5px solid var(--o-fa);margin:0 3px 0 4px;transition:transform .12s}
+.fd[open]>summary:before{transform:rotate(90deg) translateX(1px)}
+.fd>summary:hover{background:var(--o-hov)}.fd>summary small{margin-left:auto;color:var(--o-fa);font-size:11.5px}
+.nt{display:block;padding:3px 8px 3px 26px;border-radius:5px;color:var(--o-mu);font-size:13.5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
+.nt small{display:none}.nt:hover{background:var(--o-hov);color:var(--o-tx)}.nt.on{background:var(--o-sel);color:var(--o-tx)}
+.res .nt{padding-left:10px;white-space:normal}.res .nt small{display:block;color:var(--o-fa);font-size:12px}
+#tags{padding:4px 8px 10px}#tags .tg2{display:inline-block;font-size:12px;margin:0 4px 5px 0;padding:1px 8px;border-radius:10px;background:var(--o-sel);color:var(--o-ac2);cursor:pointer}
+.mut{color:var(--o-fa);font-size:12.5px}
+/* środek */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--o-bg)}
+.tabs{display:flex;align-items:flex-end;gap:2px;background:var(--o-bg2);border-bottom:1px solid var(--o-div);padding:6px 8px 0;min-height:40px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tb{display:flex;align-items:center;gap:6px;max-width:200px;padding:6px 8px 7px 12px;border-radius:7px 7px 0 0;color:var(--o-mu);font-size:13px;cursor:pointer;white-space:nowrap;flex:none}
+.tb span{overflow:hidden;text-overflow:ellipsis}.tb:hover{background:var(--o-hov)}.tb.on{background:var(--o-bg);color:var(--o-tx);box-shadow:0 1px 0 var(--o-bg)}
+.tb i{font-style:normal;width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--o-fa);font-size:15px}.tb i:hover{background:var(--o-hov);color:var(--o-tx)}
+.vh{display:flex;align-items:center;gap:6px;padding:6px 12px;min-height:40px}
+.crumb{color:var(--o-fa);font-size:13px;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.crumb b{color:var(--o-mu);font-weight:500}
+#fs{background:transparent!important;border:0!important;color:var(--o-fa)!important;font-size:12.5px;max-width:160px;cursor:pointer;padding:2px 4px}
+.vh .seg{display:inline-flex;border:0!important;background:transparent!important;gap:0}
+#mode button{border:0;background:transparent;color:var(--o-mu);border-radius:5px;padding:4px 8px;font-size:12.5px;cursor:pointer}#mode button.on{color:var(--o-ac);background:var(--o-sel)}
+.vh .btn{background:transparent!important;border:0!important;color:var(--o-mu)!important;padding:4px 8px!important;font-size:12.5px;border-radius:5px!important;cursor:pointer}.vh .btn:hover{background:var(--o-hov)!important}
+.vh .btn.del{color:#e5534b!important;background:transparent!important}
+.page{flex:1;overflow-y:auto;position:relative}
+.page-in{max-width:760px;margin:0 auto;padding:28px 40px 120px;position:relative}
+#tt{width:100%;background:transparent!important;border:0!important;color:var(--o-tx)!important;font-weight:700;font-size:30px;line-height:1.25;font-family:inherit;letter-spacing:-.015em;padding:0;margin:0 0 14px;outline:none!important}
+textarea#tx{width:100%;min-height:calc(100dvh - 220px);background:transparent!important;border:0!important;color:var(--o-tx)!important;font:15.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;resize:none;outline:none!important;padding:0}
+.md{font-size:15.5px;line-height:1.7;color:var(--o-tx)}
+.md h1,.md h2,.md h3{line-height:1.3;margin:1.2em 0 .5em;font-weight:700}.md h1{font-size:1.75em}.md h2{font-size:1.4em}.md h3{font-size:1.18em}
+.md p{margin:.6em 0}.md ul,.md ol{padding-left:1.6em}.md li{margin:.2em 0}
+.md a{color:var(--o-ac)}.md code{background:var(--o-bg3);padding:1px 5px;border-radius:4px;font-size:.88em}.md pre{background:var(--o-bg3);padding:12px 14px;border-radius:6px;overflow:auto}
+.md blockquote{border-left:3px solid var(--o-ac);margin:.8em 0;padding:2px 0 2px 14px;color:var(--o-mu)}
+.md hr{border:0;border-top:1px solid var(--o-div);margin:1.5em 0}.md table{border-collapse:collapse}.md td,.md th{border:1px solid var(--o-div);padding:5px 9px}
+.md .wl{color:var(--o-ac);cursor:pointer;text-decoration:none}.md .wl:hover{text-decoration:underline}.md .wl.miss{opacity:.6}
+.md .tag,.rp .tag{display:inline-block;background:var(--o-sel);color:var(--o-ac2);border-radius:10px;padding:0 8px;font-size:.88em;cursor:pointer}
+.md input[type=checkbox]{accent-color:var(--o-ac);margin-right:6px}
+.ac{position:absolute;z-index:20;background:var(--o-bg2);border:1px solid var(--o-div);border-radius:7px;box-shadow:0 10px 30px rgba(0,0,0,.4);min-width:240px;padding:4px}
+.ac div{padding:5px 9px;border-radius:5px;cursor:pointer;font-size:13.5px}.ac div.on,.ac div:hover{background:var(--o-sel)}
+.empty{color:var(--o-fa);text-align:center;padding:80px 20px}
+.stb{position:fixed;right:0;bottom:0;display:flex;gap:14px;padding:3px 12px;background:var(--o-bg2);border:1px solid var(--o-div);border-right:0;border-bottom:0;border-radius:8px 0 0 0;font-size:12px;color:var(--o-mu);z-index:5}
+.rp .scroll{padding:8px 12px}.rp h3{font-size:12px;color:var(--o-mu);font-weight:600;margin:14px 0 6px}.rp h3:first-child{margin-top:4px}
+.rp .nt{padding-left:8px}.ol a{display:block;color:var(--o-mu);font-size:13px;padding:2px 6px;border-radius:5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ol a:hover{background:var(--o-hov);color:var(--o-tx)}
+/* okna */
+.mod{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;padding:10vh 14px;z-index:50}.mod.open{display:flex}
+.mod .box{width:min(560px,100%);background:var(--o-bg2);border:1px solid var(--o-div);border-radius:10px;padding:18px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.mod h2{font-size:16px;margin:0 0 8px}.mod textarea{width:100%;min-height:150px;border:1px solid var(--o-div);background:var(--o-bg);color:var(--o-tx);border-radius:7px;padding:10px;font-size:14.5px;line-height:1.5;font-family:inherit}
 .mod .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
-.url{font:12px 'JetBrains Mono',monospace;background:rgba(255,255,255,.07);padding:8px 10px;border-radius:9px;word-break:break-all;margin:8px 0}
-.mod ol{padding-left:20px;font-size:13.5px;color:var(--soft)}.mod li{margin:4px 0}
-.msg{position:fixed;left:50%;bottom:calc(86px + var(--sab,0px));transform:translateX(-50%);background:#16171f;border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:13px;z-index:30;display:none;max-width:90vw}
-.back{display:none}
-@media(max-width:1100px){.lay{grid-template-columns:260px minmax(0,1fr)}.rp{display:none}}
+.mod .btn{padding:7px 12px;border-radius:7px!important;font-size:13px;cursor:pointer}.mod .btn.pri{background:var(--o-ac)!important;color:#fff!important}
+.url{font:12px ui-monospace,Menlo,monospace;background:var(--o-bg);padding:8px 10px;border-radius:6px;word-break:break-all;margin:8px 0}
+.mod ol{padding-left:20px;font-size:13.5px;color:var(--o-mu)}.mod li{margin:4px 0}
+.msg{position:fixed;left:50%;bottom:calc(30px + var(--sab,0px));transform:translateX(-50%);background:var(--o-bg2);border:1px solid var(--o-div);border-radius:8px;padding:9px 14px;font-size:13px;z-index:60;display:none;max-width:90vw}
+.fab{display:none}.back{display:none}
+.ov .qs,.ov .gw{background:var(--o-bg2)!important;border-color:var(--o-div)!important;border-radius:10px!important}.ov .qs .it.on{background:var(--o-sel)!important}
+@media(max-width:1100px){.app{grid-template-columns:44px 250px minmax(0,1fr) 0}.rp{display:none}}
 @media(max-width:700px){
- .wrap{padding:12px 12px 90px}.top h1{font-size:21px}.top .r .lbl{display:none}
- .lay{display:block}.side{position:static;max-height:none}
- body.ed-open .side,body.ed-open .top{display:none}body:not(.ed-open) .ed{display:none}
- .back{display:inline-flex}.fab{display:block}body.ed-open .fab{display:none}
- .ed{min-height:calc(100vh - 30px)}.eh input{font-size:18px;min-width:0;width:100%;order:-1;flex-basis:100%}
- textarea#tx{font-size:15px;min-height:calc(100vh - 220px)}
- .rp{display:block;position:static;margin-top:12px}body:not(.ed-open) .rp{display:none}
+ .app{display:block;height:auto;min-height:100dvh}.rib{display:none}
+ .side{height:100dvh;border:0}body.ed-open .side{display:none}body:not(.ed-open) .main{display:none}
+ .main{min-height:100dvh}.tabs{display:none}.page-in{padding:14px 16px 140px}#tt{font-size:24px}
+ .back{display:inline-flex}.fab{display:grid;place-items:center;position:fixed;right:18px;bottom:calc(20px + var(--sab,0px));width:54px;height:54px;border-radius:50%;border:0;background:var(--o-ac);color:#fff;font-size:26px;z-index:30;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+ body.ed-open .fab{display:none}
+ .rp{display:flex;border:0;border-top:1px solid var(--o-div)}body:not(.ed-open) .rp{display:none}
+ .stb{display:none}.mtool{display:flex!important}
 }
-.ov{position:fixed;inset:0;background:rgba(5,5,12,.6);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:8vh 14px}.ov.open{display:flex}
-.qs{width:min(600px,100%);background:#16171f;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
-.qs input{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font:17px Geist,system-ui;padding:16px 18px;outline:none}
-.qs .ls{max-height:50vh;overflow:auto}.qs .it{padding:10px 18px;cursor:pointer;display:flex;gap:10px;align-items:baseline}.qs .it small{color:var(--faint);margin-left:auto;font-size:12px}.qs .it.on{background:rgba(143,123,255,.16)}
-.gw{width:min(1100px,100%);height:min(78vh,760px);background:#0f1016;border:1px solid var(--line);border-radius:18px;position:relative;overflow:hidden}
-.gw canvas{width:100%;height:100%;display:block;touch-action:none}.gw .x{position:absolute;right:12px;top:10px}.gw .hint{position:absolute;left:14px;top:12px;font-size:12.5px;color:var(--faint)}
-#tags .tg2{display:inline-block;font-size:12px;margin:0 6px 6px 0;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--soft);cursor:pointer}
-:root[data-theme=light] .qs,:root[data-theme=light] .gw{background:#fff}
+.mtool{display:none;gap:6px;padding:6px 10px;border-bottom:1px solid var(--o-div);overflow-x:auto}
+.mtool .ic{flex:none}
 </style>
 </head>
 <body class="lg">
 <div class="lg-bg" aria-hidden="true"></div>
-<div class="wrap">
- <div class="top"><h1>📝 Notatki</h1>
-  <div class="r"><button class="btn pri" id="new">＋ <span class="lbl">Nowa notatka</span></button><button class="btn" id="nf">📁 <span class="lbl">Folder</span></button><button class="btn" id="upd">🚀 <span class="lbl">Update</span></button><button class="btn" id="dz">📅 <span class="lbl">Dziś</span></button><button class="btn" id="gr">🕸 <span class="lbl">Mapa</span></button><button class="btn" id="qk" title="Szybkie przejście (Ctrl/⌘ + K)">⌘K</button><button class="btn" id="pw">🔑 <span class="lbl">Hasło</span></button><button class="btn" id="gpt">🤖 <span class="lbl">ChatGPT</span></button></div></div>
- <div class="lay">
-  <aside class="glass side"><input class="q" id="q" placeholder="🔍 Szukaj w notatkach…" type="search"><div id="tree"><p class="mut">Ładuję…</p></div><div id="tags" style="margin-top:12px"></div></aside>
-  <section class="glass ed" id="ed">
-   <div class="eh"><button class="btn sm back" id="bk">‹ Notatki</button><input id="tt" placeholder="Tytuł">
-    <select id="fs" title="Folder"></select>
-    <span class="seg" id="mode"><button data-m="edit">✏️ Pisz</button><button data-m="view" class="on">👁 Czytaj</button></span>
-    <button class="btn sm" id="tq" title="Wyślij ten pomysł do kolejki tematów Agencji (generator zrobi z niego film)">💡 do kolejki</button><button class="btn sm del" id="del" title="Do kosza">🗑</button></div>
-   <div class="body"><textarea id="tx" spellcheck="true" placeholder="Pisz w Markdown… [[ – link do innej notatki, #tag, - [ ] zadanie" hidden></textarea><div class="md" id="md"></div><div class="ac" id="ac" hidden></div></div>
-   <div class="st"><span id="sv"></span><span id="wc" style="margin-left:auto"></span></div>
-  </section>
-  <aside class="glass rp" id="rp"></aside>
- </div>
+<div class="app">
+ <nav class="rib" aria-label="Narzędzia">
+  <button id="rl" title="Pokaż/ukryj listę notatek"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+  <button id="qk" title="Szybkie przejście (Ctrl/⌘+K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+  <button id="gr" title="Mapa połączeń"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="9" cy="18" r="2.5"/><path d="M8 7.5l7.5 1M7 8.5l1.5 7M16.5 10l-5.5 6.5"/></svg></button>
+  <button id="dz" title="Notatka dnia"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+  <button id="upd" title="Update do projektu"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+  <button id="gpt" title="ChatGPT i import"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.8A8 8 0 1 1 21 12z"/></svg></button>
+  <span class="sp"></span>
+  <button id="rr" title="Pokaż/ukryj panel po prawej"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+ </nav>
+ <aside class="side">
+  <div class="ph"><b>Notatki</b><button class="ic" id="new" title="Nowa notatka"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="ic" id="nf" title="Nowy folder"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg></button><button class="ic" id="ca" title="Zwiń wszystkie foldery"><svg viewBox="0 0 24 24"><path d="M7 15l5-5 5 5"/></svg></button></div>
+  <div class="mtool"><button class="ic" onclick="document.getElementById('qk').click()"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button><button class="ic" onclick="document.getElementById('gr').click()"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="9" cy="18" r="2.5"/><path d="M8 7.5l7.5 1M7 8.5l1.5 7M16.5 10l-5.5 6.5"/></svg></button><button class="ic" onclick="document.getElementById('dz').click()"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button><button class="ic" onclick="document.getElementById('upd').click()"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button class="ic" onclick="document.getElementById('gpt').click()"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.8A8 8 0 1 1 21 12z"/></svg></button></div>
+  <input class="q" id="q" placeholder="Szukaj…" type="search">
+  <div class="scroll"><div id="tree"><p class="mut">Ładuję…</p></div><div id="tags"></div></div>
+ </aside>
+ <section class="main ed" id="ed">
+  <div class="tabs" id="tabs"></div>
+  <div class="vh"><button class="ic back" id="bk" title="Wróć do listy"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+   <span class="crumb" id="crumb"></span><select id="fs" title="Przenieś do folderu"></select>
+   <span class="seg" id="mode"><button data-m="edit" title="Edycja">Edycja</button><button data-m="view" class="on" title="Czytanie">Czytanie</button></span>
+   <button class="btn sm" id="tq" title="Wyślij ten pomysł do kolejki tematów Agencji">Do kolejki</button><button class="btn sm del" id="del" title="Do kosza">Usuń</button></div>
+  <div class="page"><div class="page-in"><input id="tt" placeholder="Bez tytułu"><textarea id="tx" spellcheck="true" placeholder="Pisz w Markdown… [[ – link do innej notatki, #tag, - [ ] zadanie" hidden></textarea><div class="md" id="md"></div><div class="ac" id="ac" hidden></div></div></div>
+ </section>
+ <aside class="rp"><div class="ph"><b>Połączenia</b></div><div class="scroll" id="rp"></div></aside>
 </div>
+<div class="stb"><span id="sv"></span><span id="bl"></span><span id="wc"></span></div>
 <button class="fab" id="fab" title="Szybka notatka">＋</button>
 <div class="mod" id="mq"><div class="box"><h2>⚡ Szybka notatka</h2><textarea id="qt" placeholder="Co chcesz zapisać? Pierwsza linia = tytuł. Trafi do 📥 Skrzynki."></textarea>
  <div class="row"><button class="btn pri" id="qs">Zapisz</button><button class="btn" data-close>Anuluj</button></div></div></div>
@@ -122,17 +153,7 @@ html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
  <p class="mut">ChatGPT → Ustawienia → Kontrola danych → Eksportuj dane. Przyjdzie mail z plikiem .zip – wybierz go tutaj. Każda rozmowa stanie się notatką w 🤖 ChatGPT.</p>
  <div class="row"><label class="btn"><input type="file" id="imp" accept=".zip,.json" hidden>Wybierz plik eksportu</label><span class="mut" id="impst"></span></div>
  <div class="row"><button class="btn" data-close>Zamknij</button></div></div></div>
-<div class="mod" id="mpw"><div class="box"><h2>🔑 Generator hasła</h2>
- <div class="row" id="pwlv" style="gap:6px;flex-wrap:wrap"><button class="btn" data-l="1">Łatwe</button><button class="btn pri" data-l="2">Średnie</button><button class="btn" data-l="3">Trudne</button></div>
- <label class="mut" style="display:block;margin:10px 0 4px">Długość: <b id="pwn">16</b></label><input type="range" id="pwlen" min="6" max="64" value="16" style="width:100%">
- <div class="row" style="flex-wrap:wrap;gap:12px;margin:8px 0">
-  <label><input type="checkbox" id="pwl" checked> małe litery</label><label><input type="checkbox" id="pwu" checked> duże litery</label>
-  <label><input type="checkbox" id="pwd" checked> cyfry</label><label><input type="checkbox" id="pws"> znaki specjalne</label>
-  <label><input type="checkbox" id="pwx" checked> bez mylących (0/O, 1/l/I)</label></div>
- <div class="url" id="pwo" style="font:600 18px ui-monospace,Menlo,monospace;word-break:break-all;user-select:all">…</div>
- <p class="mut" id="pwst" style="font-size:12px;margin:6px 0 0"></p>
- <p class="mut" style="font-size:12px;margin:4px 0 0">Hasło powstaje tylko na tym urządzeniu – nigdzie nie jest wysyłane ani zapisywane.</p>
- <div class="row"><button class="btn pri" id="pwc">📋 Kopiuj</button><button class="btn" id="pwg">↻ Nowe</button><button class="btn" data-close>Zamknij</button></div></div></div>
+
 <div class="msg" id="msg"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -158,7 +179,7 @@ $('q').oninput=async()=>{const q=$('q').value.trim();if(!q)return renderTree();c
 function render(){const txt=$('tx').value;const names=new Set(T.notes.map(n=>n.name.toLowerCase()));
  let h=marked.parse(txt.replace(/\[\[([^\]|#]+)(?:[#|]([^\]]*))?\]\]/g,(m,a,b)=>`<span class="wl${names.has(a.trim().toLowerCase())?'':' miss'}" data-l="${esc(a.trim())}">${esc(b||a)}</span>`),{gfm:true,breaks:true});
  h=h.replace(/(^|[\s>])#([\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ-]{2,30})(?=[\s<.,!?]|$)/g,'$1<span class="tag" data-t="$2">#$2</span>');
- $('md').innerHTML=h||'<p class="mut">Pusta notatka – kliknij ✏️ Pisz.</p>';
+ $('md').innerHTML=h||'<p class="mut">Pusta notatka – kliknij Edycja (Ctrl/⌘+E).</p>';
  $('md').querySelectorAll('.wl').forEach(s=>s.onclick=()=>followLink(s.dataset.l));
  $('md').querySelectorAll('.tag').forEach(s=>s.onclick=()=>{$('q').value='#'+s.dataset.t;$('q').oninput();document.body.classList.remove('ed-open')});
  $('md').querySelectorAll('input[type=checkbox]').forEach((c,i)=>{c.disabled=false;c.onclick=()=>{let k=-1;$('tx').value=$('tx').value.replace(/^(\s*[-*] )\[( |x)\]/gim,(m,p,s)=>{k++;return k===i?`${p}[${s===' '?'x':' '}]`:m});DIRTY=true;save()}});
@@ -204,6 +225,33 @@ $('tq').onclick=async()=>{if(!CUR)return;if(DIRTY)await save();const t=prompt('T
 $('del').onclick=async()=>{if(!CUR||!confirm(`Przenieść „${CUR.name}” do kosza?`))return;await fetch('/api/notes/file?path='+encodeURIComponent(CUR.path),{method:'DELETE'});CUR=null;document.body.classList.remove('ed-open');await loadTree();showEmpty()};
 $('bk').onclick=async()=>{if(DIRTY)await save();document.body.classList.remove('ed-open');renderTree()};
 function showEmpty(){$('tt').value='';$('tx').value='';$('md').innerHTML='<div class="empty">Wybierz notatkę z listy albo utwórz nową.</div>';$('rp').innerHTML=''}
+// ===== Obsidian: karty, ścieżka, spis treści, panele =====
+let TABS=[];try{TABS=JSON.parse(localStorage.getItem('notes-tabs')||'[]')}catch(e){}
+const saveTabs=()=>{try{localStorage.setItem('notes-tabs',JSON.stringify(TABS.slice(-12)))}catch(e){}};
+function renderTabs(){const el=$('tabs');if(!el)return;TABS=TABS.filter(p=>T.notes.some(n=>n.path===p)||(CUR&&CUR.path===p));
+ el.innerHTML=TABS.map(p=>`<div class="tb ${CUR&&CUR.path===p?'on':''}" data-p="${esc(p)}"><span>${esc(p.split('/').pop().replace(/\.md$/,''))}</span><i data-x="${esc(p)}" title="Zamknij">×</i></div>`).join('');
+ el.querySelectorAll('.tb').forEach(t=>t.onclick=e=>{if(e.target.dataset.x!==undefined)return;open_(t.dataset.p)});
+ el.querySelectorAll('[data-x]').forEach(x=>x.onclick=e=>{e.stopPropagation();const p=x.dataset.x;const i=TABS.indexOf(p);TABS=TABS.filter(q=>q!==p);saveTabs();
+  if(CUR&&CUR.path===p){const nx=TABS[Math.min(i,TABS.length-1)];if(nx)open_(nx);else{CUR=null;showEmpty();renderTabs()}}else renderTabs()})}
+const _open=open_;
+open_=async function(path,mode){await _open(path,mode);if(!CUR)return;
+ TABS=TABS.map(p=>p===path||p===CUR.path?CUR.path:p);if(!TABS.includes(CUR.path))TABS.push(CUR.path);saveTabs();renderTabs();
+ $('crumb').innerHTML=`${esc(CUR.folder||'Bez folderu')} / <b>${esc(CUR.name)}</b>`;
+ $('bl').textContent=`${CUR.backlinks.length} ${CUR.backlinks.length===1?'link zwrotny':'linków zwrotnych'}`;outline()};
+function outline(){if(!CUR)return;const hs=$('tx').value.split('\n').filter(l=>/^#{1,4}\s/.test(l));
+ const box=document.getElementById('olx');if(!box)return;
+ box.innerHTML=hs.length?hs.map(h=>{const lv=h.match(/^#+/)[0].length,t=h.replace(/^#+\s*/,'');return `<a style="padding-left:${(lv-1)*12+6}px" data-h="${esc(t)}">${esc(t)}</a>`}).join(''):'<p class="mut">Brak nagłówków.</p>';
+ box.querySelectorAll('[data-h]').forEach(a=>a.onclick=()=>{if(MODE!=='view')setMode('view');const h=[...$('md').querySelectorAll('h1,h2,h3,h4')].find(x=>x.textContent.trim()===a.dataset.h);h&&h.scrollIntoView({behavior:'smooth',block:'start'})})}
+const _side=renderSide;
+renderSide=function(){_side();if(!CUR)return;$('rp').insertAdjacentHTML('beforeend','<h3>Spis treści</h3><div class="ol" id="olx"></div>');outline()};
+const _rt=renderTree;renderTree=function(){_rt();renderTabs()};
+$('rl').onclick=()=>{document.body.classList.toggle('no-left');try{localStorage.setItem('notes-nl',document.body.classList.contains('no-left')?1:0)}catch(e){}};
+$('rr').onclick=()=>{document.body.classList.toggle('no-right');try{localStorage.setItem('notes-nr',document.body.classList.contains('no-right')?1:0)}catch(e){}};
+try{if(localStorage.getItem('notes-nl')==='1')document.body.classList.add('no-left');if(localStorage.getItem('notes-nr')==='1')document.body.classList.add('no-right')}catch(e){}
+$('ca').onclick=()=>{document.querySelectorAll('#tree .fd').forEach(d=>d.open=false)};
+$('tx').addEventListener('input',()=>{clearTimeout(outline.t);outline.t=setTimeout(outline,600)});
+addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='e'&&CUR){e.preventDefault();setMode(MODE==='edit'?'view':'edit')}});
+
 // szybka notatka
 const mopen=id=>{$(id).classList.add('open')};document.querySelectorAll('.mod').forEach(m=>{m.onclick=e=>{if(e.target===m||e.target.dataset.close!==undefined)m.classList.remove('open')}});
 $('fab').onclick=()=>{mopen('mq');setTimeout(()=>$('qt').focus(),50)};
@@ -243,23 +291,7 @@ $('imp').onchange=async e=>{const f=e.target.files[0];if(!f)return;const st=m=>$
  if(p&&T.notes.some(n=>n.path===p)&&innerWidth>700)open_(p);else if(T.notes[0]&&innerWidth>700)open_(T.notes[0].path);else showEmpty()})();
 setInterval(()=>{if(!DIRTY&&document.visibilityState==='visible'&&$('q').value.trim()==='')loadTree()},30000);
 </script>
-<script>
-(()=>{const g=id=>document.getElementById(id),LV={1:[10,1,1,1,0],2:[16,1,1,1,0],3:[24,1,1,1,1]};
-const sets={l:'abcdefghijkmnopqrstuvwxyz',L:'abcdefghijklmnopqrstuvwxyz',u:'ABCDEFGHJKLMNPQRSTUVWXYZ',U:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',d:'23456789',D:'0123456789',s:'!@#$%^&*()-_=+[]{};:,.?/~'};
-const rnd=n=>{const a=new Uint32Array(1);const lim=Math.floor(2**32/n)*n;do crypto.getRandomValues(a);while(a[0]>=lim);return a[0]%n};
-function gen(){const x=g('pwx').checked,len=+g('pwlen').value,pools=[];
- if(g('pwl').checked)pools.push(x?sets.l:sets.L);if(g('pwu').checked)pools.push(x?sets.u:sets.U);if(g('pwd').checked)pools.push(x?sets.d:sets.D);if(g('pws').checked)pools.push(sets.s);
- if(!pools.length){g('pwl').checked=true;return gen()}
- const all=pools.join('');let c=pools.map(p=>p[rnd(p.length)]);while(c.length<len)c.push(all[rnd(all.length)]);c=c.slice(0,len);
- for(let i=c.length-1;i>0;i--){const j=rnd(i+1);[c[i],c[j]]=[c[j],c[i]]}
- g('pwo').textContent=c.join('');g('pwn').textContent=len;const bits=Math.round(len*Math.log2(all.length));
- g('pwst').textContent=`siła: ~${bits} bitów · `+(bits<50?'słabe':bits<75?'dobre':bits<100?'mocne':'bardzo mocne')}
-document.querySelectorAll('#pwlv [data-l]').forEach(b=>b.onclick=()=>{const v=LV[b.dataset.l];g('pwlen').value=v[0];g('pwl').checked=!!v[1];g('pwu').checked=!!v[2];g('pwd').checked=!!v[3];g('pws').checked=!!v[4];
- document.querySelectorAll('#pwlv [data-l]').forEach(o=>o.classList.toggle('pri',o===b));gen()});
-['pwlen','pwl','pwu','pwd','pws','pwx'].forEach(id=>g(id).oninput=gen);
-g('pwg').onclick=gen;g('pwc').onclick=async()=>{try{await navigator.clipboard.writeText(g('pwo').textContent);g('pwc').textContent='✓ Skopiowane';setTimeout(()=>g('pwc').textContent='📋 Kopiuj',1500)}catch(e){}};
-g('pw').onclick=()=>{g('mpw').classList.add('open');gen()}})();
-</script>
+
 <div class="ov" id="qov"><div class="qs"><input id="qin" placeholder="Przejdź do notatki… (Enter otwiera, brak = nowa)"><div class="ls" id="qls"></div></div></div>
 <div class="ov" id="gov"><div class="gw"><span class="hint">Kliknij kropkę, żeby otworzyć notatkę. Przeciągnij tło, kółko = przybliżenie.</span><button class="btn sm x" id="gx">Zamknij</button><canvas id="gc"></canvas></div></div>
 <script>
