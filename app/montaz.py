@@ -219,6 +219,7 @@ async def act(jid: str, action: str, req: Request):
             pass
         else:
             b = await req.json()
+            add_lesson("jedzenie", jid, str(b.get("comment", ""))[:600])
             r = _dz_call("POST", f"/api/montaz/{jid}/fix", json={"comment": str(b.get("comment", ""))[:1500]})
     except Exception as e:
         return {"ok": False, "error": str(e)[:200]}
@@ -624,6 +625,7 @@ def vlog_check(jid):
                          "czy kolejność ma sens.\n\n"
                          f"Odcinek #{j.get('ep')} z {j.get('date')}, długość podglądu {dur:.0f} s\n\nRAPORT:\n{j.get('raport', '')[:3500]}\n\n"
                          f"NAPISY:\n{j.get('napisy', '')[:3000]}\n\n"
+                         f"MOJE WCZEŚNIEJSZE POPRAWKI (te błędy nie mogą się powtórzyć):\n{_lessons(j.get('kind') or 'vlog') or 'brak'}\n\n"
                          'Odpowiedz JSON: {"ok": true/false, "review": "2-3 zdania oceny po polsku", '
                          '"fix": "jeśli coś trzeba poprawić – polecenie dla montażu po polsku (np. zostaw zdanie o krokach, wytnij drugie podejście do zdania o obiedzie), inaczej pusty"}',
                          max_tokens=500)
@@ -716,6 +718,7 @@ def check(jid):
                          "Dostajesz raport automatycznych cięć i transkrypcję klipów. Sprawdź: czy nie zostały powtórzone zdania, "
                          "czy nie wycięto czegoś ważnego, czy kolejność posiłków ma sens, czy są przekleństwa/pomyłki.\n\n"
                          f"Tytuł: {' / '.join(st.get('title') or [])}\nDługość: {dur:.0f} s\n{_btxt(base)}\n\nRAPORT:\n{rap}\n\nTRANSKRYPCJA:\n{tr}\n\n"
+                         f"MOJE WCZEŚNIEJSZE POPRAWKI (te błędy nie mogą się powtórzyć):\n{_lessons('jedzenie') or 'brak'}\n\n"
                          'Odpowiedz JSON: {"ok": true/false, "review": "2-3 zdania oceny po polsku", '
                          '"fix": "jeśli coś trzeba poprawić – polecenie dla montażysty po polsku (np. wytnij w klipie 2 drugie podejście do zdania o obiedzie), inaczej pusty"}',
                          max_tokens=500)
@@ -728,6 +731,17 @@ def check(jid):
         res["review"] = f"(ocena AI niedostępna: {str(e)[:80]})"
     res["m"] = mm
     C = _rd("mont_checks.json", {})
+    prev = C.get(jid) or {}
+    res["auto_fixed"] = prev.get("auto_fixed", 0)
+    # błąd z oceny AI → strażnik sam zleca poprawkę (raz na film, żeby nie kręcić się w kółko)
+    if res["fix"] and not res["ok"] and not probs and res["auto_fixed"] < 1 and not st.get("fix"):
+        try:
+            r = _dz_call("POST", f"/api/montaz/{jid}/fix", json={"comment": "[strażnik] " + res["fix"]})
+            if r.status_code < 300:
+                res["auto_fixed"] = 1
+                res["review"] = (res["review"] + " · 🛡️ Strażnik sam zlecił poprawkę: " + res["fix"])[:900]
+        except Exception as e:
+            print("auto fix", e, flush=True)
     C[jid] = res
     _wr("mont_checks.json", dict(sorted(C.items())[-40:]))
     return res
@@ -888,6 +902,7 @@ async def vlog_act(jid: str, action: str, req: Request):
                       state="queued", step="Poprawka – czekam na Maca…", files=[], lines=[], at=time.time(), again=jid,
                       fix=str(b["comment"]).strip()[:600])
             v["jobs"] = v["jobs"][-30:] + [nj]
+            add_lesson(j.get("kind") or "vlog", j.get("ep"), nj["fix"])
         if action in ("again", "fix") and any(x.get("again") == jid for x in v["jobs"]):
             # nowe podejście już jest – stara wersja znika z listy (razem z podglądem)
             v["jobs"] = [x for x in v["jobs"] if x["id"] != jid]
@@ -1156,3 +1171,74 @@ async def mont_opis(req: Request):
     cache[key] = out
     _wr("mont_opis.json", dict(list(cache.items())[-80:]))
     return {"ok": True, **out}
+
+
+# ---------- Strażnik przed CapCut: AI sprawdza plan montażu (napisy, cięcia) i zwraca poprawki ----------
+# Uczy się na Twoich wcześniejszych poprawkach („✂️ Popraw montaż”) i uwagach strażnika podglądu.
+def add_lesson(kind, ep, text):
+    text = str(text or "").strip()
+    if not text:
+        return
+    L = _rd("mont_lessons.json", [])
+    L.append({"t": time.time(), "kind": kind, "ep": ep, "text": text[:600]})
+    _wr("mont_lessons.json", L[-200:])
+
+
+def _lessons(kind, n=25):
+    L = _rd("mont_lessons.json", [])
+    if not L:  # pierwsze uruchomienie: zbierz poprawki z dotychczasowych zleceń
+        for j in _V().get("jobs", []):
+            if j.get("fix"):
+                L.append({"t": j.get("at", 0), "kind": j.get("kind") or "vlog", "ep": j.get("ep"), "text": j["fix"]})
+        if L:
+            _wr("mont_lessons.json", L)
+    fam = {"vlog": ("vlog",), "cheat": ("cheat", "vlog"), "jedzenie": ("jedzenie",)}.get(kind, (kind,))
+    out = [f"- [{x['kind']} #{x.get('ep')}] {x['text']}" for x in L if x.get("kind") in fam][-n:]
+    ch = [c for c in _rd("mont_vlog_checks.json", []) if c.get("warnings")][-8:]
+    out += [f"- [strażnik podglądu] {w}" for c in ch for w in (c.get("warnings") or [])[:3]]
+    return "\n".join(out[-40:])
+
+
+GUARD_RULES = """Sprawdzasz PLAN montażu (zanim trafi do CapCuta) filmu po polsku: Daily WNBF vlog / Cheat meal (Bartłomiej, redukcja, siłownia).
+Dostajesz listę napisów z czasem (s) na osi filmu, granice ujęć (klipów) i raport tego, co montaż już wyciął.
+Szukaj TYLKO realnych błędów:
+1. to samo zdanie/fraza powiedziana 2× (dubel, druga próba, „zobaczymy czy… zobaczymy czy”) – wytnij WCZEŚNIEJSZĄ, gorszą wersję,
+2. nieudane podejście/zająknięcie/chrząknięcie/„yyy” na początku ujęcia albo w środku zdania,
+3. zdanie urwane w połowie (ucięty początek/koniec myśli), które nic nie wnosi – wytnij je,
+4. błędy w napisach: przekręcone słowa (słownik kulinarny/siłowy), godziny i liczby słownie zamiast cyfr („siedemnasta” → „17”),
+   napis niezgodny z sensem. Napisy mają być SŁOWO W SŁOWO jak mówię, po polsku.
+Nie wycinaj zapowiedzi (hook) z początku, nie wycinaj więcej niż ~6 s w jednym miejscu, nie skracaj filmu „dla tempa”.
+Jeśli wszystko OK – zwróć pustą listę. Lepiej nic nie zmienić niż zepsuć.
+Zwróć TYLKO JSON: {"fixes": [{"type": "cut", "t0": 12.3, "t1": 14.1, "why": "..."}, {"type": "caption", "i": 17, "text": "...", "why": "..."}],
+"notes": ["krótka uwaga dla mnie, jeśli coś jest podejrzane, ale nie da się tego poprawić automatycznie"]}
+t0/t1 = czasy na osi filmu (granice słów z listy napisów), i = numer napisu z listy."""
+
+
+@router.post("/api/mont-hook/straznik")
+async def hook_straznik(req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    from agency import ai_ready, claude, as_json, SMART
+    if not ai_ready():
+        return {"ok": False, "error": "AI niedostępne"}
+    kind = str(b.get("kind") or "vlog")
+    caps = b.get("captions") or []
+    segs = b.get("segs") or []
+    capt = "\n".join(f"{c.get('i')}. [{float(c.get('start', 0)):.2f}–{float(c.get('end', 0)):.2f}]{' (hook)' if c.get('hook') else ''} {c.get('text', '')}" for c in caps[:600])
+    segt = "\n".join(f"- {s.get('clip')} {float(s.get('start', 0)):.2f}–{float(s.get('start', 0)) + float(s.get('dur', 0)):.2f}{' hook' if s.get('hook') else ''}"
+                     f"{' x' + str(s.get('speed')) if s.get('speed') not in (None, 1, 1.0) else ''}" for s in segs[:300])
+    lessons = _lessons(kind)
+    prompt = (f"{GUARD_RULES}\n\nODCINEK: {kind} #{b.get('ep')} z {b.get('date')}\n\n"
+              f"MOJE WCZEŚNIEJSZE POPRAWKI (ucz się z nich – te błędy NIE mogą się powtórzyć):\n{lessons or 'brak'}\n\n"
+              f"UJĘCIA:\n{segt}\n\nNAPISY:\n{capt}\n\nJUŻ WYCIĘTE PRZEZ MONTAŻ:\n{str(b.get('cut') or '')[:2500]}")
+    try:
+        res = as_json(claude(prompt, SMART, 2500)) or {}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:150]}
+    fixes = [f for f in (res.get("fixes") or []) if isinstance(f, dict) and f.get("type") in ("cut", "caption")][:25]
+    notes = [str(n)[:200] for n in (res.get("notes") or [])][:6]
+    G = _rd("mont_guard.json", [])
+    G.append({"t": time.time(), "kind": kind, "ep": b.get("ep"), "fixes": fixes, "notes": notes})
+    _wr("mont_guard.json", G[-40:])
+    return {"ok": True, "fixes": fixes, "notes": notes}
