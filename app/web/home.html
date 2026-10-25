@@ -150,10 +150,9 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
  </div>
 </div>
 <div class="mod" id="wm"><div class="box"><h2>Portfele</h2>
- <p>Klucze API zakładasz w ustawieniach giełdy z uprawnieniem <b>tylko do odczytu</b> (bez handlu i wypłat). Zapisują się tylko na Twoim serwerze. XTB wyłączył API w marcu 2025, więc stan konta XTB wpisujesz ręcznie.</p>
+ <p>Klucze API zakładasz w ustawieniach giełdy z uprawnieniem <b>tylko do odczytu</b> (bez handlu i wypłat). Zapisują się tylko na Twoim serwerze.</p>
  <fieldset><legend>OKX <span class="st" id="wst-okx"></span></legend><label>API key<input id="okx-k" autocomplete="off"></label><label>Secret key<input id="okx-s" type="password" autocomplete="off"></label><label>Passphrase<input id="okx-p" type="password" autocomplete="off"></label></fieldset>
  <fieldset><legend>Kraken <span class="st" id="wst-kraken"></span></legend><label>API key<input id="kr-k" autocomplete="off"></label><label>Private key<input id="kr-s" type="password" autocomplete="off"></label></fieldset>
- <fieldset><legend>XTB</legend><label>Stan konta (zł) – zaktualizuj, kiedy chcesz<input id="xtb-v" inputmode="decimal" placeholder="np. 8500"></label></fieldset>
  <p id="wmsg" style="margin-top:10px"></p>
  <div class="row"><button class="btn g" id="wclose">Zamknij</button><button class="btn" id="wsave">Zapisz</button></div></div></div>
 <script>
@@ -229,10 +228,10 @@ function wallet(W,EQ,S){
  if(W&&W.ok&&W.total!=null){
   const pts=(W.history||[]).map(x=>x.v);if(pts.length<2)pts.unshift(W.total);
   $('pfb').innerHTML=`<div class="big tn">${fmt(W.total)} zł</div><div class="d">${W.change_7d!=null?`<span class="chip ${W.change_7d>=0?'ok':'bad'}">${W.change_7d>=0?'+':''}${fmt(W.change_7d,1)}%</span>w 7 dni`:''}</div>${area(pts,css('--ac'))}
-   ${(W.errors||[]).length?`<div class="dn" style="font-size:12.5px;margin-top:6px">${esc(W.errors.join('; '))}</div>`:''}<div class="acc" style="grid-template-columns:repeat(${Math.max(1,(W.accounts||[]).length)},minmax(0,1fr))">${(W.accounts||[]).map(a=>`<div><small>${esc(a.name)}${a.manual?' (ręcznie)':''}${a.change!=null?`<span class="${a.change>=0?'up':'dn'}">${a.change>=0?'+':''}${fmt(a.change,1)}%</span>`:''}</small><b class="tn">${fmt(a.value)} zł</b></div>`).join('')}</div>`;return}
+   ${(W.errors||[]).length?`<div class="dn" style="font-size:12.5px;margin-top:6px">${esc(W.errors.join('; '))}</div>`:''}<div class="acc" style="grid-template-columns:repeat(${Math.max(1,(W.accounts||[]).length)},minmax(0,1fr))">${(W.accounts||[]).map(a=>`<div><small>${esc(a.name)}${a.change!=null?`<span class="${a.change>=0?'up':'dn'}">${a.change>=0?'+':''}${fmt(a.change,1)}%</span>`:''}</small><b class="tn">${fmt(a.value)} zł</b></div>`).join('')}</div>`;return}
  const ser=(EQ?.series||[]).map(p=>p.real),r=S?.real||{};
  $('pfb').innerHTML=`<div class="big tn ${r.pnl>=0?'up':'dn'}">${sgn(r.pnl)}%</div><div class="d"><span class="chip">wynik skanera, 30 dni</span>${r.wr!=null?`${r.wr}% trafionych, ${r.wins||0} z ${r.closed||0}`:''}</div>${area(ser,css('--ac'))}
-  <div class="connect"><b>Podepnij portfele OKX, Kraken i XTB</b> – tu pojawi się łączny stan konta i ile urosło. Wystarczą klucze API tylko do odczytu.<div style="margin-top:10px"><button class="btn" onclick="wopen()">Podepnij portfele</button></div>${(W?.errors||[]).length?`<div class="dn" style="margin-top:8px">${esc(W.errors.join('; '))}</div>`:''}</div>`;
+  <div class="connect"><b>Podepnij portfele OKX i Kraken</b> – tu pojawi się łączny stan konta i ile urosło. Wystarczą klucze API tylko do odczytu.<div style="margin-top:10px"><button class="btn" onclick="wopen()">Podepnij portfele</button></div>${(W?.errors||[]).length?`<div class="dn" style="margin-top:8px">${esc(W.errors.join('; '))}</div>`:''}</div>`;
 }
 
 // ---------- social ----------
@@ -346,10 +345,10 @@ $('plh').onclick=async()=>{const h=(PLD?.cfg?.hours)||{};const nm={jedzenie:'Dai
 
 // ---------- ustawienia portfeli ----------
 async function wopen(){$('wm').classList.add('open');$('wmsg').textContent='';const c=await get('/api/wallets/cfg')||{};
- $('wst-okx').textContent=c.okx?'– podpięty (wpisz nowe, żeby zmienić)':'';$('wst-kraken').textContent=c.kraken?'– podpięty (wpisz nowe, żeby zmienić)':'';$('xtb-v').value=c.xtb??''}
+ $('wst-okx').textContent=c.okx?'– podpięty (wpisz nowe, żeby zmienić)':'';$('wst-kraken').textContent=c.kraken?'– podpięty (wpisz nowe, żeby zmienić)':''}
 $('wcfg').onclick=wopen;$('wclose').onclick=()=>$('wm').classList.remove('open');$('wm').onclick=e=>{if(e.target===$('wm'))$('wm').classList.remove('open')};
 $('wsave').onclick=async()=>{const b=$('wsave');b.disabled=true;$('wmsg').textContent='Sprawdzam połączenie…';
- const body={okx:{key:$('okx-k').value,secret:$('okx-s').value,pass:$('okx-p').value},kraken:{key:$('kr-k').value,secret:$('kr-s').value},xtb:$('xtb-v').value};
+ const body={okx:{key:$('okx-k').value,secret:$('okx-s').value,pass:$('okx-p').value},kraken:{key:$('kr-k').value,secret:$('kr-s').value}};
  try{const r=await (await fetch('/api/wallets/cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
   if(!r.ok)$('wmsg').textContent=r.error;else{const W=r.wallets;$('wmsg').innerHTML=W.ok?`Zapisane. Razem: <b>${fmt(W.total)} zł</b>`+((W.errors||[]).length?`<br><span class="dn">${esc(W.errors.join('; '))}</span>`:''):`<span class="dn">${esc((W.errors||[]).join('; ')||'Nic nie podpięte')}</span>`;
    ['okx-k','okx-s','okx-p','kr-k','kr-s'].forEach(i=>$(i).value='');load()}}

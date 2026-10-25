@@ -1,4 +1,4 @@
-"""Portfele: OKX i Kraken przez API (klucze TYLKO DO ODCZYTU), XTB ręcznie (XTB wyłączył API 14.03.2025).
+"""Portfele: OKX i Kraken przez API (klucze TYLKO DO ODCZYTU).
 Wartości w PLN (kurs USD z NBP), codzienny zapis historii do wykresu i zmiany 7 dni."""
 import base64, hashlib, hmac, json, time, urllib.parse
 from datetime import datetime, timezone, date
@@ -65,8 +65,6 @@ def compute(force=False):
                 acc.append({"name": name, "value": round(fn(c[k]) * fx)})
             except Exception as e:
                 errs.append(str(e)[:120])
-    if (c.get("xtb") or {}).get("value") is not None:
-        acc.append({"name": "XTB", "value": round(float(c["xtb"]["value"])), "manual": True, "at": c["xtb"].get("at")})
     if not acc:
         out = {"ok": False, "configured": False, "errors": errs}
         _cache.update(t=time.time(), v=out)
@@ -100,8 +98,7 @@ def wallets():
 @router.get("/api/wallets/cfg")
 def wallets_cfg():
     c = _cfg()
-    return {"okx": bool((c.get("okx") or {}).get("key")), "kraken": bool((c.get("kraken") or {}).get("key")),
-            "xtb": (c.get("xtb") or {}).get("value")}
+    return {"okx": bool((c.get("okx") or {}).get("key")), "kraken": bool((c.get("kraken") or {}).get("key"))}
 
 
 @router.post("/api/wallets/cfg")
@@ -114,11 +111,7 @@ async def wallets_save(req: Request):
     k = b.get("kraken") or {}
     if k.get("key") and k.get("secret"):
         c["kraken"] = {"key": k["key"].strip(), "secret": k["secret"].strip()}
-    if b.get("xtb") not in (None, ""):
-        try:
-            c["xtb"] = {"value": float(str(b["xtb"]).replace(" ", "").replace(",", ".")), "at": time.time()}
-        except ValueError:
-            return {"ok": False, "error": "Wartość XTB musi być liczbą (zł)."}
+    c.pop("xtb", None)
     for x in b.get("remove") or []:
         c.pop(x, None)
     _write(CFG, c)
