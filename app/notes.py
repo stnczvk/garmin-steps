@@ -18,7 +18,7 @@ from social import ROOT, _read, _write
 router = APIRouter()
 NOTES = ROOT / "notatki"
 TRASH = NOTES / ".kosz"
-FOLDERS = ["📥 Skrzynka", "💡 Pomysły na filmy", "🎥 Vlog", "📈 Trading", "🏋️ Trening", "🤖 ChatGPT", "🚀 Update"]
+FOLDERS = ["📥 Skrzynka", "📓 Dziennik", "💡 Pomysły na filmy", "🎥 Vlog", "📈 Trading", "🏋️ Trening", "🤖 ChatGPT", "🚀 Update"]
 LINK = re.compile(r"\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]")
 
 
@@ -123,6 +123,45 @@ def tree():
                      key=lambda f: (FOLDERS.index(f) if f in FOLDERS else 99, f))
     notes = sorted((_meta(p) for p in _all()), key=lambda x: -x["mtime"])
     return {"folders": folders, "notes": notes}
+
+
+@router.get("/api/notes/graph")
+def graph():
+    """Mapa połączeń jak w Obsidianie: notatki = kropki, [[linki]] = kreski (też do jeszcze nieistniejących notatek)."""
+    _init()
+    files = _all()
+    by = {p.stem.lower(): _rel(p) for p in files}
+    nodes, edges, ghost = [], [], {}
+    for p in files:
+        txt = p.read_text(encoding="utf-8", errors="ignore")
+        r = _rel(p)
+        nodes.append({"id": r, "name": p.stem, "folder": _rel(p.parent) if p.parent != NOTES else ""})
+        for l in dict.fromkeys(LINK.findall(txt)):
+            t = by.get(l.strip().lower())
+            if not t:
+                t = "?" + l.strip()
+                ghost[t] = l.strip()
+            if t != r:
+                edges.append([r, t])
+    nodes += [{"id": k, "name": v, "folder": "", "ghost": True} for k, v in ghost.items()]
+    tags = {}
+    for p in files:
+        for t in set(re.findall(r"(?<!\w)#([\wąćęłńóśźż-]{2,30})", p.read_text(encoding="utf-8", errors="ignore"))):
+            tags[t] = tags.get(t, 0) + 1
+    return {"nodes": nodes, "edges": edges, "tags": sorted(tags.items(), key=lambda x: -x[1])[:60]}
+
+
+@router.post("/api/notes/daily")
+def daily():
+    """Notatka dnia (📓 Dziennik/RRRR-MM-DD) – tworzy z szablonu, jeśli jeszcze nie ma."""
+    _init()
+    d = datetime.now(ZoneInfo("Europe/Warsaw"))
+    path = f"📓 Dziennik/{d:%Y-%m-%d}.md"
+    p = _safe(path)
+    if not p.is_file():
+        dni = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"][d.weekday()]
+        write(path, f"# {d:%d.%m.%Y}, {dni}\n\n## Plan na dziś\n- [ ] \n\n## Notatki\n\n\n## Pomysły\n\n#dziennik")
+    return {"ok": True, "path": path}
 
 
 @router.get("/api/notes/file")

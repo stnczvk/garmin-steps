@@ -73,15 +73,23 @@ html[data-theme=light] .mod .box,html[data-theme=light] .ac{background:#fff}
  textarea#tx{font-size:15px;min-height:calc(100vh - 220px)}
  .rp{display:block;position:static;margin-top:12px}body:not(.ed-open) .rp{display:none}
 }
+.ov{position:fixed;inset:0;background:rgba(5,5,12,.6);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:8vh 14px}.ov.open{display:flex}
+.qs{width:min(600px,100%);background:#16171f;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.qs input{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font:17px Geist,system-ui;padding:16px 18px;outline:none}
+.qs .ls{max-height:50vh;overflow:auto}.qs .it{padding:10px 18px;cursor:pointer;display:flex;gap:10px;align-items:baseline}.qs .it small{color:var(--faint);margin-left:auto;font-size:12px}.qs .it.on{background:rgba(143,123,255,.16)}
+.gw{width:min(1100px,100%);height:min(78vh,760px);background:#0f1016;border:1px solid var(--line);border-radius:18px;position:relative;overflow:hidden}
+.gw canvas{width:100%;height:100%;display:block;touch-action:none}.gw .x{position:absolute;right:12px;top:10px}.gw .hint{position:absolute;left:14px;top:12px;font-size:12.5px;color:var(--faint)}
+#tags .tg2{display:inline-block;font-size:12px;margin:0 6px 6px 0;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--soft);cursor:pointer}
+:root[data-theme=light] .qs,:root[data-theme=light] .gw{background:#fff}
 </style>
 </head>
 <body class="lg">
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <div class="top"><h1>📝 Notatki</h1>
-  <div class="r"><button class="btn pri" id="new">＋ <span class="lbl">Nowa notatka</span></button><button class="btn" id="nf">📁 <span class="lbl">Folder</span></button><button class="btn" id="upd">🚀 <span class="lbl">Update</span></button><button class="btn" id="pw">🔑 <span class="lbl">Hasło</span></button><button class="btn" id="gpt">🤖 <span class="lbl">ChatGPT</span></button></div></div>
+  <div class="r"><button class="btn pri" id="new">＋ <span class="lbl">Nowa notatka</span></button><button class="btn" id="nf">📁 <span class="lbl">Folder</span></button><button class="btn" id="upd">🚀 <span class="lbl">Update</span></button><button class="btn" id="dz">📅 <span class="lbl">Dziś</span></button><button class="btn" id="gr">🕸 <span class="lbl">Mapa</span></button><button class="btn" id="qk" title="Szybkie przejście (Ctrl/⌘ + K)">⌘K</button><button class="btn" id="pw">🔑 <span class="lbl">Hasło</span></button><button class="btn" id="gpt">🤖 <span class="lbl">ChatGPT</span></button></div></div>
  <div class="lay">
-  <aside class="glass side"><input class="q" id="q" placeholder="🔍 Szukaj w notatkach…" type="search"><div id="tree"><p class="mut">Ładuję…</p></div></aside>
+  <aside class="glass side"><input class="q" id="q" placeholder="🔍 Szukaj w notatkach…" type="search"><div id="tree"><p class="mut">Ładuję…</p></div><div id="tags" style="margin-top:12px"></div></aside>
   <section class="glass ed" id="ed">
    <div class="eh"><button class="btn sm back" id="bk">‹ Notatki</button><input id="tt" placeholder="Tytuł">
     <select id="fs" title="Folder"></select>
@@ -251,6 +259,54 @@ document.querySelectorAll('#pwlv [data-l]').forEach(b=>b.onclick=()=>{const v=LV
 ['pwlen','pwl','pwu','pwd','pws','pwx'].forEach(id=>g(id).oninput=gen);
 g('pwg').onclick=gen;g('pwc').onclick=async()=>{try{await navigator.clipboard.writeText(g('pwo').textContent);g('pwc').textContent='✓ Skopiowane';setTimeout(()=>g('pwc').textContent='📋 Kopiuj',1500)}catch(e){}};
 g('pw').onclick=()=>{g('mpw').classList.add('open');gen()}})();
+</script>
+<div class="ov" id="qov"><div class="qs"><input id="qin" placeholder="Przejdź do notatki… (Enter otwiera, brak = nowa)"><div class="ls" id="qls"></div></div></div>
+<div class="ov" id="gov"><div class="gw"><span class="hint">Kliknij kropkę, żeby otworzyć notatkę. Przeciągnij tło, kółko = przybliżenie.</span><button class="btn sm x" id="gx">Zamknij</button><canvas id="gc"></canvas></div></div>
+<script>
+(()=>{const g=id=>document.getElementById(id);let L=[],sel=0;
+ // --- szybkie przejście (Ctrl/⌘+K) ---
+ function qopen(){g('qov').classList.add('open');g('qin').value='';qrender();setTimeout(()=>g('qin').focus(),30)}
+ function qrender(){const q=g('qin').value.trim().toLowerCase(),N=T.notes||[];
+  L=(q?N.filter(n=>(n.name+' '+n.folder).toLowerCase().includes(q)).sort((a,b)=>(b.name.toLowerCase().startsWith(q))-(a.name.toLowerCase().startsWith(q))):N).slice(0,30);sel=0;
+  g('qls').innerHTML=L.map((n,i)=>`<div class="it${i?'':' on'}" data-i="${i}">${esc(n.name)}<small>${esc(n.folder)}</small></div>`).join('')||`<div class="it on">＋ Nowa notatka „${esc(g('qin').value)}”</div>`;
+  g('qls').querySelectorAll('[data-i]').forEach(d=>d.onclick=()=>{qclose();open_(L[+d.dataset.i].path)})}
+ function qclose(){g('qov').classList.remove('open')}
+ g('qin').oninput=qrender;
+ g('qin').onkeydown=async e=>{if(e.key==='Escape')return qclose();if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();sel=Math.max(0,Math.min(L.length-1,sel+(e.key==='ArrowDown'?1:-1)));g('qls').querySelectorAll('.it').forEach((d,i)=>d.classList.toggle('on',i===sel));return}
+  if(e.key==='Enter'){e.preventDefault();qclose();if(L[sel])open_(L[sel].path);else if(g('qin').value.trim())followLink(g('qin').value.trim())}};
+ g('qov').onclick=e=>{if(e.target===g('qov'))qclose()};g('qk').onclick=qopen;
+ addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();qopen()}});
+ // --- notatka dnia ---
+ g('dz').onclick=async()=>{const r=await J('/api/notes/daily',{method:'POST'});await loadTree();open_(r.path,'edit')};
+ // --- tagi pod listą ---
+ let G=null;async function tags(){G=await J('/api/notes/graph');g('tags').innerHTML=G.tags.length?'<p class="mut" style="font-size:12px;margin-bottom:6px">Tagi</p>'+G.tags.map(([t,c])=>`<span class="tg2" data-t="${esc(t)}">#${esc(t)} ${c}</span>`).join(''):'';
+  g('tags').querySelectorAll('[data-t]').forEach(s=>s.onclick=()=>{g('q').value='#'+s.dataset.t;g('q').oninput()})}
+ tags();setInterval(tags,120000);
+ // --- mapa połączeń ---
+ g('gr').onclick=async()=>{g('gov').classList.add('open');G=await J('/api/notes/graph');draw()};g('gx').onclick=()=>{g('gov').classList.remove('open');run=false};
+ let run=false;
+ function draw(){const cv=g('gc'),dpr=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;const x=cv.getContext('2d');x.scale(dpr,dpr);
+  const N=G.nodes.map((n,i)=>({...n,x:W/2+Math.cos(i)*200*Math.random(),y:H/2+Math.sin(i)*200*Math.random(),vx:0,vy:0,deg:0})),ix={};N.forEach((n,i)=>ix[n.id]=i);
+  const E=G.edges.filter(e=>ix[e[0]]!=null&&ix[e[1]]!=null).map(e=>[ix[e[0]],ix[e[1]]]);E.forEach(([a,b])=>{N[a].deg++;N[b].deg++});
+  const fc={},pal=['#8f7bff','#3ddc84','#ffc24b','#5ad1ff','#ff9fc4','#ff7a59','#c9b8ff','#9fe6c8'];let k=0;const col=n=>n.ghost?'#55546a':(fc[n.folder]??=pal[k++%pal.length]);
+  let sc=1,ox=0,oy=0,drag=null,hov=-1,steps=0;run=true;
+  function step(){for(let i=0;i<N.length;i++){const a=N[i];for(let j=i+1;j<N.length;j++){const b=N[j];let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+.01;if(d2>90000)continue;const f=900/d2;a.vx+=dx*f;a.vy+=dy*f;b.vx-=dx*f;b.vy-=dy*f}}
+   E.forEach(([i,j])=>{const a=N[i],b=N[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,f=(d-70)*.012;a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f});
+   N.forEach(n=>{n.vx+=(W/2-n.x)*.002;n.vy+=(H/2-n.y)*.002;n.x+=n.vx*.5;n.y+=n.vy*.5;n.vx*=.82;n.vy*=.82})}
+  function paint(){x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);x.translate(ox,oy);x.scale(sc,sc);
+   x.strokeStyle='rgba(160,160,200,.22)';x.lineWidth=1/sc;E.forEach(([i,j])=>{x.beginPath();x.moveTo(N[i].x,N[i].y);x.lineTo(N[j].x,N[j].y);x.stroke()});
+   N.forEach((n,i)=>{const r=3+Math.min(9,n.deg*1.4);x.beginPath();x.arc(n.x,n.y,r,0,7);x.fillStyle=col(n);x.globalAlpha=hov<0||hov===i?1:.55;x.fill();x.globalAlpha=1;
+    if(n.deg>2||hov===i||N.length<40){x.fillStyle=hov===i?'#fff':'rgba(220,220,235,.75)';x.font=`${(hov===i?13:11)/sc}px Geist,system-ui`;x.fillText(n.name.slice(0,28),n.x+r+3,n.y+4)}})}
+  const fit=()=>{if(!N.length)return;let a=1e9,b=1e9,c=-1e9,d=-1e9;N.forEach(n=>{a=Math.min(a,n.x);b=Math.min(b,n.y);c=Math.max(c,n.x);d=Math.max(d,n.y)});
+   sc=Math.min(2.2,Math.min((W-80)/Math.max(1,c-a),(H-80)/Math.max(1,d-b)));ox=W/2-(a+c)/2*sc;oy=H/2-(b+d)/2*sc};
+  (function loop(){if(!run)return;if(steps<300){step();steps++;if(steps%30===0&&!drag)fit()}paint();requestAnimationFrame(loop)})();
+  const pt=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left-ox)/sc,(e.clientY-r.top-oy)/sc]};
+  const hit=e=>{const [px,py]=pt(e);let b=-1,bd=1e9;N.forEach((n,i)=>{const d=Math.hypot(n.x-px,n.y-py);if(d<bd&&d<12/sc+6){bd=d;b=i}});return b};
+  cv.onpointermove=e=>{if(drag){ox+=e.movementX;oy+=e.movementY;return}hov=hit(e);cv.style.cursor=hov>=0?'pointer':'grab'};
+  cv.onpointerdown=e=>{const h=hit(e);if(h>=0){const n=N[h];g('gov').classList.remove('open');run=false;n.ghost?followLink(n.name):open_(n.id);return}drag=1;cv.setPointerCapture(e.pointerId)};
+  cv.onpointerup=()=>drag=null;
+  cv.onwheel=e=>{e.preventDefault();const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,f=e.deltaY<0?1.12:1/1.12;ox=mx-(mx-ox)*f;oy=my-(my-oy)*f;sc*=f}}
+})();
 </script>
 </body>
 </html>
