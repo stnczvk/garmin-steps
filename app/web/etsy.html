@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Etsy</title>
+<script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
+<link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css"><script src="/glass.js"></script>
+<style>
+body{margin:0;color:var(--ink);background:var(--lg-base);font:14px/1.45 Geist,system-ui,sans-serif}
+.wrap{max-width:1480px;margin:0 auto;padding:24px 26px 48px}
+.top{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:18px}.top h1{font-size:26px;font-weight:650;margin:0}.top p{color:var(--mut);margin:6px 0 0}
+.top .r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.t{background:linear-gradient(180deg,var(--v3-s2),var(--v3-s1));border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--v3-hi),var(--v3-sh);border-radius:24px;padding:18px 20px;min-width:0}
+.t h2{font-size:13.5px;font-weight:600;margin:0 0 12px;display:flex;align-items:center;min-height:26px}.t h2 .r{margin-left:auto;font-weight:500;color:var(--faint);font-size:12px}
+.kp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.k .l{font-size:12.5px;color:var(--mut)}.k .v{font-size:30px;font-weight:700;letter-spacing:-.03em;margin-top:8px}.k .d{font-size:12.5px;color:var(--soft);margin-top:4px}
+.gr{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.chart{height:200px;display:flex;align-items:flex-end;gap:4px;padding-top:10px}.chart i{flex:1;background:linear-gradient(180deg,#ff8a5c,#f1641e);border-radius:5px 5px 2px 2px;min-height:2px;position:relative}
+.chart i:hover:after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translate(-50%,-6px);background:var(--v3-s3);padding:4px 8px;border-radius:8px;font-size:11.5px;white-space:nowrap;color:var(--ink)}
+.ax{display:flex;justify-content:space-between;color:var(--faint);font-size:11.5px;margin-top:6px}
+table{width:100%;border-collapse:collapse}th{font-weight:500;color:var(--faint);font-size:12px;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-child td{border:0}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.it{display:flex;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}.it:first-child{border:0}.it>div{flex:1;min-width:0}
+.it b{display:block;font-weight:600}.it small{display:block;color:var(--mut);font-size:12.5px;white-space:pre-wrap}
+.ib{height:36px;border-radius:11px;border:1px solid var(--line);background:var(--v3-s3);color:var(--ink);font:600 13px Geist,system-ui;padding:0 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none}
+.ib.pri{background:#f1641e;color:#fff;border-color:transparent}.ib:active{transform:scale(.97)}
+.chip{font-size:12px;font-weight:600;padding:4px 9px;border-radius:8px;background:var(--v3-s3);color:var(--soft)}.chip.ok{background:rgba(61,220,132,.12);color:var(--ok)}.chip.bad{background:rgba(255,107,122,.12);color:var(--bad)}
+.setup ol{margin:6px 0 14px 18px;padding:0;color:var(--soft);line-height:1.7}.setup code{background:var(--v3-s3);padding:2px 6px;border-radius:6px;font-size:12.5px}
+.f{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}.f label{font-size:12px;color:var(--mut)}.f input{width:100%;height:38px;padding:0 12px;margin-top:4px}
+.empty{color:var(--faint);font-size:13px;padding:6px 0}
+.msg{margin-top:10px;font-size:13px}
+@media(max-width:900px){.kp{grid-template-columns:repeat(2,minmax(0,1fr))}.gr{grid-template-columns:1fr}.f{grid-template-columns:1fr}}
+@media(max-width:600px){.wrap{padding:16px 12px calc(96px + var(--sab,0px))}.k .v{font-size:24px}.top p{display:none}h1{font-size:22px}}
+</style>
+</head>
+<body class="lg">
+<div class="wrap">
+ <div class="top"><div><h1>Etsy · PlanPerfect Sheets</h1><p id="sub">Sprzedaż, produkty i personalizacje</p></div>
+  <div class="r"><span class="chip" id="st">…</span><button class="ib" id="sync">Odśwież</button><label class="ib" title="Raport zamówień z panelu Etsy (CSV)">Import CSV<input type="file" id="csv" accept=".csv" hidden></label></div></div>
+ <div class="t setup" id="setup" hidden>
+  <h2>Podłącz sklep (tylko odczyt)</h2>
+  <ol>
+   <li>Wejdź na <b>etsy.com/developers</b> → <b>Create a new app</b> (nazwa np. „PlanPerfect Centrum”, opis: osobny panel statystyk mojego sklepu).</li>
+   <li>W ustawieniach aplikacji dodaj <b>Callback URL</b>: <code id="cb"></code></li>
+   <li>Skopiuj <b>Keystring</b> i <b>Shared secret</b> poniżej, zapisz i kliknij „Połącz z Etsy”.</li>
+  </ol>
+  <div class="f"><div><label>Keystring</label><input id="ks" autocomplete="off"></div><div><label>Shared secret</label><input id="sec" type="password" autocomplete="off"></div>
+   <div style="display:flex;gap:8px"><button class="ib" id="save">Zapisz</button><a class="ib pri" id="conn" href="/api/etsy/connect">Połącz z Etsy</a></div></div>
+  <div class="msg" id="msg"></div>
+  <p class="empty" style="margin-top:12px">Zanim Etsy zatwierdzi aplikację, możesz wgrywać raport zamówień CSV (Shop Manager → Ustawienia → Opcje → Pobierz dane) przyciskiem „Import CSV”.</p>
+ </div>
+ <div class="kp" id="kp"></div>
+ <div class="gr">
+  <section class="t"><h2>Sprzedaż – ostatnie 30 dni<span class="r" id="c30"></span></h2><div class="chart" id="ch"></div><div class="ax" id="ax"></div></section>
+  <section class="t"><h2>Personalizacje do zrobienia<span class="r" id="pn"></span></h2><div id="pers"></div></section>
+ </div>
+ <div class="gr">
+  <section class="t"><h2>Produkty<span class="r">konwersja = sprzedaże / wyświetlenia</span></h2><div id="prod"></div></section>
+  <section class="t"><h2>Ostatnie zamówienia</h2><div id="rec"></div></section>
+ </div>
+</div>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let CUR='EUR';const m=v=>(+v||0).toLocaleString('pl',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+(CUR==='EUR'?'€':CUR);
+const ago=t=>{const s=Date.now()/1000-t;return s<3600?Math.round(s/60)+' min temu':s<86400?Math.round(s/3600)+' h temu':Math.round(s/86400)+' dni temu'};
+async function load(){let r;try{r=await (await fetch('/api/etsy')).json()}catch(e){return}
+ CUR=r.currency||'EUR';$('cb').textContent=location.origin+'/api/etsy/callback';
+ $('setup').hidden=r.connected;$('conn').style.opacity=r.has_keys?1:.5;
+ $('st').textContent=r.connected?('połączony'+(r.synced?' · '+ago(r.synced):'')):(r.all.orders?'dane z CSV':'niepołączony');$('st').className='chip '+(r.connected?'ok':'');
+ if(r.error){$('msg').innerHTML=`<span style="color:var(--bad)">${esc(r.error)}</span>`;if(r.connected){$('st').textContent='błąd';$('st').className='chip bad';$('st').title=r.error}}
+ if(r.shop?.name)$('sub').textContent=`${r.shop.name} · ${r.shop.sales??0} sprzedaży łącznie · ${r.shop.favorites??0} obserwujących`;
+ const K=[['Dziś',r.today],['7 dni',r.d7],['30 dni',r.d30],['Łącznie',r.all]];
+ $('kp').innerHTML=K.map(([l,a])=>`<div class="t k"><div class="l">${l}</div><div class="v">${m(a.revenue)}</div><div class="d">${a.orders} zamówień · netto ok. ${m(a.net)}</div></div>`).join('');
+ const mx=Math.max(1,...r.days.map(d=>d.rev));$('c30').textContent=m(r.d30.revenue);
+ $('ch').innerHTML=r.days.map(d=>`<i style="height:${Math.max(1,d.rev/mx*100)}%" data-t="${d.d}: ${m(d.rev)} (${d.n})"></i>`).join('');
+ $('ax').innerHTML=`<span>${r.days[0].d}</span><span>${r.days[14].d}</span><span>dziś</span>`;
+ const P=r.pers.filter(x=>!x.done);$('pn').textContent=P.length?P.length+' czeka':'';
+ $('pers').innerHTML=r.pers.length?r.pers.map(x=>`<div class="it"><div><b>${esc(x.buyer||'Klient')} · ${esc(x.title.slice(0,50))}</b><small>${esc(x.text)}</small></div><button class="ib${x.done?'':' pri'}" data-p="${x.id}">${x.done?'Zrobione ✓':'Oznacz jako wysłane'}</button></div>`).join(''):'<p class="empty">Brak zamówień z personalizacją.</p>';
+ $('pers').querySelectorAll('[data-p]').forEach(b=>b.onclick=async()=>{await fetch('/api/etsy/pers/'+b.dataset.p,{method:'POST'});load()});
+ $('prod').innerHTML=r.products.length?`<table><tr><th>Produkt</th><th class="n">Sprzedaże</th><th class="n">Przychód</th><th class="n">Wyświetl.</th><th class="n">Ulubione</th><th class="n">Konwersja</th></tr>`+
+  r.products.map(p=>`<tr><td>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.title.slice(0,60))}</a>`:esc(p.title.slice(0,60))}</td><td class="n">${p.sales}</td><td class="n">${m(p.revenue)}</td><td class="n">${p.views??'–'}</td><td class="n">${p.favorites??'–'}</td><td class="n">${p.conv!=null?(p.conv*100).toFixed(1)+'%':'–'}</td></tr>`).join('')+'</table>':'<p class="empty">Produkty pojawią się po połączeniu sklepu albo imporcie CSV.</p>';
+ $('rec').innerHTML=r.recent.length?r.recent.map(o=>`<div class="it"><div><b>${esc(o.items)}</b><small>${new Date(o.t*1000).toLocaleString('pl',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small></div><b>${m(o.total)}</b></div>`).join(''):'<p class="empty">Jeszcze nie ma zamówień – pierwsze na pewno przyjdzie 🙂</p>'}
+$('save').onclick=async()=>{const r=await (await fetch('/api/etsy/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keystring:$('ks').value,secret:$('sec').value})})).json();$('msg').textContent=r.ok?'Zapisane – teraz „Połącz z Etsy”.':r.error;$('sec').value='';load()};
+$('conn').onclick=e=>{e.preventDefault();window.top.location.href='/api/etsy/connect'};
+$('sync').onclick=async()=>{$('sync').textContent='Odświeżam…';const r=await (await fetch('/api/etsy/sync',{method:'POST'})).json();$('sync').textContent='Odśwież';if(!r.ok)$('msg').textContent=r.error||'';load()};
+$('csv').onchange=async e=>{const f=e.target.files[0];if(!f)return;const r=await (await fetch('/api/etsy/csv',{method:'POST',body:await f.text()})).json();alert(r.ok?`Dodano zamówień: ${r.added}`:r.error);e.target.value='';load()};
+load();setInterval(load,120000);
+</script>
+</body>
+</html>

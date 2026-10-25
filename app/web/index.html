@@ -732,6 +732,8 @@ body.lg .head{display:none!important}
     <button data-v="powiadomienia"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></i><span>Powiadomienia</span><em class="s-badge" id="nbadge"></em></button>
     <button data-v="hasla"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></i><span>Hasła</span></button>
     <button data-v="notatki"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></i><span>Notatki</span></button>
+    <div class="s-grp">Biznes</div>
+    <button data-v="etsy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
     <div class="s-grp">Social media</div>
     <button data-v="stats"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
     <button data-v="agencja"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
@@ -1368,7 +1370,7 @@ $('#theme').onclick = e => {
 setTheme(document.documentElement.dataset.theme || 'auto');
 
 // widoki z menu bocznego: Ekran główny / Statystyki / Agencja AI / Pipeline / Skaner (osobne strony w iframe, ładowane raz)
-const VIEWS = ['home', 'straznicy', 'powiadomienia', 'montazownia', 'notatki', 'hasla', 'stats', 'agencja', 'pozaskala', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
+const VIEWS = ['home', 'straznicy', 'powiadomienia', 'montazownia', 'notatki', 'hasla', 'etsy', 'stats', 'agencja', 'pozaskala', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
 function setView(v, push) {
   v = VIEWS.includes(v) ? v : 'home';
   document.querySelectorAll('#snav button').forEach(x => x.dataset.v === v ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));

@@ -64,10 +64,11 @@
     key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M17 6l3 3M15 8l2 2"/>',
     brief:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
     grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
-    act:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'
+    act:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    bag:'<path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/>'
   };
   var C={v:'#8f7bff',p:'#ff6fa5',b:'#5ad1ff',g:'#3ddc84',y:'#ffc24b'};
-  var K=[[/obserwuj|follow/i,'users',C.p],[/wyświetl|zasięg|views/i,'eye',C.b],[/kapita|pnl|krzyw|wynik|wzrost|portfel/i,'trend',C.g],
+  var K=[[/sprzeda|przych/i,'trend',C.g],[/personaliz/i,'users',C.p],[/produkt/i,'grid',C.b],[/zamówie/i,'list',C.y],[/obserwuj|follow/i,'users',C.p],[/wyświetl|zasięg|views/i,'eye',C.b],[/kapita|pnl|krzyw|wynik|wzrost|portfel/i,'trend',C.g],
     [/pora |kiedy|kalendarz|godzin|czas/i,'clock',C.y],[/post|publik/i,'send',C.b],[/raport|analityk|co działa|opis/i,'doc',C.v],
     [/platform|kierunek|reżim|sposób|udział|symbol/i,'pie',C.v],[/transakc|pozycj|aktywne|otwarte|kolejk|histori/i,'list',C.y],
     [/bot|strateg|lab/i,'cpu',C.v],[/sygna|alert/i,'zap',C.y],[/on-chain|korelac|etherscan/i,'link',C.b],[/strażnik|archiwist/i,'shield',C.g],
@@ -87,7 +88,7 @@
     if(/flex|grid/.test(d)&&fn){var w=document.createElement('span');w.className='hxw';h.insertBefore(w,fn);w.appendChild(s);w.appendChild(fn)}
     else h.insertBefore(s,ref);
   }
-  var H1={'montazownia':'film','skaner-stats':'trend','skaner-boty':'cpu','skaner-sygnaly':'zap','skaner':'act','agencja':'brief','straznicy':'shield','powiadomienia':'bell','pozaskala':'trend','hasla':'key','':'grid','index.html':'grid'};
+  var H1={'montazownia':'film','skaner-stats':'trend','skaner-boty':'cpu','skaner-sygnaly':'zap','skaner':'act','agencja':'brief','straznicy':'shield','powiadomienia':'bell','pozaskala':'trend','hasla':'key','etsy':'bag','':'grid','index.html':'grid'};
   H1[pth.replace(/\.html$/,'')]&&(H1[pth]=H1[pth.replace(/\.html$/,'')]);
   function run(root){
     (root.querySelectorAll?root:document).querySelectorAll('h1,h2,h3').forEach(function(h){

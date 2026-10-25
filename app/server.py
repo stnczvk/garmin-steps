@@ -140,6 +140,8 @@ from prefs import router as prefs_router  # noqa: E402
 app.include_router(prefs_router)
 from dlugi import router as dlugi_router  # noqa: E402
 app.include_router(dlugi_router)
+from etsy import router as etsy_router  # noqa: E402
+app.include_router(etsy_router)
 from planer import router as planer_router  # noqa: E402
 app.include_router(planer_router)
 
@@ -149,7 +151,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html"}
+PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html"}
 
 
 def _page(req: Request, name: str):
@@ -192,6 +194,11 @@ def notatki(req: Request):
 @app.get("/hasla")
 def hasla(req: Request):
     return _page(req, "hasla")
+
+
+@app.get("/etsy")
+def etsy_page(req: Request):
+    return _page(req, "etsy")
 
 
 @app.get("/powiadomienia")
