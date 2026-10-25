@@ -910,6 +910,15 @@ body{text-rendering:optimizeLegibility}
 
 /* w siatkach pól: pole zawsze na dole komórki, nawet gdy etykieta zawinie się do 2 linii */
 .editgrid>label,.grid2>label,.goals>label{display:flex;flex-direction:column;justify-content:flex-end}
+
+/* cheat meal */
+.cheatchip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-weight:700;font-size:13px;color:#FFB86B;background:rgba(255,160,70,.12);border:1px solid rgba(255,170,90,.35)}
+.cheatbox{margin-top:10px;padding:10px 12px;border-radius:16px;background:rgba(255,160,70,.06);border:1px dashed rgba(255,170,90,.35)}
+.madd.cheatbtn{margin-left:8px;color:#FFB86B!important;border-color:rgba(255,170,90,.45)!important;background:rgba(255,160,70,.06)!important}
+:root:not([data-theme="light"]) .meal.is-cheat{background:radial-gradient(120% 80% at 0% 0%,rgba(255,150,60,.16),transparent 55%) padding-box,linear-gradient(var(--g-surf),var(--g-surf)) padding-box,linear-gradient(135deg,rgba(255,170,90,.7),rgba(255,120,80,.12) 45%,rgba(255,255,255,.03) 62%,rgba(255,170,90,.3)) border-box!important}
+.meal.is-cheat{border-color:rgba(255,170,90,.5)}
+.madd.cheatbtn{margin-left:0}
+.meal-empty .madd:not(.cheatbtn){margin-right:8px}
 </style>
 
 <div class="wrap">
@@ -1095,6 +1104,7 @@ function gymHTML(ex,t){ if(ex.time||!(t.kind==="up"||t.kind==="down")) return ""
   if(t.big) h+=`<span class="gymline">Duży skok. Jeśli nie zrobisz wszystkich serii na <b class="num">${fmt(t.w)} kg</b>, wróć do poprzedniego ciężaru i dobijaj 1–2 powtórzenia ponad zakres, zanim spróbujesz znowu.</span>`;
   if(open) h+=`<div class="gymask"><span>Co ile kg możesz zmieniać ciężar w tym ćwiczeniu na swojej siłowni?</span><div class="chips">${[1,1.25,2,2.5,4,5,10].map(v=>`<button data-act="gym-set" data-id="${ex.id}" data-v="${v}" aria-pressed="${st===v}">${fmt(v)} kg</button>`).join("")}${st?`<button data-act="gym-set" data-id="${ex.id}" data-v="0">domyślnie (${fmt(ex.inc)} kg)</button>`:""}</div></div>`;
   return h; }
+async function saveCheat(){ if(store.mode==="db"){ try{ await store.db.doc("settings/cheat").set(cheat); }catch(e){} } else lsSet("sila-5x5-cheat",cheat); }
 async function saveDayType(){ if(store.mode==="db"){ try{ await store.db.doc("settings/daytype").set(dayType); }catch(e){} } else lsSet("sila-5x5-daytype",dayType); }
 async function saveGymSteps(){ if(store.mode==="db"){ try{ await store.db.doc("settings/gymsteps").set(gymSteps); }catch(e){} } else lsSet("sila-5x5-gymsteps",gymSteps); }
 document.addEventListener("click",ev=>{const b=ev.target.closest('[data-act="gym-ask"],[data-act="gym-set"]'); if(!b) return; const id=b.dataset.id;
@@ -1131,6 +1141,7 @@ function target0(ex){
 let swaps={};
 let gymSteps={};
 let dayType={};
+let cheat={};
 const PERHAND_LIB=new Set(["dbfly","incdbfly","dbrdl","kickback","dbbench","incl","row2","row2arc","dbohp","arnold","latA","latC","hammer","inclcurl","curlB","lunge"]);
 function libName(id){if(typeof TECH_LIB==="undefined")return null;for(const [,l] of TECH_LIB)for(const [i,n] of l)if(i===id)return n;return null}
 function exDef(id){for(const p of Object.values(PLANS))for(const d of Object.values(p.plan))for(const e of d)if(e.id===id)return e;const n=libName(id);return n?{id,name:n,perHand:PERHAND_LIB.has(id)}:null}
@@ -2408,12 +2419,13 @@ function initFood(){
       window.__wstDb=w.start||0; renderRemind(); if(state.tab==="log"&&!document.activeElement?.id?.startsWith("in-")) renderLog();},()=>{});
     db.doc("settings/reminders").onSnapshot(d=>{reminders={...REM_DEF,...(d.exists?d.data():{})};renderRemind();if(typeof renderPlan==="function")renderPlan()},()=>{});
     db.doc("settings/targets").onSnapshot(d=>{targets=d.exists?{...d.data()}:{kcal:null,protein:null};foodChanged()},()=>{});
+    db.doc("settings/cheat").onSnapshot(d=>{cheat=d.exists?{...d.data()}:{}; foodChanged();},()=>{});
     db.doc("settings/daytype").onSnapshot(d=>{dayType=d.exists?{...d.data()}:{}; foodChanged();},()=>{});
     db.doc("settings/gymsteps").onSnapshot(d=>{gymSteps=d.exists?{...d.data()}:{}; if(!document.activeElement?.id?.startsWith("in-")) renderLog(); if(typeof renderProg==="function") renderProg();},()=>{});
     db.doc("settings/shopping").onSnapshot(d=>{shop=shopNorm(d.exists?d.data():null); if(state.tab==="shop") renderShop();},()=>{});
   }else{
     reminders={...REM_DEF,...lsGet("sila-5x5-reminders",{})};
-    shop=shopNorm(lsGet("sila-5x5-shop",null)); sleepD=lsGet("sila-5x5-sleep",{}); gymSteps=lsGet("sila-5x5-gymsteps",{}); dayType=lsGet("sila-5x5-daytype",{});
+    shop=shopNorm(lsGet("sila-5x5-shop",null)); sleepD=lsGet("sila-5x5-sleep",{}); gymSteps=lsGet("sila-5x5-gymsteps",{}); dayType=lsGet("sila-5x5-daytype",{}); cheat=lsGet("sila-5x5-cheat",{});
     food=lsGet(LSF,{});activity=lsGet(LSA,{});products=lsGet(LSP,{});recipes=lsGet(LSR,{});targets=lsGet(LST,{kcal:null,protein:null});foodChanged();
   }
   (async()=>{try{sampleApi=window.claude?.use?await window.claude.use("sample"):null}catch(e){sampleApi=null} if(sampleApi){try{imgCaps=(await sampleApi.limits())?.images||null}catch(e){imgCaps=null}} renderFood();})();
@@ -2436,6 +2448,8 @@ async function saveActivity(date,a){
 }
 const CARDIO=["Chodzenie na bieżni","Bieżnia pod górę (incline walk)","Bieganie na bieżni","Bieganie na zewnątrz","Rower stacjonarny","Rower na zewnątrz","Orbitrek","Schody / stepper","Wioślarz (ergometr)","Skakanka","Pływanie","Nordic walking","Interwały (HIIT)","Sporty drużynowe","Inne"];
 function isTrainDayAuto(d){ if(sessions.some(x=>x.date===d)) return true; const wd=new Date(d+"T12:00:00").getDay(); return [1,3,6].includes(wd); }
+function isCheat(d,m){return (cheat[d]||[]).includes(m)}
+function cheatHTML(m){const on=isCheat(fst.date,m);return on?`<div class="cheatbox"><div class="row" style="gap:8px;align-items:center"><span class="cheatchip">🍔 Cheat meal</span><button class="techlink" data-act="fd-cheat" data-m="${m}">Cofnij</button></div><div class="row" style="gap:8px;margin-top:8px"><input id="fd-cheatk-${m.replace(/\W/g,"")}" type="number" inputmode="numeric" placeholder="ile kcal mniej więcej?" style="flex:1;min-width:0"><button class="btn small" data-act="fd-cheatadd" data-m="${m}">Dodaj szacunek</button></div><div class="note" style="margin:6px 0 0">Nie musisz liczyć dokładnie – wpisz szacunek, makro rozłożę samo. Możesz też dodać produkty normalnie.</div></div>`:`<button class="madd cheatbtn" data-act="fd-cheat" data-m="${m}">🍔 Cheat meal</button>`}
 function isTrainDay(d){ const o=dayType[d]; return o==="t"?true:o==="r"?false:isTrainDayAuto(d); }
 function dayTypeHTML(d){ const t=isTrainDay(d);
   return `<div class="dtype"><div class="seg" role="group" aria-label="Rodzaj dnia"><button type="button" data-act="fd-dtype" data-v="t" data-d="${d}" aria-pressed="${t}">Treningowy</button><button type="button" data-act="fd-dtype" data-v="r" data-d="${d}" aria-pressed="${!t}">Wolny</button></div></div>`; }
@@ -2649,7 +2663,7 @@ function plateauHTML(o={}){
 }
 function smoothBw(){const pts=bwDaily();if(!pts.length)return null;const lastD=pts.at(-1).d, from=shiftDate(lastD,-6);const w=pts.filter(p=>p.d>=from);return w.reduce((a,p)=>a+p.v,0)/w.length}
 function lastBw(){const sb=smoothBw();if(sb)return sb;const ser=bwSeries();if(ser.length)return ser.at(-1).v;const s=null;if(targets.bw>0)return +targets.bw;return s?+s.bw:null}
-function proteinGoal(){if(targets.protein)return +targets.protein;const bw=lastBw();return bw?Math.round(bw*PLANS[MODE].protein):null}
+function proteinGoal(){const bw=lastBw();if(bw)return Math.round(bw*PLANS[MODE].protein);return targets.protein?+targets.protein:null}
 function foodAvg7(){
   const days=Object.keys(food).filter(d=>d<=today()).sort().reverse().filter(d=>(food[d]||[]).length).slice(0,7);
   if(!days.length) return null;
@@ -2756,7 +2770,7 @@ const MEAL_ICON={
 function mealIcon(m){const [c,d]=MEAL_ICON[m]||["#98A2B3",'<circle cx="12" cy="12" r="6"/>'];return `<span class="micon" style="background:color-mix(in srgb,${c} 16%,transparent)" aria-hidden="true"><svg viewBox="0 0 24 24" style="stroke:${c}">${d}</svg></span>`}
 function macroGoals(d){
   const kc=kcalGoal(d), bw=lastBw();
-  const pr=targets.protein?[+targets.protein,+targets.protein]:(bw?(MODE==="red"?[bw*2,bw*2.4]:[bw*1.6,bw*2.2]):null);
+  const pr=bw?(MODE==="red"?[bw*2,bw*2.4]:[bw*1.6,bw*2.2]):(targets.protein?[+targets.protein,+targets.protein]:null);
   const fr=targets.fat?[+targets.fat,+targets.fat]:(kc?[kc*0.2/9,kc*0.35/9]:null);
   let cr=null;
   if(targets.carbs) cr=[+targets.carbs,+targets.carbs];
@@ -2915,9 +2929,9 @@ function renderFood0(){
     const prevD=food[shiftDate(fst.date,-1)]||[];
     if(!items.length&&prevD.length) mealsH+=`<div class="empty" style="padding:6px 0">Brak wpisów na ten dzień. <button class="btn ghost small" data-act="fd-copy">Skopiuj cały poprzedni dzień</button></div>`;
     mealsH+=byMeal.map(([m,l])=>{const t=dayTotals(l);const addH=fst.addMenu&&fst.meal===m?addMenuHTML():`<button class="madd" data-act="fd-plus" data-m="${m}">+ Dodaj do: ${/^II /.test(m)?m:m.toLowerCase()}</button>`;
-      if(!l.length) return `<div class="meal meal-empty"><div class="mhwrap">${fst.addMenu&&fst.meal===m?`<button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="true">${mealIcon(m)}<h3>${m}</h3><span class="note meal-sum">brak wpisów</span><span class="chev" aria-hidden="true">▴</span></button>`:`<div class="meal-head">${mealIcon(m)}<h3>${m}</h3><span class="note meal-sum">brak wpisów</span></div>`}</div>${addH}</div>`;
-      return `<div class="meal"><div class="mhwrap"><button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="${isOpen(m)}" ${mf!=="all"?"disabled":""}>${mealIcon(m)}<h3>${m}</h3><span class="note num meal-sum"><b>${r0(t.kcal)} kcal</b> · <i style="color:var(--m-p)">B</i> ${r0(t.p)} · <i style="color:var(--m-c)">W</i> ${r0(t.c)} · <i style="color:var(--m-f)">T</i> ${r0(t.f)} g</span>${mf==="all"?`<span class="chev" aria-hidden="true">${isOpen(m)?"▴":"▾"}</span>`:""}</button><button class="mshare" data-act="fd-share" data-m="${m}" aria-label="Udostępnij posiłek ${esc(m)} jako obrazek"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button></div>${addH}${isOpen(m)?`
-      ${fst.saveMeal===m?`<div class="row" style="margin-bottom:6px"><input id="fd-rname" placeholder="Nazwa, np. Moja owsianka" style="flex:1;min-width:0"><button class="btn small" data-act="fd-rsave" data-m="${m}">Zapisz</button><button class="btn ghost small" data-act="fd-rcancel">Anuluj</button></div>`:`<div class="row mealacts"><button class="btn ghost small" data-act="fd-rstart" data-m="${m}">Zapisz jako mój posiłek</button><button class="btn ghost small" data-act="fd-mvstart" data-m="${m}">Kopiuj / przenieś</button></div>`}
+      if(!l.length) return `<div class="meal meal-empty${isCheat(fst.date,m)?" is-cheat":""}"><div class="mhwrap">${fst.addMenu&&fst.meal===m?`<button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="true">${mealIcon(m)}<h3>${m}</h3><span class="note meal-sum">brak wpisów</span><span class="chev" aria-hidden="true">▴</span></button>`:`<div class="meal-head">${mealIcon(m)}<h3>${m}</h3><span class="note meal-sum">brak wpisów</span></div>`}</div>${addH}${fst.addMenu&&fst.meal===m?"":cheatHTML(m)}</div>`;
+      return `<div class="meal${isCheat(fst.date,m)?" is-cheat":""}"><div class="mhwrap"><button class="meal-head mtog" data-act="fd-mtoggle" data-m="${m}" aria-expanded="${isOpen(m)}" ${mf!=="all"?"disabled":""}>${mealIcon(m)}<h3>${m}</h3><span class="note num meal-sum"><b>${r0(t.kcal)} kcal</b> · <i style="color:var(--m-p)">B</i> ${r0(t.p)} · <i style="color:var(--m-c)">W</i> ${r0(t.c)} · <i style="color:var(--m-f)">T</i> ${r0(t.f)} g</span>${mf==="all"?`<span class="chev" aria-hidden="true">${isOpen(m)?"▴":"▾"}</span>`:""}</button><button class="mshare" data-act="fd-share" data-m="${m}" aria-label="Udostępnij posiłek ${esc(m)} jako obrazek"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button></div>${addH}${isOpen(m)?`
+      ${fst.saveMeal===m?`<div class="row" style="margin-bottom:6px"><input id="fd-rname" placeholder="Nazwa, np. Moja owsianka" style="flex:1;min-width:0"><button class="btn small" data-act="fd-rsave" data-m="${m}">Zapisz</button><button class="btn ghost small" data-act="fd-rcancel">Anuluj</button></div>`:`<div class="row mealacts"><button class="btn ghost small" data-act="fd-rstart" data-m="${m}">Zapisz jako mój posiłek</button><button class="btn ghost small" data-act="fd-mvstart" data-m="${m}">Kopiuj / przenieś</button>${isCheat(fst.date,m)?"":`<button class="btn ghost small" data-act="fd-cheat" data-m="${m}">🍔 Cheat meal</button>`}</div>${isCheat(fst.date,m)?cheatHTML(m):""}`}
       ${fst.mvMeal===m?`<div class="mvbox"><div class="label">${esc(m)} → gdzie?</div><div class="row" style="gap:8px"><input type="date" id="fd-mvdate" value="${fst.date===today()?shiftDate(fst.date,1):today()}" style="flex:1;min-width:0"><select id="fd-mvmeal" style="flex:1;min-width:0">${MEALS.map(x=>`<option ${x===m?"selected":""}>${x}</option>`).join("")}</select></div><div class="row" style="gap:8px"><button class="btn small" data-act="fd-mvgo" data-m="${m}" data-mode="copy">Kopiuj</button><button class="btn ghost small" data-act="fd-mvgo" data-m="${m}" data-mode="move">Przenieś</button><button class="btn ghost small" data-act="fd-mvcancel">Anuluj</button></div></div>`:""}
       ${l.map(it=>{const v=itemVals(it);
         if(fst.editI===it.i){const r1=x=>Math.round(x*10)/10;return `<div class="stack editbox" style="gap:8px;padding:10px 0;border-top:1px solid var(--line)">
@@ -3582,6 +3596,8 @@ document.addEventListener("click",async ev=>{
   if(a==="fd-share-tr"){b.disabled=true;try{await openShareTraining(b.dataset.id)}catch(e){console.error(e)}b.disabled=false;return}
   if(a==="fd-sharego"){if(shareFile)navigator.share({files:[shareFile]}).catch(()=>{});return}
   if(a==="fd-shareclose"){const el=document.getElementById("shareov");if(el){el.hidden=true;el.innerHTML=""}return}
+  if(a==="fd-cheat"){const d=fst.date,m=b.dataset.m,l=cheat[d]||[];cheat[d]=l.includes(m)?l.filter(x=>x!==m):[...l,m];if(!cheat[d].length)delete cheat[d];saveCheat();if(store.mode!=="db")lsSet("sila-5x5-cheat",cheat);renderFood();return}
+  if(a==="fd-cheatadd"){const m=b.dataset.m,k=readNum("fd-cheatk-"+m.replace(/\W/g,""));if(!k||k<=0){setMsg("Wpisz, ile mniej więcej kcal miał cheat meal.");return}document.activeElement?.blur();{const ie=document.getElementById("fd-cheatk-"+m.replace(/\W/g,""));if(ie)ie.value=""}const d=fst.date;const it={name:"Cheat meal (szacunek)",g:100,kcal:k,p:Math.round(k*0.15/4*10)/10,c:Math.round(k*0.45/4*10)/10,f:Math.round(k*0.40/9*10)/10,meal:m,cheat:true};const {prev,list}=optimisticAdd(d,[it]);setMsg(`Dodano cheat meal: ~${Math.round(k)} kcal (${m}).`);try{await saveDay(d,list);renderFood()}catch(e){optimisticFail(d,prev);setMsg("Nie udało się dodać – sprawdź internet i spróbuj jeszcze raz.")}return}
   if(a==="fd-radd"){const r=recipes[b.dataset.id];if(!r)return;const m=curMeal();const adds=r.items.map(x=>({...x,meal:m}));const d=fst.date,{prev,list}=optimisticAdd(d,adds);addedFx([r.name],`Dodano: ${r.name}`,`${adds.length} ${adds.length===1?"produkt":"produkty"} · <b class="num">${r0(dayTotals(adds).kcal)} kcal</b> → ${esc(m.toLowerCase())}</span><span>${dayLine(list)}`,{d,items:adds});setMsg(`Dodano posiłek: ${r.name} (${m}).`);try{await saveDay(d,list)}catch(e){optimisticFail(d,prev);setMsg("Nie udało się dodać – sprawdź internet i spróbuj jeszcze raz.")}return}
   if(a==="fd-rdel"){try{await deleteRecipe(b.dataset.id)}catch(e){setMsg("Nie udało się usunąć.")}return}
   if(a==="fd-rstart"){fst.saveMeal=b.dataset.m;renderFood();document.getElementById("fd-rname")?.focus();return}
