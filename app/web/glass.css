@@ -31,7 +31,9 @@
   radial-gradient(30% 36% at 20% 80%,var(--lg-d),transparent 70%);
   animation:lgdrift 32s ease-in-out infinite alternate-reverse}
 @keyframes lgdrift{to{transform:translate3d(3%,-4%,0) scale(1.08)}}
-@media (prefers-reduced-motion:reduce){.lg-bg:before,.lg-bg:after{animation:none}}
+/* oszczędzanie baterii: tło stoi (płynące plamy z blur(40px) przeliczały się bez przerwy w każdej zakładce) */
+.lg-bg:before,.lg-bg:after{animation:none!important}
+
 
 /* sama tafla szkła: gradient, rozmycie, jasna krawędź u góry (odbicie) */
 .lg .glass,
@@ -85,3 +87,10 @@ body.lg{padding-bottom:var(--sab,0px)}
 #snav button:hover i{transform:scale(1.18)}
 #snav button:active{transform:scale(.97);transition-duration:.12s}
 @media (prefers-reduced-motion:reduce){#snav button,#snav button i,.lg .go{transition:none}#snav button:hover,#snav button:hover i,.lg .go:hover{transform:none}}
+
+/* telefon/tablet: bez rozmywania tła pod szkłem (najdroższy efekt przy przewijaniu) – szkło jest wtedy matowe */
+@media (hover:none),(max-width:760px){
+ .lg .glass,.lg .card,.lg .head,.lg .kpi,.lg .stage,.lg header,.lg #panel,.lg #mini,.lg .lbl,.lg .ev,.lg .chip,.lg #chartbtn,.lg .cb-in{
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+ .lg-bg:before,.lg-bg:after{filter:none}
+}
