@@ -13,7 +13,7 @@
 @media (prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#f3f3f7;--s1:#ffffff;--s2:#ffffff;--s3:#ececf3;--ln:rgba(20,20,40,.08);--hi:rgba(255,255,255,.9);--tx:#14141c;--mu:#62627a;--fa:#9a9ab0;--ac:#6e56cf;--ac2:#5b45bd;--ok:#16a34a;--bad:#d9364a;--wr:#b7791f;--sh:rgba(40,40,80,.18);--glow1:rgba(110,86,207,.10);--glow2:rgba(22,163,74,.05)}}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--tx);font:14px/1.45 Geist,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-body{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(70% 55% at 12% -10%,rgba(124,98,255,.22),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.10),transparent 65%),radial-gradient(60% 50% at 85% 115%,rgba(61,220,132,.07),transparent 65%),linear-gradient(180deg,#0e0f17 0%,#0b0c12 60%,#0a0b10 100%);background-attachment:fixed;min-height:100vh}
+body{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(rgba(255,255,255,.045) 1px,transparent 1.4px) 0 0/24px 24px,radial-gradient(60% 50% at 8% -12%,rgba(130,100,255,.30),transparent 62%),radial-gradient(45% 40% at 100% 0%,rgba(56,189,248,.14),transparent 62%),radial-gradient(40% 35% at 60% 45%,rgba(236,72,153,.045),transparent 70%),radial-gradient(55% 45% at 90% 112%,rgba(61,220,132,.08),transparent 65%),radial-gradient(50% 40% at -5% 100%,rgba(130,100,255,.10),transparent 65%),linear-gradient(180deg,#10111b 0%,#0c0d14 55%,#090a0f 100%);background-attachment:fixed;min-height:100vh}
 :root[data-theme=light] body{background:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5);background-attachment:fixed}
 @media (prefers-color-scheme:light){:root:not([data-theme=dark]) body{background:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5)}}
 button{font-family:inherit;cursor:pointer}
@@ -81,6 +81,9 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .best>div:last-child{min-width:0}
 /* zatwierdzanie */
 .it{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--ln)}.it:first-of-type{border:0;margin-top:2px}
+.x{flex:none;width:24px;height:24px;border-radius:7px;border:0;background:transparent;color:var(--fa);font-size:16px;line-height:1;cursor:pointer;opacity:.45;transition:.15s}.x:hover{opacity:1;background:rgba(255,107,122,.14);color:var(--bad)}.ev .x{width:20px;height:20px;font-size:14px;margin-top:-1px}.ev:not(:hover) .x{opacity:0}@media(hover:none){.ev .x{opacity:.45}}
+.ev{grid-template-columns:42px 12px minmax(0,1fr) 20px!important}.ev.nx{grid-template-columns:42px 12px minmax(0,1fr)!important}
+.clr{margin-left:8px;font:500 11.5px inherit;font-family:inherit;color:var(--mu);background:transparent;border:1px solid var(--ln);border-radius:999px;padding:3px 9px;cursor:pointer}.clr:hover{color:var(--ink)}
 .it>div{flex:1;min-width:0}.it b{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.it small{color:var(--mu);font-size:12.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* skaner */
 .pos{margin-top:12px;display:flex;flex-direction:column;gap:8px}
@@ -153,7 +156,7 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
  <div class="kp" id="kp"><div class="t k"><h3><span class="hi" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></span>Obserwujący</h3><div class="kv tn" id="kv0">–</div><div class="kd" id="kd0"></div><div class="ks" id="ks0"></div></div><div class="t k"><h3><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Wyświetlenia 7 dni</h3><div class="kv tn" id="kv1">–</div><div class="kd" id="kd1"></div><div class="ks" id="ks1"></div></div><div class="t k"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Skaner 30 dni</h3><div class="kv tn" id="kv2">–</div><div class="kd" id="kd2"></div><div class="ks" id="ks2"></div></div><div class="t k"><h3><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>Do zrobienia</h3><div class="kv tn" id="kv3">–</div><div class="kd" id="kd3"></div><div class="ks" id="ks3"></div></div></div>
  <div id="nowtop" style="display:none;margin-bottom:10px"></div>
  <div class="mg">
-  <aside class="t"><h3><span class="hi" style="--c:#8f7bff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>Twój dzień<span class="r chip" id="dname"></span></h3><div class="tlx" id="tl"><div class="sk" style="margin-top:10px"></div></div></aside>
+  <aside class="t"><h3><span class="hi" style="--c:#8f7bff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>Twój dzień<span class="r" style="display:flex;align-items:center"><span class="chip" id="dname"></span><span id="tlc"></span></span></h3><div class="tlx" id="tl"><div class="sk" style="margin-top:10px"></div></div></aside>
   <div class="mr">
    <section class="t c7" id="pf"><h3><span class="hi" style="--c:#8f7bff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20M16 15h2"/></svg></span>Portfel razem<button class="r lnk" id="wcfg">Ustawienia portfeli</button></h3><div id="pfb"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
    <section class="t c5"><h3><span class="hi" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></span>Obserwujący, wszystkie konta<span class="r" id="f28"></span></h3><div id="soc"><div class="sk" style="margin-top:12px;height:180px"></div></div></section>
@@ -182,7 +185,10 @@ const go=v=>parent.postMessage({go:v},location.origin);
 const hm=t=>new Date(t).toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'});
 const ago=t=>{const s=(Date.now()-t)/1000;return s<90?'teraz':s<3600?Math.round(s/60)+' min temu':s<86400?Math.round(s/3600)+' h temu':Math.round(s/86400)+' d temu'};
 const today0=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
-document.addEventListener('click',e=>{const t=e.target.closest('[data-go]');if(t){e.preventDefault();go(t.dataset.go)}});
+document.addEventListener('click',e=>{const h=e.target.closest('[data-hide],[data-hideall]');if(h){e.preventDefault();e.stopPropagation();
+  if(h.dataset.hideall){hide(h.dataset.hideall.split(' '));document.querySelectorAll('#tl .ev').forEach(x=>{if(x.querySelector('[data-hide]'))x.remove()});h.remove();return}
+  hide([h.dataset.hide]);const r=h.closest('.it,.ev');if(r){r.style.transition='.2s';r.style.opacity=0;setTimeout(()=>{r.remove();if(r.classList.contains('it')){const n=document.querySelectorAll('#appr .it').length;$('apn').textContent=n;$('apn').className='r chip'+(n?' wr':' ok');if(!n)$('appr').innerHTML='<p class="empty">Nic nie czeka – wszystko ogarnięte.</p>'}},200)}return}
+ const t=e.target.closest('[data-go]');if(t){e.preventDefault();go(t.dataset.go)}});
 // motyw
 const curT=()=>{try{return localStorage.getItem('motyw')||'dark'}catch(e){return'dark'}};
 const markT=t=>document.querySelectorAll('#thm button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
@@ -211,13 +217,16 @@ function health(G,busyMac){
 // ---------- oś dnia ----------
 const SCHED=[[3,20,'Kopia zapasowa','codziennie'],[7,0,'Retencja filmów','Analityk'],[8,0,'PozaSkala: nowy film','generator'],[18,0,'Rzecznik: komentarze widzów','agencja']];
 const AG={scout:['Trend Scout','🔭'],qa:['Kontrola scenariusza',''],seo:['SEO',''],tech:['Kontrola techniczna',''],retention:['Analityk retencji',''],inbox:['Inbox',''],op:['Centrum',''],copy:['Copywriter',''],trends:['Trendy',''],recycle:['Recykler',''],spokes:['Rzecznik',''],private:['Analityk kont','']};
+let HID=new Set();try{HID=new Set(JSON.parse(localStorage.getItem('home-hide')||'[]'))}catch(e){}
+const hk=s=>String(s).replace(/[^\w\u00C0-\u024F#:]+/g,'_').slice(0,90);
+function hide(keys){keys.forEach(k=>HID.add(k));try{localStorage.setItem('home-hide',JSON.stringify([...HID].slice(-400)))}catch(e){}}
 function timeline(A,P,V,F,PL){
  const t0=today0(),ev=[];
  (A?.log||[]).filter(e=>e.t*1000>=t0).forEach(e=>ev.push({t:e.t*1000,b:(AG[e.agent]||[e.agent])[0],s:e.text,err:e.kind==='error'}));
  (P?.executions||[]).filter(e=>Date.parse(e.startedAt)>=t0&&e.status!=='running').forEach(e=>ev.push({t:Date.parse(e.startedAt),b:`n8n: ${e.workflow}`,s:({success:'zakończony',error:'błąd',crashed:'przerwany'})[e.status]||e.status,err:['error','crashed'].includes(e.status)}));
  (V?.jobs||[]).filter(j=>j.state==='done'&&(j.finished||j.at)*1000>=t0).forEach(j=>ev.push({t:(j.finished||j.at)*1000,b:`${j.kind==='cheat'?'Cheat meal':j.kind==='przepis'?'Przepis':'Vlog'} #${j.ep} gotowy`,s:'projekt w CapCut'}));
  (F?.jobs||[]).filter(j=>j.state==='done'&&j.finished&&j.finished*1000>=t0).forEach(j=>ev.push({t:j.finished*1000,b:'Daily jedzenie gotowe',s:j.title||j.date||''}));
- ev.sort((a,b)=>a.t-b.t);
+ ev.forEach(e=>e.k=hk(e.b+'|'+e.t));ev.sort((a,b)=>a.t-b.t);for(let i=ev.length-1;i>=0;i--)if(HID.has(ev[i].k))ev.splice(i,1);
  // teraz: trwające montaże i prace agentów
  const now=[];
  (V?.jobs||[]).filter(j=>['working','claimed','ask','uploading','queued'].includes(j.state)).forEach(j=>now.push({b:`${j.kind==='cheat'?'Cheat meal':j.kind==='przepis'?'Przepis':'Vlog'} #${j.ep} – ${j.state==='ask'?'wybierz zapowiedź':j.state==='queued'?'czeka na Maca':'montaż na Macu'}`,s:j.step||'',p:j.state==='ask'?100:j.state==='queued'?5:Math.min(95,(j.lines||[]).length*3),go:'montazownia'}));
@@ -227,14 +236,15 @@ function timeline(A,P,V,F,PL){
  const eod=today0()+864e5;
  const later=[...SCHED.filter(([hh,mm])=>hh*60+mm>hNow).map(([hh,mm,b,s])=>({tt:`${hh}:${String(mm).padStart(2,'0')}`,b,s,k:hh*60+mm})),
   ...(PL||[]).filter(x=>['approved','draft'].includes(x.status)&&x.when*1000<eod&&x.when*1000>Date.now()).map(x=>{const d=new Date(x.when*1000);return {tt:hm(x.when*1000),b:`Post: ${x.label}`,s:x.status==='draft'?'czeka na zatwierdzenie':'zaplanowany',k:d.getHours()*60+d.getMinutes()}})].sort((a,b)=>a.k-b.k);
- const row=(e,cls)=>`<div class="ev ${cls||''}"><time>${e.tt||hm(e.t)}</time><span class="dt ${e.err?'err':cls==='f'?'f':''}"></span><div><b title="${esc(e.b)}">${esc(e.b)}</b>${e.s?`<small title="${esc(e.s)}">${esc(e.s)}</small>`:''}</div></div>`;
+ const row=(e,cls)=>`<div class="ev ${cls||''}${e.k?'':' nx'}"><time>${e.tt||hm(e.t)}</time><span class="dt ${e.err?'err':cls==='f'?'f':''}"></span><div><b title="${esc(e.b)}">${esc(e.b)}</b>${e.s?`<small title="${esc(e.s)}">${esc(e.s)}</small>`:''}</div>${e.k?`<button class="x" data-hide="${e.k}" title="Usuń z listy">×</button>`:''}</div>`;
  const nowHtml=now.map(n=>`<div class="now" data-go="${n.go}"><small>Teraz</small><b>${esc(n.b)}</b>${n.s?`<small>${esc(n.s.slice(0,90))}</small>`:''}<div class="prog"><i style="width:${n.p}%"></i></div></div>`).join('');
  const morning=ev.filter(e=>new Date(e.t).getHours()<12),aft=ev.filter(e=>new Date(e.t).getHours()>=12);
  $('tl').innerHTML=(morning.length?`<div class="ph">Noc i rano</div>${morning.slice(-10).map(e=>row(e,'done')).join('')}`:'')
   +(aft.length?`<div class="ph">Po południu</div>${aft.slice(-12).map(e=>row(e,'done')).join('')}`:'')
   +(!ev.length?'<p class="empty">Dziś jeszcze nic się nie wydarzyło.</p>':'')
   +nowHtml
-  +(later.length?`<div class="ph">Później</div>${later.map(e=>row(e,'f').replace('class="ev f"','class="ev"')).join('')}`:'');
+  +(later.length?`<div class="ph">Później</div>${later.map(e=>row(e,'f').replace('class="ev f','class="ev')).join('')}`:'');
+ $('tlc').innerHTML=ev.length?`<button class="clr" data-hideall="${ev.map(e=>e.k).join(' ')}">Wyczyść</button>`:'';
  $('nowtop').innerHTML=nowHtml.replace(/class="now"/g,'class="now" style="margin:0 0 10px"');
  return now;
 }
@@ -276,8 +286,9 @@ function approvals(A,V,F,G,PL){
  (F?.jobs||[]).filter(j=>j.check&&j.check.ok===false).slice(0,2).forEach(j=>it.push([`Uwagi strażnika: jedzenie ${j.date||''}`,j.check.fix||'zobacz film','Zobacz','montazownia']));
  (V?.jobs||[]).filter(j=>j.state==='error').slice(0,2).forEach(j=>it.push([`Montaż nie wyszedł: #${j.ep}`,j.step||'','Ponów','montazownia']));
  (G?.guardians||[]).filter(g=>g.status==='fail').slice(0,3).forEach(g=>it.push([`${g.name}: problem`,g.msg||'','Sprawdź','straznicy']));
+ it.forEach(x=>x.k=hk(x[0]+'|'+x[1]));for(let i=it.length-1;i>=0;i--)if(HID.has(it[i].k))it.splice(i,1);
  $('apn').textContent=it.length;$('apn').className='r chip'+(it.length?' wr':' ok');
- $('appr').innerHTML=it.length?it.slice(0,6).map(x=>`<div class="it"><div><b title="${esc(x[0])}">${esc(x[0])}</b><small title="${esc(x[1])}">${esc(x[1])}</small></div>${x[5]?`<button class="btn${x[4]?'':' g'}" onclick="document.querySelector('${x[5]}').scrollIntoView({behavior:'smooth'})">${x[2]}</button>`:`<button class="btn${x[4]?'':' g'}" data-go="${x[3]}">${x[2]}</button>`}</div>`).join('')
+ $('appr').innerHTML=it.length?it.slice(0,6).map(x=>`<div class="it"><div><b title="${esc(x[0])}">${esc(x[0])}</b><small title="${esc(x[1])}">${esc(x[1])}</small></div>${x[5]?`<button class="btn${x[4]?'':' g'}" onclick="document.querySelector('${x[5]}').scrollIntoView({behavior:'smooth'})">${x[2]}</button>`:`<button class="btn${x[4]?'':' g'}" data-go="${x[3]}">${x[2]}</button>`}<button class="x" data-hide="${x.k}" title="Usuń z listy">×</button></div>`).join('')
   :'<p class="empty">Nic nie czeka – wszystko ogarnięte.</p>';
  return it.length;
 }

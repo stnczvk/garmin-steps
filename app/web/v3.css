@@ -60,7 +60,7 @@ html{background:#0b0c12!important}:root[data-theme=light]{background:#f3f3f7!imp
 .lg #top,.lg .topbar,.lg .bar.top{background:var(--v3-s1)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid var(--line)!important;box-shadow:none!important}
 
 /* ---- tło v3 (wspólne dla wszystkich zakładek): delikatne ziarno + miękkie światła ---- */
-:root{--v3-bgimg:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(70% 55% at 12% -10%,rgba(124,98,255,.22),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.10),transparent 65%),radial-gradient(60% 50% at 85% 115%,rgba(61,220,132,.07),transparent 65%),linear-gradient(180deg,#0e0f17 0%,#0b0c12 60%,#0a0b10 100%)}
+:root{--v3-bgimg:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(rgba(255,255,255,.045) 1px,transparent 1.4px) 0 0/24px 24px,radial-gradient(60% 50% at 8% -12%,rgba(130,100,255,.30),transparent 62%),radial-gradient(45% 40% at 100% 0%,rgba(56,189,248,.14),transparent 62%),radial-gradient(40% 35% at 60% 45%,rgba(236,72,153,.045),transparent 70%),radial-gradient(55% 45% at 90% 112%,rgba(61,220,132,.08),transparent 65%),radial-gradient(50% 40% at -5% 100%,rgba(130,100,255,.10),transparent 65%),linear-gradient(180deg,#10111b 0%,#0c0d14 55%,#090a0f 100%)}
 :root[data-theme=light]{--v3-bgimg:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5)}
 @media (prefers-color-scheme:light){:root:not([data-theme=dark]):not(.lg-dark){--v3-bgimg:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5)}}
 html body.lg,body.lg{background:var(--v3-bgimg) !important;background-attachment:fixed !important;background-color:#0b0c12 !important}
@@ -75,3 +75,13 @@ body.lg{min-height:100dvh}
 .lg .dc{background:radial-gradient(120% 70% at 0% 0%,color-mix(in srgb,var(--c,#8f7bff) 10%,transparent),transparent 55%),linear-gradient(180deg,var(--v3-s2),var(--v3-s1))!important}
 /* puste stany – czytelniejsze */
 .lg .empty,.lg .mut.empty{color:var(--mut)}
+/* kafelki ikon w nagłówkach (glass.js) */
+.hx{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;margin-right:10px;vertical-align:-7px;color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 24%,transparent);flex:none;font-size:13.5px;line-height:1;font-weight:400;-webkit-text-fill-color:currentColor}
+.hx svg{position:static!important;width:15px!important;height:15px!important;margin:0!important;flex:none}.hx.em{font-size:13px;-webkit-text-fill-color:initial}
+.hx.big{width:36px;height:36px;border-radius:11px;margin-right:12px;vertical-align:-6px}.hx.big svg{width:19px!important;height:19px!important}.hx.big.em{font-size:18px}
+@media(max-width:760px){.hx{width:24px;height:24px;margin-right:8px}.hx.big{width:30px;height:30px;vertical-align:-5px}.hx.big svg{width:16px;height:16px}}
+/* przyciski szybkich akcji (jak na ekranie głównym) */
+.btn.qb,.lg .btn.qb{background:linear-gradient(180deg,var(--v3-s2,#1b1c28),var(--v3-s1,#14151e))!important;color:inherit!important;border:1px solid rgba(255,255,255,.08)!important;border-radius:14px!important;padding:6px 14px 6px 6px!important;gap:9px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important;font-weight:600}
+.btn.qb:hover{border-color:rgba(143,123,255,.45)!important}.btn.qb:active{transform:scale(.97)}
+.btn.qb>i{font-style:normal;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13.5px;background:color-mix(in srgb,var(--c) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 24%,transparent)}
+.hxw{display:inline}

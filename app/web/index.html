@@ -628,7 +628,7 @@ body.v-ext .head{position:relative;flex:none}
 }
 
 /* ================= Dashboard v3 – powłoka (jak na projekcie: wąski pasek ikon, bez górnej belki, pływające menu na telefonie) ================= */
-body.lg{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(70% 55% at 12% -10%,rgba(124,98,255,.22),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.10),transparent 65%),radial-gradient(60% 50% at 85% 115%,rgba(61,220,132,.07),transparent 65%),linear-gradient(180deg,#0e0f17 0%,#0b0c12 60%,#0a0b10 100%) !important;background-attachment:fixed!important}
+body.lg{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(rgba(255,255,255,.045) 1px,transparent 1.4px) 0 0/24px 24px,radial-gradient(60% 50% at 8% -12%,rgba(130,100,255,.30),transparent 62%),radial-gradient(45% 40% at 100% 0%,rgba(56,189,248,.14),transparent 62%),radial-gradient(40% 35% at 60% 45%,rgba(236,72,153,.045),transparent 70%),radial-gradient(55% 45% at 90% 112%,rgba(61,220,132,.08),transparent 65%),radial-gradient(50% 40% at -5% 100%,rgba(130,100,255,.10),transparent 65%),linear-gradient(180deg,#10111b 0%,#0c0d14 55%,#090a0f 100%) !important;background-attachment:fixed!important}
 :root[data-theme=light] body.lg{background:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5) !important}
 .lg-bg{display:none!important}
 @media (min-width:901px){
@@ -654,6 +654,16 @@ body.lg{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/20
  .s-foot{display:none!important}
  body:not(.s-wide) .s-col{display:none}
 }
+/* Statystyki w stylu ekranu głównego */
+body.lg .head{display:none!important}
+#app .grad{font-size:26px!important;letter-spacing:-.025em!important;background:none!important;color:var(--ink)!important;-webkit-text-fill-color:currentColor}
+#app .intro{align-items:center!important;margin-bottom:18px!important}
+#app .intro-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#app #refresh{height:38px;border-radius:12px;padding:0 14px;display:inline-flex;align-items:center;gap:7px;font-weight:600}#app #refresh svg{width:15px;height:15px}
+#app .kpi .k{display:flex;align-items:center;color:var(--ink)!important;font-weight:600;font-size:13.5px!important}#app .kpi .k .hx{vertical-align:0}
+#app .kpi .v{font-size:30px!important;font-weight:700!important;letter-spacing:-.03em!important;background:none!important;color:var(--ink)!important;-webkit-text-fill-color:currentColor;margin:12px 0 8px!important}
+#app .kpi .sub{color:var(--soft,var(--faint))!important}
+@media(max-width:760px){#app #refresh span{display:none}#app #refresh{padding:0 11px}#app .grad{font-size:22px!important}#app .kpi .v{font-size:24px!important}#app .intro-lbl{display:none}}
 /* telefon: pływające menu na dole zamiast belki z burgerem */
 .tbar{display:none}
 @media (max-width:900px){
@@ -1011,10 +1021,10 @@ function render(changed) {
     return `<div class="kspark" aria-hidden="true"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs><linearGradient id="kg${d}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".25"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs><polygon points="0,${h} ${line} ${w},${h}" fill="url(#kg${d})"/><polyline class="sline" pathLength="1" style="--d:${300 + d * 80}ms" points="${line}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg></div>`;
   };
   $('#kpis').innerHTML = `
-    <div class="card kpi in lift spot" style="--d:0ms"><div class="k">Obserwujący łącznie</div><div class="v num" ${k('k1', fol)}></div>${chip(dsum)} <span class="sub">w tydzień</span>${kspark(sumBy('history', 'followers'), 'var(--up)', 1)}</div>
-    <div class="card kpi in lift spot" style="--d:50ms"><div class="k">Wyświetlenia</div><div class="v num" ${k('k2', views)}></div><span class="sub">ostatnie 28 dni</span>${kspark(sumBy('daily', 'views'), 'var(--accent)', 2)}</div>
-    <div class="card kpi in lift spot" style="--d:100ms"><div class="k">Nowe posty</div><div class="v num" ${k('k3', posts28.length)}></div><span class="sub">ostatnie 28 dni</span></div>
-    <div class="card kpi in lift spot" style="--d:150ms"><div class="k">Średnio na post</div><div class="v num" ${k('k4', avg != null ? Math.round(avg) : '')}></div><span class="sub">wyświetleń, ostatnie 28 dni</span></div>`;
+    <div class="card kpi in lift spot" style="--d:0ms"><div class="k"><span class="hx" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>Obserwujący łącznie</div><div class="v num" ${k('k1', fol)}></div>${chip(dsum)} <span class="sub">w tydzień</span>${kspark(sumBy('history', 'followers'), 'var(--up)', 1)}</div>
+    <div class="card kpi in lift spot" style="--d:50ms"><div class="k"><span class="hx" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Wyświetlenia</div><div class="v num" ${k('k2', views)}></div><span class="sub">ostatnie 28 dni</span>${kspark(sumBy('daily', 'views'), 'var(--accent)', 2)}</div>
+    <div class="card kpi in lift spot" style="--d:100ms"><div class="k"><span class="hx" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span>Nowe posty</div><div class="v num" ${k('k3', posts28.length)}></div><span class="sub">ostatnie 28 dni</span></div>
+    <div class="card kpi in lift spot" style="--d:150ms"><div class="k"><span class="hx" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>Średnio na post</div><div class="v num" ${k('k4', avg != null ? Math.round(avg) : '')}></div><span class="sub">wyświetleń, ostatnie 28 dni</span></div>`;
 
   drawChart(accs);
 
@@ -1411,6 +1421,7 @@ let rt; addEventListener('resize', () => { pills(); document.documentElement.sty
 document.fonts?.ready.then(pills);
 pills();
 
+try{document.querySelector('#app .intro-r').appendChild($('#refresh'))}catch(e){}
 $('#refresh').onclick = async () => { await api('/api/social/refresh', {method: 'POST'}); setTimeout(load, 600); };
 $('#save').onclick = async () => {
   const body = {};
