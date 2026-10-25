@@ -258,6 +258,13 @@ def _save_backup(wf, why):
     return f.name
 
 
+def _disp(name):
+    """Nazwa pliku z polskimi znakami w nagłówku (ASCII + filename*=UTF-8)."""
+    import unicodedata, urllib.parse
+    a = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode() or "workflow.json"
+    return f'attachment; filename="{a}"; filename*=UTF-8\'\'{urllib.parse.quote(name)}'
+
+
 @router.get("/api/n8n/export/{wid}")
 def export(wid: str):
     r = n8n("GET", f"/api/v1/workflows/{wid}")
@@ -266,7 +273,7 @@ def export(wid: str):
     wf = r.json()
     body = {k: wf.get(k) for k in ("name", "nodes", "connections", "settings", "pinData") if wf.get(k) is not None}
     return Response(json.dumps(body, ensure_ascii=False, indent=2), media_type="application/json",
-                    headers={"Content-Disposition": f'attachment; filename="{_safe(wf.get("name", wid))}.json"'})
+                    headers={"Content-Disposition": _disp(_safe(wf.get("name", wid)) + ".json")})
 
 
 def _put(wid, wf, active):
