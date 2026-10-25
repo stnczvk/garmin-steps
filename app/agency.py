@@ -693,7 +693,12 @@ def inbox():
             if drafts:
                 push_all("💬 Odpowiedzi do zatwierdzenia", f"{drafts} komentarzy czeka w Agencji (autopilot nie mógł wysłać).", "/#agencja")
         for e in errs:
-            log("inbox", e, "warn" if _transient(e) else "error")
+            if "nie oddaje" in e:   # znany problem (tryb aplikacji Meta) – przypomnienie raz na dobę, nie co 30 min
+                if time.time() - I.get("warned", 0) < 86400:
+                    continue
+                I["warned"] = time.time()
+                _write("agency_inbox.json", I)
+            log("inbox", e, "warn" if _transient(e) or "nie oddaje" in e else "error")
         return n
     except Exception as e:
         log("inbox", "Chwilowy problem z siecią – spróbuję za 30 min" if _transient(e) else f"Inbox nie zadziałał: {e}",
