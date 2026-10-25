@@ -60,7 +60,7 @@ html{background:#0b0c12!important}:root[data-theme=light]{background:#f3f3f7!imp
 .lg #top,.lg .topbar,.lg .bar.top{background:var(--v3-s1)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid var(--line)!important;box-shadow:none!important}
 
 /* ---- tło v3 (wspólne dla wszystkich zakładek): delikatne ziarno + miękkie światła ---- */
-:root{--v3-bgimg:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(rgba(255,255,255,.045) 1px,transparent 1.4px) 0 0/24px 24px,radial-gradient(60% 50% at 8% -12%,rgba(130,100,255,.30),transparent 62%),radial-gradient(45% 40% at 100% 0%,rgba(56,189,248,.14),transparent 62%),radial-gradient(40% 35% at 60% 45%,rgba(236,72,153,.045),transparent 70%),radial-gradient(55% 45% at 90% 112%,rgba(61,220,132,.08),transparent 65%),radial-gradient(50% 40% at -5% 100%,rgba(130,100,255,.10),transparent 65%),linear-gradient(180deg,#10111b 0%,#0c0d14 55%,#090a0f 100%)}
+:root{--v3-bgimg:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(900px 560px at 12% -8%,rgba(124,92,255,.26),transparent 70%),radial-gradient(760px 480px at 100% 0%,rgba(40,140,255,.14),transparent 70%),radial-gradient(520px 420px at 55% 38%,rgba(143,123,255,.05),transparent 70%),radial-gradient(900px 600px at 85% 115%,rgba(61,220,132,.08),transparent 70%),radial-gradient(700px 520px at -5% 105%,rgba(236,72,153,.07),transparent 70%),linear-gradient(180deg,#10111a 0%,#0c0d14 50%,#0a0b10 100%)}
 :root[data-theme=light]{--v3-bgimg:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5)}
 @media (prefers-color-scheme:light){:root:not([data-theme=dark]):not(.lg-dark){--v3-bgimg:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5)}}
 html body.lg,body.lg{background:var(--v3-bgimg) !important;background-attachment:fixed !important;background-color:#0b0c12 !important}
@@ -90,3 +90,38 @@ body.lg{min-height:100dvh}
  .lg h1+p,.lg .top p,.lg p.sub,.lg .hero p{display:none}
  .lg .glass,.lg .card{border-radius:20px!important}
 }
+@media(max-width:760px){
+ .lg .grid.dash-only{align-items:stretch!important}
+ .lg .top .r .btn.qb{flex-direction:column!important;gap:5px!important;padding:8px 4px 7px!important;font-size:11.5px!important;border-radius:14px!important;justify-content:center;min-width:0}
+ .lg .top .r .btn.qb>i{width:30px;height:30px;font-size:15px}
+ .lg .top .r .btn.qb>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+}
+/* ===== Agencja / Skaner – widok Dashboard w stylu ekranu głównego ===== */
+body.dash header{left:0!important;right:0!important;top:0!important;border-radius:0!important;background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:22px 26px 8px!important;max-width:1532px;margin:0 auto}
+body.dash header .logo{font-size:24px;font-weight:650;letter-spacing:-.025em}
+body.dash header .logo i{width:36px;height:36px;border-radius:11px;font-size:17px;background:color-mix(in srgb,#8f7bff 18%,transparent)!important;color:#b5a8ff;box-shadow:inset 0 0 0 1px rgba(143,123,255,.3)}
+body.dash header .logo span{font-size:14px}
+body.dash header .stats span{background:var(--v3-s1);border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:12.5px}
+body.dash #dash{padding:12px 26px 48px!important}
+.dg{gap:14px!important;max-width:1480px!important}
+.lg .dc{padding:18px 20px!important;border-radius:24px!important;transition:transform .2s,border-color .2s!important}
+.lg .dc:before,.lg .dc:after{display:none!important}
+.lg .dc:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--c) 45%,var(--line))!important}
+.lg .dh{gap:11px}
+.lg .dh .ic{width:30px!important;height:30px!important;border-radius:9px!important;font-size:15px!important;background:color-mix(in srgb,var(--c) 18%,transparent)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 30%,transparent)}
+.lg .dh b{font-size:14px!important;font-weight:600}.lg .dh small{font-size:12.5px!important;color:var(--mut)!important;display:block;margin-top:1px}
+.lg .dh .bd{border-radius:8px!important;background:var(--v3-s3)!important;color:var(--soft);font:600 11.5px Geist,system-ui!important;padding:4px 9px!important}
+.lg .dh .bd.run{background:rgba(61,220,132,.13)!important;color:var(--ok)!important}
+.lg .dm{font:700 28px Geist,system-ui!important;letter-spacing:-.03em!important;margin:14px 0 10px!important}.lg .dm small{font:500 12.5px Geist,system-ui!important;margin-top:4px!important}
+.lg .dl{gap:0!important;margin-top:8px!important}
+.lg .dl div{font-size:13px!important;padding:6px 0;border-top:1px solid var(--line)}.lg .dl div:first-child{border-top:0}
+.lg .dl em{font-size:11.5px!important;color:var(--faint)!important}
+.lg .dx{border-top-color:var(--line)!important;font-size:12.5px!important}
+.lg .fg2 div{background:var(--v3-s3);border:0!important;border-radius:12px!important}
+@media(max-width:700px){body.dash header{padding:14px 14px 6px!important}body.dash header .logo{font-size:20px}body.dash header .stats{display:none}body.dash #dash{padding:8px 12px 110px!important}}
+/* ===== tabele w całej apce (Statystyki, skaner, boty) ===== */
+.lg table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.lg table th{font:500 12px Geist,system-ui!important;color:var(--faint)!important;text-transform:none!important;letter-spacing:0!important;padding:10px 12px!important;border-bottom:1px solid var(--line)!important;background:transparent!important;text-align:left}
+.lg table td{padding:11px 12px!important;border-bottom:1px solid var(--line)!important;font-size:13.5px}
+.lg table tr:last-child td{border-bottom:0!important}
+.lg table tbody tr{transition:background .12s}.lg table tbody tr:hover{background:rgba(255,255,255,.025)}
