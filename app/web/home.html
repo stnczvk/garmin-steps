@@ -135,7 +135,9 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
  .mg{grid-template-columns:1fr}.mg>aside{position:static;order:3}.mr{gap:10px}
  .t{border-radius:20px;padding:16px}
  .big{font-size:38px}.n{font-size:30px}
- .offg{grid-template-columns:1fr 1fr}
+ .offg{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin-right:-16px;padding-right:16px;scrollbar-width:none}.offg>*{flex:0 0 44%;scroll-snap-align:start}
+ .kp{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -12px 12px;padding:0 12px;scrollbar-width:none}.kp>.t{flex:0 0 47%;scroll-snap-align:start;padding:12px 14px 10px}.kp .kd+*{display:none}.kp .kd{min-height:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .offg::-webkit-scrollbar,.kp::-webkit-scrollbar{display:none}
  .rep{grid-template-columns:1fr}
  .tlx{max-height:none;overflow:visible}
  #nowtop{display:block!important}

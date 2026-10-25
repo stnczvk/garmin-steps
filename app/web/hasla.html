@@ -8,49 +8,67 @@
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css"><script src="/glass.js"></script>
 <style>
 body{margin:0;color:var(--ink);background:var(--lg-base);font:14px/1.45 Geist,system-ui,sans-serif}
-.wrap{max-width:860px;margin:0 auto;padding:24px 20px 60px}
-h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--mu,var(--soft));margin:4px 0 18px}
-.t{background:linear-gradient(180deg,var(--v3-s2),var(--v3-s1));border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--v3-hi),var(--v3-sh);border-radius:22px;padding:20px 22px;margin-bottom:14px}
-.out{display:flex;align-items:center;gap:12px;background:var(--v3-s3);border-radius:16px;padding:16px 18px}
-.out code{flex:1;font:600 24px/1.3 'Geist Mono',ui-monospace,Menlo,monospace;word-break:break-all;user-select:all;letter-spacing:.02em}
-.meter{height:8px;border-radius:4px;background:var(--v3-s3);margin-top:14px;overflow:hidden}.meter i{display:block;height:100%;border-radius:4px;transition:width .2s,background .2s}
-.st{display:flex;justify-content:space-between;color:var(--soft);font-size:13px;margin-top:8px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.btn{padding:10px 15px;cursor:pointer;font-size:14px}
-.lv button.on{background:var(--ink)!important;color:var(--lg-base)!important}
-.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:16px}
-.opts label{display:flex;gap:10px;align-items:center;background:var(--v3-s3);border-radius:12px;padding:11px 13px;cursor:pointer}
-.opts input{width:18px;height:18px;accent-color:var(--acc)}
-.len{display:flex;align-items:center;gap:14px;margin-top:16px}.len input{flex:1;accent-color:var(--acc)}.len b{font-size:20px;min-width:2.5ch;text-align:right}
-.hist{margin-top:6px}.hist div{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}.hist div:first-child{border:0}
+.wrap{max-width:1480px;margin:0 auto;padding:24px 26px 48px}
+h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--mut,var(--soft));margin:6px 0 18px;font-size:14px}
+.gr{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+.t{background:linear-gradient(180deg,var(--v3-s2),var(--v3-s1));border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--v3-hi),var(--v3-sh);border-radius:24px;padding:18px 20px;min-width:0}
+.t h2{font-size:13.5px;font-weight:600;margin:0 0 14px;display:flex;align-items:center;min-height:26px}.t h2 .r{margin-left:auto}
+.sg{display:inline-flex;background:var(--v3-s1);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;max-width:100%;overflow-x:auto}
+.sg button{border:0;background:none;color:var(--soft);font:600 12.5px Geist,system-ui;padding:6px 11px;border-radius:9px;cursor:pointer;white-space:nowrap}
+.sg button.on{background:var(--v3-s3);color:var(--ink);box-shadow:inset 0 1px 0 var(--v3-hi)}
+.out{display:flex;align-items:center;gap:10px;background:var(--v3-s3);border:1px solid var(--line);border-radius:16px;padding:14px 14px 14px 18px}
+.out code{flex:1;min-width:0;font:600 24px/1.3 'Geist Mono',ui-monospace,Menlo,monospace;word-break:break-all;user-select:all;letter-spacing:.02em}
+.ib{flex:none;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--v3-s2);color:var(--ink);font:600 13px Geist,system-ui;padding:0 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.ib.pri{background:var(--ink);color:var(--lg-base,#0b0c12);border-color:transparent}.ib:active{transform:scale(.97)}.ib svg{width:16px;height:16px}
+.meter{height:6px;border-radius:3px;background:var(--v3-s3);margin-top:16px;overflow:hidden}.meter i{display:block;height:100%;border-radius:3px;transition:width .2s,background .2s}
+.st{display:flex;justify-content:space-between;color:var(--soft);font-size:12.5px;margin-top:8px}
+.rw{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.rw:first-of-type{border:0;padding-top:2px}
+.rw>span{flex:1;color:var(--ink);font-weight:500}.rw small{display:block;color:var(--faint);font-size:12px;font-weight:400}
+.rw input[type=range]{flex:1.4;accent-color:var(--acc)}.rw b{min-width:2.5ch;text-align:right;font-size:17px}
+.sw{appearance:none;-webkit-appearance:none;flex:none;width:38px;height:22px;border-radius:11px;background:var(--v3-s3);position:relative;cursor:pointer;transition:background .15s;margin:0;border:1px solid var(--line)}
+.sw:after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--soft);transition:transform .15s,background .15s}
+.sw:checked{background:var(--acc)}.sw:checked:after{transform:translateX(16px);background:#fff}
+label.rw{cursor:pointer}
+.hist div{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}.hist div:first-child{border:0}
 .hist code{flex:1;font:500 14px 'Geist Mono',ui-monospace,monospace;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.note{color:var(--faint);font-size:12.5px;margin-top:12px}
-.mode{margin-bottom:14px}
-@media(max-width:600px){.out code{font-size:19px}.wrap{padding:16px 12px 60px}}
+.note{color:var(--faint);font-size:12.5px;margin:4px 0 0}
+.tip{display:flex;gap:10px;margin-top:14px;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--ok) 8%,transparent);color:var(--soft);font-size:12.5px}
+@media(max-width:860px){.gr{grid-template-columns:1fr}}
+@media(max-width:600px){.wrap{padding:16px 12px calc(96px + var(--sab,0px))}.sub{display:none}h1{font-size:22px}.out{padding:12px;flex-wrap:wrap}.out code{font-size:19px;flex-basis:100%}.out .ib{flex:1;justify-content:center}.out .ib.sq{flex:none}.t{padding:16px}}
 </style>
 </head>
 <body class="lg">
 <div class="wrap">
  <h1>Hasła</h1><p class="sub">Generator mocnych haseł. Hasło powstaje tylko na tym urządzeniu – nigdzie nie jest wysyłane ani zapisywane.</p>
+ <div class="gr">
+ <div>
  <section class="t">
-  <div class="row mode seg" id="mode" style="display:inline-flex;padding:3px"><button class="btn on" data-m="znaki">Ze znaków</button><button class="btn" data-m="slowa">Ze słów (łatwe do zapamiętania)</button></div>
-  <div class="out"><code id="o">…</code><button class="btn pri" id="cp">Kopiuj</button><button class="btn" id="nw" title="Nowe hasło">↻</button></div>
+  <h2><span class="hx" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M17 6l3 3M15 8l2 2"/></svg></span>Twoje hasło<span class="r sg" id="mode"><button class="on" data-m="znaki">Ze znaków</button><button data-m="slowa">Ze słów</button></span></h2>
+  <div class="out"><code id="o">…</code><button class="ib pri" id="cp">Kopiuj</button><button class="ib sq" id="nw" title="Nowe hasło"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 11-2.6-6.4M21 4v5h-5"/></svg></button></div>
   <div class="meter"><i id="mt"></i></div><div class="st"><span id="sl"></span><span id="sb"></span></div>
+  <div class="tip">🔒 Hasło generuje się lokalnie w przeglądarce – nic nie trafia na serwer.</div>
  </section>
+ <section class="t" style="margin-top:14px"><h2><span class="hx" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>Ostatnie w tej sesji</h2><div class="hist" id="hs"><p class="note">Pojawią się tu skopiowane hasła (znikają po zamknięciu karty).</p></div></section>
+ </div>
+ <div>
  <section class="t" id="cfgz">
-  <div class="row lv" id="lv"><span style="color:var(--soft);margin-right:4px">Poziom:</span><button class="btn" data-l="1">Łatwe</button><button class="btn on" data-l="2">Średnie</button><button class="btn" data-l="3">Trudne</button></div>
-  <div class="len"><span style="color:var(--soft)">Długość</span><input type="range" id="ln" min="6" max="64" value="16"><b id="lb">16</b></div>
-  <div class="opts">
-   <label><input type="checkbox" id="l" checked>Małe litery (a–z)</label><label><input type="checkbox" id="u" checked>Duże litery (A–Z)</label>
-   <label><input type="checkbox" id="d" checked>Cyfry (0–9)</label><label><input type="checkbox" id="s">Znaki specjalne (!@#…)</label>
-   <label><input type="checkbox" id="x" checked>Bez mylących (0/O, 1/l/I)</label>
-  </div>
+  <h2><span class="hx" style="--c:#8f7bff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>Ustawienia<span class="r sg" id="lv"><button data-l="1">Łatwe</button><button class="on" data-l="2">Średnie</button><button data-l="3">Trudne</button></span></h2>
+  <div class="rw"><span>Długość</span><input type="range" id="ln" min="6" max="64" value="16"><b id="lb">16</b></div>
+  <label class="rw"><span>Małe litery<small>a–z</small></span><input type="checkbox" class="sw" id="l" checked></label>
+  <label class="rw"><span>Duże litery<small>A–Z</small></span><input type="checkbox" class="sw" id="u" checked></label>
+  <label class="rw"><span>Cyfry<small>0–9</small></span><input type="checkbox" class="sw" id="d" checked></label>
+  <label class="rw"><span>Znaki specjalne<small>! @ # $ …</small></span><input type="checkbox" class="sw" id="s"></label>
+  <label class="rw"><span>Bez mylących<small>bez 0/O i 1/l/I</small></span><input type="checkbox" class="sw" id="x" checked></label>
  </section>
  <section class="t" id="cfgw" hidden>
-  <div class="len"><span style="color:var(--soft)">Liczba słów</span><input type="range" id="wn" min="3" max="8" value="4"><b id="wb">4</b></div>
-  <div class="opts"><label><input type="checkbox" id="wd" checked>Dodaj cyfrę</label><label><input type="checkbox" id="wc" checked>Wielka litera w słowach</label><label><input type="checkbox" id="ws" checked>Łącznik między słowami</label></div>
+  <h2><span class="hx" style="--c:#8f7bff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/></svg></span>Ustawienia</h2>
+  <div class="rw"><span>Liczba słów</span><input type="range" id="wn" min="3" max="8" value="4"><b id="wb">4</b></div>
+  <label class="rw"><span>Dodaj cyfrę</span><input type="checkbox" class="sw" id="wd" checked></label>
+  <label class="rw"><span>Wielka litera w słowach</span><input type="checkbox" class="sw" id="wc" checked></label>
+  <label class="rw"><span>Łącznik między słowami</span><input type="checkbox" class="sw" id="ws" checked></label>
  </section>
- <section class="t"><b>Ostatnie w tej sesji</b><div class="hist" id="hs"><p class="note">Pojawią się tu wygenerowane hasła (znikają po zamknięciu karty).</p></div></section>
+ </div>
+ </div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -75,7 +93,7 @@ document.querySelectorAll('#mode [data-m]').forEach(b=>b.onclick=()=>{M=b.datase
 ['ln','l','u','d','s','x','wn','wd','wc','ws'].forEach(i=>$(i).oninput=gen);$('nw').onclick=gen;
 $('cp').onclick=async()=>{const p=$('o').textContent;try{await navigator.clipboard.writeText(p);$('cp').textContent='Skopiowane';setTimeout(()=>$('cp').textContent='Kopiuj',1400)}catch(e){}
  if(!H.includes(p)){H.unshift(p);H.length=Math.min(H.length,8)}
- $('hs').innerHTML=H.map((h,i)=>`<div><code>${h.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</code><button class="btn" data-i="${i}">Kopiuj</button></div>`).join('');
+ $('hs').innerHTML=H.map((h,i)=>`<div><code>${h.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</code><button class="ib" data-i="${i}">Kopiuj</button></div>`).join('');
  $('hs').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(H[+b.dataset.i]))};
 addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.theme){const t=e.data.theme;if(t==='auto')delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t}});
 gen();

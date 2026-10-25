@@ -602,6 +602,8 @@ body.v-ext .vframe{display:block}body.v-ext #app,body.v-ext #tabs,body.v-ext #re
 /* zakładki w ramce: cała strona = nagłówek + ramka do samego dołu ekranu (bez position:fixed – na iPhonie w trybie apki fixed zostawiał pasek) */
 body.v-ext{overflow:hidden;display:flex;flex-direction:column;height:var(--vh,100dvh);min-height:0}
 body.v-ext .head{position:relative;flex:none}
+body.v-ext{box-sizing:border-box;padding-top:env(safe-area-inset-top)}
+#app{padding-top:calc(24px + env(safe-area-inset-top))!important}
 /* ekran startu: szklany kafel z logo (B) + fale i rozsunięcie od środka (F) */
 #splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;pointer-events:auto}
 #splash .half{position:absolute;left:0;right:0;height:50.5%;background:radial-gradient(70% 60% at 30% 100%,rgba(124,92,255,.32),transparent 70%),radial-gradient(60% 60% at 80% 100%,rgba(47,107,255,.28),transparent 70%),#06070c;transition:transform .75s cubic-bezier(.7,0,.2,1)}
@@ -663,7 +665,7 @@ body.lg .head{display:none!important}
 #app .kpi .k{display:flex;align-items:center;color:var(--ink)!important;font-weight:600;font-size:13.5px!important}#app .kpi .k .hx{vertical-align:0}
 #app .kpi .v{font-size:30px!important;font-weight:700!important;letter-spacing:-.03em!important;background:none!important;color:var(--ink)!important;-webkit-text-fill-color:currentColor;margin:12px 0 8px!important}
 #app .kpi .sub{color:var(--soft,var(--faint))!important}
-@media(max-width:760px){#app #refresh span{display:none}#app #refresh{padding:0 11px}#app .grad{font-size:22px!important}#app .kpi .v{font-size:24px!important}#app .intro-lbl{display:none}}
+@media(max-width:760px){#app .kpis{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;margin-left:-14px;margin-right:-14px;padding:0 14px;gap:10px;scrollbar-width:none}#app .kpis::-webkit-scrollbar{display:none}#app .kpis>.kpi{flex:0 0 47%;scroll-snap-align:start;padding:13px 14px!important}#app .kpi .k{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block!important}#app .kpi svg:not(.hx svg){max-height:34px}#app #refresh span{display:none}#app #refresh{padding:0 11px}#app .grad{font-size:22px!important}#app .kpi .v{font-size:24px!important}#app .intro-lbl{display:none}}
 /* telefon: pływające menu na dole zamiast belki z burgerem */
 .tbar{display:none}
 @media (max-width:900px){
