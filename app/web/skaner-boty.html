@@ -54,7 +54,10 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <div class="top"><h1>Strategy Lab<small id="sub">Boty paper-tradingowe · wirtualne 20 USDT każdy</small></h1></div>
+ <h2 style="margin:4px 0 10px">Strategie klasyczne <small>BTC, ETH, SOL, XAU · świece 1h</small></h2>
  <div class="bots" id="bots"></div>
+ <h2 style="margin:4px 0 10px">Sygnały skanera — warianty wejścia <small>każdy sygnał (real + shadow) grany 4 sposobami · świece 1m</small></h2>
+ <div class="bots" id="sbots"></div>
  <div class="g2">
   <section class="glass"><h2>Kapitał botów <small>USDT, po każdej zamkniętej transakcji</small></h2><div class="ch" id="eqw"><canvas id="eq"></canvas></div></section>
   <section class="glass"><h2>On-chain (Etherscan) <small>przepływy na giełdy, ostatnie odczyty</small></h2><div class="scroll" id="oc"></div></section>
@@ -66,8 +69,8 @@ const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=(v,d=2)=>v==null||isNaN(v)?'–':(+v).toLocaleString('pl',{maximumFractionDigits:d});
 const cls=v=>v>0?'pos':v<0?'neg':'';
-const COL=['#9FB3FF','#3DDC84','#FFB86B','#E58CFF'];
-const DESC={EMA_TREND:'Trend: EMA20/50 + filtr EMA200',DONCHIAN:'Wybicie kanału 20 świec (Turtle)',RSI2_REVERT:'Powrót do średniej: RSI(2) z trendem',TS_MOMENTUM:'Momentum: kierunek zmiany z 48h'};
+const COL=['#9FB3FF','#3DDC84','#FFB86B','#E58CFF','#5EE6E6','#FF8FA3','#F5E663','#B8B8C8'];
+const DESC={EMA_TREND:'Trend: EMA20/50 + filtr EMA200',DONCHIAN:'Wybicie kanału 20 świec (Turtle)',RSI2_REVERT:'Powrót do średniej: RSI(2) z trendem',TS_MOMENTUM:'Momentum: kierunek zmiany z 48h',SCAN_LIMIT:'Limit na entry, SL/TP z sygnału (jak teraz)',SCAN_WIDE:'Limit na entry, SL min. 1× ATR(1h), to samo R:R',SCAN_DEEP:'Limit w połowie drogi entry→SL',SCAN_MARKET:'Wejście rynkowe od razu (porównanie)'};
 let D=null;
 function chart(bots,start){const cv=$('eq'),w=$('eqw'),dpr=devicePixelRatio||1,r=w.getBoundingClientRect();cv.width=r.width*dpr;cv.height=r.height*dpr;
  const x=cv.getContext('2d');x.scale(dpr,dpr);const W=r.width,H=r.height,P={l:44,r:10,t:10,b:20};
@@ -77,26 +80,28 @@ function chart(bots,start){const cv=$('eq'),w=$('eqw'),dpr=devicePixelRatio||1,r
  const ts=bots.flatMap(b=>b.equity_curve.map(p=>Date.parse(p.t))).filter(Boolean),t0=Math.min(...ts),t1=Math.max(...ts),X=t=>P.l+((t-t0)/((t1-t0)||1))*(W-P.l-P.r);
  x.font='11px JetBrains Mono';for(let k=0;k<=4;k++){const v=mn+rg*k/4;x.strokeStyle='rgba(255,255,255,.06)';x.beginPath();x.moveTo(P.l,Y(v));x.lineTo(W-P.r,Y(v));x.stroke();x.fillStyle='#7A7A86';x.fillText(v.toFixed(1),4,Y(v)+4)}
  x.strokeStyle='rgba(255,255,255,.25)';x.setLineDash([3,4]);x.beginPath();x.moveTo(P.l,Y(start));x.lineTo(W-P.r,Y(start));x.stroke();x.setLineDash([]);
- bots.forEach((b,i)=>{if(!b.equity_curve.length)return;x.strokeStyle=COL[i%4];x.lineWidth=2;x.beginPath();x.moveTo(X(Date.parse(b.equity_curve[0].t)),Y(start));
+ bots.forEach((b,i)=>{if(!b.equity_curve.length)return;x.strokeStyle=COL[i%8];x.lineWidth=2;x.beginPath();x.moveTo(X(Date.parse(b.equity_curve[0].t)),Y(start));
   b.equity_curve.forEach(p=>x.lineTo(X(Date.parse(p.t)),Y(p.equity)));x.stroke()})}
 async function load(){let r;try{r=await (await fetch('/api/scanner/lab')).json()}catch(e){r={ok:false,error:'Brak połączenia'}}
  if(!r.ok){$('bots').innerHTML=`<div class="glass" style="grid-column:1/-1"><p class="empty">${esc(r.error)}</p></div>`;return}
  D=r;const L=r.lab,st=L.start_capital;
  $('sub').textContent=`Boty paper-tradingowe · ${st} USDT każdy · ${L.instruments.map(s=>s.split('/')[0]).join(', ')} · świece 1h`;
- $('bots').innerHTML=L.bots.map((b,i)=>`<div class="glass bot"><h3><span style="color:${COL[i%4]}">●</span> ${esc(b.bot)}<small>#${i+1}</small></h3>
+ const card=(b,i)=>`<div class="glass bot"><h3><span style="color:${COL[i%8]}">●</span> ${esc(b.bot)}<small>#${i+1}</small></h3>
   <b class="big ${cls(b.return_pct)}">${fmt(b.equity,2)} <small style="font-size:13px">USDT</small></b>
   <div class="row"><span>Wynik</span><b class="${cls(b.return_pct)}">${b.return_pct>0?'+':''}${fmt(b.return_pct)}%</b></div>
   <div class="row"><span>Transakcje</span><b>${b.trades}</b></div>
   <div class="row"><span>Win rate</span><b>${b.winrate==null?'–':b.winrate+'%'}</b></div>
   <div class="row"><span>Maks. obsunięcie</span><b class="neg">${fmt(b.max_drawdown_pct)}%</b></div>
   <div class="row"><span>Otwarte</span><b>${b.open_positions.length}</b></div>
-  <p class="d">${esc(DESC[b.bot]||'')}</p></div>`).join('');
- chart(L.bots,st);
- const op=L.bots.flatMap(b=>b.open_positions.map(o=>({...o,bot:b.bot})));
+  <p class="d">${esc(DESC[b.bot]||'')}</p></div>`;
+ $('bots').innerHTML=L.bots.map(card).join('');
+ const SB=L.scanner_bots||[];$('sbots').innerHTML=SB.length?SB.map((b,i)=>card(b,i+4).replace('</p></div>',`</p><p class="d">czeka: ${b.pending} · anulowane: ${b.cancelled}</p></div>`)).join(''):'<p class="empty">Czekam na pierwsze sygnały skanera.</p>';
+ chart([...L.bots,...(L.scanner_bots||[])],st);
+ const op=[...L.bots,...(L.scanner_bots||[])].flatMap(b=>b.open_positions.map(o=>({...o,bot:b.bot})));
  $('open').innerHTML=op.length?'<table class="tb"><tr><th>bot</th><th>symbol</th><th>kierunek</th><th class="r">wejście</th><th class="r">stop</th><th>od</th></tr>'+op.map(o=>`<tr><td>${esc(o.bot)}</td><td>${esc(o.symbol.split('/')[0])}</td><td>${o.side==='LONG'?'↑ LONG':'↓ SHORT'}</td><td class="r">${fmt(o.entry,4)}</td><td class="r">${fmt(o.stop,4)}</td><td>${esc(String(o.entry_time).slice(5,16))}</td></tr>`).join('')+'</table>':'<p class="empty">Brak otwartych pozycji.</p>';
  const oc=r.onchain||[];
  $('oc').innerHTML=oc.length?'<table class="tb"><tr><th>czas</th><th class="r">ETH/h na giełdy</th><th class="r">stable USD/h</th><th class="r">wieloryby</th></tr>'+oc.slice(0,24).map(s=>`<tr><td>${esc(String(s.created_at).slice(5,16))}</td><td class="r ${cls(-s.eth_netflow_h)}">${fmt(s.eth_netflow_h,1)}</td><td class="r ${cls(s.stable_netflow_h)}">${fmt(s.stable_netflow_h,0)}</td><td class="r">${s.whale_moves}</td></tr>`).join('')+'</table><p class="empty">ETH na giełdy (+) zwykle = presja sprzedaży; stablecoiny na giełdy (+) = kapitał do kupowania. Tryb obserwacji.</p>':'<p class="empty">Brak odczytów — dodaj ETHERSCAN_API_KEY do .env skanera.</p>'}
-load();setInterval(load,120000);addEventListener('resize',()=>D?.ok&&chart(D.lab.bots,D.lab.start_capital));
+load();setInterval(load,120000);addEventListener('resize',()=>D?.ok&&chart([...D.lab.bots,...(D.lab.scanner_bots||[])],D.lab.start_capital));
 </script>
 </body>
 </html>
