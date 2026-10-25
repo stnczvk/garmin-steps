@@ -199,8 +199,15 @@ def produce(why="harmonogram"):
             for j in jobs:
                 j.result()
         _upd(vid, step="montaż (FFmpeg)")
+        cds = [dur(d / f"a{ci}.mp3") for ci in range(len(sc["chapters"]))]
         f = render(d, sc["chapters"])
         length, probs = check(f)
+        if not probs:
+            _upd(vid, step="zwiastuny (shorty)")
+            try:
+                trailers(d, sc, cds)
+            except Exception as e:
+                log("dlugi", f"Zwiastuny nie wyszły: {str(e)[:120]}", "warn")
         for p in d.glob("*.png"):
             if p.name != "thumb.png":
                 p.unlink(missing_ok=True)
@@ -226,6 +233,83 @@ def produce(why="harmonogram"):
         return {"ok": False, "error": str(e)[:200]}
     finally:
         _busy.pop("run", None)
+
+
+FONTS = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"]
+
+
+def _esc(t):
+    return str(t).replace("\\", "").replace(":", "\\:").replace("'", "\u2019").replace("%", " percent")
+
+
+def trailers(d, sc, cds):
+    """2 pionowe shorty-zwiastuny z długiego filmu: początek (hook) i najmocniejszy moment (przedostatni rozdział).
+    Kadr 16:9 na rozmytym tle 9:16 + tytuł u góry i „Full episode on the channel” na dole."""
+    f = d / "final.mp4"
+    starts = [(0.0, min(55.0, max(20.0, cds[0] if cds else 50)))]
+    if len(cds) >= 3:
+        k = len(cds) - 2
+        st = sum(cds[:k])
+        starts.append((st, min(55.0, max(20.0, cds[k]))))
+    font = next((x for x in FONTS if os.path.exists(x)), None)
+    made = []
+    for i, (ss, ln) in enumerate(starts):
+        out = d / f"trailer{i + 1}.mp4"
+        vf = ("[0:v]split=2[a][b];[a]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=30:3,eq=brightness=-0.08[bg];"
+              "[b]scale=1080:-2[fg];[bg][fg]overlay=0:(H-h)/2")
+        if font:
+            lines, cur = [], ""
+            for w_ in sc["title"].split():
+                if len(cur) + len(w_) + 1 > 22 and cur:
+                    lines.append(cur); cur = w_
+                else:
+                    cur = (cur + " " + w_).strip()
+            lines = (lines + [cur])[:3]
+            for li, tx in enumerate(lines):
+                vf += f",drawtext=fontfile={font}:text='{_esc(tx)}':fontcolor=white:fontsize=66:x=(w-text_w)/2:y={250 + li * 92}:box=1:boxcolor=black@0.5:boxborderw=18"
+            vf += f",drawtext=fontfile={font}:text='Full episode on the channel':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h-420:box=1:boxcolor=0x5FA987@0.9:boxborderw=20"
+        subprocess.run(["ffmpeg", "-y", "-ss", f"{ss:.2f}", "-t", f"{ln:.2f}", "-i", str(f), "-filter_complex", vf, "-r", "30",
+                        "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)],
+                       check=True, capture_output=True)
+        made.append(out.name)
+    return made
+
+
+def _yt_upload(tok, f, meta):
+    r = httpx.post("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", timeout=60,
+                   headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json", "X-Upload-Content-Type": "video/mp4",
+                            "X-Upload-Content-Length": str(f.stat().st_size)}, json=meta)
+    if r.status_code >= 300 or "location" not in r.headers:
+        raise RuntimeError("YouTube: " + r.text[:200])
+    with open(f, "rb") as fh:
+        u = httpx.put(r.headers["location"], content=fh.read(), timeout=3600, headers={"Content-Type": "video/mp4"})
+    if u.status_code >= 300:
+        raise RuntimeError("YouTube (wysyłka): " + u.text[:200])
+    return u.json().get("id")
+
+
+def publish_trailer(vid, n):
+    """Zwiastun n (1 = zaraz po długim filmie, 2 = dzień później) jako Short z linkiem do pełnego odcinka."""
+    from social import _google_access
+    S = _state()
+    it = next((x for x in S["items"] if x["id"] == vid), None)
+    f = WORK / vid / f"trailer{n}.mp4"
+    if not it or not it.get("yt") or not f.exists():
+        return None
+    sc = json.loads((WORK / vid / "script.json").read_text())
+    _, acc = _pz_account("youtube")
+    tok = _google_access(acc)
+    yid = _yt_upload(tok, f, {"snippet": {"title": (sc["title"][:80] + " #shorts"), "categoryId": "27", "defaultLanguage": "en",
+                                          "description": f"Full episode 👉 https://youtu.be/{it['yt']}\n\n#WhatIf #Stickman #shorts",
+                                          "tags": (sc.get("tags") or [])[:10]},
+                              "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False}})
+    f.unlink(missing_ok=True)
+    tr = it.get("trailers", {})
+    tr[str(n)] = yid
+    _upd(vid, trailers=tr)
+    log("dlugi", f"Zwiastun {n} (Short) wrzucony: {sc['title']}", "ok")
+    return yid
 
 
 def publish(vid):
@@ -265,6 +349,10 @@ def publish(vid):
         _upd(vid, status="published", step="opublikowany", yt=yid, published=time.time())
         log("dlugi", f"Opublikował długi film: {sc['title']}", "ok")
         (d / "final.mp4").unlink(missing_ok=True)   # oszczędność dysku – film jest już na YouTube
+        try:
+            publish_trailer(vid, 1)
+        except Exception as e:
+            log("dlugi", f"Zwiastun 1 nie wyszedł: {str(e)[:120]}", "warn")
         return {"ok": True, "yt": yid}
     except Exception as e:
         _upd(vid, status="review", step="publikacja nie wyszła: " + str(e)[:150])
@@ -281,6 +369,13 @@ def _loop():
                 today = now.strftime("%y%m%d")
                 if c["enabled"] and now.weekday() in c["days"] and now.hour >= c["hour"] and not any(x["id"].startswith(today) for x in S["items"]):
                     produce()
+                for it in S["items"]:
+                    if it.get("status") == "published" and it.get("yt") and "2" not in (it.get("trailers") or {}) \
+                            and time.time() - it.get("published", 0) > 86400 and (WORK / it["id"] / "trailer2.mp4").exists():
+                        try:
+                            publish_trailer(it["id"], 2)
+                        except Exception as e:
+                            print("dlugi trailer2", e, flush=True)
                 # sprzątanie: odrzucone/stare katalogi > 10 dni
                 for p in WORK.glob("*"):
                     if p.is_dir() and time.time() - p.stat().st_mtime > 10 * 86400:
