@@ -221,7 +221,10 @@ const SCHED=[[3,20,'Kopia zapasowa','codziennie'],[7,0,'Retencja filmów','Anali
 const AG={scout:['Trend Scout','🔭'],qa:['Kontrola scenariusza',''],seo:['SEO',''],tech:['Kontrola techniczna',''],retention:['Analityk retencji',''],inbox:['Inbox',''],op:['Centrum',''],copy:['Copywriter',''],trends:['Trendy',''],recycle:['Recykler',''],spokes:['Rzecznik',''],private:['Analityk kont','']};
 let HID=new Set();try{HID=new Set(JSON.parse(localStorage.getItem('home-hide')||'[]'))}catch(e){}
 const hk=s=>String(s).replace(/[^\w\u00C0-\u024F#:]+/g,'_').slice(0,90);
-function hide(keys){keys.forEach(k=>HID.add(k));try{localStorage.setItem('home-hide',JSON.stringify([...HID].slice(-400)))}catch(e){}}
+function hide(keys){keys.forEach(k=>HID.add(k));try{localStorage.setItem('home-hide',JSON.stringify([...HID].slice(-400)))}catch(e){}
+ fetch('/api/ui/hidden',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keys})}).catch(()=>{})}
+// po powrocie do zakładki (np. skasowane na telefonie) – odśwież
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 function timeline(A,P,V,F,PL){
  const t0=today0(),ev=[];
  (A?.log||[]).filter(e=>e.t*1000>=t0).forEach(e=>ev.push({t:e.t*1000,b:(AG[e.agent]||[e.agent])[0],s:e.text,err:e.kind==='error'}));
@@ -358,6 +361,7 @@ async function load(){
  if(busy)return;busy=true;
  try{
   const [D,S,EQ,FG,A,P,AUD,G,V,F,W]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit'),get('/api/guardians'),get('/api/mont-vlog/state'),get('/api/mont/jobs'),get('/api/wallets')]);
+  const HK=await get('/api/ui/hidden');if(HK&&HK.keys){HK.keys.forEach(k=>HID.add(k))}
   const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
  }finally{busy=false}
 }

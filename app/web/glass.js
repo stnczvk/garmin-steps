@@ -25,7 +25,7 @@
   });
 
   // 2) Liquid Glass v2 – światło na szkle podąża za kursorem
-  if (matchMedia('(hover: none)').matches) return;
+  return; // efekt światła za kursorem wyłączony (v3)
   let raf = 0, ev = null;
   addEventListener('pointermove', e => {
     ev = e;
