@@ -94,3 +94,22 @@ body.lg{padding-bottom:var(--sab,0px)}
   -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
  .lg-bg:before,.lg-bg:after{filter:none}
 }
+
+/* ===================== Dashboard v3: jeden wygląd w całej apce =====================
+   Matowe, nieprzezroczyste kafle z delikatną głębią (zamiast rozmytego szkła): czytelniej i dużo lżej dla baterii. */
+:root{--lg-base:#0d0e14;--lg-1:#1b1c28;--lg-2:#14151e;--lg-b:rgba(255,255,255,.06);--lg-hi:rgba(255,255,255,.09);--lg-lo:rgba(0,0,0,0);
+  --lg-sh:0 10px 30px -18px rgba(5,4,20,.9);--lg-blur:none;--lg-r:24px;
+  --lg-a:rgba(143,123,255,.16);--lg-b2:rgba(61,220,132,.05);--lg-c:transparent;--lg-d:transparent}
+:root[data-theme=light]{--lg-base:#f3f3f7;--lg-1:#ffffff;--lg-2:#ffffff;--lg-b:rgba(20,20,40,.08);--lg-hi:rgba(255,255,255,.9);
+  --lg-sh:0 10px 30px -18px rgba(40,40,80,.18);--lg-a:rgba(110,86,207,.10);--lg-b2:rgba(22,163,74,.05)}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]):not(.lg-dark){--lg-base:#f3f3f7;--lg-1:#ffffff;--lg-2:#ffffff;--lg-b:rgba(20,20,40,.08);--lg-hi:rgba(255,255,255,.9);
+  --lg-sh:0 10px 30px -18px rgba(40,40,80,.18);--lg-a:rgba(110,86,207,.10);--lg-b2:rgba(22,163,74,.05)}}
+.lg .glass,.lg .card,.lg .head,.lg .kpi,.lg .stage,.lg header,.lg #panel,.lg #mini,.lg .lbl,.lg .ev,.lg .chip,.lg #chartbtn,.lg .cb-in,.lg .lg-btn{
+  background:linear-gradient(180deg,var(--lg-1),var(--lg-2)) !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  border:1px solid var(--lg-b) !important;box-shadow:inset 0 1px 0 var(--lg-hi),var(--lg-sh) !important}
+.lg .head{border-width:0 0 1px 0 !important}
+.lg .glass,.lg .card,.lg .kpi,.lg .stage,.lg #panel{border-radius:var(--lg-r) !important}
+.lg .glass:after,.lg .card.lift:after{display:none}
+.lg .glass:before,.lg .card:before,.lg .kpi:before,.side:before{display:none}
+.lg-bg:before{background:radial-gradient(60% 40% at 15% -5%,var(--lg-a),transparent 70%),radial-gradient(40% 30% at 100% 0%,var(--lg-b2),transparent 70%) !important;filter:none !important}
+.lg-bg:after{display:none}
