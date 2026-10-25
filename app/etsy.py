@@ -106,6 +106,11 @@ def sync():
                                  "views": l.get("views", 0), "favorites": l.get("num_favorers", 0), "url": l.get("url", "")})
             if len(j.get("results", [])) < 100:
                 break
+        # dzienny zrzut wyświetleń i ulubionych (API daje tylko sumy narastające – różnica = ruch z danego dnia)
+        H = D.get("views_hist", {})
+        H[datetime.now().strftime("%Y-%m-%d")] = {"views": sum(l["views"] or 0 for l in listings), "fav": sum(l["favorites"] or 0 for l in listings),
+                                                  "by": {str(l["id"]): l["views"] or 0 for l in listings}}
+        D["views_hist"] = dict(sorted(H.items())[-120:])
         D.update(orders=sorted(old.values(), key=lambda o: o["t"] or 0), listings=listings, synced=time.time(), error=None,
                  shop={"name": shop.get("shop_name"), "url": shop.get("url"), "currency": shop.get("currency_code"),
                        "sales": shop.get("transaction_sold_count"), "favorites": shop.get("num_favorers")})
@@ -238,9 +243,31 @@ def state():
     return {"connected": bool(c.get("refresh")), "has_keys": bool(c.get("keystring")), "shop": D.get("shop"), "synced": D.get("synced"),
             "error": D.get("error"), "currency": (D.get("shop") or {}).get("currency") or (O[-1]["currency"] if O else "EUR"),
             "today": agg(day0), "d7": agg(now - 7 * 86400), "d30": agg(now - 30 * 86400), "all": agg(0), "days": days,
-            "products": sorted(prod.values(), key=lambda p: -p["revenue"]), "pers": pers,
+            "traffic": _traffic(D, O), "products": sorted(prod.values(), key=lambda p: -p["revenue"]), "pers": pers,
             "recent": [{"id": o["id"], "t": o["t"], "total": o["total"], "currency": o["currency"], "items": ", ".join(i["title"][:40] for i in o["items"])}
                        for o in reversed(O[-12:])], "fees": fees}
+
+
+def _traffic(D, O):
+    """Wyświetlenia ofert: dzienne przyrosty z zapisanych zrzutów + konwersja (zamówienia / wyświetlenia)."""
+    H = D.get("views_hist", {})
+    keys = sorted(H)
+    daily = {}
+    for a, b in zip(keys, keys[1:]):
+        daily[b] = {"views": max(0, H[b]["views"] - H[a]["views"]), "fav": max(0, H[b]["fav"] - H[a]["fav"])}
+    today = datetime.now().date()
+    def win(n):
+        ds = {(today - timedelta(days=k)).strftime("%Y-%m-%d") for k in range(n)}
+        v = sum(x["views"] for d, x in daily.items() if d in ds)
+        f = sum(x["fav"] for d, x in daily.items() if d in ds)
+        since = datetime.combine(today - timedelta(days=n - 1), datetime.min.time()).timestamp()
+        o = sum(1 for x in O if (x["t"] or 0) >= since)
+        return {"views": v, "fav": f, "orders": o, "conv": round(o / v, 4) if v else None}
+    days = [{"d": (today - timedelta(days=k)).strftime("%d.%m"), "v": daily.get((today - timedelta(days=k)).strftime("%Y-%m-%d"), {}).get("views", 0)}
+            for k in range(29, -1, -1)]
+    last = H[keys[-1]] if keys else {}
+    return {"today": win(1), "d7": win(7), "d30": win(30), "total_views": last.get("views", 0), "total_fav": last.get("fav", 0),
+            "days": days, "since": keys[0] if keys else None}
 
 
 @router.post("/api/etsy/keys")

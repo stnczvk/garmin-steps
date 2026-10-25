@@ -18,6 +18,9 @@ body{margin:0;color:var(--ink);background:var(--lg-base);font:14px/1.45 Geist,sy
 .gr{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
 .chart{height:200px;display:flex;align-items:flex-end;gap:4px;padding-top:10px}.chart i{flex:1;background:linear-gradient(180deg,#ff8a5c,#f1641e);border-radius:5px 5px 2px 2px;min-height:2px;position:relative}
 .chart i:hover:after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translate(-50%,-6px);background:var(--v3-s3);padding:4px 8px;border-radius:8px;font-size:11.5px;white-space:nowrap;color:var(--ink)}
+.chart.vw i{background:linear-gradient(180deg,#8fb6ff,#5B8DEF)}
+.trg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.trg div{background:var(--v3-s3);border-radius:14px;padding:12px 14px}
+.trg small{display:block;color:var(--mut);font-size:12px}.trg b{display:block;font-size:22px;letter-spacing:-.02em;margin-top:4px}.trg em{font-style:normal;font-size:12px;color:var(--soft)}
 .ax{display:flex;justify-content:space-between;color:var(--faint);font-size:11.5px;margin-top:6px}
 table{width:100%;border-collapse:collapse}th{font-weight:500;color:var(--faint);font-size:12px;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
 td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-child td{border:0}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
@@ -52,6 +55,10 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
  </div>
  <div class="kp" id="kp"></div>
  <div class="gr">
+  <section class="t"><h2>Wyświetlenia ofert – ostatnie 30 dni<span class="r" id="v30"></span></h2><div class="chart vw" id="vch"></div><div class="ax" id="vax"></div></section>
+  <section class="t"><h2>Ruch i konwersja<span class="r" id="vsince"></span></h2><div id="tr"></div></section>
+ </div>
+ <div class="gr">
   <section class="t"><h2>Sprzedaż – ostatnie 30 dni<span class="r" id="c30"></span></h2><div class="chart" id="ch"></div><div class="ax" id="ax"></div></section>
   <section class="t"><h2>Personalizacje do zrobienia<span class="r" id="pn"></span></h2><div id="pers"></div></section>
  </div>
@@ -72,6 +79,14 @@ async function load(){let r;try{r=await (await fetch('/api/etsy')).json()}catch(
  if(r.shop?.name)$('sub').textContent=`${r.shop.name} · ${r.shop.sales??0} sprzedaży łącznie · ${r.shop.favorites??0} obserwujących`;
  const K=[['Dziś',r.today],['7 dni',r.d7],['30 dni',r.d30],['Łącznie',r.all]];
  $('kp').innerHTML=K.map(([l,a])=>`<div class="t k"><div class="l">${l}</div><div class="v">${m(a.revenue)}</div><div class="d">${a.orders} zamówień · netto ok. ${m(a.net)}</div></div>`).join('');
+ const T=r.traffic||{days:[]};const vm=Math.max(1,...T.days.map(d=>d.v));$('v30').textContent=(T.d30?.views||0)+' wyświetleń';
+ $('vch').innerHTML=T.days.map(d=>`<i style="height:${Math.max(1,d.v/vm*100)}%" data-t="${d.d}: ${d.v} wyświetleń"></i>`).join('');
+ $('vax').innerHTML=T.days.length?`<span>${T.days[0].d}</span><span>${T.days[14].d}</span><span>dziś</span>`:'';
+ $('vsince').textContent=T.since?'liczone od '+T.since.split('-').reverse().join('.'):'';
+ const cv=x=>x.conv!=null?(x.conv*100).toFixed(1)+'%':'–';
+ $('tr').innerHTML=T.since?`<div class="trg">${[['Dziś',T.today],['7 dni',T.d7],['30 dni',T.d30]].map(([l,x])=>`<div><small>${l}</small><b>${x.views}</b><em>wyświetleń · ${x.fav} ulubionych</em><em style="display:block">konwersja ${cv(x)} (${x.orders} zam.)</em></div>`).join('')}</div>
+  <p class="empty" style="margin-top:12px">Łącznie: ${T.total_views} wyświetleń ofert, ${T.total_fav} dodań do ulubionych. Etsy udostępnia przez API wyświetlenia ofert – unikalne wizyty w sklepie i źródła ruchu są tylko w Statystykach na Etsy.</p>`
+  :'<p class="empty">Statystyki ruchu ruszą po połączeniu sklepu przez API – pierwszy dzienny wynik dzień po połączeniu.</p>';
  const mx=Math.max(1,...r.days.map(d=>d.rev));$('c30').textContent=m(r.d30.revenue);
  $('ch').innerHTML=r.days.map(d=>`<i style="height:${Math.max(1,d.rev/mx*100)}%" data-t="${d.d}: ${m(d.rev)} (${d.n})"></i>`).join('');
  $('ax').innerHTML=`<span>${r.days[0].d}</span><span>${r.days[14].d}</span><span>dziś</span>`;
