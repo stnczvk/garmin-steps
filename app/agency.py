@@ -241,7 +241,11 @@ def as_json(txt):
 
 
 # ---------- Trend Scout: kolejka tematów ----------
+STICK_BRIEF = ("Kanał to od 25.10 seria „What If?” ze stickmanem Stickiem: każdy temat podaj jako scenariusz „What if…” (EN), "
+               "który Stick przeżywa (np. What if you fell into the Mariana Trench). Skala i nauka nadal są puentą, liczby prawdziwe.")
+
 def research(n=8, why="harmonogram"):
+    STICK_TXT = STICK_BRIEF if settings().get("stickman") else ""
     if _busy.get("scout"):
         return 0
     _busy["scout"] = "szuka tematów"
@@ -272,6 +276,7 @@ Tematy już użyte (nie powtarzaj ani nie rób bliskich wariantów):
 {chr(10).join('- ' + u for u in used) or '- brak'}
 
 Jesteś Trend Scoutem. Możesz krótko sprawdzić w sieci, co teraz jest głośne w nauce/kosmosie/przyrodzie.
+{STICK_TXT}
 Zaproponuj {n} nowych tematów, faworyzując to, co działa najlepiej, i unikając tego, co słabe.
 Każdy temat musi dać się POKAZAĆ obrazami (skala przez porównanie ze znanym obiektem) i mieć jedno konkretne pytanie. Rotuj filary.
 Odpowiedz WYŁĄCZNIE tablicą JSON: [{{"topic": "...(EN, konkretny)", "pillar": "jeden z filarów", "category": "jedna z kategorii", "hook": "pierwsze zdanie lektora EN, max 12 słów",

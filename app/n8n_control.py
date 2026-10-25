@@ -470,6 +470,70 @@ def apply_diet():
     return {"ok": True, "off": off}
 
 
+# ---------- PozaSkala → seria „What If?” ze stickmanem (25.10.2026) ----------
+STICK_MARK = "SERIES OVERRIDE"
+STICK = """## SERIES OVERRIDE – "What If?" starring Stick (this section overrides ANY conflicting rule below)
+- The channel is now a STORY series: every video is one episode of "What If?" starring the same character, STICK: a simple black stick figure with a round white head, two dot eyes and a small red scarf.
+- Format is always WHAT_IF (CAN_YOU_IMAGINE allowed): a hypothetical scenario told as a mini-story that Stick lives through (falls into the Mariana Trench, stands on a neutron star, swims inside a blue whale's heart, holds a teaspoon of the Sun...). Real science and real scale stay the payoff; numbers stay conservative and correct.
+- Story beats across the 5 scenes: setup (Stick + the question) -> first problem -> escalation -> the big consequence/reveal -> twist ending that echoes the hook. Narration follows Stick ("Stick jumps in. Ten seconds later..."), short spoken sentences.
+- title starts with "What If" (max 60 chars, main keyword early). Hashtags must include #WhatIf and #Stickman.
+- VISUAL STYLE for EVERY image prompt (replaces any realistic/photographic/National Geographic style rule): "2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, dot eyes, small red scarf), thick clean black outlines, simple flat pastel background, bold readable shapes, correct relative proportions between Stick and the objects, vertical 9:16, no text, no watermark". Same character design and the same style in all scenes; never photoreal.
+- Video scene (Kling): animate the same 2D flat cartoon (camera pulls back / Stick reacts), keep the flat 2D style and the character design.
+- thumbnail_prompt: Stick with a shocked face inside the scenario, same 2D flat style, one clear focal point, no text.
+
+"""
+JUDGE_NOTE = "\n\n## Note\nThe channel is now a 2D stick-figure story series (\"What If?\" starring Stick). Do not penalize the cartoon style; reward clear story beats and a scenario a 13-year-old instantly understands."
+
+
+def apply_stickman(force=False):
+    from agency import _read, _write
+    st = _read("agency_settings.json", {})
+    if st.get("stickman_applied") and not force:
+        return {"ok": True, "already": True}
+    try:
+        wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:150]}
+    g = AN.find_generator([w for w in wfs if not w.get("isArchived")])
+    if not g:
+        return {"ok": False, "error": "nie znalazłem generatora"}
+    new = copy.deepcopy(g)
+    done = []
+    for n in new["nodes"]:
+        try:
+            v = n["parameters"]["responses"]["values"][0]
+        except Exception:
+            continue
+        c = v.get("content") or ""
+        if n["name"] in ("Message a model", "Regenerate Script") and STICK_MARK not in c:
+            v["content"] = ("=" + STICK + c[1:]) if c.startswith("=") else STICK + c
+            done.append(n["name"])
+        elif n["name"] == "Judge Script" and "stick-figure" not in c:
+            v["content"] = c + JUDGE_NOTE
+            done.append(n["name"])
+    if done:
+        _save_backup(g, "przed przejściem na serię What If ze stickmanem")
+        r = n8n("PUT", f"/api/v1/workflows/{g['id']}", json=AN.put_body(new))
+        if r.status_code >= 400:
+            r = n8n("PUT", f"/api/v1/workflows/{g['id']}", json=AN.put_body(new, minimal=True))
+        if r.status_code >= 400:
+            log("op", f"Stickman: n8n nie przyjął zmian: {r.text[:150]}", "error")
+            return {"ok": False, "error": r.text[:200]}
+        if g.get("active"):
+            n8n("POST", f"/api/v1/workflows/{g['id']}/activate")
+    st = _read("agency_settings.json", {})
+    st.update(stickman=True, stickman_applied=time.time())
+    _write("agency_settings.json", st)
+    log("op", "PozaSkala → seria „What If?” ze stickmanem (" + (", ".join(done) or "już ustawione") + ")", "ok")
+    _bust()
+    return {"ok": True, "changed": done}
+
+
+@router.post("/api/n8n/stickman")
+def api_stickman():
+    return apply_stickman(force=True)
+
+
 def _img_loop():
     import threading, time as _t
     def run():
@@ -483,6 +547,10 @@ def _img_loop():
                 apply_diet()
             except Exception as e:
                 print("diet", e, flush=True)
+            try:
+                apply_stickman()
+            except Exception as e:
+                print("stickman", e, flush=True)
             _t.sleep(6 * 3600)
     threading.Thread(target=run, daemon=True).start()
 
