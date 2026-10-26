@@ -222,9 +222,10 @@ def disconnect():
 
 
 @router.get("/privacy")
+@router.get("/planperfectsheets-privacy-policy")
 def privacy():
     return HTMLResponse("""<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Privacy policy – PlanPerfect Centrum</title>
-<body style="font:16px/1.6 system-ui;max-width:720px;margin:40px auto;padding:0 20px;color:#222"><h1>Privacy policy</h1>
+<body style="font:16px/1.6 system-ui;max-width:720px;margin:40px auto;padding:0 20px;color:#222"><h1>PlanPerfect Sheets – Privacy policy</h1>
 <p>PlanPerfect Centrum is a private tool used only by the owner of the PlanPerfect Sheets shop to schedule Pins of the shop's own products on the owner's own Pinterest account and to view the shop's statistics.</p>
 <p>The app stores only the OAuth tokens needed for this, on the owner's private server. No data of other users is collected, shared or sold.</p>
 <p>To revoke access, disconnect the app in Pinterest settings (Security → Connected apps) or in the app itself.</p>

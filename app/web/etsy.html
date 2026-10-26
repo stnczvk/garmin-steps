@@ -155,7 +155,7 @@ mload();
 
 // ---------- Pinterest automat ----------
 async function pload(){let P;try{P=await (await fetch('/api/pinterest')).json()}catch(e){return}
- $('pcb').textContent=P.callback;$('ppriv').textContent=location.origin+'/privacy';
+ $('pcb').textContent=P.callback;$('ppriv').textContent=location.origin+'/planperfectsheets-privacy-policy';
  $('pset').hidden=P.connected;$('pst').textContent=P.connected?(P.cfg.auto?'działa · '+P.cfg.hours.map(h=>h+':00').join(' i '):'wstrzymany'):(P.has_keys?'kliknij Połącz':'nie połączony');
  const th=q=>`<img src="/pins/${q.img}" style="width:46px;height:69px;object-fit:cover;border-radius:8px;flex:none">`;
  $('pbody').innerHTML=(P.has_keys&&!P.connected?`<a class="ib pri" href="/api/pinterest/connect">Połącz z Pinterestem</a>`:'')+
