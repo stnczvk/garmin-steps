@@ -140,6 +140,8 @@ from prefs import router as prefs_router  # noqa: E402
 app.include_router(prefs_router)
 from updater import router as updater_router  # noqa: E402
 app.include_router(updater_router)
+from hermes_chat import router as hermes_router  # noqa: E402
+app.include_router(hermes_router)
 from dlugi import router as dlugi_router  # noqa: E402
 app.include_router(dlugi_router)
 from etsy import router as etsy_router  # noqa: E402
