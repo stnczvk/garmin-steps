@@ -536,6 +536,99 @@ def g_mac_disk():
     return (FAIL if f < 10 else WARN if f < 25 else OK), msg, None
 
 
+
+# ---------------------------------------------------------------- Etsy
+def _etsy():
+    c = _read("etsy_secret.json", {}); D = _read("etsy.json", {})
+    return c, D
+
+
+def g_etsy_conn():
+    c, D = _etsy()
+    if not c.get("refresh"):
+        return IDLE, "sklep niepołączony (zakładka Etsy → Połącz)", None
+    if D.get("error"):
+        return FAIL, str(D["error"])[:140], None
+    if "listings_w" not in (c.get("scopes") or ""):
+        return WARN, "brak uprawnienia do edycji ofert – Rozłącz → Połącz w zakładce Etsy", None
+    ts = D.get("synced") or 0
+    if not ts or time.time() - ts > 2 * 3600:
+        return WARN, f"dane nieodświeżane od {_ago(ts) if ts else 'początku'}", None
+    sh = D.get("shop") or {}
+    return OK, f"{sh.get('name') or 'sklep'} · odświeżone {_ago(ts)}", None
+
+
+def _etsy_listings():
+    c, D = _etsy()
+    if not c.get("refresh"):
+        return IDLE, "sklep niepołączony", None
+    import etsy_manage as EM
+    m = EM._map(); M = EM._man()
+    active = {l["id"] for l in D.get("listings", [])}
+    missing = [M[k]["name"] for k, v in m.items() if k in M and v and v not in active]
+    nolink = [M[k]["name"] for k in M if not m.get(k)]
+    weak = []
+    for k, lid in m.items():
+        if not lid or lid not in active:
+            continue
+        imgs = len(EM._call("GET", f"/listings/{lid}/images").get("results", []))
+        vids = [v for v in EM._call("GET", f"/listings/{lid}/videos").get("results", []) if v.get("video_state", "active") == "active"]
+        if imgs < 5 or not vids:
+            weak.append(f"{M.get(k, {}).get('name', lid)} ({imgs} zdj.{'' if vids else ', bez filmu'})")
+    if missing:
+        return FAIL, "nieaktywne / wygasłe: " + ", ".join(missing)[:140], None
+    if weak or nolink:
+        return WARN, ("słabe oferty: " + ", ".join(weak) if weak else "") + (" · niewystawione: " + ", ".join(nolink) if nolink else ""), None
+    return OK, f"{len(active)} aktywnych ofert · każda ma 5+ zdjęć i film", None
+
+
+def g_etsy_listings():
+    return _cached("etsy_listings", 6 * 3600, _etsy_listings)
+
+
+def g_etsy_pers():
+    c, D = _etsy()
+    if not D.get("orders"):
+        return IDLE, "brak zamówień", None
+    late = [o for o in D["orders"] if not o.get("pers_done") and any(i.get("personalization") for i in o["items"])]
+    if not late:
+        return OK, "wszystkie personalizacje wysłane", None
+    oldest = max(time.time() - (o["t"] or time.time()) for o in late) / 3600
+    st = FAIL if oldest > 36 else WARN
+    return st, f"{len(late)} do wysłania · najstarsza {oldest:.0f} h (obiecujesz 48 h)", None
+
+
+def g_etsy_traffic():
+    c, D = _etsy()
+    H = D.get("views_hist") or {}
+    if len(H) < 2:
+        return IDLE, "zbieram dane o wyświetleniach (pierwszy wynik po dobie)", None
+    days = sorted(H)
+    ref = days[-8] if len(days) >= 8 else days[0]
+    views = H[days[-1]]["views"] - H[ref]["views"]
+    span = len(days[days.index(ref):]) - 1
+    week = time.time() - 7 * 86400
+    sales = sum(1 for o in D.get("orders", []) if (o["t"] or 0) >= week)
+    if span >= 7 and views <= 0:
+        return WARN, "0 wyświetleń w 7 dni – popraw tytuły/zdjęcia albo włącz Etsy Ads", None
+    return OK, f"{max(0, views)} wyświetleń / {span} dni · {sales} sprzedaży w 7 dni", None
+
+
+def g_etsy_job():
+    try:
+        import etsy_manage as EM
+    except Exception:
+        return IDLE, "brak modułu", None
+    J = EM.JOB
+    if J.get("running"):
+        return OK, f"trwa: {J.get('title')}", None
+    if not J.get("log"):
+        return IDLE, "jeszcze nic nie uruchamiano", None
+    errs = [l for l in J["log"] if "⚠️" in l]
+    if errs:
+        return WARN, f"{J.get('title')}: {len(errs)} błędów – {errs[-1][9:120]}", None
+    return OK, f"{J.get('title')}: zrobione {_ago(J.get('at') or time.time())}", None
+
 # ---------------------------------------------------------------- lista strażników
 G = [
     ("vps", "Serwer", "infra", "🖥️", "Dysk, pamięć i obciążenie VPS", g_vps),
@@ -565,8 +658,13 @@ G = [
     ("okx", "Pozycje OKX", "skaner", "🔒", "Czy SL na OKX zgadza się ze skanerem (tylko odczyt – przesuwasz sam)", g_okx),
     ("journal", "Dziennik", "skaner", "📝", "Czy transakcje dostają notatki po zamknięciu", lambda: (OK, "notatki po każdym zamknięciu", None)),
     ("saudit", "Audyt skanera", "skaner", "🧾", "Czy cotygodniowy audyt się odbył", g_audit),
+    ("etsy", "Połączenie z Etsy", "etsy", "🛍️", "Czy sklep jest połączony i dane się odświeżają (co 30 min)", g_etsy_conn),
+    ("etsyl", "Oferty Etsy", "etsy", "🖼️", "Czy oferty są aktywne i mają 5 zdjęć + film (co 6 h)", g_etsy_listings),
+    ("etsyp", "Personalizacje", "etsy", "✍️", "Czy zamówienia z personalizacją są wysłane na czas (48 h)", g_etsy_pers),
+    ("etsyt", "Ruch w sklepie", "etsy", "👀", "Wyświetlenia i sprzedaż z ostatnich 7 dni", g_etsy_traffic),
+    ("etsyj", "Zmiany w ofertach", "etsy", "🔧", "Czy ostatnia podmiana / wystawianie z centrum przeszło bez błędów", g_etsy_job),
 ]
-AREAS = {"infra": "Infrastruktura", "pozaskala": "PozaSkala", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner"}
+AREAS = {"infra": "Infrastruktura", "pozaskala": "PozaSkala", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy"}
 
 
 def run_all(push=True):
