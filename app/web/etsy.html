@@ -40,10 +40,12 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 .mp img{width:86px;height:64px;object-fit:cover;border-radius:10px;flex:none}.mp>div{flex:1;min-width:0}.mp b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mp select{width:100%;margin-top:6px;height:30px;font-size:12px;border-radius:9px}.mp .chk{width:20px;height:20px;flex:none}
 .mbar{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px}.mlog{font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--soft);background:var(--v3-s3);border-radius:12px;padding:10px 12px;margin-top:12px;max-height:200px;overflow:auto;white-space:pre-wrap}
+.t>h2.fh{cursor:pointer;user-select:none}.fx2{border:0;background:var(--v3-s3);color:var(--mut);width:28px;height:28px;border-radius:9px;display:inline-grid;place-items:center;margin-left:10px;cursor:pointer;transition:transform .2s;flex:none}
+.fx2 svg{width:15px;height:15px}.t.fold .fx2{transform:rotate(-90deg)}.t.fold>:not(h2){display:none!important}.t.fold>h2{margin-bottom:0}.gr{align-items:start}
 </style>
 </head>
 <body class="lg">
-<div class="wrap">
+<div class="wrap" data-nofold>
  <div class="top"><div><h1>Etsy · PlanPerfect Sheets</h1><p id="sub">Sprzedaż, produkty i personalizacje</p></div>
   <div class="r"><span class="chip" id="st">…</span><button class="ib" id="sync">Odśwież</button><label class="ib" title="Raport zamówień z panelu Etsy (CSV)">Import CSV<input type="file" id="csv" accept=".csv" hidden></label></div></div>
  <div class="t setup" id="setup" hidden>
@@ -142,6 +144,14 @@ document.querySelectorAll('[data-act]').forEach(b=>b.onclick=async()=>{
  const r=await (await fetch('/api/etsy/do',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:b.dataset.act,codes})})).json().catch(()=>({error:'brak połączenia'}));
  if(r.error)alert(r.error);mload()});
 mload();
+
+// zwijanie sekcji (zapamiętane na urządzeniu)
+(()=>{let st={};try{st=JSON.parse(localStorage.getItem('etsy-fold')||'{}')}catch(e){}
+ const CH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+ document.querySelectorAll('.t>h2').forEach(h=>{const c=h.parentElement,key=(h.firstChild&&h.firstChild.textContent||h.textContent).trim().slice(0,40);
+  h.classList.add('fh');const b=document.createElement('button');b.className='fx2';b.title='Zwiń / rozwiń';b.innerHTML=CH;h.appendChild(b);
+  if(st[key])c.classList.add('fold');
+  h.addEventListener('click',e=>{if(e.target.closest('button:not(.fx2),a,input,select,label'))return;const v=c.classList.toggle('fold');st[key]=v;try{localStorage.setItem('etsy-fold',JSON.stringify(st))}catch(e){}})})})();
 </script>
 </body>
 </html>
