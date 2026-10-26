@@ -541,6 +541,57 @@ def api_stickman():
     return apply_stickman(force=True)
 
 
+# ---------------------------------------------------------------- Publisher: bez starych filmów z kolejki
+PUB_MARK = "centrum: pomijaj stare"
+def apply_publisher_fix():
+    """Publisher brał NAJSTARSZY film z kolejki, którego czas już minął – po przejściu na stickmana wypuszczał
+    zaległe filmy w starym stylu. Teraz pomija wpisy sprzed przełączenia na stickmana i starsze niż 3 dni."""
+    from agency import _read
+    st = _read("agency_settings.json", {})
+    cut = st.get("stickman_applied")
+    if not cut:
+        return {"ok": False, "error": "brak daty przejścia na stickmana"}
+    wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
+    pub = next((w for w in wfs if not w.get("isArchived") and "publisher" in (w.get("name") or "").lower()), None)
+    if not pub:
+        return {"ok": False, "error": "nie znalazłem workflow Publisher"}
+    pub = n8n("GET", f"/api/v1/workflows/{pub['id']}").json()
+    node = next((n for n in pub["nodes"] if n["name"] == "Parse Queue Entry"), None)
+    if not node:
+        return {"ok": False, "error": "w Publisherze nie ma węzła Parse Queue Entry"}
+    js = node["parameters"].get("jsCode", "")
+    if PUB_MARK in js:
+        return {"ok": True, "changed": False}
+    old = "if (queueFileId && !already && Date.now() >= publishAt)"
+    if old not in js:
+        return {"ok": False, "error": "nieznana wersja Parse Queue Entry – nic nie zmieniam"}
+    iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(cut))
+    new = copy.deepcopy(pub)
+    for n in new["nodes"]:
+        if n["name"] == "Parse Queue Entry":
+            j = n["parameters"]["jsCode"]
+            j = f"// {PUB_MARK}: filmy sprzed serii ze stickmanem ({iso}) i starsze niż 3 dni nie wychodzą\nconst CUTOFF = new Date('{iso}').getTime();\nconst MAX_AGE = 3 * 24 * 3600 * 1000;\n" + j
+            j = j.replace(old, "const fresh = publishAt >= CUTOFF && Date.now() - publishAt <= MAX_AGE;\n    if (queueFileId && !already && fresh && Date.now() >= publishAt)")
+            n["parameters"]["jsCode"] = j
+    _save_backup(pub, "przed pomijaniem starych filmów w Publisherze")
+    r = n8n("PUT", f"/api/v1/workflows/{pub['id']}", json=AN.put_body(new))
+    if r.status_code >= 400:
+        r = n8n("PUT", f"/api/v1/workflows/{pub['id']}", json=AN.put_body(new, minimal=True))
+    if r.status_code >= 400:
+        log("op", f"Publisher: n8n nie przyjął zmian: {r.text[:150]}", "error")
+        return {"ok": False, "error": r.text[:200]}
+    if pub.get("active"):
+        n8n("POST", f"/api/v1/workflows/{pub['id']}/activate")
+    log("op", "Publisher: pomija filmy sprzed stickmana i starsze niż 3 dni", "ok")
+    _bust()
+    return {"ok": True, "changed": True}
+
+
+@router.post("/api/n8n/publisher-fix")
+def api_publisher_fix():
+    return apply_publisher_fix()
+
+
 def _img_loop():
     import threading, time as _t
     def run():
@@ -558,6 +609,10 @@ def _img_loop():
                 apply_stickman()
             except Exception as e:
                 print("stickman", e, flush=True)
+            try:
+                apply_publisher_fix()
+            except Exception as e:
+                print("publisher fix", e, flush=True)
             _t.sleep(6 * 3600)
     threading.Thread(target=run, daemon=True).start()
 
