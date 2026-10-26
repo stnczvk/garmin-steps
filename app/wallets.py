@@ -106,7 +106,7 @@ def compute(force=False):
         if w and w.get(a["name"]):
             a["change"] = round((a["value"] / w[a["name"]] - 1) * 100, 1)
     out = {"ok": True, "total": total, "change_7d": round((total / w["total"] - 1) * 100, 1) if w and w.get("total") else None,
-           "accounts": acc, "history": [{"d": d, "v": H[d]["total"]} for d in days[-30:]], "errors": errs, "usd_pln": fx}
+           "accounts": acc, "history": [{"d": d, "v": H[d]["total"], **{a["name"]: H[d].get(a["name"]) for a in acc}} for d in days[-400:]], "errors": errs, "usd_pln": fx}
     _cache.update(t=time.time(), v=out)
     return out
 
