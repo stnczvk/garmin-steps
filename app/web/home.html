@@ -97,10 +97,15 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .o .bar{height:4px;border-radius:2px;background:var(--s3);margin-top:10px;overflow:hidden}.o .bar i{display:block;height:100%;background:var(--ok)}
 .o.wk{border-color:rgba(255,194,75,.3);background:rgba(255,194,75,.06)}.o.wk .bar i{background:var(--wr)}
 .o.er{border-color:rgba(255,107,122,.3)}.o.er .bar i{background:var(--bad)}
+.upr{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--ln)}.upr:first-child{border-top:0}
+.upr>div{flex:1;min-width:0}.upr b{font-size:14px}.upr small{display:block;color:var(--mu);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upr .dot{width:9px;height:9px;border-radius:50%;background:var(--ok,#3ddc84);flex:none}.upr .dot.off{background:var(--mu)}.upr .dot.new{background:#ffc24b;box-shadow:0 0 0 4px rgba(255,194,75,.18)}.upr .dot.run{background:#8f7bff;animation:upb 1s infinite alternate}
+@keyframes upb{to{opacity:.3}}.uplog{font:11px/1.45 ui-monospace,Menlo,monospace;color:var(--mu);background:rgba(127,127,160,.06);border-radius:10px;padding:8px 10px;margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto}
 /* raporty AI */
 .note{font-size:13px;color:var(--mu);line-height:1.55;margin-top:10px;padding:12px 14px;border-radius:14px;background:rgba(127,127,160,.06);max-height:220px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .note b{color:var(--tx)}
-.rep{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rep{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px;min-width:0}.rep>div{min-width:0}
+.note{overflow-wrap:anywhere;word-break:break-word;max-width:100%}
 .mod{position:fixed;inset:0;background:rgba(5,5,12,.6);display:none;align-items:flex-start;justify-content:center;padding:40px 14px;z-index:50;overflow-y:auto}.mod.open{display:flex}
 .mod .box{background:var(--s1);border:1px solid var(--ln);border-radius:22px;padding:22px;max-width:520px;width:100%}
 .mod h2{font-size:19px;font-weight:650;margin-bottom:6px}.mod p{color:var(--mu);font-size:13px;line-height:1.5}
@@ -166,6 +171,7 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
    <section class="t c7"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Skaner w tym miesiącu<span class="r" id="skc"></span></h3><div id="scan"><div class="sk" style="margin-top:10px;height:120px"></div></div></section>
    <section class="t c12" id="plc"><h3><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span>Zaplanowane posty<span class="r" style="display:flex;gap:8px;align-items:center"><span class="chip" id="pln">0</span><button class="lnk" id="plh">Godziny publikacji</button></span></h3><div id="pl"><div class="sk" style="margin-top:10px"></div></div></section>
    <section class="t c12"><h3><span class="hi" style="--c:#b5a8ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></svg></span>Biura<a class="r" href="#" data-go="agencja">Agencja AI →</a></h3><div class="offg" id="off"></div></section>
+   <section class="t c12" id="updc"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></span>Aktualizacje<span class="r"><button class="btn g" id="updchk" style="padding:5px 10px;font-size:12px">Sprawdź</button></span></h3><div id="upd"></div></section>
    <section class="t c12"><h3><span class="hi" style="--c:#ff9f6b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>Raporty AI</h3><div class="rep" id="rep"></div></section>
   </div>
  </div>
@@ -403,6 +409,21 @@ $('wsave').onclick=async()=>{const b=$('wsave');b.disabled=true;$('wmsg').textCo
    ['okx-k','okx-s','okx-p','kr-k','kr-s'].forEach(i=>$(i).value='');load()}}
  catch(e){$('wmsg').textContent='Brak połączenia z centrum.'}b.disabled=false};
 load();setInterval(load,90000);
+
+// ---------- aktualizacje (Centrum / Dziennik) ----------
+async function upd(fresh){const U=await get('/api/update'+(fresh?'?fresh=1':''));const box=$('upd');if(!U){box.innerHTML='<p class="empty">Nie udało się sprawdzić wersji.</p>';return}
+ box.innerHTML=U.apps.map(a=>{const st=!a.installed?'nie zainstalowana na serwerze':a.running?'aktualizuję…':a.update?'jest nowa wersja':'aktualna';
+  const last=(a.log||[]).filter(Boolean).slice(-1)[0]||'';const err=/KONIEC kod=[1-9]/.test(last);
+  return `<div class="upr"><span class="dot ${!a.installed?'off':a.running?'run':a.update?'new':''}"></span><div><b>${esc(a.name)}</b> <span style="color:var(--mu);font-size:12px">· ${st}</span><small>${a.local?esc(a.local)+' · '+esc(a.msg||''):''}</small>${a.running||err?`<div class="uplog">${esc((a.log||[]).join('\n'))}</div>`:''}</div>${a.installed?`<button class="btn${a.update?'':' g'}" data-upd="${a.id}" ${a.running?'disabled':''}>${a.running?'…':'Aktualizuj'}</button>`:''}</div>`}).join('');
+ box.querySelectorAll('[data-upd]').forEach(b=>b.onclick=async()=>{const n=b.closest('.upr').querySelector('b').textContent;if(!confirm(`Zaktualizować ${n}? Aplikacja zrestartuje się (ok. 1 min).`))return;
+  b.disabled=true;b.textContent='…';const r=await (await fetch('/api/update/'+b.dataset.upd,{method:'POST'})).json().catch(()=>({error:'brak połączenia'}));
+  if(r.error){alert(r.error);b.disabled=false;b.textContent='Aktualizuj';return}updPoll(b.dataset.upd)});
+ if(U.apps.some(a=>a.running)&&!updPoll.t)updPoll()}
+function updPoll(id){clearTimeout(updPoll.t);let n=0;const tick=async()=>{n++;const U=await get('/api/update');
+  if(U&&!U.apps.some(a=>a.running)){updPoll.t=null;upd(true);if(id==='centrum')setTimeout(()=>{try{parent.location.reload()}catch(e){location.reload()}},1500);return}
+  if(U)upd();updPoll.t=setTimeout(tick,3000)};updPoll.t=setTimeout(tick,2500)}
+$('updchk').onclick=e=>{e.stopPropagation();$('upd').innerHTML='<p class="empty">Sprawdzam…</p>';upd(true)};
+upd();
 </script>
 </body>
 </html>

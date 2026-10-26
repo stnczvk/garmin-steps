@@ -138,6 +138,8 @@ from wallets import router as wallets_router  # noqa: E402
 app.include_router(wallets_router)
 from prefs import router as prefs_router  # noqa: E402
 app.include_router(prefs_router)
+from updater import router as updater_router  # noqa: E402
+app.include_router(updater_router)
 from dlugi import router as dlugi_router  # noqa: E402
 app.include_router(dlugi_router)
 from etsy import router as etsy_router  # noqa: E402

@@ -602,6 +602,7 @@ body.v-ext .vframe{display:block}body.v-ext #app,body.v-ext #tabs,body.v-ext #re
 /* zakładki w ramce: cała strona = nagłówek + ramka do samego dołu ekranu (bez position:fixed – na iPhonie w trybie apki fixed zostawiał pasek) */
 body.v-ext{overflow:hidden;display:flex;flex-direction:column;height:var(--vh,100dvh);min-height:0}
 body.v-ext .head{position:relative;flex:none}
+body.kb .tbar,body.kb #tbar{display:none!important}body.kb.v-ext .vframe{margin-bottom:0!important}body.kb{padding-top:0!important}
 body.v-ext{box-sizing:border-box;padding-top:env(safe-area-inset-top)}
 #app{padding-top:calc(24px + env(safe-area-inset-top))!important}
 /* ekran startu: szklany kafel z logo (B) + fale i rozsunięcie od środka (F) */
@@ -1402,7 +1403,9 @@ if ('ResizeObserver' in window) new ResizeObserver(() => document.documentElemen
 function sizeApp() {
   const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
   const portrait = matchMedia('(orientation: portrait)').matches;
+  if (document.body.classList.contains('kb') && window.visualViewport) { document.documentElement.style.setProperty('--vh', visualViewport.height + 'px'); return 0; }
   const h = standalone && /iPhone|iPad/.test(navigator.userAgent) ? (portrait ? Math.max(screen.height, screen.width) : Math.min(screen.height, screen.width)) : innerHeight;
+  window.__fullVH = h;
   document.documentElement.style.setProperty('--vh', h + 'px');
   const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom);visibility:hidden';
   document.body.appendChild(pr); const sab = pr.offsetHeight; pr.remove();
@@ -1410,6 +1413,22 @@ function sizeApp() {
   return sab;
 }
 addEventListener('resize', sizeApp); addEventListener('orientationchange', () => setTimeout(sizeApp, 300));
+// klawiatura na telefonie: aplikacja kurczy się do widocznej części ekranu i nie „ucieka” w górę
+if (window.visualViewport) {
+  const vv = visualViewport;
+  const kb = () => {
+    const full = window.__fullVH || innerHeight;
+    const open = vv.height < full - 150 && matchMedia('(max-width: 900px)').matches;
+    document.body.classList.toggle('kb', open);
+    if (open) {
+      document.documentElement.style.setProperty('--vh', vv.height + 'px');
+      document.body.style.transform = `translateY(${vv.offsetTop}px)`;
+    } else if (document.body.style.transform) {
+      document.body.style.transform = ''; sizeApp();
+    }
+  };
+  vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb);
+}
 $('#vframe').addEventListener('load', sizeApp, true);
 sizeApp();
 addEventListener('message', e => { if (e.origin !== location.origin || !e.data) return; if (e.data.go) setView(e.data.go, true); if (e.data.setTheme) setTheme(e.data.setTheme, true);

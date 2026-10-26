@@ -61,7 +61,7 @@ body.no-right .app{grid-template-columns:44px 270px minmax(0,1fr) 0}body.no-left
 .page{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;position:relative}
 .page-in{max-width:760px;margin:0 auto;padding:28px 40px 120px;position:relative}
 #tt{width:100%;background:transparent!important;border:0!important;color:var(--o-tx)!important;font-weight:700;font-size:30px;line-height:1.25;font-family:inherit;letter-spacing:-.015em;padding:0;margin:0 0 14px;outline:none!important}
-textarea#tx{width:100%;min-height:calc(100dvh - 220px);background:transparent!important;border:0!important;color:var(--o-tx)!important;font:15.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;resize:none;outline:none!important;padding:0}
+textarea#tx{width:100%;min-height:50vh;overflow:hidden;background:transparent!important;border:0!important;color:var(--o-tx)!important;font:15.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;resize:none;outline:none!important;padding:0}
 .md{font-size:15.5px;line-height:1.7;color:var(--o-tx)}
 .md h1,.md h2,.md h3{line-height:1.3;margin:1.2em 0 .5em;font-weight:700}.md h1{font-size:1.75em}.md h2{font-size:1.4em}.md h3{font-size:1.18em}
 .md p{margin:.6em 0}.md ul,.md ol{padding-left:1.6em}.md li{margin:.2em 0}
@@ -198,7 +198,7 @@ $('tk').onclick=()=>{if(!CUR)return;const v=$('tx').value,n=v.replace(/^(\s*[-*]
 async function followLink(name){const n=T.notes.find(x=>x.name.toLowerCase()===name.toLowerCase());
  if(n)return open_(n.path);if(!confirm(`Nie ma notatki „${name}”. Utworzyć?`))return;
  const r=await J('/api/notes/file',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:`${CUR?.folder||'📥 Skrzynka'}/${name}.md`,content:`# ${name}\n\n`})});await loadTree();open_(r.path,'edit')}
-function setMode(m){MODE=m;document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('tx').hidden=m!=='edit';$('md').hidden=m==='edit';if(m==='view')render();else $('tx').focus()}
+function setMode(m){MODE=m;document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('tx').hidden=m!=='edit';$('md').hidden=m==='edit';if(m==='view')render();else{requestAnimationFrame(grow);$('tx').focus({preventScroll:true})}}
 document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 async function open_(path,mode){if(DIRTY)await save();const n=await J('/api/notes/file?path='+encodeURIComponent(path));if(n.error)return toast('Nie ma takiej notatki');
  CUR=n;$('tt').value=n.name;$('tq').hidden=!/Pomysł/i.test(n.folder||'');$('tx').value=n.content;$('fs').value=n.folder||'';DIRTY=false;$('sv').textContent='zapisane '+ago(n.mtime);
@@ -217,6 +217,17 @@ async function save(){if(!CUR)return;const name=$('tt').value.trim()||'Bez tytu�
  const m=await r.json();const moved=m.path!==CUR.path;CUR={...CUR,...m};DIRTY=false;$('sv').textContent='zapisane';
  if(moved){try{localStorage.setItem('notes-cur',m.path)}catch(e){}}
  await loadTree()}
+// pole rośnie razem z tekstem (bez własnego przewijania) – przewija się tylko strona, kursor zostaje na widoku
+function grow(){const ta=$('tx'),pg=document.querySelector('.page');if(ta.hidden)return;const st=pg.scrollTop;ta.style.height='auto';ta.style.height=Math.max(ta.scrollHeight,innerHeight*0.5)+'px';pg.scrollTop=st}
+function keepCaret(){const ta=$('tx'),pg=document.querySelector('.page');if(ta.hidden||document.activeElement!==ta)return;
+ const m=keepCaret.m||(keepCaret.m=document.createElement('div')),cs=getComputedStyle(ta);
+ m.style.cssText=`position:absolute;visibility:hidden;white-space:pre-wrap;word-wrap:break-word;top:0;left:-9999px;width:${ta.clientWidth}px;font:${cs.font};line-height:${cs.lineHeight};padding:${cs.padding};letter-spacing:${cs.letterSpacing}`;
+ m.textContent=ta.value.slice(0,ta.selectionEnd)+'\u200b';document.body.appendChild(m);const y=m.scrollHeight;m.remove();
+ const r=ta.getBoundingClientRect(),pr=pg.getBoundingClientRect(),cy=r.top+y,lh=parseFloat(cs.lineHeight)||26;
+ if(cy>pr.bottom-lh*1.5)pg.scrollTop+=cy-(pr.bottom-lh*2.5);else if(cy-lh<pr.top)pg.scrollTop-=pr.top-(cy-lh*2)}
+$('tx').addEventListener('input',()=>{grow();keepCaret()});
+$('tx').addEventListener('focus',()=>setTimeout(()=>{grow();keepCaret()},350));
+addEventListener('resize',()=>{grow();keepCaret()});
 $('tx').oninput=()=>{DIRTY=true;$('sv').textContent='zapisuję…';clearTimeout(save.t);save.t=setTimeout(save,900);ac()};
 $('tt').onchange=save;$('fs').onchange=save;
 $('tx').onkeydown=e=>{if(!$('ac').hidden&&['ArrowDown','ArrowUp','Enter','Tab','Escape'].includes(e.key)){e.preventDefault();const it=[...$('ac').children];let i=it.findIndex(x=>x.classList.contains('on'));
