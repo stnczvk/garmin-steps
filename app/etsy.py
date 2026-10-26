@@ -16,7 +16,7 @@ router = APIRouter()
 CFG = "etsy_secret.json"      # klucze i tokeny – nazwa z „secret”, nie wychodzi przez diagnostykę
 DATA = "etsy.json"
 API = "https://api.etsy.com/v3/application"
-SCOPES = "transactions_r listings_r shops_r"
+SCOPES = "transactions_r listings_r listings_w shops_r"
 DEF_FEES = {"transaction": 0.065, "processing_pct": 0.04, "processing_fix": 0.30, "listing": 0.20}
 _lock = threading.Lock()
 
@@ -323,7 +323,7 @@ def callback(req: Request, code: str = "", state: str = "", error: str = ""):
     if r.status_code >= 300 or "access_token" not in j:
         _seterr("Etsy nie wydało tokenu: " + str(j)[:150])
         return RedirectResponse("/#etsy")
-    c.update(access=j["access_token"], refresh=j["refresh_token"], exp=time.time() + int(j.get("expires_in", 3600)))
+    c.update(access=j["access_token"], refresh=j["refresh_token"], exp=time.time() + int(j.get("expires_in", 3600)), scopes=SCOPES)
     c.pop("verifier", None); c.pop("state", None)
     _write(CFG, c)
     _seterr(None)

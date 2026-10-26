@@ -36,6 +36,10 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 @media(max-width:900px){.kp{grid-template-columns:repeat(2,minmax(0,1fr))}.gr{grid-template-columns:1fr}.f{grid-template-columns:1fr}}
 @media(max-width:600px){.wrap{padding:16px 12px calc(96px + var(--sab,0px))}.k .v{font-size:24px}.top p{display:none}h1{font-size:22px}}
 .ped input{height:36px;padding:0 12px}.ped[hidden]{display:none!important}
+.mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}.mp{display:flex;gap:12px;align-items:center;background:var(--v3-s3);border-radius:16px;padding:10px;min-width:0}
+.mp img{width:86px;height:64px;object-fit:cover;border-radius:10px;flex:none}.mp>div{flex:1;min-width:0}.mp b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp select{width:100%;margin-top:6px;height:30px;font-size:12px;border-radius:9px}.mp .chk{width:20px;height:20px;flex:none}
+.mbar{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px}.mlog{font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--soft);background:var(--v3-s3);border-radius:12px;padding:10px 12px;margin-top:12px;max-height:200px;overflow:auto;white-space:pre-wrap}
 </style>
 </head>
 <body class="lg">
@@ -59,6 +63,11 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
   <section class="t"><h2>Wyświetlenia ofert – ostatnie 30 dni<span class="r" id="v30"></span></h2><div class="chart vw" id="vch"></div><div class="ax" id="vax"></div></section>
   <section class="t"><h2>Ruch i konwersja<span class="r" id="vsince"></span></h2><div id="tr"></div></section>
  </div>
+ <section class="t" id="mng" style="margin-bottom:14px"><h2>Zarządzanie ofertami<span class="r" id="mst"></span></h2>
+  <div class="mbar"><button class="ib pri" data-act="all">Podmień zdjęcia i filmy</button><button class="ib" data-act="images">Tylko zdjęcia</button><button class="ib" data-act="video">Tylko filmy</button>
+  <button class="ib" data-act="texts">Teksty (tytuł, opis, tagi)</button><button class="ib" data-act="year">Wersja 2027</button><button class="ib" data-act="create">Wystaw brakujące (szkic)</button><button class="ib" data-act="activate">Aktywuj szkice</button>
+  <label class="ib" style="font-weight:500"><input type="checkbox" id="mall" checked> zaznacz wszystkie</label></div>
+  <div class="mg" id="mprods"></div><div class="mlog" id="mlog" hidden></div></section>
  <div class="gr">
   <section class="t"><h2>Sprzedaż – ostatnie 30 dni<span class="r" id="c30"></span></h2><div class="chart" id="ch"></div><div class="ax" id="ax"></div></section>
   <section class="t"><h2>Personalizacje do zrobienia<span class="r" id="pn"></span></h2><div id="pers"></div></section>
@@ -113,6 +122,26 @@ $('conn').onclick=e=>{e.preventDefault();window.top.location.href='/api/etsy/con
 $('sync').onclick=async()=>{$('sync').textContent='Odświeżam…';const r=await (await fetch('/api/etsy/sync',{method:'POST'})).json();$('sync').textContent='Odśwież';if(!r.ok)$('msg').textContent=r.error||'';load()};
 $('csv').onchange=async e=>{const f=e.target.files[0];if(!f)return;const r=await (await fetch('/api/etsy/csv',{method:'POST',body:await f.text()})).json();alert(r.ok?`Dodano zamówień: ${r.added}`:r.error);e.target.value='';load()};
 load();setInterval(load,120000);
+
+// ---------- zarządzanie ofertami ----------
+let MS=null,MPOLL=null;
+async function mload(){try{MS=await (await fetch('/api/etsy/manage')).json()}catch(e){return}
+ $('mst').textContent=!MS.connected?'połącz sklep':!MS.can_write?'połącz ponownie (edycja ofert)':MS.job.running?'pracuję…':'gotowe';
+ const opts=l=>'<option value="">– brak oferty –</option>'+MS.listings.map(x=>`<option value="${x.id}" ${x.id==l?'selected':''}>${esc(x.title.slice(0,60))}</option>`).join('');
+ $('mprods').innerHTML=MS.products.map(p=>`<div class="mp"><input type="checkbox" class="chk" data-c="${p.code}" ${$('mall').checked?'checked':''}><img src="/api/etsy/pack/${p.code}_1.jpg" loading="lazy"><div><b title="${esc(p.title)}">${esc(p.name)}</b>
+  <small style="color:var(--mut);font-size:11.5px">${p.listing_id?(p.live?'aktywna':'szkic / nieaktywna')+' · '+p.listing_id:'brak oferty – „Wystaw brakujące”'}</small>
+  <select data-map="${p.code}">${opts(p.listing_id)}${p.listing_id&&!MS.listings.some(x=>x.id==p.listing_id)?`<option value="${p.listing_id}" selected>szkic ${p.listing_id}</option>`:''}</select></div></div>`).join('');
+ document.querySelectorAll('[data-map]').forEach(s=>s.onchange=async()=>{await fetch('/api/etsy/map',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:s.dataset.map,listing_id:s.value||null})});mload()});
+ const lg=$('mlog');if(MS.job.log.length){lg.hidden=false;lg.textContent=(MS.job.title?'Zadanie: '+MS.job.title+'\n':'')+MS.job.log.join('\n');lg.scrollTop=lg.scrollHeight}
+ clearTimeout(MPOLL);if(MS.job.running)MPOLL=setTimeout(mload,3000)}
+$('mall').onchange=()=>document.querySelectorAll('.mp .chk').forEach(c=>c.checked=$('mall').checked);
+document.querySelectorAll('[data-act]').forEach(b=>b.onclick=async()=>{
+ const codes=[...document.querySelectorAll('.mp .chk:checked')].map(c=>c.dataset.c);if(!codes.length)return alert('Zaznacz oferty');
+ const msg={all:'Podmienić zdjęcia i filmy',images:'Podmienić zdjęcia',video:'Podmienić filmy',texts:'Nadpisać tytuł, opis i tagi',year:'Dodać „2027” do tytułów i tagów',create:'Utworzyć szkice brakujących ofert',activate:'Aktywować oferty (Etsy pobierze 0,20 $ za każdą)'}[b.dataset.act];
+ if(!confirm(`${msg} w ${codes.length} ofertach?`))return;
+ const r=await (await fetch('/api/etsy/do',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:b.dataset.act,codes})})).json().catch(()=>({error:'brak połączenia'}));
+ if(r.error)alert(r.error);mload()});
+mload();
 </script>
 </body>
 </html>
