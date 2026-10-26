@@ -144,6 +144,8 @@ from hermes_chat import router as hermes_router  # noqa: E402
 app.include_router(hermes_router)
 from etsy_manage import router as etsy_manage_router  # noqa: E402
 app.include_router(etsy_manage_router)
+from pinterest import router as pinterest_router  # noqa: E402
+app.include_router(pinterest_router)
 from dlugi import router as dlugi_router  # noqa: E402
 app.include_router(dlugi_router)
 from etsy import router as etsy_router  # noqa: E402

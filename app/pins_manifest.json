@@ -1,0 +1,299 @@
+{
+ "sb": {
+  "name": "Small Business",
+  "board": "Small Business Spreadsheets",
+  "desc": "Track income and expenses in Google Sheets and see profit, margin and tax set-aside automatically. Perfect for Etsy sellers, freelancers and side hustles. Instant download – make a copy and start in 2 minutes.",
+  "pins": [
+   {
+    "img": "sb_a.jpg",
+    "title": "Small Business Tracker – Google Sheets Template"
+   },
+   {
+    "img": "sb_b.jpg",
+    "title": "Know your real profit every month | Small Business Tracker"
+   },
+   {
+    "img": "sb_c.jpg",
+    "title": "Small Business Tracker Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "sb_d.jpg",
+    "title": "What's Inside: Small Business Tracker for Google Sheets"
+   },
+   {
+    "img": "sb_e.jpg",
+    "title": "Easy Small Business Tracker – Start in 2 Minutes"
+   }
+  ]
+ },
+ "bp": {
+  "name": "Budget by Paycheck",
+  "board": "Budget & Finance Templates",
+  "desc": "Plan every paycheck before you spend it. Bills are matched to each paycheck automatically, savings come off the top and you see exactly what is left to spend. Google Sheets template, instant download.",
+  "pins": [
+   {
+    "img": "bp_a.jpg",
+    "title": "Budget by Paycheck – Google Sheets Template"
+   },
+   {
+    "img": "bp_b.jpg",
+    "title": "Stop running out of money before payday | Budget by Paycheck"
+   },
+   {
+    "img": "bp_c.jpg",
+    "title": "Budget by Paycheck Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "bp_d.jpg",
+    "title": "What's Inside: Budget by Paycheck for Google Sheets"
+   },
+   {
+    "img": "bp_e.jpg",
+    "title": "Easy Budget by Paycheck – Start in 2 Minutes"
+   }
+  ]
+ },
+ "wp": {
+  "name": "Wedding Planner",
+  "board": "Wedding Planning Templates",
+  "desc": "Wedding budget, guest list with RSVP and meals, vendor tracker and a 12-month checklist dated from your wedding day – all in one Google Sheets planner you can share with your partner.",
+  "pins": [
+   {
+    "img": "wp_a.jpg",
+    "title": "Wedding Planner – Google Sheets Template"
+   },
+   {
+    "img": "wp_b.jpg",
+    "title": "Plan your whole wedding in one spreadsheet | Wedding Planner"
+   },
+   {
+    "img": "wp_c.jpg",
+    "title": "Wedding Planner Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "wp_d.jpg",
+    "title": "What's Inside: Wedding Planner for Google Sheets"
+   },
+   {
+    "img": "wp_e.jpg",
+    "title": "Easy Wedding Planner – Start in 2 Minutes"
+   }
+  ]
+ },
+ "fit": {
+  "name": "Calorie & Macro",
+  "board": "Fitness & Meal Planning",
+  "desc": "Enter your stats once – get your daily calorie target and protein, carbs and fat in grams. Log weight and food and watch your progress. Calorie & macro tracker for Google Sheets.",
+  "pins": [
+   {
+    "img": "fit_a.jpg",
+    "title": "Calorie & Macro Tracker – Google Sheets Template"
+   },
+   {
+    "img": "fit_b.jpg",
+    "title": "Your calorie & macro targets – calculated | Calorie & Macro Tracker"
+   },
+   {
+    "img": "fit_c.jpg",
+    "title": "Calorie & Macro Tracker Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "fit_d.jpg",
+    "title": "What's Inside: Calorie & Macro Tracker for Google Sheets"
+   },
+   {
+    "img": "fit_e.jpg",
+    "title": "Easy Calorie & Macro Tracker – Start in 2 Minutes"
+   }
+  ]
+ },
+ "dp": {
+  "name": "Debt Payoff",
+  "board": "Budget & Finance Templates",
+  "desc": "List your debts and choose snowball or avalanche – the planner shows your debt-free date, total interest and the payoff order. Google Sheets debt payoff calculator, instant download.",
+  "pins": [
+   {
+    "img": "dp_a.jpg",
+    "title": "Debt Payoff Planner – Google Sheets Template"
+   },
+   {
+    "img": "dp_b.jpg",
+    "title": "See your debt-free date in 2 minutes | Debt Payoff Planner"
+   },
+   {
+    "img": "dp_c.jpg",
+    "title": "Debt Payoff Planner Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "dp_d.jpg",
+    "title": "What's Inside: Debt Payoff Planner for Google Sheets"
+   },
+   {
+    "img": "dp_e.jpg",
+    "title": "Easy Debt Payoff Planner – Start in 2 Minutes"
+   }
+  ]
+ },
+ "cb": {
+  "name": "Couples Budget",
+  "board": "Budget & Finance Templates",
+  "desc": "Log shared bills and see who owes whom – split 50/50 or fairly by income. A simple couples budget and bill split spreadsheet for Google Sheets.",
+  "pins": [
+   {
+    "img": "cb_a.jpg",
+    "title": "Couples Budget – Google Sheets Template"
+   },
+   {
+    "img": "cb_b.jpg",
+    "title": "Split bills fairly – no awkward money talks | Couples Budget"
+   },
+   {
+    "img": "cb_c.jpg",
+    "title": "Couples Budget Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "cb_d.jpg",
+    "title": "What's Inside: Couples Budget for Google Sheets"
+   },
+   {
+    "img": "cb_e.jpg",
+    "title": "Easy Couples Budget – Start in 2 Minutes"
+   }
+  ]
+ },
+ "sg": {
+  "name": "Savings Goals",
+  "board": "Budget & Finance Templates",
+  "desc": "Track savings goals and sinking funds – holiday, gifts, emergency fund – and see exactly how much to save each month. Google Sheets savings tracker, instant download.",
+  "pins": [
+   {
+    "img": "sg_a.jpg",
+    "title": "Savings Goals Tracker – Google Sheets Template"
+   },
+   {
+    "img": "sg_b.jpg",
+    "title": "Save for everything – one fund at a time | Savings Goals Tracker"
+   },
+   {
+    "img": "sg_c.jpg",
+    "title": "Savings Goals Tracker Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "sg_d.jpg",
+    "title": "What's Inside: Savings Goals Tracker for Google Sheets"
+   },
+   {
+    "img": "sg_e.jpg",
+    "title": "Easy Savings Goals Tracker – Start in 2 Minutes"
+   }
+  ]
+ },
+ "hb": {
+  "name": "Christmas Gift Tracker",
+  "board": "Christmas Gift Ideas & Planning",
+  "desc": "Plan every gift and holiday cost in one Google Sheets template – budget per person, bought & wrapped tracking and a Black Friday deals list. Instant download.",
+  "pins": [
+   {
+    "img": "hb_a.jpg",
+    "title": "Christmas Gift Tracker – Google Sheets Template"
+   },
+   {
+    "img": "hb_b.jpg",
+    "title": "Christmas without the money stress. | Christmas Gift Tracker"
+   },
+   {
+    "img": "hb_c.jpg",
+    "title": "Christmas Gift Tracker Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "hb_d.jpg",
+    "title": "What's Inside: Christmas Gift Tracker for Google Sheets"
+   },
+   {
+    "img": "hb_e.jpg",
+    "title": "Easy Christmas Gift Tracker – Start in 2 Minutes"
+   }
+  ]
+ },
+ "sp": {
+  "name": "Seller Profit Calculator",
+  "board": "Small Business Spreadsheets",
+  "desc": "Etsy fees pre-filled – see real profit, margin and the price you need for every product. Seller profit calculator for Google Sheets, instant download.",
+  "pins": [
+   {
+    "img": "sp_a.jpg",
+    "title": "Seller Profit Calculator – Google Sheets Template"
+   },
+   {
+    "img": "sp_b.jpg",
+    "title": "Know what you really earn on every sale. | Seller Profit Calculator"
+   },
+   {
+    "img": "sp_c.jpg",
+    "title": "Seller Profit Calculator Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "sp_d.jpg",
+    "title": "What's Inside: Seller Profit Calculator for Google Sheets"
+   },
+   {
+    "img": "sp_e.jpg",
+    "title": "Easy Seller Profit Calculator – Start in 2 Minutes"
+   }
+  ]
+ },
+ "wo": {
+  "name": "Workout Planner",
+  "board": "Fitness & Meal Planning",
+  "desc": "Plan your training, log every set and get your next target weight automatically (progressive overload). Workout planner for Google Sheets.",
+  "pins": [
+   {
+    "img": "wo_a.jpg",
+    "title": "Workout Planner – Google Sheets Template"
+   },
+   {
+    "img": "wo_b.jpg",
+    "title": "Know exactly what to lift next time. | Workout Planner"
+   },
+   {
+    "img": "wo_c.jpg",
+    "title": "Workout Planner Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "wo_d.jpg",
+    "title": "What's Inside: Workout Planner for Google Sheets"
+   },
+   {
+    "img": "wo_e.jpg",
+    "title": "Easy Workout Planner – Start in 2 Minutes"
+   }
+  ]
+ },
+ "mp": {
+  "name": "Meal Planner",
+  "board": "Fitness & Meal Planning",
+  "desc": "Pick meals for the week – the grocery list adds up by itself, sorted by aisle, with calories and protein per day. Meal planner for Google Sheets.",
+  "pins": [
+   {
+    "img": "mp_a.jpg",
+    "title": "Meal Planner – Google Sheets Template"
+   },
+   {
+    "img": "mp_b.jpg",
+    "title": "Plan the week – your grocery list writes itself. | Meal Planner"
+   },
+   {
+    "img": "mp_c.jpg",
+    "title": "Meal Planner Spreadsheet – Everything Done For You"
+   },
+   {
+    "img": "mp_d.jpg",
+    "title": "What's Inside: Meal Planner for Google Sheets"
+   },
+   {
+    "img": "mp_e.jpg",
+    "title": "Easy Meal Planner – Start in 2 Minutes"
+   }
+  ]
+ }
+}

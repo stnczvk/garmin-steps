@@ -65,6 +65,13 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
   <section class="t"><h2>Wyświetlenia ofert – ostatnie 30 dni<span class="r" id="v30"></span></h2><div class="chart vw" id="vch"></div><div class="ax" id="vax"></div></section>
   <section class="t"><h2>Ruch i konwersja<span class="r" id="vsince"></span></h2><div id="tr"></div></section>
  </div>
+ <section class="t" id="pin" style="margin-bottom:14px"><h2>Pinterest – automat<span class="r" id="pst">…</span></h2>
+  <div id="pset" hidden><ol style="margin:0 0 12px 18px;padding:0;color:var(--soft);line-height:1.7">
+   <li>Wejdź na <b>developers.pinterest.com</b> → My apps → <b>Connect app</b> (nazwa np. „PlanPerfect Centrum”, opis: planowanie pinów moich produktów).</li>
+   <li>Privacy policy: <code id="ppriv"></code> · Redirect URI: <code id="pcb"></code></li>
+   <li>Wklej <b>App ID</b> i <b>App secret</b>, zapisz i kliknij „Połącz z Pinterestem”.</li></ol>
+   <div class="f"><div><label>App ID</label><input id="pid" autocomplete="off"></div><div><label>App secret</label><input id="psec" type="password" autocomplete="off"></div><button class="ib pri" id="psave">Zapisz</button></div></div>
+  <div id="pbody"></div></section>
  <section class="t" id="mng" style="margin-bottom:14px"><h2>Zarządzanie ofertami<span class="r" id="mst"></span></h2>
   <div class="mbar"><button class="ib pri" data-act="all">Podmień zdjęcia i filmy</button><button class="ib" data-act="images">Tylko zdjęcia</button><button class="ib" data-act="video">Tylko filmy</button>
   <button class="ib" data-act="texts">Teksty (tytuł, opis, tagi)</button><button class="ib" data-act="year">Wersja 2027</button><button class="ib" data-act="create">Wystaw brakujące (szkic)</button><button class="ib" data-act="activate">Aktywuj szkice</button>
@@ -145,6 +152,24 @@ document.querySelectorAll('[data-act]').forEach(b=>b.onclick=async()=>{
  if(r.error)alert(r.error);mload()});
 mload();
 
+
+// ---------- Pinterest automat ----------
+async function pload(){let P;try{P=await (await fetch('/api/pinterest')).json()}catch(e){return}
+ $('pcb').textContent=P.callback;$('ppriv').textContent=location.origin+'/privacy';
+ $('pset').hidden=P.connected;$('pst').textContent=P.connected?(P.cfg.auto?'działa · '+P.cfg.hours.map(h=>h+':00').join(' i '):'wstrzymany'):(P.has_keys?'kliknij Połącz':'nie połączony');
+ const th=q=>`<img src="/pins/${q.img}" style="width:46px;height:69px;object-fit:cover;border-radius:8px;flex:none">`;
+ $('pbody').innerHTML=(P.has_keys&&!P.connected?`<a class="ib pri" href="/api/pinterest/connect">Połącz z Pinterestem</a>`:'')+
+  (P.connected?`<div class="mbar"><label class="ib"><input type="checkbox" id="pauto" ${P.cfg.auto?'checked':''}> automatycznie</label><button class="ib" id="pnow">Opublikuj następny teraz</button><button class="ib" id="pdis">Rozłącz</button></div>
+  <p style="color:var(--mut);font-size:12.5px;margin:0 0 10px">Konto: <b>${esc(P.user||'')}</b> · opublikowane ${P.posted} · w kolejce ${P.left}${P.last?' · '+esc(P.last):''}</p>`:'')+
+  (P.error?`<p class="msg" style="color:var(--bad)">${esc(P.error)}</p>`:'')+
+  (P.next.length?`<div style="font-size:12px;color:var(--mut);margin:6px 0">Następne:</div><div class="mg">${P.next.map(q=>`<div class="mp">${th(q)}<div><b>${esc(q.title)}</b><small style="color:var(--mut);font-size:11.5px">${esc(q.board)}</small></div></div>`).join('')}</div>`:'<p class="empty">Kolejka pusta albo brak powiązanych ofert Etsy.</p>')+
+  `<p style="color:var(--faint);font-size:11.5px;margin-top:10px">Pinterest daje nowym aplikacjom dostęp „Trial” – piny widzisz wtedy tylko Ty. Po połączeniu poproś o „Standard” (My apps → Upgrade, krótkie nagranie ekranu: łączenie i publikacja pina z tej karty).</p>`;
+ const a=$('pauto');if(a)a.onchange=async()=>{await fetch('/api/pinterest/cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({auto:a.checked})});pload()};
+ const n=$('pnow');if(n)n.onclick=async()=>{n.disabled=true;const r=await (await fetch('/api/pinterest/now',{method:'POST'})).json().catch(()=>({error:'brak połączenia'}));if(r.error)alert(r.error);pload()};
+ const d=$('pdis');if(d)d.onclick=async()=>{if(!confirm('Rozłączyć Pinterest?'))return;await fetch('/api/pinterest/disconnect',{method:'POST'});pload()}}
+$('psave').onclick=async()=>{const app_id=$('pid').value.trim(),secret=$('psec').value.trim();if(!app_id||!secret)return alert('Wpisz App ID i App secret');
+ await fetch('/api/pinterest/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app_id,secret})});$('psec').value='';pload()};
+pload();
 // zwijanie sekcji (zapamiętane na urządzeniu)
 (()=>{let st={};try{st=JSON.parse(localStorage.getItem('etsy-fold')||'{}')}catch(e){}
  const CH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
