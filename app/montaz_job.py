@@ -52,6 +52,10 @@ def main():
         f = films[-1]
         save(state="done", step="Gotowe", film=f.name, size=f.stat().st_size, raport=rap, finished=time.time())
         # karuzela na Instagram z tego samego dnia (najlepsze stop-klatki + karty) – po filmie, nie blokuje go
+        try:   # numpy potrzebny do zdjęć z iPhone'a (HDR) – doinstaluj, jeśli go brak
+            subprocess.run([sys.executable, "-c", "import numpy"], check=True, capture_output=True)
+        except Exception:
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "numpy"], capture_output=True, timeout=300)
         try:
             r = subprocess.run([sys.executable, str(TOOLS / "karuzela.py"), str(day), str(job / "gotowe" / "karuzela")],
                                capture_output=True, text=True, timeout=600)

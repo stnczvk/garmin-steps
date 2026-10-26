@@ -101,14 +101,18 @@ def _frame_hlg(clip, t, width=None):
     return Image.fromarray((_hlg_srgb(px) * 255 + 0.5).astype(np.uint8))
 
 
+MODE = {}
+
+
 def frame(clip, t, width=None):
     if transfer(clip) == "arib-std-b67":         # iPhone HDR (HLG) – bez tego klatka jest szara / z „filtrem”
         try:
             im = _frame_hlg(clip, t, width)
             if im is not None:
+                MODE[str(clip)] = "HLG→SDR (numpy)"
                 return im
-        except Exception:
-            pass
+        except Exception as e:
+            MODE[str(clip)] = f"HLG bez numpy ({e.__class__.__name__}) – zapas ffmpeg"
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tf:
         out = tf.name
     chain = [HDR_VF] if transfer(clip) in ("arib-std-b67", "smpte2084") else []
@@ -327,6 +331,8 @@ def main():
     slides.append(s)
     for i, s in enumerate(slides[:10]):
         s.convert("RGB").save(out / f"{i + 1:02d}.jpg", quality=90)
+    for c in meals:
+        print(f"karuzela: {c} – kolor {transfer(day / c) or '?'} · {MODE.get(str(day / c), 'zwykła klatka')}")
     print(f"karuzela: {len(slides[:10])} slajdów -> {out}")
     return 0
 
