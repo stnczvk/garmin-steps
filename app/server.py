@@ -163,6 +163,15 @@ def _page(req: Request, name: str):
     return FileResponse(HERE / "web" / PAGES[name], headers={"Cache-Control": "no-cache"})
 
 
+@app.get("/pins/{name}")
+def pin_image(name: str):
+    # grafiki pinów na Pinterest – publiczne (Pinterest pobiera je przez link z pliku CSV)
+    f = HERE / "web" / "pins" / os.path.basename(name)
+    if f.suffix.lower() not in (".jpg", ".png") or not f.is_file():
+        return JSONResponse({"error": "brak"}, status_code=404)
+    return FileResponse(f, headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/home")
 def home_page(req: Request):
     return _page(req, "home")
