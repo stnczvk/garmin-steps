@@ -18,7 +18,7 @@ API = "https://api.pinterest.com/v5"
 SCOPES = "boards:read,boards:write,pins:read,pins:write,user_accounts:read"
 TZ = ZoneInfo("Europe/Warsaw")
 MAN = Path(__file__).parent / "pins_manifest.json"
-DEF = {"auto": True, "hours": [10, 19]}
+DEF = {"auto": False, "hours": [10, 19]}   # Pinterest nie pozwala na automatyczne publikowanie z puli (wytyczne dla deweloperów)
 _lk = threading.Lock()
 
 
@@ -129,7 +129,7 @@ def _loop():
             st = {**DEF, **(D.get("cfg") or {})}
             now = datetime.now(TZ)
             slot = f"{now:%Y-%m-%d}-{now.hour}"
-            if c.get("refresh") and st["auto"] and now.hour in st["hours"] and D.get("slot") != slot:
+            if False and c.get("refresh") and st["auto"] and now.hour in st["hours"] and D.get("slot") != slot:
                 D["slot"] = slot; _write(DATA, D)
                 post_next(1)
         except Exception as e:
