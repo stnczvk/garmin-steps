@@ -69,6 +69,8 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .bar2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.bar2 .vt{margin-bottom:0}
 .vt.sec{display:inline-flex}.vt.sec em{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle;visibility:hidden}.vt.sec em.on{visibility:visible}
 .fixd{margin-top:10px}
+.kpk{margin-top:10px;display:flex;flex-direction:column;gap:12px}.kpm b{font-size:13px}.kpg{display:flex;gap:6px;overflow-x:auto;padding:6px 0}
+.kpg img{height:110px;aspect-ratio:9/16;object-fit:cover;border-radius:10px;flex:none;cursor:pointer;border:3px solid transparent}.kpg img.on{border-color:#8f7bff}.kpg img:hover{border-color:rgba(143,123,255,.5)}
 .karu{margin-top:10px}.karu summary{font-weight:600;cursor:pointer}.karu .ks{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scroll-snap-type:x mandatory}
 .karu .ks img{height:220px;aspect-ratio:4/5;object-fit:cover;border-radius:12px;flex:none;scroll-snap-align:start;background:#111}
 details.opis{margin-top:10px}details.opis summary{font-weight:600;cursor:pointer}.opis .ob{display:flex;flex-direction:column;gap:6px;margin-top:8px}
@@ -314,13 +316,28 @@ let V=null,VF=[];
 // karuzela na Instagram (robi się sama po filmie z jedzeniem)
 async function karuLoad(id){const el=$('karu');if(!el)return;let r;try{r=await (await fetch(`/api/mont/${id}/karuzela`)).json()}catch(e){return}
  const S=r.slides||[];if(!S.length){el.innerHTML='';return}
- el.innerHTML=`<details class="karu" open><summary>🖼 Karuzela na Instagram (${S.length} slajdów)</summary><div class="ks">${S.map(n=>`<img src="/api/mont/${id}/karuzela/${n}" loading="lazy" alt="">`).join('')}</div>
-  <div class="row"><button class="btn pri" id="ksave">📲 Zapisz na telefon</button></div><p class="mut" style="font-size:12px;margin-top:6px">Wrzuć jako osobny post (najlepiej następnego dnia rano) – z osobnym opisem poniżej.</p>${opisBox('karuzela',id).replace('📝 Opis do publikacji','📝 Opis do karuzeli')}</details>`;
+ el.innerHTML=`<details class="karu" open><summary>🖼 Karuzela na Instagram (${S.length} slajdów)</summary><div class="ks">${S.map(n=>`<img src="/api/mont/${id}/karuzela/${n}?v=${Date.now()}" loading="lazy" alt="">`).join('')}</div>
+  <div class="row"><button class="btn pri" id="ksave">📲 Zapisz na telefon</button><button class="btn" id="kpick">🖼 Zmień zdjęcia</button></div>
+  ${(r.info||[]).length?`<p class="mut" style="font-size:11.5px;margin-top:6px">${r.info.map(x=>esc(x.replace('karuzela: ',''))).join('<br>')}</p>`:''}<div id="kpk"></div><p class="mut" style="font-size:12px;margin-top:6px">Wrzuć jako osobny post (najlepiej następnego dnia rano) – z osobnym opisem poniżej.</p>${opisBox('karuzela',id).replace('📝 Opis do publikacji','📝 Opis do karuzeli')}</details>`;
  $('ksave').onclick=async()=>{const b=$('ksave');b.disabled=true;b.textContent='Przygotowuję…';
   try{const fs=await Promise.all(S.map(async n=>new File([await (await fetch(`/api/mont/${id}/karuzela/${n}`)).blob()],`karuzela_${n}`,{type:'image/jpeg'})));
    if(navigator.canShare&&navigator.canShare({files:fs}))await navigator.share({files:fs});
    else for(const f of fs){const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click();await new Promise(r=>setTimeout(r,300))}
-  }catch(e){if(e.name!=='AbortError')toast('Nie wyszło: '+e.message)}b.disabled=false;b.textContent='📲 Zapisz na telefon'}}
+  }catch(e){if(e.name!=='AbortError')toast('Nie wyszło: '+e.message)}b.disabled=false;b.textContent='📲 Zapisz na telefon'};
+ $('kpick').onclick=()=>karuPick(id,false)}
+// ręczny wybór zdjęć do karuzeli: kilkanaście klatek z każdego posiłku, klik = nowa karuzela
+async function karuPick(id,fresh){const box=$('kpk');box.innerHTML='<p class="mut">Wyciągam klatki z nagrań… (do minuty)</p>';
+ let J;try{J=await (await fetch(`/api/mont/${id}/karu-kand${fresh?'?fresh=1':''}`)).json()}catch(e){box.innerHTML='<p class="mut">Nie wyszło – brak połączenia.</p>';return}
+ if(J.error){box.innerHTML=`<p class="mut">Nie wyszło: ${esc(J.error)}</p>`;return}
+ box.innerHTML=`<div class="kpk">${J.meals.map((m,i)=>`<div class="kpm"><b>${esc(m.name)}</b>${J.wybor[m.clip]!=null?` <button class="lnk" data-reset="${esc(m.clip)}">↺ automatycznie</button>`:''}
+  <div class="kpg">${m.cands.map(c=>`<img src="/api/mont/${id}/karu-kand/${c.file}?v=${Date.now()}" data-clip="${esc(m.clip)}" data-t="${c.t}" class="${J.wybor[m.clip]==c.t?'on':''}" loading="lazy" alt="">`).join('')}</div></div>`).join('')}
+  <p class="mut" style="font-size:11.5px">Stuknij zdjęcie – slajd tego posiłku zrobi się od nowa. <button class="lnk" id="kfresh">Wyciągnij klatki jeszcze raz</button></p></div>`;
+ const go=async body=>{box.querySelectorAll('img').forEach(x=>x.style.pointerEvents='none');toast('Robię karuzelę od nowa…');
+  const r=await (await fetch(`/api/mont/${id}/karu-wybor`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json().catch(()=>({error:'brak połączenia'}));
+  if(r.error){toast('Nie wyszło: '+r.error);box.querySelectorAll('img').forEach(x=>x.style.pointerEvents='')}else{toast('Karuzela gotowa ✓');await karuLoad(id);karuPick(id,false)}};
+ box.querySelectorAll('img[data-clip]').forEach(im=>im.onclick=()=>go({clip:im.dataset.clip,t:+im.dataset.t}));
+ box.querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>go({clip:b.dataset.reset,reset:1}));
+ $('kfresh').onclick=()=>karuPick(id,true)}
 // opis do publikacji (TikTok + Instagram) – generowany na żądanie, zapamiętany
 const opisBox=(kind,id)=>`<details class="opis" data-ok="${kind}|${id}"><summary>📝 Opis do publikacji</summary><div class="ob"><p class="mut">Kliknij, żeby AI napisało opis i hashtagi.</p></div></details>`;
 async function opisLoad(el,force){const [kind,id]=el.dataset.ok.split('|');const b=el.querySelector('.ob');b.innerHTML='<p class="mut">Piszę opis…</p>';

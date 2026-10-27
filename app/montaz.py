@@ -161,7 +161,77 @@ def job(jid: str):
 def karuzela(jid: str):
     d = _job(jid)
     k = d / "gotowe" / "karuzela" if d else None
-    return {"slides": sorted(f.name for f in k.glob("*.jpg")) if k and k.is_dir() else []}
+    info = []
+    try:
+        info = [l.strip() for l in (d / "log.txt").read_text(encoding="utf-8", errors="ignore").splitlines() if l.startswith("karuzela:")][-8:]
+    except Exception:
+        pass
+    return {"slides": sorted(f.name for f in k.glob("*.jpg")) if k and k.is_dir() else [], "info": info}
+
+
+def _karu_run(d, *extra):
+    day = next(d.glob("dzien_*"), None)
+    if not day:
+        raise RuntimeError("brak folderu dnia")
+    py = DZ / "venv" / "bin" / "python"
+    tool = DZ / "src" / "app" / "montaz" / "karuzela.py"
+    r = subprocess.run([str(py if py.exists() else "python3"), str(tool), str(day), str(d / "gotowe" / "karuzela"), *extra],
+                       capture_output=True, text=True, timeout=600, cwd=str(tool.parent))
+    if r.returncode != 0:
+        raise RuntimeError((r.stderr or r.stdout)[-300:])
+    return r.stdout
+
+
+@router.get("/api/mont/{jid}/karu-kand")
+def karu_kand(jid: str, fresh: int = 0):
+    """Kandydaci na zdjęcia w karuzeli (po kilkanaście klatek z każdego posiłku)."""
+    d = _job(jid)
+    if not d:
+        return JSONResponse({"error": "nie ma"}, status_code=404)
+    f = d / "gotowe" / "karuzela" / "kandydaci.json"
+    if fresh or not f.exists():
+        try:
+            _karu_run(d, "--kandydaci")
+        except Exception as e:
+            return JSONResponse({"error": str(e)[:300]}, status_code=500)
+    J = json.loads(f.read_text(encoding="utf-8"))
+    try:
+        J["wybor"] = json.loads((d / "gotowe" / "karuzela" / "wybor.json").read_text(encoding="utf-8"))
+    except Exception:
+        J["wybor"] = {}
+    return J
+
+
+@router.get("/api/mont/{jid}/karu-kand/{name}")
+def karu_kand_img(jid: str, name: str):
+    d = _job(jid)
+    f = d / "gotowe" / "karuzela" / "kand" / os.path.basename(name) if d else None
+    return FileResponse(f, media_type="image/jpeg") if f and f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
+
+
+@router.post("/api/mont/{jid}/karu-wybor")
+async def karu_wybor(jid: str, req: Request):
+    """Ręczny wybór zdjęcia do slajdu posiłku → karuzela robi się od nowa (ten sam folder, te same nazwy plików)."""
+    d = _job(jid)
+    if not d:
+        return JSONResponse({"error": "nie ma"}, status_code=404)
+    b = await req.json()
+    wf = d / "gotowe" / "karuzela" / "wybor.json"
+    try:
+        W = json.loads(wf.read_text(encoding="utf-8"))
+    except Exception:
+        W = {}
+    if b.get("reset"):
+        W.pop(str(b.get("clip")), None)
+    else:
+        W[str(b["clip"])] = float(b["t"])
+    wf.write_text(json.dumps(W), encoding="utf-8")
+    import asyncio
+    try:
+        out = await asyncio.to_thread(_karu_run, d)
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:300]}, status_code=500)
+    return {"ok": True, "log": out[-400:]}
 
 
 @router.get("/api/mont/{jid}/karuzela/{name}")
