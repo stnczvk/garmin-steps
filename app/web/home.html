@@ -108,6 +108,8 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .pfx{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mu);margin-top:4px}
 .plx{border:0;background:rgba(127,127,160,.12);color:var(--mu);width:30px;height:30px;border-radius:9px;display:grid;place-items:center;cursor:pointer;transition:transform .2s}.plx svg{width:16px;height:16px}
 #plc.fold .plx{transform:rotate(-90deg)}#plc.fold #pl{display:none}#plc.fold h3{margin-bottom:0}
+#plc .sh{display:none}
+@media(max-width:600px){#plc h3{gap:8px}#plc h3 .r{gap:6px!important;flex:none}#plc .lo{display:none}#plc .sh{display:inline}#plh{font-size:0!important;padding:0}#plh:before{content:"Godziny";font-size:12px}#plc h3>span:not(.r):not(.hi){white-space:nowrap}}
 /* raporty AI */
 .note{font-size:13px;color:var(--mu);line-height:1.55;margin-top:10px;padding:12px 14px;border-radius:14px;background:rgba(127,127,160,.06);max-height:220px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .note b{color:var(--tx)}
@@ -409,7 +411,7 @@ const PST={draft:['do zatwierdzenia','wr'],approved:['zaplanowany','ac'],publish
 const dtl=t=>{const d=new Date(t*1000);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
 let PLD=null;
 async function planer(){const r=await get('/api/planer');PLD=r;if(!r){$('pl').innerHTML='<p class="empty">Planer niedostępny.</p>';return []}
- const L=(r.items||[]).filter(x=>x.status!=='skipped');$('pln').textContent=L.filter(x=>x.status==='draft').length+' do zatwierdzenia';
+ const L=(r.items||[]).filter(x=>x.status!=='skipped');$('pln').innerHTML=L.filter(x=>x.status==='draft').length+'<span class="lo"> do zatwierdzenia</span><span class="sh"> do zatw.</span>';
  if(!L.length){$('pl').innerHTML='<p class="empty">Gdy film albo karuzela będą gotowe w Montażowni, pojawią się tu jako szkic posta z opisem i godziną – zatwierdzasz jednym kliknięciem.</p>';return L}
  if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#pl'))return L;   // nie przerywaj edycji
  $('pl').innerHTML=(r.public?'':'<p class="dn" style="font-size:12.5px;margin-top:8px">Brak SOCIAL_DOMAIN w .env – Instagram nie pobierze plików.</p>')+'<div class="pl">'+L.map(x=>{const st=PST[x.status]||[x.status,''],ed=['draft','approved','error'].includes(x.status);

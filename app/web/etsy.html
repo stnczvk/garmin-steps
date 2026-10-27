@@ -42,6 +42,9 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 .mbar{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px}.mlog{font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--soft);background:var(--v3-s3);border-radius:12px;padding:10px 12px;margin-top:12px;max-height:200px;overflow:auto;white-space:pre-wrap}
 .t>h2.fh{cursor:pointer;user-select:none}.fx2{border:0;background:var(--v3-s3);color:var(--mut);width:28px;height:28px;border-radius:9px;display:inline-grid;place-items:center;margin-left:10px;cursor:pointer;transition:transform .2s;flex:none}
 .fx2 svg{width:15px;height:15px}.t.fold .fx2{transform:rotate(-90deg)}.t.fold>:not(h2){display:none!important}.t.fold>h2{margin-bottom:0}.gr{align-items:start}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}.pt{min-width:520px}.pt td:first-child{max-width:240px}
+.pn{color:inherit;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-decoration:none;font-weight:600}a.pn:hover{text-decoration:underline}
+@media(max-width:600px){.lo2{display:none}.lo2+.fx2{margin-left:auto}.pt td,.pt th{padding:9px 7px;font-size:12.5px}.pt td:first-child{max-width:150px}}
 </style>
 </head>
 <body class="lg">
@@ -82,7 +85,7 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
   <section class="t"><h2>Personalizacje do zrobienia<span class="r" id="pn"></span></h2><div id="pers"></div></section>
  </div>
  <div class="gr">
-  <section class="t"><h2>Produkty<span class="r">konwersja = sprzedaże / wyświetlenia</span></h2><div id="prod"></div></section>
+  <section class="t"><h2>Produkty<span class="r lo2">konwersja = sprzedaże / wyświetlenia</span></h2><div id="prod"></div></section>
   <section class="t"><h2>Ostatnie zamówienia</h2><div id="rec"></div></section>
  </div>
 </div>
@@ -123,8 +126,8 @@ async function load(){let r;try{r=await (await fetch('/api/etsy')).json()}catch(
  $('pers').querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{const e=$('ped'+b.dataset.ed);e.hidden=!e.hidden});
  $('pers').querySelectorAll('[data-mk]').forEach(b=>b.onclick=async()=>{const box=$('ped'+b.dataset.i),v={};box.querySelectorAll('[data-f]').forEach(x=>v[x.dataset.f]=x.value);b.textContent='Robię…';
   const r=await (await fetch(`/api/etsy/pers/${b.dataset.mk}/make`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)})).json();b.textContent=r.ok?'Gotowe ✓':(r.error||'Błąd');load()});
- $('prod').innerHTML=r.products.length?`<table><tr><th>Produkt</th><th class="n">Sprzedaże</th><th class="n">Przychód</th><th class="n">Wyświetl.</th><th class="n">Ulubione</th><th class="n">Konwersja</th></tr>`+
-  r.products.map(p=>`<tr><td>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.title.slice(0,60))}</a>`:esc(p.title.slice(0,60))}</td><td class="n">${p.sales}</td><td class="n">${m(p.revenue)}</td><td class="n">${p.views??'–'}</td><td class="n">${p.favorites??'–'}</td><td class="n">${p.conv!=null?(p.conv*100).toFixed(1)+'%':'–'}</td></tr>`).join('')+'</table>':'<p class="empty">Produkty pojawią się po połączeniu sklepu albo imporcie CSV.</p>';
+ $('prod').innerHTML=r.products.length?`<div class="tw"><table class="pt"><tr><th>Produkt</th><th class="n">Sprzedaże</th><th class="n">Przychód</th><th class="n">Wyświetl.</th><th class="n">Ulubione</th><th class="n">Konwersja</th></tr>`+
+  r.products.map(p=>`<tr><td>${p.url?`<a class="pn" href="${esc(p.url)}" target="_blank" rel="noopener" title="${esc(p.title)}">${esc(p.title.split(/[,:|–-]/)[0].trim().slice(0,60))}</a>`:`<span class="pn">${esc(p.title.split(/[,:|–-]/)[0].trim().slice(0,60))}</span>`}</td><td class="n">${p.sales}</td><td class="n">${m(p.revenue)}</td><td class="n">${p.views??'–'}</td><td class="n">${p.favorites??'–'}</td><td class="n">${p.conv!=null?(p.conv*100).toFixed(1)+'%':'–'}</td></tr>`).join('')+'</table></div>':'<p class="empty">Produkty pojawią się po połączeniu sklepu albo imporcie CSV.</p>';
  $('rec').innerHTML=r.recent.length?r.recent.map(o=>`<div class="it"><div><b>${esc(o.items)}</b><small>${new Date(o.t*1000).toLocaleString('pl',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small></div><b>${m(o.total)}</b></div>`).join(''):'<p class="empty">Jeszcze nie ma zamówień – pierwsze na pewno przyjdzie 🙂</p>'}
 $('save').onclick=async()=>{const r=await (await fetch('/api/etsy/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({keystring:$('ks').value,secret:$('sec').value})})).json();$('msg').innerHTML=!r.ok?esc(r.error):r.ping?'<span style="color:var(--ok)">Klucz działa ✓ – teraz „Połącz z Etsy”.</span>':`<span style="color:var(--bad)">${esc(r.error)}</span>`;$('sec').value='';load()};
 $('conn').onclick=e=>{e.preventDefault();window.top.location.href='/api/etsy/connect'};
