@@ -210,7 +210,7 @@ def _ig_err(r):
     e = r.get("error") or {}
     m = e.get("message", "")
     if "permission" in m.lower() or e.get("code") in (10, 200):
-        return "Instagram: brak uprawnienia do publikacji – połącz konto prywatne IG ponownie (Statystyki → Konta)"
+        return f"Instagram: brak uprawnienia do publikacji – połącz konto prywatne IG ponownie (Statystyki → Konta). Szczegóły: {m[:160]} (kod {e.get('code')})"
     return "Instagram: " + (m or json.dumps(r)[:150])
 
 
