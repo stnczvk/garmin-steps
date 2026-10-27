@@ -122,7 +122,8 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .mod label{display:block;font-size:12.5px;color:var(--mu);margin-top:8px}.mod input{width:100%;margin-top:4px;background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:9px 11px;color:var(--tx);font:inherit}
 .mod .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}.mod .st{font-size:12px;margin-left:6px}
 .lnk{background:none;border:0;color:var(--fa);font-size:12.5px}.lnk:hover{color:var(--tx)}
-.pl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px}
+.pl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px;max-height:620px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;scrollbar-width:thin}
+@media(max-width:700px){.pl{max-height:70vh}}
 .pi{border:1px solid var(--ln);border-radius:18px;padding:12px;background:rgba(127,127,160,.05);display:flex;flex-direction:column;gap:9px;min-width:0}
 .pi .hd{display:flex;gap:10px;align-items:flex-start}.pi .pv{width:64px;height:112px;border-radius:10px;background:#000;object-fit:cover;flex:none}
 .pi .hd b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pi .hd small{color:var(--mu);font-size:12.5px;display:block}
@@ -412,7 +413,9 @@ const PST={draft:['do zatwierdzenia','wr'],approved:['zaplanowany','ac'],publish
 const dtl=t=>{const d=new Date(t*1000);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
 let PLD=null;
 async function planer(){const r=await get('/api/planer');PLD=r;if(!r){$('pl').innerHTML='<p class="empty">Planer niedostępny.</p>';return []}
- const L=(r.items||[]).filter(x=>x.status!=='skipped');$('pln').innerHTML=L.filter(x=>x.status==='draft').length+'<span class="lo"> do zatwierdzenia</span><span class="sh"> do zatw.</span>';
+ const D0=new Date();D0.setHours(0,0,0,0);const d0=D0.getTime()/1000;
+ // posty opublikowane (albo z błędem) przed dzisiejszą północą znikają z listy; szkice i zaplanowane zostają
+ const L=(r.items||[]).filter(x=>x.status!=='skipped'&&!(['published','error'].includes(x.status)&&(x.done_at||x.when||0)<d0)).sort((a,b)=>(a.when||0)-(b.when||0));$('pln').innerHTML=L.filter(x=>x.status==='draft').length+'<span class="lo"> do zatwierdzenia</span><span class="sh"> do zatw.</span>';
  if(!L.length){$('pl').innerHTML='<p class="empty">Gdy film albo karuzela będą gotowe w Montażowni, pojawią się tu jako szkic posta z opisem i godziną – zatwierdzasz jednym kliknięciem.</p>';return L}
  if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#pl'))return L;   // nie przerywaj edycji
  $('pl').innerHTML=(r.public?'':'<p class="dn" style="font-size:12.5px;margin-top:8px">Brak SOCIAL_DOMAIN w .env – Instagram nie pobierze plików.</p>')+'<div class="pl">'+L.map(x=>{const st=PST[x.status]||[x.status,''],ed=['draft','approved','error'].includes(x.status);
