@@ -79,7 +79,7 @@ HDR_VF = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
           "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
 
 
-def _hlg_srgb(x, peak=1000.0, white=203.0):
+def _hlg_srgb(x, peak=1000.0, white=165.0, sat=1.18, con=1.05):
     """BT.2020 HLG (0..1) -> sRGB/BT.709 (0..1): OOTF jak w telefonie, łagodne mapowanie świateł (Reinhard).
     Liczone w numpy – nie zależy od tego, czy ffmpeg na serwerze ma zscale."""
     a, b, c = 0.17883277, 0.28466892, 0.55991073
@@ -91,8 +91,11 @@ def _hlg_srgb(x, peak=1000.0, white=203.0):
     l = 0.2126 * d[..., 0] + 0.7152 * d[..., 1] + 0.0722 * d[..., 2]
     lm = peak / white
     d = d * ((l * (1 + l / (lm * lm)) / (1 + l)) / np.maximum(l, 1e-6))[..., None]
-    d = np.clip(d, 0, 1)
-    return np.where(d <= 0.0031308, 12.92 * d, 1.055 * np.power(d, 1 / 2.4) - 0.055)
+    # jak w aparacie iPhone'a: trochę jaśniej, żywsze kolory i lekki kontrast (bez tego wygląda „szaro”)
+    l2 = (0.2126 * d[..., 0] + 0.7152 * d[..., 1] + 0.0722 * d[..., 2])[..., None]
+    d = np.clip(l2 + (d - l2) * sat, 0, 1)
+    g = np.where(d <= 0.0031308, 12.92 * d, 1.055 * np.power(d, 1 / 2.4) - 0.055)
+    return np.clip(0.5 + (g - 0.5) * con, 0, 1)
 
 
 def _frame_hlg(clip, t, width=None):
