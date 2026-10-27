@@ -51,13 +51,27 @@ def duration(clip):
 _TRC = {}
 
 
+def _probe_color(clip):
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=color_transfer,color_primaries,pix_fmt",
+                        "-of", "json", str(clip)], capture_output=True, text=True)
+    try:
+        return (json.loads(r.stdout).get("streams") or [{}])[0]
+    except Exception:
+        return {}
+
+
 def transfer(clip):
     """HDR z iPhone'a (HLG/PQ) bez mapowania tonów wychodzi w JPG szaro i z dziwnymi kolorami."""
     k = str(clip)
     if k not in _TRC:
         r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=color_transfer",
                             "-of", "csv=p=0", k], capture_output=True, text=True)
-        _TRC[k] = r.stdout.strip()
+        t = r.stdout.strip().split(",")[0].strip()
+        if t not in ("arib-std-b67", "smpte2084"):
+            c = _probe_color(clip)
+            if "10" in (c.get("pix_fmt") or "") and c.get("color_primaries") == "bt2020":
+                t = "arib-std-b67"          # 10-bit BT.2020 bez tagu – iPhone HDR (HLG)
+        _TRC[k] = t
     return _TRC[k]
 
 
@@ -147,6 +161,22 @@ def score(im):
     bright = ImageStat.Stat(g).mean[0]
     expo = 1.0 - min(1.0, abs(bright - 130) / 110)
     return {"sharp": 0.4 * sharp_all + 0.6 * sharp_mid, "sat": sat, "expo": expo}
+
+
+def candidates(clip, n=12):
+    """Kilkanaście klatek z klipu z oceną – do ręcznego wyboru zdjęcia w Montażowni."""
+    d = duration(clip)
+    if d <= 0:
+        return []
+    a, b = d * 0.08, d * 0.92
+    ts = [a + (b - a) * i / (n - 1) for i in range(n)] if d > 2 else [d / 2]
+    out = []
+    for t in ts:
+        im = frame(clip, t, 360)
+        if im is not None:
+            sc = score(im)
+            out.append((t, im, 0.5 * sc["sharp"] + 0.35 * sc["sat"] + 15 * sc["expo"]))
+    return out
 
 
 def best_frame(clip, n=14):
@@ -261,11 +291,31 @@ def main():
         print("karuzela: brak posiłków z kartami – pomijam")
         return 0
     out.mkdir(parents=True, exist_ok=True)
-    for f in out.glob("*.jpg"):
-        f.unlink()
+    if "--kandydaci" not in sys.argv:   # przy podglądzie kandydatów gotowe slajdy zostają
+        for f in out.glob("*.jpg"):
+            f.unlink()
+    if "--kandydaci" in sys.argv:
+        kd = out / "kand"; kd.mkdir(exist_ok=True)
+        for f in kd.glob("*.jpg"):
+            f.unlink()
+        res = []
+        for i, c in enumerate(meals):
+            cs = candidates(day / c)
+            items = []
+            for k, (t, im, sc) in enumerate(cs):
+                fn = f"{i}_{k}.jpg"; im.save(kd / fn, quality=82)
+                items.append({"t": round(t, 2), "file": fn, "score": round(sc, 1)})
+            res.append({"clip": c, "name": (karty.get(c) or {}).get("name", c), "cands": items})
+        (out / "kandydaci.json").write_text(json.dumps({"meals": res}, ensure_ascii=False), encoding="utf-8")
+        print(f"karuzela: kandydaci gotowi ({sum(len(r['cands']) for r in res)} klatek)")
+        return 0
+    try:
+        wyb = json.loads((out / "wybor.json").read_text(encoding="utf-8"))
+    except Exception:
+        wyb = {}
     shots = {}
     for c in meals:
-        im = best_frame(day / c)
+        im = frame(day / c, float(wyb[c])) if c in wyb else best_frame(day / c)
         if im is not None:
             shots[c] = im
     slides = []
