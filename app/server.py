@@ -507,7 +507,7 @@ async def hook_redakcja(req: Request, key: str = ""):
                                      headers={"Authorization": f"Bearer {gk}"})
                 if g.status_code == 200:
                     txt = g.json()["choices"][0]["message"]["content"] or ""
-                    return {"json": _json_from(txt), "via": gm}
+                    return {"json": _json_from(txt), "via": gm, "ai_err": (f"{r.status_code}: {r.text[:200]}" if r is not None else err[:200])}
                 err = f"groq {gm} {g.status_code}: {g.text[:200]}"
               except Exception as e:
                 err = f"groq {gm} {e.__class__.__name__}: {e}"
