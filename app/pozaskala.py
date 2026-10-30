@@ -111,7 +111,19 @@ def _notify(e):
     if re.search(r"monta", wf, re.I):
         return "✅ Film zmontowany", "final.mp4 jest w kolejce do publikacji."
     if re.search(r"publish", wf, re.I):
-        return None          # publisher (21:00 / 0:00) – bez powiadomień, na życzenie
+        # powiadomienie tylko, gdy publisher naprawdę coś wrzucił (o 0:00 jest film; puste przebiegi bez powiadomień)
+        try:
+            from agency import n8n
+            rd = (n8n("GET", f"/api/v1/executions/{e['id']}", params={"includeData": "true"}).json().get("data") or {}).get("resultData", {}).get("runData", {})
+            if not any("publish" in k.lower() and "container" in k.lower() for k in rd):
+                return None
+            try:
+                t = rd["Parse Queue Entry"][0]["data"]["main"][0][0]["json"].get("title")
+            except Exception:
+                t = None
+            return "🚀 Opublikowano", (f"„{t[:80]}” poszedł na Instagram." if t else "Film poszedł na Instagram.")
+        except Exception:
+            return None
     if re.search(r"analytic", wf, re.I):
         return "📊 Analityka gotowa", "Zaktualizowano listę FAVOR / REDUCE."
     return None

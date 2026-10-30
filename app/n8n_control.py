@@ -560,15 +560,18 @@ def apply_publisher_fix():
     if not node:
         return {"ok": False, "error": "w Publisherze nie ma węzła Parse Queue Entry"}
     js = node["parameters"].get("jsCode", "")
-    if PUB_MARK in js:
+    t21 = next((n for n in pub["nodes"] if n["name"] == "Schedule Trigger 21:00"), None)
+    if PUB_MARK in js and (not t21 or t21.get("disabled")):
         return {"ok": True, "changed": False}
     old = "if (queueFileId && !already && Date.now() >= publishAt)"
-    if old not in js:
+    if PUB_MARK not in js and old not in js:
         return {"ok": False, "error": "nieznana wersja Parse Queue Entry – nic nie zmieniam"}
     iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(cut))
     new = copy.deepcopy(pub)
     for n in new["nodes"]:
-        if n["name"] == "Parse Queue Entry":
+        if n["name"] == "Schedule Trigger 21:00":
+            n["disabled"] = True          # o 21:00 nic nie wychodzi – publikacja tylko o 0:00
+        if n["name"] == "Parse Queue Entry" and PUB_MARK not in n["parameters"].get("jsCode", ""):
             j = n["parameters"]["jsCode"]
             j = f"// {PUB_MARK}: filmy sprzed serii ze stickmanem ({iso}) i starsze niż 3 dni nie wychodzą\nconst CUTOFF = new Date('{iso}').getTime();\nconst MAX_AGE = 3 * 24 * 3600 * 1000;\n" + j
             j = j.replace(old, "const fresh = publishAt >= CUTOFF && Date.now() - publishAt <= MAX_AGE;\n    if (queueFileId && !already && fresh && Date.now() >= publishAt)")
@@ -582,7 +585,7 @@ def apply_publisher_fix():
         return {"ok": False, "error": r.text[:200]}
     if pub.get("active"):
         n8n("POST", f"/api/v1/workflows/{pub['id']}/activate")
-    log("op", "Publisher: pomija filmy sprzed stickmana i starsze niż 3 dni", "ok")
+    log("op", "Publisher: tylko 0:00 (21:00 wyłączone), pomija filmy sprzed stickmana i starsze niż 3 dni", "ok")
     _bust()
     return {"ok": True, "changed": True}
 
