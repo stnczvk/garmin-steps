@@ -5,7 +5,8 @@ jakość – płaski styl 2D jej nie potrzebuje) → montaż FFmpeg (ruch kamery
 szkic do zatwierdzenia w zakładce PozaSkala → publikacja na kanale PozaSkala. Domyślnie wtorek i piątek.
 """
 import base64, concurrent.futures as cf, json, os, re, shutil, subprocess, threading, time, uuid
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import httpx
@@ -19,7 +20,8 @@ from skills import sk
 router = APIRouter()
 F = "dlugie.json"
 WORK = DIR / "dlugie"
-DEF = {"enabled": True, "days": [1, 4], "hour": 9, "img_quality": "low", "voice": "alloy", "auto_publish": False}
+DEF = {"enabled": True, "days": [1, 4], "hour": 9, "img_quality": "low", "voice": "alloy", "auto_publish": False, "us_hour": 14}
+US = ZoneInfo("America/New_York")
 _busy = {}
 
 STYLE = ("2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, two dot eyes, small red scarf), "
@@ -289,7 +291,20 @@ def _yt_upload(tok, f, meta):
     return u.json().get("id")
 
 
-def publish_trailer(vid, n):
+def us_slot(after=None, min_lead=1800):
+    """Najbliższa godzina publikacji pod widzów z USA (domyślnie 14:00 czasu wschodniego – szczyt oglądania YouTube)."""
+    now = datetime.fromtimestamp(after or time.time(), US)
+    t = now.replace(hour=int(cfg().get("us_hour", 14)), minute=0, second=0, microsecond=0)
+    while t.timestamp() < (after or time.time()) + min_lead:
+        t += timedelta(days=1)
+    return t
+
+
+def _iso(t):
+    return datetime.fromtimestamp(t.timestamp(), ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def publish_trailer(vid, n, at=None):
     """Zwiastun n (1 = zaraz po długim filmie, 2 = dzień później) jako Short z linkiem do pełnego odcinka."""
     from social import _google_access
     S = _state()
@@ -303,7 +318,7 @@ def publish_trailer(vid, n):
     yid = _yt_upload(tok, f, {"snippet": {"title": (sc["title"][:80] + " #shorts"), "categoryId": "27", "defaultLanguage": "en",
                                           "description": f"Full episode 👉 https://youtu.be/{it['yt']}\n\n#WhatIf #Stickman #shorts",
                                           "tags": (sc.get("tags") or [])[:10]},
-                              "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False}})
+                              "status": ({"privacyStatus": "private", "publishAt": _iso(at)} if at else {"privacyStatus": "public"}) | {"selfDeclaredMadeForKids": False}})
     f.unlink(missing_ok=True)
     tr = it.get("trailers", {})
     tr[str(n)] = yid
@@ -327,7 +342,7 @@ def publish(vid):
     _upd(vid, status="uploading", step="wysyłam na YouTube")
     meta = {"snippet": {"title": sc["title"][:100], "description": sc.get("description", "")[:4900], "tags": (sc.get("tags") or [])[:15],
                         "categoryId": "27", "defaultLanguage": "en"},
-            "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False}}
+            "status": {"privacyStatus": "private", "publishAt": _iso(when := us_slot()), "selfDeclaredMadeForKids": False}}
     f = d / "final.mp4"
     try:
         r = httpx.post("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", timeout=60,
@@ -346,11 +361,12 @@ def publish(vid):
                            headers={"Authorization": "Bearer " + tok, "Content-Type": "image/png"}, content=(d / "thumb.png").read_bytes())
             except Exception:
                 pass
-        _upd(vid, status="published", step="opublikowany", yt=yid, published=time.time())
-        log("dlugi", f"Opublikował długi film: {sc['title']}", "ok")
+        pl = datetime.fromtimestamp(when.timestamp(), TZ)
+        _upd(vid, status="published", step=f"zaplanowany: {pl:%d.%m %H:%M} (w USA {when:%H:%M} ET)", yt=yid, published=time.time(), publish_at=when.timestamp())
+        log("dlugi", f"Długi film zaplanowany na {pl:%d.%m %H:%M} ({when:%H:%M} w USA): {sc['title']}", "ok")
         (d / "final.mp4").unlink(missing_ok=True)   # oszczędność dysku – film jest już na YouTube
         try:
-            publish_trailer(vid, 1)
+            publish_trailer(vid, 1, at=datetime.fromtimestamp(when.timestamp() + 1800, US))   # zwiastun pół godziny po filmie
         except Exception as e:
             log("dlugi", f"Zwiastun 1 nie wyszedł: {str(e)[:120]}", "warn")
         return {"ok": True, "yt": yid}
@@ -371,9 +387,9 @@ def _loop():
                     produce()
                 for it in S["items"]:
                     if it.get("status") == "published" and it.get("yt") and "2" not in (it.get("trailers") or {}) \
-                            and time.time() - it.get("published", 0) > 86400 and (WORK / it["id"] / "trailer2.mp4").exists():
-                        try:
-                            publish_trailer(it["id"], 2)
+                            and time.time() - it.get("published", 0) > 3600 and (WORK / it["id"] / "trailer2.mp4").exists():
+                        try:   # zwiastun 2 – dzień po filmie, o tej samej godzinie dla USA
+                            publish_trailer(it["id"], 2, at=us_slot(after=it.get("publish_at", it.get("published", time.time())) + 86400 - 1800, min_lead=0))
                         except Exception as e:
                             print("dlugi trailer2", e, flush=True)
                 # sprzątanie: odrzucone/stare katalogi > 10 dni
@@ -422,7 +438,7 @@ def api_action(vid: str, action: str):
 async def api_cfg(req: Request):
     b = await req.json()
     S = _state()
-    c = {**cfg(), **{k: b[k] for k in ("enabled", "days", "hour", "auto_publish") if k in b}}
+    c = {**cfg(), **{k: b[k] for k in ("enabled", "days", "hour", "auto_publish", "us_hour") if k in b}}
     S["cfg"] = c
     _save(S)
     return {"ok": True, "cfg": c}
