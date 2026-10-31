@@ -715,6 +715,11 @@ body.lg .head{display:none!important}
 /* jeden wygląd dolnego paska we wszystkich sekcjach: treść przewija się pod paskiem, strony mają zapas na dole */
 @media (max-width:900px){body.v-ext:not([data-view=notatki]) .vframe{margin-bottom:0!important}body:not(.v-ext) #app{padding-bottom:calc(100px + env(safe-area-inset-bottom))!important}}
 
+/* przejście między zakładkami */
+@keyframes vin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+body:not(.v-ext) #app{animation:vin .38s cubic-bezier(.2,.8,.2,1)}.vframe iframe{animation:vin .38s cubic-bezier(.2,.8,.2,1)}
+@media (prefers-reduced-motion:reduce){body:not(.v-ext) #app,.vframe iframe{animation:none}}
+
 /* ---------- czat z Hermesem ---------- */
 #hm-fab{position:fixed;right:22px;bottom:22px;width:56px;height:56px;border-radius:50%;border:0;z-index:70;cursor:pointer;color:#fff;
  background:linear-gradient(135deg,#8f7bff,#5b8def);box-shadow:0 12px 30px -8px rgba(110,90,255,.6);display:grid;place-items:center;transition:transform .15s}
