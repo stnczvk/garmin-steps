@@ -122,15 +122,26 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .mod label{display:block;font-size:12.5px;color:var(--mu);margin-top:8px}.mod input{width:100%;margin-top:4px;background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:9px 11px;color:var(--tx);font:inherit}
 .mod .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}.mod .st{font-size:12px;margin-left:6px}
 .lnk{background:none;border:0;color:var(--fa);font-size:12.5px}.lnk:hover{color:var(--tx)}
-.pl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px;max-height:620px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;scrollbar-width:thin}
+.pl{display:flex;flex-direction:column;gap:6px;margin-top:12px;max-height:560px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;scrollbar-width:thin}
 @media(max-width:700px){.pl{max-height:70vh}}
-.pi{border:1px solid var(--ln);border-radius:18px;padding:12px;background:rgba(127,127,160,.05);display:flex;flex-direction:column;gap:9px;min-width:0}
-.pi .hd{display:flex;gap:10px;align-items:flex-start}.pi .pv{width:64px;height:112px;border-radius:10px;background:#000;object-fit:cover;flex:none}
-.pi .hd b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pi .hd small{color:var(--mu);font-size:12.5px;display:block}
-.pi textarea{width:100%;min-height:84px;resize:vertical;background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;color:var(--tx);font-size:13px;line-height:1.45;font-family:inherit;font-family:inherit}
+.pdh{font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--fa);margin:10px 2px 2px}.pdh:first-child{margin-top:0}
+.pi{border:1px solid var(--ln);border-radius:14px;background:rgba(127,127,160,.04);min-width:0;transition:background .15s}
+.pi:hover{background:rgba(127,127,160,.08)}.pi.op{background:rgba(127,127,160,.07)}
+.pi .pr{display:flex;align-items:center;gap:12px;padding:8px 10px;cursor:pointer;min-width:0}
+.pi .pv{width:34px;height:48px;border-radius:7px;background:#000;object-fit:cover;flex:none}
+.pi .tm{font-variant-numeric:tabular-nums;font-weight:650;font-size:15px;width:44px;flex:none}
+.pi .pm{flex:1;min-width:0}.pi .pm b{display:block;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pi .pm small{color:var(--mu);font-size:12px;display:flex;gap:8px;align-items:center}.pi .pp{display:inline-flex;gap:4px}.pi .pp svg{width:13px;height:13px}
+.pi .chip{flex:none}.pi .pr .btn{flex:none;padding:6px 12px;font-size:12.5px}
+.pi.s-published{opacity:.6}.pi.s-published .tm{color:var(--mu)}
+.pi .pxe{background:none;border:0;color:var(--fa);width:26px;height:26px;display:grid;place-items:center;flex:none;transition:transform .2s}.pi .pxe svg{width:16px;height:16px}.pi.op .pxe{transform:rotate(180deg)}
+.pi .ed{display:none;flex-direction:column;gap:9px;padding:2px 12px 12px}.pi.op .ed{display:flex}
+.pi .er{color:var(--bad);font-size:12.5px;padding:0 12px 10px}
+.pi textarea{width:100%;min-height:84px;resize:vertical;background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;color:var(--tx);font-size:13px;line-height:1.45;font-family:inherit}
 .pi input[type=datetime-local],.pi input[type=text]{background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:7px 9px;color:var(--tx);font:inherit;font-size:13px;min-width:0}
 .pi .pf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pi .pf label{display:flex;gap:5px;align-items:center;font-size:12.5px;background:var(--s3);border-radius:9px;padding:5px 9px;cursor:pointer}
-.pi .ac{display:flex;gap:6px;flex-wrap:wrap}.pi .er{color:var(--bad);font-size:12.5px}
+@media(max-width:600px){.pi .pr{gap:9px;padding:8px}.pi .tm{width:40px;font-size:14px}.pi .pr .chip{display:none}.pi.s-draft .pr .chip,.pi.s-error .pr .chip{display:inline-block}.pi.s-draft .pr .chip{display:none}}
+.pi .ac{display:flex;gap:6px;flex-wrap:wrap}
 .hi{width:26px;height:26px;border-radius:8px;display:inline-grid;place-items:center;flex:none;color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 22%,transparent)}
 .hi svg{width:15px;height:15px}
 .t h3{font-size:13.5px;font-weight:600;color:var(--tx);gap:10px}
@@ -412,22 +423,27 @@ async function load(){
 const PST={draft:['do zatwierdzenia','wr'],approved:['zaplanowany','ac'],publishing:['publikuję…','wr'],published:['opublikowany','ok'],error:['błąd','bad'],skipped:['pominięty','']};
 const dtl=t=>{const d=new Date(t*1000);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
 let PLD=null;
-async function planer(){const r=await get('/api/planer');PLD=r;if(!r){$('pl').innerHTML='<p class="empty">Planer niedostępny.</p>';return []}
- const D0=new Date();D0.setHours(0,0,0,0);const d0=D0.getTime()/1000;
- // posty opublikowane (albo z błędem) przed dzisiejszą północą znikają z listy; szkice i zaplanowane zostają
- const L=(r.items||[]).filter(x=>x.status!=='skipped'&&!(['published','error'].includes(x.status)&&(x.done_at||x.when||0)<d0)).sort((a,b)=>(a.when||0)-(b.when||0));$('pln').innerHTML=L.filter(x=>x.status==='draft').length+'<span class="lo"> do zatwierdzenia</span><span class="sh"> do zatw.</span>';
+let PLO=null;async function planer(){const r=await get('/api/planer');PLD=r;if(!r){$('pl').innerHTML='<p class="empty">Planer niedostępny.</p>';return []}
+ const L=(r.items||[]).filter(x=>x.status!=='skipped').sort((a,b)=>(a.when||0)-(b.when||0));$('pln').innerHTML=L.filter(x=>x.status==='draft').length+'<span class="lo"> do zatwierdzenia</span><span class="sh"> do zatw.</span>';
  if(!L.length){$('pl').innerHTML='<p class="empty">Gdy film albo karuzela będą gotowe w Montażowni, pojawią się tu jako szkic posta z opisem i godziną – zatwierdzasz jednym kliknięciem.</p>';return L}
- if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#pl'))return L;   // nie przerywaj edycji
- $('pl').innerHTML=(r.public?'':'<p class="dn" style="font-size:12.5px;margin-top:8px">Brak SOCIAL_DOMAIN w .env – Instagram nie pobierze plików.</p>')+'<div class="pl">'+L.map(x=>{const st=PST[x.status]||[x.status,''],ed=['draft','approved','error'].includes(x.status);
+ if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#pl .ed'))return L;   // nie przerywaj edycji
+ const dk=t=>{const d=new Date(t*1000);d.setHours(0,0,0,0);return d.getTime()},T0=new Date().setHours(0,0,0,0);
+ const dn=k=>{const n=Math.round((k-T0)/864e5),d=new Date(k);const w=d.toLocaleDateString('pl',{weekday:'long',day:'numeric',month:'long'});return n===0?'Dziś · '+w:n===1?'Jutro · '+w:n===-1?'Wczoraj · '+w:w};
+ const ic={instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>',youtube:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg>'};
+ let g='',last=null;
+ for(const x of L){const k=dk(x.when||0);if(k!==last){g+=`<div class="pdh">${dn(k)}</div>`;last=k}
+  const st=PST[x.status]||[x.status,''],ed=['draft','approved','error'].includes(x.status),op=PLO===x.id;
+  const tm=new Date((x.status==='published'?(x.done_at||x.when):x.when)*1000).toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'});
   const pv=x.kind==='film'?`<video class="pv" src="/api/planer/${x.id}/preview#t=1" muted playsinline preload="metadata"></video>`:`<img class="pv" src="/api/planer/${x.id}/preview" alt="" loading="lazy">`;
-  return `<div class="pi" data-id="${x.id}"><div class="hd">${pv}<div style="min-width:0;flex:1"><b title="${esc(x.label)}">${esc(x.label)}</b><small>${x.kind==='film'?'film':'karuzela '+(x.files||[]).length+' zdjęć'}</small><span class="chip ${st[1]}" style="display:inline-block;margin-top:6px">${st[0]}</span>
-   ${x.status==='published'?`<small style="margin-top:6px">${new Date((x.done_at||x.when)*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small>`:''}</div></div>
+  g+=`<div class="pi s-${x.status}${op?' op':''}" data-id="${x.id}"><div class="pr">${pv}<span class="tm">${tm}</span><div class="pm"><b title="${esc(x.label)}">${esc(x.label)}</b><small>${x.kind==='film'?'Film':'Karuzela · '+(x.files||[]).length+' zdj.'}<span class="pp">${(x.platforms||[]).map(p=>ic[p]||'').join('')}</span></small></div><span class="chip ${st[1]}">${st[0]}</span>${x.status==='draft'?`<button class="btn" data-a="approve">Zatwierdź</button>`:''}${ed?`<button class="pxe" title="Szczegóły"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`:''}</div>
    ${x.status==='error'?`<div class="er">${esc(x.step||'')}</div>`:''}
-   ${ed?`<textarea data-f="caption" placeholder="Opis posta">${esc(x.caption||'')}</textarea>
+   ${ed?`<div class="ed"><textarea data-f="caption" placeholder="Opis posta">${esc(x.caption||'')}</textarea>
    ${x.kind==='film'?`<input type="text" data-f="yt_title" placeholder="Tytuł na YouTube (puste = pierwsze zdanie opisu)" value="${esc(x.yt_title||'')}">`:''}
    <div class="pf"><input type="datetime-local" data-f="when" value="${dtl(x.when)}">${(x.kind==='film'?['instagram','youtube']:['instagram']).map(p=>`<label><input type="checkbox" data-p="${p}" ${x.platforms.includes(p)?'checked':''}>${p==='instagram'?'Instagram':'YouTube'}</label>`).join('')}</div>
-   <div class="ac">${x.status==='approved'?`<button class="btn g" data-a="unapprove">Cofnij</button><button class="btn g" data-a="save">Zapisz zmiany</button>`:x.status==='error'?`<button class="btn" data-a="retry">Ponów</button>`:`<button class="btn" data-a="approve">Zatwierdź</button>`}<button class="btn g" data-a="now">Opublikuj teraz</button><button class="btn g" data-a="skip">Pomiń</button></div>`:''}</div>`}).join('')+'</div>';
+   <div class="ac">${x.status==='approved'?`<button class="btn g" data-a="unapprove">Cofnij</button><button class="btn g" data-a="save">Zapisz zmiany</button>`:x.status==='error'?`<button class="btn" data-a="retry">Ponów</button>`:`<button class="btn" data-a="approve">Zatwierdź</button><button class="btn g" data-a="save">Zapisz</button>`}<button class="btn g" data-a="now">Opublikuj teraz</button><button class="btn g" data-a="skip">Pomiń</button></div></div>`:''}</div>`}
+ $('pl').innerHTML=(r.public?'':'<p class="dn" style="font-size:12.5px;margin-top:8px">Brak SOCIAL_DOMAIN w .env – Instagram nie pobierze plików.</p>')+'<div class="pl">'+g+'</div>';
  return L}
+document.addEventListener('click',e=>{if(e.target.closest('#pl [data-a]')||e.target.closest('#pl .ed'))return;const r=e.target.closest('#pl .pr');if(!r)return;const c=r.closest('.pi');if(!c.querySelector('.ed'))return;const o=c.classList.toggle('op');PLO=o?c.dataset.id:null;if(o)c.parentElement.querySelectorAll('.pi.op').forEach(z=>z!==c&&z.classList.remove('op'))});
 document.addEventListener('click',async e=>{const b=e.target.closest('#pl [data-a]');if(!b)return;const c=b.closest('.pi'),a=b.dataset.a;
  if(a==='now'&&!confirm('Opublikować teraz?'))return;
  const body={};c.querySelectorAll('[data-f]').forEach(i=>body[i.dataset.f]=i.value);body.platforms=[...c.querySelectorAll('[data-p]:checked')].map(i=>i.dataset.p);

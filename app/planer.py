@@ -334,7 +334,10 @@ threading.Thread(target=_loop, daemon=True).start()
 @router.get("/api/planer")
 def api_plan():
     P = sorted(plan(), key=lambda x: x["when"])
-    return {"items": [x for x in P if x["status"] != "published" or time.time() - x.get("done_at", 0) < 7 * 86400][-40:], "cfg": cfg(),
+    d0 = datetime.now(TZ).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()   # dzisiejsza północ (PL)
+    P = [x for x in P if x["status"] != "skipped"
+         and not (x["status"] in ("published", "error") and (x.get("done_at") or x.get("when") or 0) < d0)]
+    return {"items": P[-40:], "d0": d0, "cfg": cfg(),
             "public": bool(_public())}
 
 
