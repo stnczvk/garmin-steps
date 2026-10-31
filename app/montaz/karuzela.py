@@ -266,6 +266,107 @@ def meal_card(m):
     return img
 
 
+# ---------- styl „C” (posiłki: liczby na zdjęciu) + „A” (podsumowanie: pierścień + kafelki) ----------
+FD = HERE / "fonts"
+def bf(name, size):
+    try:
+        return ImageFont.truetype(str(FD / name), size)
+    except Exception:
+        return font(size)
+HB = lambda s: bf("BarlowCondensed-Bold.ttf", s)
+HS = lambda s: bf("BarlowCondensed-SemiBold.ttf", s)
+BS = lambda s: bf("Barlow-SemiBold.ttf", s)
+BM = lambda s: bf("Barlow-Medium.ttf", s)
+MCOL = {"p": (91, 180, 255), "c": (255, 201, 61), "f": (255, 120, 150)}
+
+
+def _wrap(d, text_parts, f, maxw, max_lines=3):
+    lines, cur = [], ""
+    for part in text_parts:
+        t = part if not cur else cur + "  ·  " + part
+        if d.textlength(t, font=f) <= maxw:
+            cur = t
+        else:
+            if cur:
+                lines.append(cur)
+            cur = part
+    if cur:
+        lines.append(cur)
+    if len(lines) > max_lines:
+        lines = lines[:max_lines]
+        lines[-1] = lines[-1].rstrip() + " …"
+    return lines
+
+
+def meal_slide(photo, m, i, n):
+    """Slajd posiłku: zdjęcie na cały ekran, na dole przyciemnienie, duże kcal, kolorowe makro, lista produktów."""
+    im = photo.convert("RGB")
+    d0 = ImageDraw.Draw(im)
+    items = [i_ for i_ in (m.get("items") or []) if i_.get("name")]
+    parts = [(it["name"] + (f" {str(it.get('qty')).strip()}" if str(it.get("qty") or "").strip() else "")) for it in items]
+    fi = BM(30 if len(parts) <= 4 else 27)
+    lines = _wrap(d0, parts, fi, W - 120, 3 if len(parts) <= 8 else 4)
+    lh = int(fi.size * 1.35)
+    y_items = H - 60 - len(lines) * lh
+    y_chips = y_items - 30 - 64
+    y_kcal = y_chips - 26
+    y_name = y_kcal - 150
+    top = max(0.3, (y_name - 120) / H)
+    g = Image.new("L", (1, H))
+    for y in range(H):
+        t = y / H
+        g.putpixel((0, y), int(max(0.0, (t - top) / (1 - top)) ** 0.8 * 225) if t > top else 0)
+    black = Image.new("RGB", (W, H), (0, 0, 0))
+    im = Image.composite(black, im, g.resize((W, H)))
+    d = ImageDraw.Draw(im, "RGBA")
+    d.text((60, 70), f"{i}/{n}", font=HB(42), fill="white", anchor="lt", stroke_width=3, stroke_fill=(0, 0, 0, 110))
+    d.text((60, y_name), (m.get("name") or "").upper(), font=HS(46), fill=(235, 235, 240), anchor="ls")
+    kc = f"{m.get('kcal', 0)}"
+    d.text((60, y_kcal), kc, font=HB(156), fill=YEL, anchor="ls")
+    tw = d.textlength(kc, font=HB(156))
+    d.text((60 + tw + 14, y_kcal), "kcal", font=HB(62), fill="white", anchor="ls")
+    x = 60
+    for lab, k in (("B", "p"), ("W", "c"), ("T", "f")):
+        t = f"{m.get(k, 0)} g"
+        w = d.textlength(t, font=HB(40)) + 78
+        d.rounded_rectangle([x, y_chips, x + w, y_chips + 64], radius=32, fill=MCOL[k])
+        d.text((x + 24, y_chips + 32), lab, font=HB(34), fill=(15, 15, 15), anchor="lm")
+        d.text((x + 56, y_chips + 32), t, font=HB(40), fill=(15, 15, 15), anchor="lm")
+        x += w + 14
+    for j, ln in enumerate(lines):
+        d.text((60, y_items + j * lh), ln, font=fi, fill=(220, 220, 228), anchor="lt")
+    return im
+
+
+def summary_slide(bg, summ):
+    """Podsumowanie dnia: rozmyte zdjęcie, pierścień kcal względem celu, 3 kafelki makro z paskiem do celu."""
+    from PIL import ImageFilter
+    im = (cover(bg) if bg is not None else Image.new("RGB", (W, H), (20, 20, 24))).filter(ImageFilter.GaussianBlur(40))
+    im = Image.blend(im, Image.new("RGB", (W, H), (8, 8, 12)), 0.78)
+    d = ImageDraw.Draw(im, "RGBA")
+    d.text((W / 2, 150), "PODSUMOWANIE DNIA", font=HS(48), fill=(220, 220, 228), anchor="mm")
+    kcal, goal = summ.get("kcal", 0), summ.get("goal")
+    cx, cy, R = W / 2, 490, 235
+    d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=(255, 255, 255, 40), width=36)
+    if goal:
+        d.arc([cx - R, cy - R, cx + R, cy + R], -90, -90 + 360 * max(0.01, min(1.0, kcal / goal)), fill=YEL, width=36)
+    d.text((cx, cy - 22), f"{kcal:,}".replace(",", " "), font=HB(156), fill="white", anchor="mm")
+    d.text((cx, cy + 82), f"z {goal} kcal" if goal else "kcal", font=HS(44), fill=(200, 200, 210), anchor="mm")
+    for j, (lab, k, gk) in enumerate((("Białko", "p", "gp"), ("Węglowodany", "c", "gc"), ("Tłuszcze", "f", "gf"))):
+        v, g = summ.get(k, 0), summ.get(gk)
+        g = g[-1] if isinstance(g, list) else g
+        x = 60 + j * 330
+        d.rounded_rectangle([x, 830, x + 300, 1130], radius=36, fill=(255, 255, 255, 20), outline=(255, 255, 255, 34), width=2)
+        d.text((x + 150, 890), lab, font=BS(30), fill=(215, 215, 222), anchor="mm")
+        d.text((x + 150, 985), f"{v} g", font=HB(86), fill="white", anchor="mm")
+        d.rounded_rectangle([x + 40, 1058, x + 260, 1072], radius=7, fill=(255, 255, 255, 40))
+        if g:
+            d.rounded_rectangle([x + 40, 1058, x + 40 + 220 * max(0.03, min(1.0, v / g)), 1072], radius=7, fill=MCOL[k])
+            d.text((x + 150, 1102), f"cel {g} g", font=BM(25), fill=(170, 170, 182), anchor="mm")
+    d.text((W / 2, 1245), "Zapisz, żeby mieć pomysły na jutro", font=BS(34), fill=(205, 205, 214), anchor="mm")
+    return im
+
+
 def main():
     day, out = Path(sys.argv[1]), Path(sys.argv[2])
     try:
@@ -342,10 +443,12 @@ def main():
     slides.append(s)
     # 2…: posiłki
     for i, c in enumerate(meals):
+        if c in shots and (karty[c].get("items") or c not in png):
+            slides.append(meal_slide(cover(shots[c]), karty[c], i + 1, len(meals)))
+            continue
         s = cover(shots[c]) if c in shots else Image.new("RGB", (W, H), (20, 20, 24))
-        d = ImageDraw.Draw(s)  # bez przyciemniania – zdjęcie zostaje naturalne, karta i licznik mają własne tło
+        d = ImageDraw.Draw(s)
         pill(d, 60, 70, f"{i + 1}/{len(meals)}", font(30))
-        # własna karta ze WSZYSTKIMI produktami; PNG z dziennika tylko gdy nie mamy listy produktów
         card = meal_card(karty[c]) if (karty[c].get("items") or c not in png) else Image.open(png[c]).convert("RGBA")
         cw = 980
         card = card.resize((cw, round(card.height * cw / card.width)), Image.LANCZOS)
@@ -355,25 +458,7 @@ def main():
         s.alpha_composite(card, ((W - card.width) // 2, H - card.height - 60))
         slides.append(s.convert("RGB"))
     # podsumowanie dnia
-    s = Image.new("RGB", (W, H), (14, 14, 16))  # plansza informacyjna – jednolite tło zamiast rozmytego zdjęcia
-    d = ImageDraw.Draw(s)
-    center_text(d, 150, "Podsumowanie dnia", font(72))
-    center_text(d, 300, kc, font(170, 850), YEL)
-    goal = summ.get("goal")
-    center_text(d, 500, f"kcal{f'  ·  cel {goal}' if goal else ''}", font(42, 600), (230, 230, 235))
-    y = 640
-    for lab, k, gk in (("Białko", "p", "gp"), ("Węglowodany", "c", "gc"), ("Tłuszcze", "f", "gf")):
-        v, g = summ.get(k, 0), summ.get(gk)
-        g = g[-1] if isinstance(g, list) else g
-        d.text((100, y), lab, font=font(40, 700), fill="white")
-        d.text((980, y), f"{v} g", font=font(40, 700), fill="white", anchor="ra")
-        d.rounded_rectangle([100, y + 66, 980, y + 84], radius=9, fill=(70, 70, 76))
-        if g:
-            p = max(0.02, min(1.0, v / g))
-            d.rounded_rectangle([100, y + 66, 100 + 880 * p, y + 84], radius=9, fill=YEL)
-        y += 170
-    center_text(d, 1190, "Zapisz, żeby mieć pomysły na jutro", font(34, 600), (210, 210, 215))
-    slides.append(s)
+    slides.append(summary_slide(shots.get(top) if top else None, summ))
     # pytanie
     s = Image.new("RGB", (W, H), (14, 14, 16))
     d = ImageDraw.Draw(s)
