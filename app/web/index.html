@@ -1016,7 +1016,15 @@ function drawChart(accs) {
     return;
   }
   series = s.pts;
-  const W = Math.max(320, box.clientWidth - 20), H = innerWidth < 560 ? 220 : 260, L = 52, R = 10, T = 12, B = 26;
+  drawChart.last = accs;
+  if (!drawChart.ro && window.ResizeObserver) {   // wykres rysowany w ukrytej/zwiniętej karcie albo przy zmianie szerokości – przerysuj na właściwą szerokość
+    drawChart.ro = new ResizeObserver(() => { const w = box.clientWidth; if (w > 40 && Math.abs((w - 20) - (box._w || 0)) > 4) { clearTimeout(drawChart.t); drawChart.t = setTimeout(() => drawChart(drawChart.last), 80); } });
+    drawChart.ro.observe(box);
+  }
+  if (box.clientWidth < 40) { box._w = 0; }
+  const W = Math.max(260, box.clientWidth - 20);
+  box._w = box.clientWidth >= 40 ? W : 0;
+  const H = innerWidth < 560 ? 220 : 260, L = 52, R = 10, T = 12, B = 26;
   const max = Math.max(...series.map(p => p.v)), min = 0;
   // równe, „okrągłe” podziałki osi (1, 2, 2,5, 5 × 10ⁿ)
   const raw = Math.max(max - min, 1) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
