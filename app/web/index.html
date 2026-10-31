@@ -717,7 +717,7 @@ body.lg .head{display:none!important}
 
 /* przejście między zakładkami */
 @keyframes vin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-body:not(.v-ext) #app{animation:vin .38s cubic-bezier(.2,.8,.2,1)}.vframe iframe{animation:vin .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes vfade{from{opacity:0}to{opacity:1}}body:not(.v-ext) #app{animation:vfade .3s ease-out}.vframe iframe{animation:vfade .3s ease-out}
 @media (prefers-reduced-motion:reduce){body:not(.v-ext) #app,.vframe iframe{animation:none}}
 
 /* ---------- czat z Hermesem ---------- */

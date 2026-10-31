@@ -170,36 +170,30 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
 })();
 
-/* karty: wejście (pojawienie się z dołu, po kolei), cień i podświetlona górna krawędź */
+/* karty: cień i podświetlona górna krawędź; wejście tylko raz przy starcie strony (same karty obecne od razu, bez przesuwania później dorysowanych) */
 (function(){
   var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
   var css='.gc-sh{box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 1px 0 rgba(0,0,0,.25),0 18px 40px -24px rgba(0,0,0,.75)!important}'
    +':root[data-theme=light] .gc-sh{box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(0,0,0,.05),0 14px 34px -22px rgba(30,30,60,.25)!important}'
-   +'.gc-in{opacity:0;transform:translateY(12px) scale(.985)}.gc-in.gc-on{opacity:1;transform:none;transition:opacity .5s cubic-bezier(.2,.8,.2,1) var(--gd,0ms),transform .6s cubic-bezier(.2,.8,.2,1) var(--gd,0ms)}';
-  var T0=Date.now(),seen=new WeakSet(),n=0;
+   +'@keyframes gcin{from{opacity:0}to{opacity:1}}.gc-in{animation:gcin .45s ease-out both;animation-delay:var(--gd,0ms)}';
+  var seen=new WeakSet(),first=true,n=0;
   function isCard(e,cs){var r=parseFloat(cs.borderTopLeftRadius);if(r<14)return false;
     if(cs.backgroundImage==='none'&&(/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor)))return false;
     if(cs.position==='fixed'||cs.position==='absolute')return false;return e.offsetWidth>=140&&e.offsetHeight>=56}
   function skip(e){return e.closest('#side,.side,.tbar,nav,dialog,.modal,.mod,#hm,#panel,.panel,header,.head,button,a,input,textarea,select,.vframe')}
-  function scan(){var fresh=Date.now()-T0<3500;
+  function scan(){
     var all=document.querySelectorAll('main *,.wrap *,body>section,body>div *');
     for(var i=0;i<all.length;i++){var e=all[i];if(seen.has(e))continue;
       var p=e.parentElement,inCard=false;while(p&&p!==document.body){if(p.dataset&&p.dataset.gc){inCard=true;break}p=p.parentElement}
       if(inCard){seen.add(e);continue}
-      if(!e.offsetParent&&getComputedStyle(e).position!=='fixed')continue;   // ukryty – sprawdzimy, gdy się pokaże
+      if(!e.offsetParent)continue;
       var cs=getComputedStyle(e);seen.add(e);if(!isCard(e,cs)||skip(e))continue;
-      seen.add(e);e.dataset.gc=1;if(cs.boxShadow==='none'||/inset/.test(cs.boxShadow)&&!/, 0px \d+px/.test(cs.boxShadow))e.classList.add('gc-sh');
-      if(fresh&&!RM){var top=e.getBoundingClientRect().top;if(top<innerHeight*1.2){e.style.setProperty('--gd',Math.min(n++,10)*55+'ms');e.classList.add('gc-in');
-        (function(el){requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('gc-on')})});
-          setTimeout(function(){el.classList.remove('gc-in','gc-on');el.style.removeProperty('--gd')},1400)})(e)}}}
-  }
-  var q=0;function sch(){if(q)return;q=setTimeout(function(){q=0;scan()},90)}
+      e.dataset.gc=1;if(cs.boxShadow==='none'||/inset/.test(cs.boxShadow)&&!/, 0px \d+px/.test(cs.boxShadow))e.classList.add('gc-sh');
+      if(first&&!RM&&e.getBoundingClientRect().top<innerHeight){e.style.setProperty('--gd',Math.min(n++,8)*40+'ms');e.classList.add('gc-in');
+        (function(el){setTimeout(function(){el.classList.remove('gc-in');el.style.removeProperty('--gd')},1200)})(e)}}
+    first=false}
+  var q=0;function sch(){if(q)return;q=setTimeout(function(){q=0;scan()},120)}
   function go(){var s=document.createElement('style');s.textContent=css;document.head.appendChild(s);scan();
-    new MutationObserver(sch).observe(document.body,{childList:true,subtree:true});
-    addEventListener('message',function(e){if(!(e.data&&e.data.active)||RM)return;T0=Date.now();n=0;   // wejście w zakładkę: karty wjeżdżają jeszcze raz
-      document.querySelectorAll('[data-gc]').forEach(function(el){var r=el.getBoundingClientRect();if(r.top>innerHeight*1.1||r.bottom<0)return;
-        el.style.setProperty('--gd',Math.min(n++,10)*45+'ms');el.classList.remove('gc-on');el.classList.add('gc-in');
-        requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('gc-on')})});
-        setTimeout(function(){el.classList.remove('gc-in','gc-on');el.style.removeProperty('--gd')},1300)})})}
+    new MutationObserver(sch).observe(document.body,{childList:true,subtree:true})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
 })();
