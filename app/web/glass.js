@@ -134,6 +134,7 @@
   var q=0;function sch(){if(q)return;q=setTimeout(function(){q=0;run()},120)}
   var css='[data-mf]{display:flex!important;align-items:center;justify-content:flex-start!important;cursor:pointer;-webkit-tap-highlight-color:transparent;gap:6px;flex-wrap:nowrap}'
    +'[data-mf]>.r{margin-left:auto!important;flex:none!important}[data-mf]>.r~.mfx{margin-left:8px}'
+   +'.mfh:not([data-mf]){flex-wrap:wrap!important;row-gap:10px}.mfh>[data-mf]{flex:1 1 100%!important;min-width:0;width:100%}.mfh .seg{max-width:100%;overflow-x:auto;scrollbar-width:none}.mfh .seg::-webkit-scrollbar{display:none}.mfh .seg button{flex:none}'
    +'.mfx{margin-left:auto;flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--faint,var(--fa,#6f6e86));background:rgba(127,127,160,.12);transition:transform .2s}'
    +'.mfx svg{width:15px;height:15px}.mf .mfx{transform:rotate(-90deg)}.mf>:not(.mfh){display:none!important}.mf .mfh,.mf [data-mf]{margin-bottom:0!important}'
    +'[data-mf] .hxw{white-space:nowrap;flex:none}[data-mf]>:not(.hxw):not(.mfx):not(.hx):not(.hi){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}';
