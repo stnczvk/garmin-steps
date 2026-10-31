@@ -920,6 +920,8 @@ body{text-rendering:optimizeLegibility}
 .madd.cheatbtn{margin-left:0}
 .meal-empty .madd:not(.cheatbtn){margin-right:8px}
 .remrow .btn{white-space:nowrap;flex:none}
+/* wyszukiwarka: stała wysokość listy – pisanie nie przesuwa ekranu */
+.qlist.qfix{height:min(380px,46vh);max-height:none}
 </style>
 
 <div class="wrap">
@@ -3198,7 +3200,7 @@ function quickHTML(){
     <div class="qtabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-act="fd-qtab" data-k="${k}" aria-selected="${fst.qtab===k}">${l}</button>`).join("")}</div>
     ${fst.qtab==="search"?`<div class="qs-row"><span class="qs-wrap"><input id="fd-qs" type="search" autocomplete="off" placeholder="Szukaj nazwy albo wpisz kod kreskowy" value="${esc(fst.qs||"")}"><button type="button" class="qs-x" data-act="fd-qsclear" aria-label="Wyczyść wyszukiwanie">×</button></span><button type="button" class="scanbtn" data-act="fd-scanlive" aria-label="Skanuj kod kreskowy">${fst.tool==="bar"?`<span class="note">…</span>`:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>`}</button><input type="file" id="fd-bar" accept="image/*" capture="environment" hidden></div><div class="note" style="margin:0">${OFFstate==="ready"?`Twoje produkty, podstawowa baza i ${OFF.length.toLocaleString("pl-PL")} produktów z polskich sklepów${OFFmeta?.date?` (baza z ${fmtDate(OFFmeta.date)})`:""}. Po wpisaniu min. 3 liter szukam też wśród ok. 1,6 mln produktów z całej Europy i w bazie ${GEN.length?GEN.length.toLocaleString("pl-PL")+" ":""}produktów ogólnych.`:OFFstate==="loading"?"Ładuję bazę produktów sklepowych…":"Twoje produkty i podstawowa baza."} Kliknij nazwę, żeby wybrać gramy i dodać od razu.</div>`:""}
     ${fst.qtab==="recent"?`<div class="chips"><button data-act="fd-qall" data-v="0" aria-pressed="${!fst.qAll}">Jedzone w: ${esc(fst.meal)}</button><button data-act="fd-qall" data-v="1" aria-pressed="${!!fst.qAll}">Wszystkie posiłki</button></div>`:""}
-    <div class="qlist">${body}</div>
+    <div class="qlist${fst.qtab==="search"?" qfix":""}">${body}</div>
     <div class="note" style="margin:0">Plus dodaje do: <b>${esc(fst.meal)}</b></div></div>`;
 }
 function qsBody(){
@@ -3212,7 +3214,7 @@ function qsBody(){
   const euroSlot=q&&/[a-ząćęłńóśźż]{3}/i.test(q)?`<div id="fd-qseu" data-q="${esc(q)}"><div class="note" style="margin:6px 0">Szukam w bazie europejskiej…</div></div>`:"";
   return (q?"":`<div class="label" style="margin:4px 0">Twoje produkty (${l.length})</div>`)+l.map((it,i)=>quickRow(it,"s:"+i)).join("")+euroSlot;
 }
-function renderQS(){const el=document.getElementById("fd-qsres");if(el)el.innerHTML=qsBody();fillEuro();}
+function renderQS(){const el=document.getElementById("fd-qsres");if(!el)return;const y=window.scrollY;el.innerHTML=qsBody();const ql=el.closest(".qlist");if(ql)ql.scrollTop=0;if(Math.abs(window.scrollY-y)>1)window.scrollTo(0,y);fillEuro();}
 async function fillEuro(){const box=document.getElementById("fd-qseu");if(!box)return;const q=box.dataset.q;
   if(fst._eu&&fst._eu.q===q){paintEuro(box,fst._eu.list);return}
   const list=await euroSearch(q);if(fst.qs.trim()!==q.trim())return;fst._eu={q,list};const b2=document.getElementById("fd-qseu");if(b2)paintEuro(b2,list)}
