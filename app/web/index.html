@@ -597,7 +597,7 @@ body.lg{padding-left:var(--sw);transition:padding-left .35s cubic-bezier(.2,.8,.
  body.s-mini .side span,body.s-mini .s-brand b,body.s-mini .s-foot{display:revert}body.s-mini .s-grp{font-size:11px;padding:14px 12px 4px;border:0}
  body.s-open .side{transform:none}body.s-open .tbar{display:none!important}.side{overflow:hidden}#snav{overflow-y:auto;min-height:0;flex:1 1 auto;-webkit-overflow-scrolling:touch;padding-bottom:10px}body.s-open .s-dim{opacity:1;pointer-events:auto}.burger{display:grid;place-items:center}.s-col{display:none}}
 .vframe{position:relative;z-index:15;display:none;background:transparent;flex:1;min-height:0}
-.vframe iframe{width:100%;height:100%;border:0;display:none}
+.vframe iframe{width:1px;min-width:100%;max-width:100%;height:100%;border:0;display:none}.vframe{overflow:hidden;max-width:100vw}
 body.v-ext .vframe{display:block}body.v-ext #app,body.v-ext #tabs,body.v-ext #refresh{display:none!important}
 /* zakładki w ramce: cała strona = nagłówek + ramka do samego dołu ekranu (bez position:fixed – na iPhonie w trybie apki fixed zostawiał pasek) */
 body.v-ext{overflow:hidden;display:flex;flex-direction:column;height:var(--vh,100dvh);min-height:0}
@@ -739,6 +739,7 @@ body.hm-open #hm{display:flex}
 }
 body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
 </style>
+<style id="nox">html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
 <body>
 <div id="splash" role="status" aria-live="polite"><i class="half t"></i><i class="half b"></i><div class="sp"><i class="wv"></i><i class="wv"></i><i class="wv"></i><div class="gl"><s></s><s></s><s></s></div><b>Centrum dowodzenia</b><small id="sp-t">łączę z agentami…</small></div></div>
