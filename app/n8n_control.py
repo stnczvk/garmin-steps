@@ -4,7 +4,7 @@ Publiczne API n8n nie ma „uruchom workflow”, więc przy pierwszym użyciu ce
 webhook „Centrum: start” (+ sprawdzenie tokenu), podpięty do tych samych node'ów co jego harmonogram.
 Harmonogram działa dalej bez zmian.
 """
-import copy, os, time, uuid
+import copy, json, os, re, time, uuid
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -595,6 +595,46 @@ def api_publisher_fix():
     return apply_publisher_fix()
 
 
+TG_ERR = re.compile(r"error|err\b|błąd|blad|fail|alert", re.I)
+def apply_tg_quiet():
+    """Telegram tylko przy błędach: wyłącza w n8n węzły Telegrama, które wysyłają zwykłe info
+    (film gotowy, opublikowano, raport tygodnia) – to samo widać w apce. Węzły z błędami zostają."""
+    wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
+    done = []
+    for w in wfs:
+        if w.get("isArchived"):
+            continue
+        wf = n8n("GET", f"/api/v1/workflows/{w['id']}").json()
+        hit = [n for n in wf.get("nodes", []) if not n.get("disabled") and not TG_ERR.search(n.get("name", ""))
+               and ("telegram" in n.get("type", "").lower() or "api.telegram.org" in json.dumps(n.get("parameters", {})))]
+        if not hit:
+            continue
+        new = copy.deepcopy(wf)
+        names = {n["name"] for n in hit}
+        for n in new["nodes"]:
+            if n["name"] in names:
+                n["disabled"] = True
+        _save_backup(wf, "przed wyłączeniem powiadomień Telegram (zostają tylko błędy)")
+        r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new))
+        if r.status_code >= 400:
+            r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new, minimal=True))
+        if r.status_code >= 400:
+            log("op", f"{wf.get('name')}: n8n nie przyjął wyłączenia Telegrama: {r.text[:120]}", "error")
+            continue
+        if wf.get("active"):
+            n8n("POST", f"/api/v1/workflows/{wf['id']}/activate")
+        done.append(f"{wf.get('name')}: {', '.join(sorted(names))}")
+    if done:
+        log("op", "Telegram tylko przy błędach – wyłączone: " + "; ".join(done), "ok")
+        _bust()
+    return {"ok": True, "changed": done}
+
+
+@router.post("/api/n8n/tg-quiet")
+def api_tg_quiet():
+    return apply_tg_quiet()
+
+
 def _img_loop():
     import threading, time as _t
     def run():
@@ -616,6 +656,10 @@ def _img_loop():
                 apply_publisher_fix()
             except Exception as e:
                 print("publisher fix", e, flush=True)
+            try:
+                apply_tg_quiet()
+            except Exception as e:
+                print("tg quiet", e, flush=True)
             _t.sleep(6 * 3600)
     threading.Thread(target=run, daemon=True).start()
 
