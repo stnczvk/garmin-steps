@@ -45,7 +45,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 # ---------------------------------------------------------------------------
 W, H, FPS = 1080, 1920, 30
 
-TITLE_SECONDS = 2.5        # jak długo tytuł jest na ekranie na początku
+TITLE_SECONDS = 3.0        # jak długo tytuł jest na ekranie na początku
 TITLE_FONT_SIZE = 78
 TITLE_TOP = 230            # odległość tytułu od górnej krawędzi (px)
 YELLOW = (255, 214, 0)
