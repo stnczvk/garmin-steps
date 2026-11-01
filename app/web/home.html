@@ -256,6 +256,18 @@ html[data-theme=light] .eg div{background:rgba(40,50,140,.04)}
 .grp:first-child{margin-top:0}.grp small{font-size:12.5px;font-weight:500;color:var(--mu)}
 .grp:after{content:"";flex:1;height:1px;align-self:center;background:linear-gradient(90deg,var(--ln),transparent)}
 @media(max-width:1180px){.mr>.c7,.mr>.c5{grid-column:span 12}}
+/* telefon: najważniejsze na górze – do zrobienia, posty, dzień; liczby i wyniki niżej */
+@media(max-width:760px){
+ .wrap{display:flex;flex-direction:column;gap:12px}.wrap>*{margin-top:0!important;margin-bottom:0!important}
+ .mg,.mr{display:contents}
+ .wrap>*,.mr>*{order:20}
+ .wrap>.top{order:0}.wrap>.qa{order:1}#nowtop{order:1}
+ .mr>.grp:first-child{order:2;margin-top:4px!important}
+ .mr>section:has(#appr){order:3}#plc{order:4}#pinc{order:5}
+ #dayc{order:6}.wrap>.kp{order:7}
+ .mr>.grp{margin-top:10px!important}
+ .wkg{grid-template-columns:1fr 1fr;gap:8px}.wkg>div{padding:9px 10px}.wkg b{font-size:17px}.wkg small{font-size:11px}
+}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
