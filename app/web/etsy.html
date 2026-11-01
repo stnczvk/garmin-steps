@@ -54,6 +54,16 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 .pd textarea{width:100%;min-height:62px;margin-top:6px;resize:vertical;font:12.5px/1.4 inherit;font-family:inherit;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.04);color:inherit;border:1px solid var(--ln,rgba(255,255,255,.08))}
 .pd .ac{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.pd .ac button,.pd .ac a{font:600 12px Geist,system-ui;padding:7px 11px;border-radius:10px;border:1px solid var(--ln,rgba(255,255,255,.1));background:rgba(255,255,255,.05);color:inherit;text-decoration:none;cursor:pointer}
 .pd .ac .go{background:linear-gradient(135deg,#6e8bff,#b59cff);color:#fff;border-color:transparent;box-shadow:0 8px 18px -10px #6e8bff}
+
+/* menedżer sklepu */
+.au-h{display:flex;align-items:center;gap:16px;margin-top:10px}.au-s{width:74px;height:74px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 22px 'Bricolage Grotesque',Geist,system-ui;
+ background:conic-gradient(var(--sc) calc(var(--p)*1%),rgba(255,255,255,.08) 0);-webkit-mask:radial-gradient(circle,transparent 27px,#000 28px);position:relative}
+.au-w{position:relative;width:74px;height:74px;flex:none}.au-w b{position:absolute;inset:0;display:grid;place-items:center;font:700 21px 'Bricolage Grotesque',Geist,system-ui}
+.au-l{display:flex;flex-direction:column;gap:7px;margin-top:14px;max-height:460px;overflow:auto}
+.au-i{display:grid;grid-template-columns:10px 1fr;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);font-size:13px}
+.au-i i{width:8px;height:8px;border-radius:50%;margin-top:5px;background:#8a9dff}.au-i.warn i{background:#ffc24b}.au-i.fail i{background:#ff6b7a;box-shadow:0 0 8px #ff6b7a}
+.au-i b{font-weight:600}.au-i small{display:block;color:var(--soft,#b6bbe0);margin-top:3px;line-height:1.4}
+.au-f{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}.au-f button{font:600 12px Geist,system-ui;padding:6px 11px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:inherit;cursor:pointer}.au-f button.on{background:linear-gradient(135deg,rgba(110,139,255,.4),rgba(181,156,255,.25));border-color:rgba(181,156,255,.4)}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -78,6 +88,7 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
   <section class="t"><h2>Wyświetlenia ofert – ostatnie 30 dni<span class="r" id="v30"></span></h2><div class="chart vw" id="vch"></div><div class="ax" id="vax"></div></section>
   <section class="t"><h2>Ruch i konwersja<span class="r" id="vsince"></span></h2><div id="tr"></div></section>
  </div>
+ <section class="t" id="auc" style="margin-bottom:14px"><h2>Menedżer sklepu<span class="r"><button class="ib" id="aur">Sprawdź teraz</button></span></h2><div id="aub"><div class="sk" style="height:120px;margin-top:10px"></div></div></section>
  <section class="t" id="pinc" style="margin-bottom:14px"><h2>Pinterest – piny do zatwierdzenia<span class="r chip" id="pdbn">0</span></h2><div id="pdb"></div></section>
  <section class="t" id="pin" style="margin-bottom:14px;display:none"><h2>Pinterest – automat<span class="r" id="pst">…</span></h2>
   <div id="pset" hidden><ol style="margin:0 0 12px 18px;padding:0;color:var(--soft);line-height:1.7">
@@ -210,6 +221,20 @@ async function pinDrafts(boxId){const box=document.getElementById(boxId);if(!box
   if(!r.ok){(window.toast||alert)(r.error,1);b.disabled=false;return}
   window.toast&&toast(a==='skip'?'Pominięto':'Pin opublikowany');row.style.transition='.35s';row.style.opacity=0;row.style.transform='translateX(20px)';setTimeout(()=>pinDrafts(boxId),380)}}
 pinDrafts('pdb');
+
+// Menedżer sklepu: audyt i lista rzeczy do poprawy
+let AUF='all';
+async function audit(){let R;try{R=await (await fetch('/api/etsy/audit')).json()}catch(e){return}const b=document.getElementById('aub');if(!b)return;
+ const e2=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ if(R.score==null){b.innerHTML=`<p class="empty">${R.error?'Audyt nie wyszedł: '+e2(R.error):'Pierwszy audyt sklepu za kilka minut albo kliknij „Sprawdź teraz”.'}</p>`;return}
+ const I=R.issues||[],f=I.filter(x=>x.lvl==='fail').length,w=I.filter(x=>x.lvl==='warn').length,sc=R.score>=80?'#6fd5a6':R.score>=55?'#ffc24b':'#ff6b7a';
+ const L=I.filter(x=>AUF==='all'||x.lvl===AUF);
+ b.innerHTML=`<div class="au-h"><div class="au-w"><div class="au-s" style="--p:${R.score};--sc:${sc}"></div><b>${R.score}</b></div><div><b style="font-size:15px">${R.score>=80?'Sklep w dobrej formie':R.score>=55?'Jest co poprawić':'Sklep wymaga uwagi'}</b><div style="color:var(--soft);font-size:12.5px;margin-top:4px">${R.stats?.ok||0} z ${R.stats?.listings||0} ofert bez zastrzeżeń · ${f} pilne · ${w} do poprawy · sprawdzone ${new Date(R.at*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div></div>
+  <div class="au-f">${[['all','Wszystko'],['fail','Pilne'],['warn','Do poprawy'],['info','Wskazówki']].map(x=>`<button data-f="${x[0]}" class="${AUF===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>
+  <div class="au-l">${L.map(x=>`<div class="au-i ${x.lvl}"><i></i><div><b>${e2(x.what)}</b> – ${e2(x.msg)}<small>${e2(x.fix)}</small></div></div>`).join('')||'<p class="empty">Nic do poprawy w tej grupie.</p>'}</div>`;
+ b.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{AUF=x.dataset.f;audit()})}
+document.getElementById('aur').onclick=async ev=>{const t=ev.target;t.disabled=true;t.textContent='Sprawdzam…';await fetch('/api/etsy/audit',{method:'POST'}).catch(()=>{});t.disabled=false;t.textContent='Sprawdź teraz';audit();window.toast&&toast('Sklep sprawdzony')};
+audit();
 </script>
 </body>
 </html>

@@ -557,7 +557,8 @@ async function etsyCard(){const E=await get('/api/etsy');const box=$('ets');if(!
   <div class="eb" title="Przychód z 14 dni">${D.map(d=>`<i class="${d.rev?'':'z'}" style="height:${d.rev?Math.max(8,d.rev/mx*100):6}%" title="${d.d}: ${m(d.rev)} ${cur}"></i>`).join('')}</div></div>
   <div class="eg"><div><b>${(T.d7?.views||0).toLocaleString('pl')}</b>wyświetleń ofert, 7 dni</div><div><b>${T.d7?.conv!=null?(T.d7.conv*100).toFixed(1)+'%':'–'}</b>konwersja</div>
   <div><b>${act}</b>aktywnych ofert</div><div><b style="${pend?'color:#ffc24b':''}">${pend}</b>personalizacji do zrobienia</div></div>
-  ${last?`<div class="el">Ostatnie zamówienie: <b>${esc(last.items)}</b>, ${m(last.total)} ${cur}, ${ago(last.t*1000)}</div>`:''}`}
+  ${last?`<div class="el">Ostatnie zamówienie: <b>${esc(last.items)}</b>, ${m(last.total)} ${cur}, ${ago(last.t*1000)}</div>`:''}`;
+ const R=await get('/api/etsy/audit');if(R&&R.score!=null){const I=R.issues||[],w=I.filter(x=>x.lvl!=='info').length;box.insertAdjacentHTML('beforeend',`<div class="el" data-go="etsy" style="cursor:pointer">Menedżer sklepu: <b style="color:${R.score>=80?'#6fd5a6':R.score>=55?'#ffc24b':'#ff6b7a'}">${R.score}/100</b>${w?`, ${w} rzeczy do poprawy →`:', wszystko w porządku'}</div>`)}}
 etsyCard();setInterval(etsyCard,180000);
 
 // Pinterest: szkice pinów do zatwierdzenia (bot przygotowuje, Ty publikujesz jednym kliknięciem)

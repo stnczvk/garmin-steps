@@ -146,6 +146,8 @@ from etsy_manage import router as etsy_manage_router  # noqa: E402
 app.include_router(etsy_manage_router)
 from pinterest import router as pinterest_router  # noqa: E402
 app.include_router(pinterest_router)
+from etsy_shop import router as etsy_shop_router  # noqa: E402
+app.include_router(etsy_shop_router)
 from dlugi import router as dlugi_router  # noqa: E402
 app.include_router(dlugi_router)
 from etsy import router as etsy_router  # noqa: E402

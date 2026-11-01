@@ -629,6 +629,18 @@ def g_etsy_job():
         return WARN, f"{J.get('title')}: {len(errs)} błędów – {errs[-1][9:120]}", None
     return OK, f"{J.get('title')}: zrobione {_ago(J.get('at') or time.time())}", None
 
+def g_etsy_manager():
+    R = _read("etsy_audit.json", {})
+    if not R.get("at"):
+        return IDLE, "pierwszy audyt sklepu w ciągu kilku minut", None
+    if R.get("error"):
+        return WARN, "audyt: " + R["error"][:120], None
+    I = R.get("issues", [])
+    f = [x for x in I if x["lvl"] == "fail"]; w = [x for x in I if x["lvl"] == "warn"]
+    st = FAIL if f else WARN if len(w) >= 6 else OK
+    top = (f or w or I or [{"msg": ""}])[0]["msg"]
+    return st, f"sklep {R.get('score')}/100 · {len(f)} pilne, {len(w)} do poprawy" + (f" · {top[:70]}" if top else ""), None
+
 # ---------------------------------------------------------------- lista strażników
 G = [
     ("vps", "Serwer", "infra", "🖥️", "Dysk, pamięć i obciążenie VPS", g_vps),
@@ -663,6 +675,7 @@ G = [
     ("etsyp", "Personalizacje", "etsy", "✍️", "Czy zamówienia z personalizacją są wysłane na czas (48 h)", g_etsy_pers),
     ("etsyt", "Ruch w sklepie", "etsy", "👀", "Wyświetlenia i sprzedaż z ostatnich 7 dni", g_etsy_traffic),
     ("etsyj", "Zmiany w ofertach", "etsy", "🔧", "Czy ostatnia podmiana / wystawianie z centrum przeszło bez błędów", g_etsy_job),
+    ("etsym", "Menedżer sklepu", "etsy", "🧭", "Codzienny audyt: tytuły, tagi, zdjęcia, film, wygasanie, konwersja, sezon (co 6 h)", g_etsy_manager),
 ]
 AREAS = {"infra": "Infrastruktura", "pozaskala": "PozaSkala", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy"}
 
