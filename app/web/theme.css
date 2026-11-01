@@ -34,3 +34,41 @@ html:not([data-theme=light]) .tbar button.on svg{color:#c4b5ff!important}
 html:not([data-theme=light]) :is(.lg #side,.side){background:linear-gradient(180deg,rgba(14,17,52,.9),rgba(8,10,30,.9))!important}
 html:not([data-theme=light]) #snav button[aria-current=page]{background:linear-gradient(180deg,rgba(110,139,255,.30),rgba(181,156,255,.12))!important;box-shadow:inset 0 0 0 1px rgba(181,156,255,.35),0 8px 22px -10px rgba(110,139,255,.8)!important}
 html:not([data-theme=light]) #snav button[aria-current=page]:before{background:#8a9dff!important;box-shadow:0 0 12px #8a9dff!important}
+
+/* ---------- animacje i mikrointerakcje ---------- */
+/* ładowanie z połyskiem */
+html:not([data-theme=light]) :is(.sk,.skel,.skeleton){background:linear-gradient(100deg,rgba(255,255,255,.04) 20%,rgba(138,157,255,.16) 40%,rgba(181,156,255,.12) 50%,rgba(255,255,255,.04) 70%)!important;background-size:250% 100%!important;animation:ksk 1.5s ease-in-out infinite!important}
+@keyframes ksk{from{background-position:120% 0}to{background-position:-120% 0}}
+/* światło przepływające po pasku kart, które czegoś od Ciebie chcą */
+.att{position:relative}
+.att>.shine{position:absolute;left:0;right:0;top:0;height:2px;border-radius:2px;pointer-events:none;overflow:hidden;z-index:2}
+.att>.shine:before{content:"";position:absolute;top:0;bottom:0;width:30%;left:-30%;background:linear-gradient(90deg,transparent,#fff,#b59cff,transparent);box-shadow:0 0 12px #b59cff;animation:kshine 3.2s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes kshine{0%{left:-30%}55%,100%{left:110%}}
+/* żywe kropki statusu */
+.kdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6fd5a6;box-shadow:0 0 8px #6fd5a6;flex:none}
+.kdot.wk{background:#b59cff;animation:kpulse 1.6s ease-out infinite}
+.kdot.er{background:#ff6b7a;animation:kpulse2 1.6s ease-out infinite}
+@keyframes kpulse{0%{box-shadow:0 0 0 0 rgba(181,156,255,.7)}100%{box-shadow:0 0 0 10px rgba(181,156,255,0)}}@keyframes kpulse2{0%{box-shadow:0 0 0 0 rgba(255,107,122,.7)}100%{box-shadow:0 0 0 10px rgba(255,107,122,0)}}
+/* podświetlenie ramki pod kursorem (komputer) */
+.kspot{position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .25s;z-index:3;padding:1px;
+ background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%),rgba(181,156,255,.85),rgba(110,139,255,.35) 40%,transparent 70%);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+[data-gc]:hover>.kspot{opacity:1}
+/* potwierdzenia na dole ekranu */
+#ktoast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+@media(min-width:901px){#ktoast{bottom:28px}}
+#ktoast div{pointer-events:auto;width:max-content;max-width:min(92vw,460px);display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:14px;font:500 13.5px Geist,system-ui,sans-serif;color:#f1f2ff;
+ background:linear-gradient(180deg,rgba(28,34,80,.96),rgba(16,19,52,.96));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 1px rgba(255,255,255,.08),0 18px 40px -14px rgba(0,0,0,.8);
+ animation:ktin .35s cubic-bezier(.2,.8,.2,1) both}
+#ktoast div.out{animation:ktout .3s ease-in both}
+#ktoast i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;flex:none;font-style:normal;font-size:12px;font-weight:700;background:#6fd5a6;color:#06231a}
+#ktoast div.er i{background:#ff6b7a;color:#2a0509}
+@keyframes ktin{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes ktout{to{opacity:0;transform:translateY(8px)}}
+/* przycisk po zatwierdzeniu */
+.kdone{position:relative;color:transparent!important;pointer-events:none}
+.kdone:after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-weight:800;animation:kpop .35s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes kpop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+.kleave{animation:kleave .45s cubic-bezier(.4,0,.2,1) .35s both}
+@keyframes kleave{to{opacity:0;transform:translateX(24px) scale(.98)}}
+@media (prefers-reduced-motion:reduce){.att>.shine:before,.kdot.wk,.kdot.er,:is(.sk,.skel,.skeleton){animation:none!important}#ktoast div{animation:none}}

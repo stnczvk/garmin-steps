@@ -189,10 +189,25 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
  .ctabs button.on{color:#fff;background:linear-gradient(135deg,rgba(110,139,255,.45),rgba(181,156,255,.28));box-shadow:inset 0 0 0 1px rgba(181,156,255,.45),0 8px 20px -10px #6e8bff}
  .cols{display:block}.colx{display:none}.colx.on{display:flex}.colh{display:none}
 }
+
+/* wejście przy otwarciu: powitanie → liczby → kolumny po kolei (raz) */
+@keyframes kin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.intro .top{animation:kin .55s cubic-bezier(.2,.8,.2,1) both}
+.intro .qa{animation:kin .55s cubic-bezier(.2,.8,.2,1) .08s both}
+.intro .kp>.t{animation:kin .6s cubic-bezier(.2,.8,.2,1) both}
+.intro .kp>.t:nth-child(1){animation-delay:.16s}.intro .kp>.t:nth-child(2){animation-delay:.22s}.intro .kp>.t:nth-child(3){animation-delay:.28s}.intro .kp>.t:nth-child(4){animation-delay:.34s}
+.intro .ctabs{animation:kin .5s .38s both}
+.intro .colx{animation:kin .7s cubic-bezier(.2,.8,.2,1) both}
+.intro .colx:nth-child(1){animation-delay:.42s}.intro .colx:nth-child(2){animation-delay:.54s}.intro .colx:nth-child(3){animation-delay:.66s}
+@media (prefers-reduced-motion:reduce){.intro *{animation:none!important}}
+.o .hd .kdot{margin-left:auto}
+/* przesuwanie między działami */
+@keyframes kslL{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}@keyframes kslR{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+.colx.sl-l{animation:kslL .35s cubic-bezier(.2,.8,.2,1)}.colx.sl-r{animation:kslR .35s cubic-bezier(.2,.8,.2,1)}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
-<body>
+<body data-intro class="intro">
 <div class="wrap">
  <div class="top">
   <div><h1 id="hi">Cześć</h1><p id="sum">Ładuję…</p></div>
@@ -382,7 +397,7 @@ function offices(A,V,G,AUD,Q){
   ['Audytor','Au',AUD?.reports?.[0]?`raport ${ago(AUD.reports[0].at*1000)}`:'–','',100,'skaner'],
   ['Kontrola','K',last.qa?.text||'–',last.qa?.kind==='error'?'er':'',100,'agencja'],
   ['Publikacja','P',last.tech?.text||'–',last.tech?.kind==='error'?'er':'',100,'pozaskala']];
- $('off').innerHTML=L.map((a,i)=>`<div class="o ${a[3]}" data-go="${a[5]}"><div class="hd"><div class="av" style="background:${COL[i]}">${a[1]}</div><b>${a[0]}</b></div><p title="${esc(a[2])}">${esc(String(a[2]).slice(0,120))}</p><div class="bar"><i style="width:${Math.round(a[4])}%"></i></div></div>`).join('');
+ $('off').innerHTML=L.map((a,i)=>`<div class="o ${a[3]}" data-go="${a[5]}"><div class="hd"><div class="av" style="background:${COL[i]}">${a[1]}</div><b>${a[0]}</b><span class="kdot ${a[3]}"></span></div><p title="${esc(a[2])}">${esc(String(a[2]).slice(0,120))}</p><div class="bar"><i style="width:${Math.round(a[4])}%"></i></div></div>`).join('');
 }
 
 // ---------- raporty AI ----------
@@ -456,7 +471,10 @@ document.addEventListener('click',async e=>{const b=e.target.closest('#pl [data-
  if(a==='now'&&!confirm('Opublikować teraz?'))return;
  const body={};c.querySelectorAll('[data-f]').forEach(i=>body[i.dataset.f]=i.value);body.platforms=[...c.querySelectorAll('[data-p]:checked')].map(i=>i.dataset.p);
  b.disabled=true;const r=await (await fetch(`/api/planer/${c.dataset.id}/${a}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json().catch(()=>({ok:false,error:'brak połączenia'}));
- if(r.ok===false)alert(r.error);document.activeElement?.blur?.();planer()});
+ if(r.ok===false){toast(r.error||'Nie udało się',1);b.disabled=false;return}
+ const M={approve:'Zatwierdzono – opublikuje się o czasie',now:'Publikuję teraz…',skip:'Pominięto',save:'Zapisano zmiany',unapprove:'Cofnięto zatwierdzenie',retry:'Ponawiam publikację'};toast(M[a]||'Gotowe');
+ document.activeElement?.blur?.();
+ if(a==='approve'||a==='skip'){b.classList.add('kdone');c.classList.add('kleave');setTimeout(planer,800)}else planer()});
 $('plh').onclick=async()=>{const h=(PLD?.cfg?.hours)||{};const nm={jedzenie:'Daily jedzenie',karuzela:'Karuzela jedzenia',vlog:'Vlog',cheat:'Cheat meal',przepis:'Przepis'};const nh={};
  for(const k of Object.keys(nm)){const v=prompt(`Godzina publikacji: ${nm[k]} (GG:MM)`,h[k]||'');if(v===null)return;nh[k]=v.trim()}
  await fetch('/api/planer-cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hours:nh})});planer()};
@@ -496,6 +514,21 @@ upd();
 (()=>{const T=$('ctabs');if(!T)return;let c='tre';try{c=localStorage.getItem('hcol')||'tre'}catch(e){}
  const set=k=>{T.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.c===k));document.querySelectorAll('.colx').forEach(x=>x.classList.toggle('on',x.dataset.col===k));try{localStorage.setItem('hcol',k)}catch(e){}};
  T.onclick=e=>{const b=e.target.closest('button');if(b)set(b.dataset.c)};set(c)})();
+
+// karty, które czegoś od Ciebie chcą: przepływające światło na pasku
+function markAtt(){const set=(sec,on)=>{if(!sec)return;sec.classList.toggle('att',!!on);if(on&&!sec.querySelector(':scope>.shine')){const i=document.createElement('i');i.className='shine';sec.prepend(i)}};
+ set($('appr')?.closest('section'),+($('apn')?.textContent||0)>0);
+ set($('plc'),(PLD?.items||[]).some(x=>x.status==='draft'))}
+setInterval(markAtt,4000);setTimeout(markAtt,1500);
+// wejście tylko raz
+setTimeout(()=>{document.body.classList.remove('intro');document.body.removeAttribute('data-intro')},2200);
+// telefon: przesuwanie palcem między działami
+(()=>{const C=$('cols'),T=$('ctabs');if(!C||!T)return;let sx=null,sy=0;const ord=['tre','ag','fin'];
+ C.addEventListener('touchstart',e=>{if(e.target.closest('.pl,.offg,input,textarea,.rep'))return;sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+ C.addEventListener('touchend',e=>{if(sx==null||innerWidth>760)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;sx=null;
+  if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*.7)return;const cur=T.querySelector('button.on')?.dataset.c||'tre';const i=ord.indexOf(cur)+(dx<0?1:-1);if(i<0||i>=ord.length)return;
+  T.querySelector(`[data-c="${ord[i]}"]`).click();const el=document.querySelector(`.colx[data-col="${ord[i]}"]`);el.classList.remove('sl-l','sl-r');void el.offsetWidth;el.classList.add(dx<0?'sl-l':'sl-r');
+  T.querySelector('button.on')?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})},{passive:true})})();
 </script>
 </body>
 </html>

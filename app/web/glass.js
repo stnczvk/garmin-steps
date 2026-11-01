@@ -186,6 +186,7 @@
     if(cs.position==='fixed'||cs.position==='absolute')return false;return e.offsetWidth>=140&&e.offsetHeight>=56}
   function skip(e){return e.closest('#side,.side,.tbar,nav,dialog,.modal,.mod,#hm,#panel,.panel,header,.head,button,a,input,textarea,select,.vframe')}
   function scan(){
+    if(document.body.hasAttribute('data-intro'))first=false;
     var all=document.querySelectorAll('main *,.wrap *,body>section,body>div *');
     for(var i=0;i<all.length;i++){var e=all[i];if(seen.has(e))continue;
       var p=e.parentElement,inCard=false;while(p&&p!==document.body){if(p.dataset&&p.dataset.gc){inCard=true;break}p=p.parentElement}
@@ -200,4 +201,18 @@
   function go(){var s=document.createElement('style');s.textContent=css;document.head.appendChild(s);scan();
     new MutationObserver(sch).observe(document.body,{childList:true,subtree:true})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
+})();
+
+/* potwierdzenia na dole ekranu (zamiast okienek alert) + podświetlenie ramki pod kursorem */
+(function(){
+  function box(){var b=document.getElementById('ktoast');if(!b){b=document.createElement('div');b.id='ktoast';document.body.appendChild(b)}return b}
+  window.toast=function(msg,err){try{var d=document.createElement('div');if(err)d.className='er';d.innerHTML='<i>'+(err?'!':'✓')+'</i><span></span>';d.lastChild.textContent=String(msg);
+    box().appendChild(d);setTimeout(function(){d.classList.add('out');setTimeout(function(){d.remove()},320)},err?5200:2600)}catch(e){}};
+  var oa=window.alert;window.alert=function(m){if(!document.body)return oa.call(window,m);toast(m,/błąd|nie |error|brak|nie udało/i.test(String(m)))};
+  if(!(window.matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches))return;
+  var raf=0,ev=null;
+  addEventListener('pointermove',function(e){ev=e;if(raf)return;raf=requestAnimationFrame(function(){raf=0;
+    var c=ev.target&&ev.target.closest&&ev.target.closest('[data-gc]');if(!c)return;
+    var s=c.querySelector(':scope>.kspot');if(!s){if(getComputedStyle(c).position==='static')c.style.position='relative';s=document.createElement('i');s.className='kspot';c.appendChild(s)}
+    var r=c.getBoundingClientRect();s.style.setProperty('--mx',(ev.clientX-r.left)+'px');s.style.setProperty('--my',(ev.clientY-r.top)+'px')})},{passive:true});
 })();
