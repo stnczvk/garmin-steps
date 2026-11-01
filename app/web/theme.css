@@ -120,3 +120,5 @@ html[data-theme=light] #ktoast div{background:#fff;color:#14163a;box-shadow:0 0 
 .colx :is(p.empty,div.empty){display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px!important;min-height:0}
 .colx :is(p.empty,div.empty)::before{width:30px;height:30px;margin:0;flex:none;border-radius:10px}
 .colx :is(p.empty,div.empty)::after{left:14px;top:50%;margin:-15px 0 0;width:30px;height:30px;font-size:14px}
+/* odstęp pustej ramki od nagłówka karty (ramka nie dotyka ikonki) */
+:is(.t,.card,.sec,.box,section)>h3+:is(div,p) :is(p.empty,div.empty):first-child,:is(.t,.card,.sec,.box,section)>h3+:is(p.empty,div.empty),:is(p.empty,div.empty){margin-top:14px!important}
