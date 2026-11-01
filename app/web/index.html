@@ -655,6 +655,9 @@ body.lg{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/20
  .s-tools button:hover{color:var(--ink)}.s-tools svg{width:19px;height:19px}
  .s-tools button{display:flex!important;align-items:center;justify-content:center;padding:0!important;line-height:0}.s-tools button svg{margin:0!important;flex:none;display:block}.s-tools button .bd{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--accent);transform:scale(0)}
  body:not(.s-wide) .s-tools .sb-bell{display:none!important}body.s-wide .s-tools .sb-exp{display:none!important}
+ .s-tools .sb-bell.on{color:#fff!important;background:linear-gradient(135deg,#6e8bff,#b59cff)!important;border-color:transparent!important;box-shadow:0 8px 20px -8px #6e8bff}
+ .s-tools .sb-bell:not(.on){opacity:.75}
+ .s-tools .sb-bell .bdot{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 2px #6e8bff}
  .s-tools .sb-exp{transition:transform .25s,color .2s}.s-tools .sb-exp:hover{transform:translateX(2px)}
  .s-tools .dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
  .s-foot{display:none!important}
@@ -1736,7 +1739,7 @@ $('#bell').onclick = async () => {
   const bell = $('#bell');
   if (!swReg) { alert(bell.title || 'Powiadomienia nie są dostępne w tej przeglądarce.'); return; }
   const sub = await swReg.pushManager.getSubscription();
-  if (sub) { await sub.unsubscribe().catch(() => {}); await api('/api/social/push/unsubscribe', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({endpoint: sub.endpoint})}); return bellState(); }
+  if (sub) { await sub.unsubscribe().catch(() => {}); await api('/api/social/push/unsubscribe', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({endpoint: sub.endpoint})}); await bellState(); window.toast && toast('Powiadomienia wyłączone'); return; }
   if (await Notification.requestPermission() !== 'granted') { alert('Powiadomienia są zablokowane – włącz je w ustawieniach przeglądarki / telefonu.'); return; }
   const k = await api('/api/social/push/key');
   if (!k.key) { alert('Serwer nie ma jeszcze obsługi powiadomień – zrób aktualizację (social-update).'); return; }
@@ -1744,7 +1747,7 @@ $('#bell').onclick = async () => {
   await api('/api/social/push/subscribe', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({sub: s.toJSON()})});
   await api('/api/social/push/test', {method: 'POST'});
   bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring');
-  bellState();
+  await bellState(); window.toast && toast('Powiadomienia włączone 🔔');
 };
 
 function renderExtras(accs) {
@@ -1775,7 +1778,11 @@ load().then(async () => {
  try{if(localStorage.getItem('menu-wide')==='1')document.body.classList.add('s-wide')}catch(e){}
  const col=document.getElementById('s-col');if(col)col.onclick=()=>{const w=document.body.classList.toggle('s-wide');try{localStorage.setItem('menu-wide',w?'1':'0')}catch(e){}};
  const st=document.getElementById('stools'),bell=document.getElementById('bell');
- if(st&&bell){const b=document.createElement('button');b.title='Powiadomienia';b.className='sb-bell';b.innerHTML=bell.innerHTML.replace(/<span[^>]*>.*?<\/span>/g,'');b.onclick=()=>bell.click();st.appendChild(b);
+ if(st&&bell){const b=document.createElement('button');b.className='sb-bell';b.onclick=()=>bell.click();st.appendChild(b);
+  const ON='<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" fill="none" stroke-linecap="round"/></svg><i class="bdot"></i>',
+   OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 9.5-4.9M18 8c0 7 3 9 3 9H7"/><path d="M6 8c0 4-1 6.5-2 7.8"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="M3 3l18 18"/></svg>';
+  const sync=()=>{const on=bell.classList.contains('on');b.classList.toggle('on',on);b.innerHTML=on?ON:OFF;b.title=bell.title||(on?'Powiadomienia włączone':'Powiadomienia wyłączone');b.setAttribute('aria-pressed',on)};
+  sync();new MutationObserver(sync).observe(bell,{attributes:true,attributeFilter:['class','title']});
   const w=document.createElement('button');w.title='Rozwiń menu';w.className='sb-exp';w.setAttribute('aria-label','Rozwiń menu');w.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path d="M13 10l2 2-2 2"/></svg>';w.onclick=()=>col&&col.click();st.appendChild(w)}
 })();
 
