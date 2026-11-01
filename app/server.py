@@ -154,6 +154,8 @@ from etsy import router as etsy_router  # noqa: E402
 app.include_router(etsy_router)
 from planer import router as planer_router  # noqa: E402
 app.include_router(planer_router)
+from weekly import router as weekly_router  # noqa: E402
+app.include_router(weekly_router)
 
 
 @app.get("/")

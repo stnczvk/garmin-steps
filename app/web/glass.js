@@ -242,3 +242,5 @@
     }catch(x){}
     setTimeout(function(){location.reload()},350)});
 })();
+// ⌘K / Ctrl+K w zakładce → paleta w głównym oknie
+addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && window.parent !== window) { e.preventDefault(); window.parent.postMessage({cmdk: 1}, location.origin); } });

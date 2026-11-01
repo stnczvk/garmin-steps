@@ -400,6 +400,7 @@ setInterval(()=>{if(!DIRTY&&document.visibilityState==='visible'&&$('q').value.t
  const _rs2=renderSide;renderSide=function(){_rs2();lg()};
  if(CUR)lg();
 })();
+addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.openNote)open_(e.data.openNote)});
 </script>
 </body>
 </html>
