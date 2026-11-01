@@ -88,6 +88,7 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
   <section class="t"><h2>Wyświetlenia ofert – ostatnie 30 dni<span class="r" id="v30"></span></h2><div class="chart vw" id="vch"></div><div class="ax" id="vax"></div></section>
   <section class="t"><h2>Ruch i konwersja<span class="r" id="vsince"></span></h2><div id="tr"></div></section>
  </div>
+ <section class="t" id="fxc" style="margin-bottom:14px"><h2>Automatyczne poprawki<span class="r"><label style="display:flex;gap:8px;align-items:center;font-size:13px;font-weight:500;cursor:pointer"><input type="checkbox" id="fxa"> bot poprawia sam</label></span></h2><p style="color:var(--soft);font-size:12.5px;margin-top:6px">Po każdym audycie bot sam uzupełnia tagi (13, do 20 znaków), wydłuża za krótkie tytuły (najwyżej raz na 21 dni) i opisy oraz włącza auto-odnawianie. Zdjęć, filmów i cen nie rusza. Każdą zmianę możesz cofnąć.</p><div id="fxb"></div></section>
  <section class="t" id="auc" style="margin-bottom:14px"><h2>Menedżer sklepu<span class="r"><button class="ib" id="aur">Sprawdź teraz</button></span></h2><div id="aub"><div class="sk" style="height:120px;margin-top:10px"></div></div></section>
  <section class="t" id="pinc" style="margin-bottom:14px"><h2>Pinterest – piny do zatwierdzenia<span class="r chip" id="pdbn">0</span></h2><div id="pdb"></div></section>
  <section class="t" id="pin" style="margin-bottom:14px;display:none"><h2>Pinterest – automat<span class="r" id="pst">…</span></h2>
@@ -235,6 +236,14 @@ async function audit(){let R;try{R=await (await fetch('/api/etsy/audit')).json()
  b.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{AUF=x.dataset.f;audit()})}
 document.getElementById('aur').onclick=async ev=>{const t=ev.target;t.disabled=true;t.textContent='Sprawdzam…';await fetch('/api/etsy/audit',{method:'POST'}).catch(()=>{});t.disabled=false;t.textContent='Sprawdź teraz';audit();window.toast&&toast('Sklep sprawdzony')};
 audit();
+
+async function fixes(){let F;try{F=await (await fetch('/api/etsy/fixes')).json()}catch(e){return}const b=document.getElementById('fxb');if(!b)return;
+ const e2=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ document.getElementById('fxa').checked=!!F.cfg.auto;
+ const L=F.log||[];b.innerHTML=L.length?`<div class="au-l" style="margin-top:10px">${L.map((x,i)=>`<div class="au-i ${x.error?'warn':'info'}"><i></i><div style="flex:1"><b>${e2(x.name)}</b> – ${x.error?'błąd: '+e2(x.error):'poprawione: '+e2((x.what||[]).join(', '))}<small>${new Date(x.t*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${x.after&&x.after.title?' · nowy tytuł: '+e2(x.after.title):''}</small></div>${!x.error&&!x.undone?`<button class="ib" data-u="${i}">Cofnij</button>`:x.undone?'<small style="color:var(--soft)">cofnięte</small>':''}</div>`).join('')}</div>`:'<p class="empty">Jeszcze nic nie poprawiałem – pierwsze poprawki po najbliższym audycie.</p>';
+ b.querySelectorAll('[data-u]').forEach(x=>x.onclick=async()=>{x.disabled=true;const r=await (await fetch('/api/etsy/fixes/undo/'+x.dataset.u,{method:'POST'})).json().catch(()=>({ok:false}));(window.toast||alert)(r.ok?'Cofnięto zmianę w ofercie':(r.error||'Nie udało się'),!r.ok);fixes()})}
+document.getElementById('fxa').onchange=async e=>{await fetch('/api/etsy/fixes/cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({auto:e.target.checked})});window.toast&&toast(e.target.checked?'Bot poprawia oferty sam':'Automatyczne poprawki wyłączone')};
+fixes();setInterval(fixes,120000);
 </script>
 </body>
 </html>

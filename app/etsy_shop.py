@@ -97,6 +97,11 @@ def run():
         except Exception as e:
             R = {"at": time.time(), "score": None, "issues": [], "error": str(e)[:200], "stats": {}}
         _write(OUT, R)
+        try:
+            if R.get("issues"):
+                autofix(R)
+        except Exception as e:
+            print("etsy autofix", e, flush=True)
         return R
 
 
@@ -120,3 +125,115 @@ def get_audit():
 @router.post("/api/etsy/audit")
 def post_audit():
     return run()
+
+
+# ---------------------------------------------------------------- automatyczne poprawki
+# Bot sam poprawia w ofertach to, co da się bezpiecznie zmienić przez API: tagi (13, max 20 znaków), za krótki tytuł,
+# za krótki opis, automatyczne odnawianie. Każda zmiana ma kopię „przed”, więc można ją cofnąć jednym kliknięciem.
+# Zdjęć, filmów i cen nie rusza (to zostaje na liście do poprawy). Tytuł zmienia najwyżej raz na 21 dni (częste zmiany szkodzą pozycji).
+FIX = "etsy_fixes.json"
+FDEF = {"auto": True, "max_per_run": 3}
+
+
+def _ai_fix(j, need):
+    from agency import ai_ready, claude, as_json
+    if not ai_ready():
+        return {}
+    p = (f"Jesteś ekspertem SEO Etsy. Popraw ofertę cyfrowego szablonu (Google Sheets), po angielsku.\n"
+         f"TYTUŁ: {j.get('title')}\nTAGI: {', '.join(j.get('tags') or [])}\nOPIS:\n{(j.get('description') or '')[:2500]}\n\n"
+         f"Do poprawy: {', '.join(need)}.\nZasady: tags = dokładnie 13 tagów, każdy max 20 znaków, frazy których kupujący szukają, bez powtórzeń "
+         f"(zachowaj dobre istniejące). title = 110-140 znaków, najważniejsza fraza na początku, potem 2-3 warianty wyszukiwań, przecinki, bez emoji, "
+         f"bez CAPS LOCK, nie zmieniaj produktu. description = zachowaj cały obecny tekst i dopisz brakujące sekcje (WHAT'S INSIDE, HOW IT WORKS, "
+         f"WHO IT'S FOR, FAQ) – razem 900-1500 znaków, zwykły tekst, punkty z •. Nie wymyślaj funkcji, których nie ma w opisie.\n"
+         f"Zwróć TYLKO JSON z polami, które poprawiasz: {{\"tags\": [...], \"title\": \"...\", \"description\": \"...\"}}")
+    try:
+        return as_json(claude(p, max_tokens=1800)) or {}
+    except Exception:
+        return {}
+
+
+def autofix(R):
+    import etsy_manage as EM
+    F = _read(FIX, {})
+    cfg = {**FDEF, **(F.get("cfg") or {})}
+    if not cfg["auto"]:
+        return
+    log = F.setdefault("log", [])
+    last = F.setdefault("last_title", {})
+    by = {}
+    for x in R.get("issues", []):
+        if x.get("lid"):
+            by.setdefault(x["lid"], []).append(x["msg"])
+    done = 0
+    for lid, msgs in by.items():
+        if done >= cfg["max_per_run"]:
+            break
+        need = []
+        if any("tagów" in m or "Tagi dłuższe" in m for m in msgs): need.append("tags")
+        if any("Krótki tytuł" in m for m in msgs) and time.time() - last.get(str(lid), 0) > 21 * 86400: need.append("title")
+        if any("Krótki opis" in m for m in msgs): need.append("description")
+        renew = any("wygasa" in m for m in msgs)
+        if not need and not renew:
+            continue
+        try:
+            j = EM._call("GET", f"/listings/{lid}")
+            data, before = {}, {"title": j.get("title"), "tags": j.get("tags") or [], "description": j.get("description") or "", "should_auto_renew": j.get("should_auto_renew")}
+            if need:
+                a = _ai_fix(j, need)
+                if "tags" in need and isinstance(a.get("tags"), list):
+                    t = [str(x).strip().lower()[:20] for x in a["tags"] if str(x).strip()]
+                    t = list(dict.fromkeys(t))[:13]
+                    if len(t) >= len(before["tags"]): data["tags"] = ",".join(t)
+                if "title" in need and isinstance(a.get("title"), str) and 70 <= len(a["title"].strip()) <= 140:
+                    data["title"] = a["title"].strip()
+                if "description" in need and isinstance(a.get("description"), str) and len(a["description"]) > len(before["description"]):
+                    data["description"] = a["description"].strip()
+            if renew and not j.get("should_auto_renew"):
+                data["should_auto_renew"] = "true"
+            if not data:
+                continue
+            EM._call("PATCH", f"/shops/{EM._sid()}/listings/{lid}", data=data)
+            if "title" in data: last[str(lid)] = time.time()
+            what = [{"tags": "tagi", "title": "tytuł", "description": "opis", "should_auto_renew": "auto-odnawianie"}[k] for k in data]
+            log.insert(0, {"t": time.time(), "lid": lid, "name": (j.get("title") or "")[:60], "what": what, "before": before,
+                           "after": {k: v for k, v in data.items()}, "undone": False})
+            done += 1
+        except Exception as e:
+            log.insert(0, {"t": time.time(), "lid": lid, "name": str(lid), "what": [], "error": str(e)[:160]})
+    F["log"] = log[:80]; F["cfg"] = cfg
+    _write(FIX, F)
+
+
+@router.get("/api/etsy/fixes")
+def get_fixes():
+    F = _read(FIX, {})
+    return {"cfg": {**FDEF, **(F.get("cfg") or {})}, "log": [{k: v for k, v in x.items() if k != "before"} for x in (F.get("log") or [])[:30]]}
+
+
+@router.post("/api/etsy/fixes/cfg")
+async def set_fixes(req: __import__("fastapi").Request):
+    b = await req.json()
+    F = _read(FIX, {}); c = {**FDEF, **(F.get("cfg") or {})}
+    if "auto" in b: c["auto"] = bool(b["auto"])
+    F["cfg"] = c; _write(FIX, F)
+    return {"ok": True, "cfg": c}
+
+
+@router.post("/api/etsy/fixes/undo/{i}")
+def undo_fix(i: int):
+    import etsy_manage as EM
+    F = _read(FIX, {}); L = F.get("log") or []
+    if i >= len(L) or L[i].get("undone") or not L[i].get("before"):
+        return {"ok": False, "error": "nie da się cofnąć"}
+    x, b = L[i], L[i]["before"]
+    data = {}
+    for k in x.get("after", {}):
+        if k == "tags": data["tags"] = ",".join(b["tags"])
+        elif k == "should_auto_renew": data[k] = "true" if b.get(k) else "false"
+        else: data[k] = b[k]
+    try:
+        EM._call("PATCH", f"/shops/{EM._sid()}/listings/{x['lid']}", data=data)
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:160]}
+    x["undone"] = True; _write(FIX, F)
+    return {"ok": True}
