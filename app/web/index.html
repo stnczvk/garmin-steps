@@ -1839,7 +1839,7 @@ body:not(.s-wide) #snind:before{left:-13px}
 #snav button:hover i{transform:translateX(2px) scale(1.06)}
 #snav button[aria-current=page] i{filter:drop-shadow(0 0 6px rgba(181,156,255,.7))}
 @keyframes vfade2{from{opacity:0;transform:translateY(10px) scale(.992);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
-.vframe iframe{animation:vfade2 .42s cubic-bezier(.2,.8,.2,1)}
+.vframe iframe{animation:vfade .22s ease-out}
 @media (prefers-reduced-motion:reduce){#snind,#snav button i,#snav button:after{transition:none}.vframe iframe{animation:none}}
 </style>
 <script>
@@ -1849,11 +1849,7 @@ body:not(.s-wide) #snind:before{left:-13px}
   const x=b.offsetLeft,y=b.offsetTop,w=b.offsetWidth,h=b.offsetHeight;clearTimeout(tmr);
   const set=(yy,hh,tr)=>{ind.style.transition=tr;ind.style.width=w+'px';ind.style.height=hh+'px';ind.style.transform=`translate(${x}px,${yy}px)`;ind.style.opacity=1};
   if(first||cy===null||cy===y||matchMedia('(prefers-reduced-motion:reduce)').matches){set(y,h,'none');cy=y;first=false;return}
-  // efekt „gumki”: wskaźnik najpierw rozciąga się do nowej zakładki, potem dociąga koniec
-  const down=y>cy,top=Math.min(cy,y),span=Math.abs(y-cy)+h;
-  set(top,span,'transform .2s cubic-bezier(.5,0,.5,1),height .2s cubic-bezier(.5,0,.5,1)');ind.classList.add('st');
-  tmr=setTimeout(()=>{set(y,h,'transform .32s cubic-bezier(.2,1.25,.4,1),height .32s cubic-bezier(.2,1.25,.4,1)');ind.classList.remove('st');
-   b.classList.remove('kpop');void b.offsetWidth;b.classList.add('kpop')},200);cy=y}
+  set(y,h,'transform .34s cubic-bezier(.4,0,.2,1),height .34s cubic-bezier(.4,0,.2,1),width .34s cubic-bezier(.4,0,.2,1)');cy=y}
  new MutationObserver(mv).observe(nav,{attributes:true,subtree:true,attributeFilter:['aria-current']});
  let lay='';const L=()=>['s-wide','s-mini','s-open'].map(c=>document.body.classList.contains(c)?1:0).join('');lay=L();
  new MutationObserver(()=>{const n=L();if(n===lay)return;lay=n;first=true;setTimeout(mv,320)}).observe(document.body,{attributes:true,attributeFilter:['class']});
