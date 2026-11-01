@@ -46,6 +46,14 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 .pn{color:inherit;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-decoration:none;font-weight:600}a.pn:hover{text-decoration:underline}
 @media(max-width:600px){.lo2{display:none}.lo2+.fx2{margin-left:auto}.pt td,.pt th{padding:9px 7px;font-size:12.5px}.pt td:first-child{max-width:150px}}
 @media(max-width:600px){.t>h2{flex-wrap:wrap;row-gap:2px}.t>h2 .fx2{flex:none;order:2;margin-left:auto}.t>h2 .r{order:3;flex-basis:100%;margin-left:0!important;font-size:11.5px;padding-left:38px}.t>h2 .r:empty{display:none}}
+
+/* piny do zatwierdzenia */
+.pd{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:10px 0}.pd+.pd{border-top:1px solid var(--ln,rgba(255,255,255,.08))}
+.pd img{width:64px;height:96px;object-fit:cover;border-radius:10px;box-shadow:0 8px 20px -10px #000,inset 0 0 0 1px rgba(255,255,255,.15)}
+.pd b{display:block;font-size:13.5px;line-height:1.3}.pd small{display:block;color:var(--mu,#9aa0c8);font-size:12px;margin-top:3px}
+.pd textarea{width:100%;min-height:62px;margin-top:6px;resize:vertical;font:12.5px/1.4 inherit;font-family:inherit;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.04);color:inherit;border:1px solid var(--ln,rgba(255,255,255,.08))}
+.pd .ac{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.pd .ac button,.pd .ac a{font:600 12px Geist,system-ui;padding:7px 11px;border-radius:10px;border:1px solid var(--ln,rgba(255,255,255,.1));background:rgba(255,255,255,.05);color:inherit;text-decoration:none;cursor:pointer}
+.pd .ac .go{background:linear-gradient(135deg,#6e8bff,#b59cff);color:#fff;border-color:transparent;box-shadow:0 8px 18px -10px #6e8bff}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -70,6 +78,7 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
   <section class="t"><h2>Wyświetlenia ofert – ostatnie 30 dni<span class="r" id="v30"></span></h2><div class="chart vw" id="vch"></div><div class="ax" id="vax"></div></section>
   <section class="t"><h2>Ruch i konwersja<span class="r" id="vsince"></span></h2><div id="tr"></div></section>
  </div>
+ <section class="t" id="pinc" style="margin-bottom:14px"><h2>Pinterest – piny do zatwierdzenia<span class="r chip" id="pdbn">0</span></h2><div id="pdb"></div></section>
  <section class="t" id="pin" style="margin-bottom:14px;display:none"><h2>Pinterest – automat<span class="r" id="pst">…</span></h2>
   <div id="pset" hidden><ol style="margin:0 0 12px 18px;padding:0;color:var(--soft);line-height:1.7">
    <li>Wejdź na <b>developers.pinterest.com</b> → My apps → <b>Connect app</b> (nazwa np. „PlanPerfect Centrum”, opis: planowanie pinów moich produktów).</li>
@@ -182,6 +191,25 @@ pload();
   h.classList.add('fh');const b=document.createElement('button');b.className='fx2';b.title='Zwiń / rozwiń';b.innerHTML=CH;h.appendChild(b);
   if(st[key])c.classList.add('fold');
   h.addEventListener('click',e=>{if(e.target.closest('button:not(.fx2),a,input,select,label'))return;const v=c.classList.toggle('fold');st[key]=v;try{localStorage.setItem('etsy-fold',JSON.stringify(st))}catch(e){}})})})();
+
+// Pinterest: szkice pinów do zatwierdzenia (bot przygotowuje, Ty publikujesz jednym kliknięciem)
+async function pinDrafts(boxId){const box=document.getElementById(boxId);if(!box)return;let P;try{P=await (await fetch('/api/pinterest/drafts')).json()}catch(e){return}
+ const e2=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const cnt=document.getElementById(boxId+'n');if(cnt)cnt.textContent=P.pending.length;
+ box.innerHTML=(P.pending.length?P.pending.map(d=>`<div class="pd" data-k="${e2(d.key)}"><img src="${e2(d.img_url)}" alt=""><div><b>${e2(d.title)}</b><small>Tablica: ${e2(d.board)}</small>
+  <textarea data-f="desc">${e2(d.desc)}</textarea><div class="ac">${P.api?`<button class="go" data-a="api">Opublikuj</button>`:`<a class="go" href="${e2(d.builder)}" target="_blank" rel="noopener" data-a="open">Opublikuj w Pintereście</a>`}<button data-a="done" title="Kliknij po opublikowaniu w kreatorze">Gotowe</button><button data-a="skip">Pomiń</button></div></div></div>`).join('')
+  :`<p class="empty">Brak szkiców. Bot przygotowuje nowe codziennie o ${P.hours.map(h=>h+':00').join(' i ')}.</p>`)
+  +`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--mu,#9aa0c8)"><span>W puli jeszcze ${P.left} pinów</span><button data-a="new" style="font:600 12px Geist,system-ui;padding:7px 11px;border-radius:10px;border:1px solid var(--ln,rgba(255,255,255,.1));background:rgba(255,255,255,.05);color:inherit;cursor:pointer">+ Przygotuj szkic</button></div>`;
+ box.onclick=async ev=>{const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,row=b.closest('.pd');
+  if(a==='new'){const r=await (await fetch('/api/pinterest/drafts/new',{method:'POST'})).json();if(!r.ok)(window.toast||alert)(r.error,1);return pinDrafts(boxId)}
+  const k=row.dataset.k,t=row.querySelector('textarea');
+  if(a==='open'){await fetch(`/api/pinterest/draft/${encodeURIComponent(k)}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({desc:t.value})});window.toast&&toast('Po opublikowaniu kliknij „Gotowe”');return}
+  ev.preventDefault();b.disabled=true;
+  if(t&&a!=='skip')await fetch(`/api/pinterest/draft/${encodeURIComponent(k)}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({desc:t.value})});
+  const r=await (await fetch(`/api/pinterest/draft/${encodeURIComponent(k)}/${a}`,{method:'POST'})).json().catch(()=>({ok:false,error:'brak połączenia'}));
+  if(!r.ok){(window.toast||alert)(r.error,1);b.disabled=false;return}
+  window.toast&&toast(a==='skip'?'Pominięto':'Pin opublikowany');row.style.transition='.35s';row.style.opacity=0;row.style.transform='translateX(20px)';setTimeout(()=>pinDrafts(boxId),380)}}
+pinDrafts('pdb');
 </script>
 </body>
 </html>

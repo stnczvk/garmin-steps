@@ -140,6 +140,100 @@ def _loop():
 threading.Thread(target=_loop, daemon=True).start()
 
 
+# ---------------------------------------------------------------- szkice pinów do zatwierdzenia
+# Bot codziennie przygotowuje szkic pina (zdjęcie, tytuł, opis, tablica, link z UTM). Ty zatwierdzasz w centrum:
+# jeśli Pinterest dał dostęp API – publikujemy od razu, w przeciwnym razie otwiera się gotowy kreator pina (jedno „Opublikuj”).
+CTA = ["Instant download – make a copy and start in 2 minutes.", "Works in free Google Sheets on phone and laptop.",
+       "Fill the yellow cells – everything else calculates itself.", "Save this pin for later 📌", "Perfect for planning 2027 ✨"]
+SEASON = {"hb": "🎄 Plan every Christmas gift and stay on budget this holiday season.",
+          "sp": "Know your real Etsy profit before the holiday rush.", "bp": "Start 2027 with a budget that follows your paycheck."}
+
+
+def _draft_from(q, n):
+    from urllib.parse import quote
+    link = q["link"] + ("&" if "?" in q["link"] else "?") + f"utm_source=pinterest&utm_medium=social&utm_campaign={q['code']}"
+    desc = " ".join(x for x in [SEASON.get(q["code"], ""), q["desc"], CTA[n % len(CTA)]] if x)[:500]
+    img = f"{_base()}/pins/{q['img']}"
+    return {**q, "link": link, "desc": desc, "img_url": img, "status": "draft", "t": time.time(),
+            "builder": "https://www.pinterest.com/pin-builder/?" + f"url={quote(link, safe='')}&media={quote(img, safe='')}&description={quote(q['title'] + ' – ' + desc, safe='')}&method=button"}
+
+
+def make_draft():
+    with _lk:
+        D = _read(DATA, {})
+        dr = D.setdefault("drafts", [])
+        used = set(D.get("posted", {})) | {d["key"] for d in dr}
+        nxt = next((q for q in _queue() if q["key"] not in used), None)
+        if not nxt:
+            return None
+        d = _draft_from(nxt, len(dr))
+        dr.append(d); D["drafts"] = dr[-120:]; _write(DATA, D)
+        return d
+
+
+def _draft_loop():
+    time.sleep(150)
+    while True:
+        try:
+            D = _read(DATA, {}); st = {**DEF, **(D.get("cfg") or {})}
+            now = datetime.now(TZ); slot = f"{now:%Y-%m-%d}-{now.hour}"
+            pending = [d for d in D.get("drafts", []) if d["status"] == "draft"]
+            if now.hour in st["hours"] and D.get("dslot") != slot and len(pending) < 3:
+                D["dslot"] = slot; _write(DATA, D)
+                make_draft()
+        except Exception as e:
+            print("pin drafts", e, flush=True)
+        time.sleep(300)
+
+
+threading.Thread(target=_draft_loop, daemon=True).start()
+
+
+@router.get("/api/pinterest/drafts")
+def drafts():
+    D = _read(DATA, {})
+    dr = D.get("drafts", [])
+    return {"pending": [d for d in dr if d["status"] == "draft"], "done": [d for d in reversed(dr) if d["status"] == "done"][:8],
+            "api": bool(_cfg().get("refresh")), "left": len([q for q in _queue() if q["key"] not in set(D.get("posted", {})) | {d["key"] for d in dr}]),
+            "hours": ({**DEF, **(D.get("cfg") or {})})["hours"]}
+
+
+@router.post("/api/pinterest/drafts/new")
+def drafts_new():
+    d = make_draft()
+    return {"ok": bool(d), "draft": d, "error": None if d else "wszystkie piny z puli już wykorzystane"}
+
+
+@router.post("/api/pinterest/draft/{key}/{act}")
+async def draft_act(key: str, act: str, req: Request):
+    b = await req.json() if act == "save" else {}
+    with _lk:
+        D = _read(DATA, {})
+        d = next((x for x in D.get("drafts", []) if x["key"] == key and x["status"] == "draft"), None)
+        if not d:
+            return {"ok": False, "error": "nie ma takiego szkicu"}
+        if act == "save":
+            d["title"] = str(b.get("title", d["title"]))[:100]; d["desc"] = str(b.get("desc", d["desc"]))[:500]
+            from urllib.parse import quote
+            d["builder"] = "https://www.pinterest.com/pin-builder/?" + f"url={quote(d['link'], safe='')}&media={quote(d['img_url'], safe='')}&description={quote(d['title'] + ' – ' + d['desc'], safe='')}&method=button"
+        elif act == "skip":
+            d["status"] = "skip"
+        elif act == "done":            # opublikowany ręcznie przez kreator
+            d["status"] = "done"; d["done_at"] = time.time()
+            D.setdefault("posted", {})[key] = {"t": time.time(), "title": d["title"], "via": "kreator"}
+        elif act == "api":             # publikacja przez API (gdy Pinterest dał dostęp)
+            try:
+                B = _boards(); bid = B.get(d["board"]) or _call("POST", "/boards", json={"name": d["board"]})["id"]
+                r = _call("POST", "/pins", json={"board_id": bid, "title": d["title"], "description": d["desc"], "link": d["link"], "alt_text": d["title"],
+                                                 "media_source": {"source_type": "image_url", "url": d["img_url"]}})
+                d["status"] = "done"; d["done_at"] = time.time()
+                D.setdefault("posted", {})[key] = {"t": time.time(), "id": r.get("id"), "title": d["title"], "via": "api"}
+            except Exception as e:
+                return {"ok": False, "error": f"Pinterest API: {str(e)[:160]} – użyj „Otwórz kreator”"}
+        _write(DATA, D)
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------- API
 @router.get("/api/pinterest")
 def state(req: Request):
