@@ -339,3 +339,30 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
     var cs=getComputedStyle(b);if(cs.position==='static')b.style.position='relative';if(cs.overflow!=='hidden')b.style.overflow='hidden';
     b.appendChild(s);setTimeout(function(){s.remove()},600)},{passive:true});
 })();
+
+/* jednolite ładowanie: „Ładuję…” → świecące szkielety; pora dnia w tle */
+(function(){
+  var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var st=document.createElement('style');
+  st.textContent='.ksk{display:flex;flex-direction:column;gap:9px;padding:6px 2px;width:100%}.ksk i{display:block;height:13px;border-radius:7px;'+
+   'background:linear-gradient(90deg,rgba(127,127,160,.10) 0%,rgba(127,127,160,.24) 50%,rgba(127,127,160,.10) 100%);background-size:200% 100%;animation:kskm 1.3s linear infinite}'+
+   '.ksk i:nth-child(1){width:92%}.ksk i:nth-child(2){width:74%}.ksk i:nth-child(3){width:55%}'+
+   '@keyframes kskm{from{background-position:100% 0}to{background-position:-100% 0}}'+
+   (RM?'.ksk i{animation:none}':'')+
+   '#ktod{position:fixed;inset:0;pointer-events:none;z-index:-1;transition:background 3s ease}html[data-theme=light] #ktod{display:none}';
+  (document.head||document.documentElement).appendChild(st);
+  var RX=/^(Ładuję|Ładowanie|Wczytuję)[^]{0,22}$/;
+  function sk(){document.querySelectorAll('p.mut,div.empty,p.empty,p.why,.glass.empty').forEach(function(el){
+    if(el.dataset.ksk||el.id==='sum'||el.children.length)return;var t=(el.textContent||'').trim();if(!RX.test(t))return;
+    var d=document.createElement('div');d.className='ksk';d.dataset.ksk=1;d.setAttribute('aria-label',t);d.innerHTML='<i></i><i></i><i></i>';el.replaceWith(d)})}
+  function tod(){var el=document.getElementById('ktod');if(!el){el=document.createElement('div');el.id='ktod';document.body.prepend(el)}
+    var h=new Date().getHours()+new Date().getMinutes()/60,c;
+    if(h>=5&&h<10)c='radial-gradient(80% 60% at 85% 0%,rgba(255,170,110,.14),transparent 70%)';          // rano – ciepło
+    else if(h>=10&&h<16)c='radial-gradient(80% 60% at 50% 0%,rgba(120,190,255,.08),transparent 70%)';   // dzień – jasno
+    else if(h>=16&&h<21)c='radial-gradient(80% 60% at 15% 0%,rgba(255,120,160,.12),transparent 70%)';   // wieczór – róż/zachód
+    else c='radial-gradient(90% 70% at 50% 0%,rgba(70,80,220,.16),transparent 70%)';                     // noc – chłodny granat
+    el.style.background=c}
+  var q=0;function sch(){if(q)return;q=setTimeout(function(){q=0;sk()},40)}
+  function go(){sk();tod();setInterval(tod,600000);new MutationObserver(sch).observe(document.body,{childList:true,subtree:true})}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
+})();
