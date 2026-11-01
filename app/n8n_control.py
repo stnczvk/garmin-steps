@@ -479,7 +479,7 @@ def apply_diet():
 
 # ---------- PozaSkala → seria „What If?” ze stickmanem (25.10.2026) ----------
 STICK_MARK = "SERIES OVERRIDE"
-STICK = """## SERIES OVERRIDE – "What If?" starring Stick (this section overrides ANY conflicting rule below)
+STICK_V1 = """## SERIES OVERRIDE – "What If?" starring Stick (this section overrides ANY conflicting rule below)
 - The channel is now a STORY series: every video is one episode of "What If?" starring the same character, STICK: a simple black stick figure with a round white head, two dot eyes and a small red scarf.
 - Format is always WHAT_IF (CAN_YOU_IMAGINE allowed): a hypothetical scenario told as a mini-story that Stick lives through (falls into the Mariana Trench, stands on a neutron star, swims inside a blue whale's heart, holds a teaspoon of the Sun...). Real science and real scale stay the payoff; numbers stay conservative and correct.
 - Story beats across the 5 scenes: setup (Stick + the question) -> first problem -> escalation -> the big consequence/reveal -> twist ending that echoes the hook. Narration follows Stick ("Stick jumps in. Ten seconds later..."), short spoken sentences.
@@ -489,13 +489,23 @@ STICK = """## SERIES OVERRIDE – "What If?" starring Stick (this section overri
 - thumbnail_prompt: Stick with a shocked face inside the scenario, same 2D flat style, one clear focal point, no text.
 
 """
+STICK = """## SERIES OVERRIDE – "What If?" starring Stick (this section overrides ANY conflicting rule below)
+- The channel is now a STORY series: every video is one episode of "What If?" starring the same character, STICK: a simple black stick figure with a round white head, two dot eyes and his signature RED BASEBALL CAP (always on, in every scene – it is how viewers recognise him).
+- Format is always WHAT_IF (CAN_YOU_IMAGINE allowed): a hypothetical scenario told as a mini-story that Stick lives through (falls into the Mariana Trench, stands on a neutron star, swims inside a blue whale's heart, holds a teaspoon of the Sun...). Real science and real scale stay the payoff; numbers stay conservative and correct.
+- Story beats across the 5 scenes: setup (Stick + the question) -> first problem -> escalation -> the big consequence/reveal -> twist ending that echoes the hook. Narration follows Stick ("Stick jumps in. Ten seconds later..."), short spoken sentences.
+- title starts with "What If" (max 60 chars, main keyword early). Hashtags must include #WhatIf and #Stickman.
+- VISUAL STYLE for EVERY image prompt (replaces any realistic/photographic/National Geographic style rule): "2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, dot eyes, red baseball cap), thick clean black outlines, a TOPIC-THEMED flat illustrated background that matches the scenario and changes from episode to episode (deep blues and bubbles for the ocean, starry purple space for astronomy, glowing reds and orange for volcanoes and the Sun, icy whites and cyan for cold, green jungle for nature, city skyline for human/tech topics), one dominant colour palette per episode, bold readable shapes, correct relative proportions between Stick and the objects, vertical 9:16, no text, no watermark". Same character design and the same style in all scenes; never photoreal.
+- Video scene (Kling): animate the same 2D flat cartoon (camera pulls back / Stick reacts), keep the flat 2D style and the character design.
+- thumbnail_prompt: Stick (red cap) with a shocked face inside the scenario, topic-themed background in the episode palette, same 2D flat style, one clear focal point, no text.
+
+"""
 JUDGE_NOTE = "\n\n## Note\nThe channel is now a 2D stick-figure story series (\"What If?\" starring Stick). Do not penalize the cartoon style; reward clear story beats and a scenario a 13-year-old instantly understands."
 
 
 def apply_stickman(force=False):
     from agency import _read, _write
     st = _read("agency_settings.json", {})
-    if st.get("stickman_applied") and not force:
+    if st.get("stickman_applied") and st.get("stickman_v2") and not force:
         return {"ok": True, "already": True}
     try:
         wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
@@ -515,6 +525,9 @@ def apply_stickman(force=False):
         if n["name"] in ("Message a model", "Regenerate Script") and STICK_MARK not in c:
             v["content"] = ("=" + STICK + c[1:]) if c.startswith("=") else STICK + c
             done.append(n["name"])
+        elif n["name"] in ("Message a model", "Regenerate Script") and STICK_V1 in c:
+            v["content"] = c.replace(STICK_V1, STICK)          # czerwona czapka + tło zależne od tematu
+            done.append(n["name"] + " (czapka, tła)")
         elif n["name"] == "Judge Script" and "stick-figure" not in c:
             v["content"] = c + JUDGE_NOTE
             done.append(n["name"])
@@ -529,7 +542,8 @@ def apply_stickman(force=False):
         if g.get("active"):
             n8n("POST", f"/api/v1/workflows/{g['id']}/activate")
     st = _read("agency_settings.json", {})
-    st.update(stickman=True, stickman_applied=time.time())
+    st.update(stickman=True, stickman_v2=time.time())
+    st.setdefault("stickman_applied", time.time())
     _write("agency_settings.json", st)
     log("op", "PozaSkala → seria „What If?” ze stickmanem (" + (", ".join(done) or "już ustawione") + ")", "ok")
     _bust()
