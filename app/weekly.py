@@ -192,7 +192,7 @@ def kalendarz():
     days = []
     for i in range(7):
         a = d0 + timedelta(days=i); b = a + timedelta(days=1)
-        it = [{"time": datetime.fromtimestamp(x["when"], TZ).strftime("%H:%M"), "src": "prywatne", "label": x.get("label", ""),
+        it = [{"id": x.get("id"), "time": datetime.fromtimestamp(x["when"], TZ).strftime("%H:%M"), "src": "prywatne", "label": x.get("label", ""),
                "kind": x.get("kind"), "status": x["status"], "platforms": x.get("platforms") or []}
               for x in P if a.timestamp() <= x["when"] < b.timestamp()]
         it += _n8n_slots(a)
