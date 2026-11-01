@@ -156,8 +156,6 @@ from planer import router as planer_router  # noqa: E402
 app.include_router(planer_router)
 from weekly import router as weekly_router  # noqa: E402
 app.include_router(weekly_router)
-from bio import router as bio_router  # noqa: E402
-app.include_router(bio_router)
 
 
 @app.get("/")
