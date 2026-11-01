@@ -65,6 +65,7 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 .au-i b{font-weight:600}.au-i small{display:block;color:var(--soft,#b6bbe0);margin-top:3px;line-height:1.4}
 .au-f{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}.au-f button{font:600 12px Geist,system-ui;padding:6px 11px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:inherit;cursor:pointer}.au-f button.on{background:linear-gradient(135deg,rgba(110,139,255,.4),rgba(181,156,255,.25));border-color:rgba(181,156,255,.4)}
 .au-i.fx{grid-template-columns:10px minmax(0,1fr) auto;align-items:start}.au-i.fx small{overflow-wrap:anywhere}.au-i.fx .ib{padding:6px 12px;font-size:12.5px;white-space:nowrap;align-self:center}
+.au-i.done{opacity:.75}.au-i.done i{background:#6fd5a6!important;box-shadow:0 0 8px #6fd5a6}.au-i.done b:before{content:"✓ ";color:#6fd5a6}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -230,9 +231,9 @@ async function audit(){let R;try{R=await (await fetch('/api/etsy/audit')).json()
  const e2=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  if(R.score==null){b.innerHTML=`<p class="empty">${R.error?'Audyt nie wyszedł: '+e2(R.error):'Pierwszy audyt sklepu za kilka minut albo kliknij „Sprawdź teraz”.'}</p>`;return}
  const I=R.issues||[],f=I.filter(x=>x.lvl==='fail').length,w=I.filter(x=>x.lvl==='warn').length,sc=R.score>=80?'#6fd5a6':R.score>=55?'#ffc24b':'#ff6b7a';
- const L=I.filter(x=>AUF==='all'||x.lvl===AUF);
+ const DN=(R.done||[]).map(x=>({...x,lvl:'done',fix:'zrobione '+new Date(x.t*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' · zniknie samo po 48 h'}));const L=AUF==='done'?DN:I.filter(x=>AUF==='all'||x.lvl===AUF).concat(AUF==='all'?DN:[]);
  b.innerHTML=`<div class="au-h"><div class="au-w"><div class="au-s" style="--p:${R.score};--sc:${sc}"></div><b>${R.score}</b></div><div><b style="font-size:15px">${R.score>=80?'Sklep w dobrej formie':R.score>=55?'Jest co poprawić':'Sklep wymaga uwagi'}</b><div style="color:var(--soft);font-size:12.5px;margin-top:4px">${R.stats?.ok||0} z ${R.stats?.listings||0} ofert bez zastrzeżeń · ${f} pilne · ${w} do poprawy · sprawdzone ${new Date(R.at*1000).toLocaleString('pl',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div></div>
-  <div class="au-f">${[['all','Wszystko'],['fail','Pilne'],['warn','Do poprawy'],['info','Wskazówki']].map(x=>`<button data-f="${x[0]}" class="${AUF===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>
+  <div class="au-f">${[['all','Wszystko'],['fail','Pilne'],['warn','Do poprawy'],['info','Wskazówki'],['done','Zrobione'+((R.done||[]).length?' ('+R.done.length+')':'')]].map(x=>`<button data-f="${x[0]}" class="${AUF===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>
   <div class="au-l">${L.map(x=>`<div class="au-i ${x.lvl}"><i></i><div><b>${e2(x.what)}</b> – ${e2(x.msg)}<small>${e2(x.fix)}</small></div></div>`).join('')||'<p class="empty">Nic do poprawy w tej grupie.</p>'}</div>`;
  b.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{AUF=x.dataset.f;audit()})}
 document.getElementById('aur').onclick=async ev=>{const t=ev.target;t.disabled=true;t.textContent='Sprawdzam…';await fetch('/api/etsy/audit',{method:'POST'}).catch(()=>{});t.disabled=false;t.textContent='Sprawdź teraz';audit();window.toast&&toast('Sklep sprawdzony')};

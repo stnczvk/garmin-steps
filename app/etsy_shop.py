@@ -96,12 +96,13 @@ def run():
             R = audit()
         except Exception as e:
             R = {"at": time.time(), "score": None, "issues": [], "error": str(e)[:200], "stats": {}}
-        _write(OUT, R)
         try:
-            if R.get("issues"):
-                autofix(R)
+            if R.get("issues") and autofix(R):
+                R = audit()            # po poprawkach od razu nowy audyt – poprawione rzeczy znikają z listy
         except Exception as e:
             print("etsy autofix", e, flush=True)
+        R["done"] = _recent_done()
+        _write(OUT, R)
         return R
 
 
@@ -119,7 +120,9 @@ threading.Thread(target=_loop, daemon=True).start()
 
 @router.get("/api/etsy/audit")
 def get_audit():
-    return _read(OUT, {}) or {"issues": [], "score": None}
+    R = _read(OUT, {}) or {"issues": [], "score": None}
+    R["done"] = _recent_done()
+    return R
 
 
 @router.post("/api/etsy/audit")
@@ -165,6 +168,7 @@ def autofix(R):
         if x.get("lid"):
             by.setdefault(x["lid"], []).append(x["msg"])
     done = 0
+    changed = False
     for lid, msgs in by.items():
         if done >= cfg["max_per_run"]:
             break
@@ -197,11 +201,22 @@ def autofix(R):
             what = [{"tags": "tagi", "title": "tytuł", "description": "opis", "should_auto_renew": "auto-odnawianie"}[k] for k in data]
             log.insert(0, {"t": time.time(), "lid": lid, "name": (j.get("title") or "")[:60], "what": what, "before": before,
                            "after": {k: v for k, v in data.items()}, "undone": False})
-            done += 1
+            done += 1; changed = True
         except Exception as e:
             log.insert(0, {"t": time.time(), "lid": lid, "name": str(lid), "what": [], "error": str(e)[:160]})
     F["log"] = log[:80]; F["cfg"] = cfg
     _write(FIX, F)
+    return changed
+
+
+def _recent_done(hours=48):
+    """Poprawki zrobione przez bota w ostatnich 48 h – pokazywane jako „zrobione”, potem same znikają."""
+    out = []
+    for x in (_read(FIX, {}).get("log") or []):
+        if x.get("error") or x.get("undone") or time.time() - x.get("t", 0) > hours * 3600:
+            continue
+        out.append({"t": x["t"], "what": x.get("name"), "msg": "Bot poprawił: " + ", ".join(x.get("what") or [])})
+    return out
 
 
 @router.get("/api/etsy/fixes")
@@ -236,4 +251,5 @@ def undo_fix(i: int):
     except Exception as e:
         return {"ok": False, "error": str(e)[:160]}
     x["undone"] = True; _write(FIX, F)
+    threading.Thread(target=run, daemon=True).start()
     return {"ok": True}
