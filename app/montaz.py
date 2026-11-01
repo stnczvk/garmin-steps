@@ -1219,6 +1219,8 @@ NIE dawaj hashtagów z nazwy konta ani skrótów, których widz nie szuka i któ
 INSTAGRAM: pierwsza linijka to hook (do 125 znaków – tyle widać przed „…więcej”), potem 2–3 krótkie linijki konkretu (liczby z filmu),
 potem PYTANIE do widzów, na które łatwo odpowiedzieć w komentarzu (nie „co myślicie?”), na końcu 3–5 hashtagów.
 Głos: Bartłomiej, luźno, po polsku, jak do kumpla, bez korpo i bez wykrzykników co zdanie. Nie wymyślaj liczb, których nie ma w danych.
+STAŁE HASZTAGI dla jedzenia i redukcji: zawsze #redukcja #cojemwciągudnia #dietaredukcyjna #odchudzanie + max 1 pasujący do filmu
+(np. #cheatmeal, #siłownia). Nigdy #dc, #fyp, #gym ani oznaczeń marek/kont.
 Zwróć TYLKO JSON: {"tiktok": "...", "instagram": "..."} (w instagramie nowe linie jako \\n)."""
 
 
@@ -1242,7 +1244,14 @@ async def mont_opis(req: Request):
                 return (d / n).read_text(encoding="utf-8", errors="ignore")[:k]
             except Exception:
                 return ""
+        try:
+            _tt = json.dumps(json.loads(rd('title.json', 2000)), ensure_ascii=False)
+        except Exception:
+            _tt = rd('title.json', 300)
+        dn = re.search(r"dzie[nń]\D{0,3}(\d+)", _tt, re.I)
         ctx = (f"Seria: Daily jedzenie – film „co jem w ciągu dnia na redukcji” (posiłki z kartami kcal i makro).\n"
+               + (f"TYTUŁ SERII (obowiązkowo): opis na TikToku i pierwsza linijka na Instagramie ZACZYNAJĄ SIĘ dokładnie od „Redukcja dzień {dn.group(1)} – <kcal z podsumowania> kcal”, potem reszta.\n" if dn else "")
+               + 
                f"Tytuł na filmie: {rd('title.json', 300)}\nPodsumowanie dnia (dane z dziennika): {rd('podsumowanie.json')}\n"
                f"Co mówię w filmie / raport montażu: {rd('raport.txt', 2000)}")
         if kind == "karuzela":
