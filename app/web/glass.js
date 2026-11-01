@@ -1,3 +1,7 @@
+// motyw „Kosmos” + czcionka nagłówków – na każdej stronie
+(function(){try{var h=document.head||document.documentElement;
+ var f=document.createElement('link');f.rel='stylesheet';f.href='https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap';h.appendChild(f);
+ var l=document.createElement('link');l.rel='stylesheet';l.href='/theme.css';l.id='kosmos';h.appendChild(l);}catch(e){}})();
 // Wspólny skrypt zakładek centrum (ładowany w <head>, przed skryptami strony)
 (function () {
   // 1) Oszczędzanie: zakładka ukryta w centrum (albo apka w tle) nie odświeża danych i nie renderuje 3D.
@@ -67,7 +71,7 @@
     act:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
     bag:'<path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/>'
   };
-  var C={v:'#8f7bff',p:'#ff6fa5',b:'#5ad1ff',g:'#3ddc84',y:'#ffc24b'};
+  var C={v:'#6e8bff',p:'#ff6fa5',b:'#5ad1ff',g:'#3ddc84',y:'#ffc24b'};
   var K=[[/sprzeda|przych/i,'trend',C.g],[/personaliz/i,'users',C.p],[/produkt/i,'grid',C.b],[/zamówie/i,'list',C.y],[/obserwuj|follow/i,'users',C.p],[/wyświetl|zasięg|views/i,'eye',C.b],[/kapita|pnl|krzyw|wynik|wzrost|portfel/i,'trend',C.g],
     [/pora |kiedy|kalendarz|godzin|czas/i,'clock',C.y],[/post|publik/i,'send',C.b],[/raport|analityk|co działa|opis/i,'doc',C.v],
     [/platform|kierunek|reżim|sposób|udział|symbol/i,'pie',C.v],[/transakc|pozycj|aktywne|otwarte|kolejk|histori/i,'list',C.y],
