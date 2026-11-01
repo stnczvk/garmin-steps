@@ -1825,6 +1825,9 @@ addEventListener('DOMContentLoaded', () => {
 #snind{position:absolute;left:0;top:0;width:0;height:0;border-radius:14px;z-index:0;pointer-events:none;opacity:0;
  background:linear-gradient(180deg,rgba(110,139,255,.26),rgba(181,156,255,.10));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 22px -12px rgba(110,139,255,.8);
  transition:transform .42s cubic-bezier(.3,1.35,.45,1),height .3s ease,width .3s ease,opacity .2s}
+#snind.st{filter:brightness(1.25) saturate(1.2)}
+#snind:after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(60% 120% at 50% 50%,rgba(181,156,255,.35),transparent 70%);opacity:0;transition:opacity .3s}#snind.st:after{opacity:1}
+@keyframes kpop{0%{transform:none}40%{transform:scale(1.22)}100%{transform:none}}#snav button.kpop i{animation:kpop .45s cubic-bezier(.3,1.5,.5,1)}
 #snind:before{content:"";position:absolute;left:-12px;top:50%;width:4px;height:20px;margin-top:-10px;border-radius:0 4px 4px 0;background:linear-gradient(#6e8bff,#b59cff);box-shadow:0 0 14px #6e8bff}
 body:not(.s-wide) #snind:before{left:-13px}
 #snav button:after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:linear-gradient(90deg,rgba(255,255,255,.09),rgba(255,255,255,.02));transform:scaleX(0);transform-origin:left;opacity:0;transition:transform .3s cubic-bezier(.3,.8,.3,1),opacity .2s}
@@ -1839,9 +1842,16 @@ body:not(.s-wide) #snind:before{left:-13px}
 </style>
 <script>
 (()=>{const nav=document.getElementById('snav');if(!nav)return;const ind=document.createElement('span');ind.id='snind';nav.prepend(ind);let first=true;
+ let cy=null,tmr=0;
  function mv(){const b=nav.querySelector('button[aria-current=page]');if(!b||!b.offsetParent){ind.style.opacity=0;return}
-  if(first){ind.style.transition='none'}ind.style.width=b.offsetWidth+'px';ind.style.height=b.offsetHeight+'px';ind.style.transform=`translate(${b.offsetLeft}px,${b.offsetTop}px)`;ind.style.opacity=1;
-  if(first){ind.offsetWidth;ind.style.transition='';first=false}}
+  const x=b.offsetLeft,y=b.offsetTop,w=b.offsetWidth,h=b.offsetHeight;clearTimeout(tmr);
+  const set=(yy,hh,tr)=>{ind.style.transition=tr;ind.style.width=w+'px';ind.style.height=hh+'px';ind.style.transform=`translate(${x}px,${yy}px)`;ind.style.opacity=1};
+  if(first||cy===null||cy===y||matchMedia('(prefers-reduced-motion:reduce)').matches){set(y,h,'none');cy=y;first=false;return}
+  // efekt „gumki”: wskaźnik najpierw rozciąga się do nowej zakładki, potem dociąga koniec
+  const down=y>cy,top=Math.min(cy,y),span=Math.abs(y-cy)+h;
+  set(top,span,'transform .2s cubic-bezier(.5,0,.5,1),height .2s cubic-bezier(.5,0,.5,1)');ind.classList.add('st');
+  tmr=setTimeout(()=>{set(y,h,'transform .32s cubic-bezier(.2,1.25,.4,1),height .32s cubic-bezier(.2,1.25,.4,1)');ind.classList.remove('st');
+   b.classList.remove('kpop');void b.offsetWidth;b.classList.add('kpop')},200);cy=y}
  new MutationObserver(mv).observe(nav,{attributes:true,subtree:true,attributeFilter:['aria-current']});
  let lay='';const L=()=>['s-wide','s-mini','s-open'].map(c=>document.body.classList.contains(c)?1:0).join('');lay=L();
  new MutationObserver(()=>{const n=L();if(n===lay)return;lay=n;first=true;setTimeout(mv,320)}).observe(document.body,{attributes:true,attributeFilter:['class']});
