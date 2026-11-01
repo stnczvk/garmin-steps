@@ -116,3 +116,7 @@ html[data-theme=light] .tbar{background:rgba(255,255,255,.88)!important}
 html[data-theme=light] .tbar button.on{background:linear-gradient(180deg,rgba(79,110,247,.16),rgba(143,111,240,.08))!important;color:#14163a!important}
 html[data-theme=light] .colh{background:linear-gradient(180deg,color-mix(in srgb,var(--pc) 12%,transparent),transparent)}
 html[data-theme=light] #ktoast div{background:#fff;color:#14163a;box-shadow:0 0 0 1px rgba(40,50,140,.1),0 18px 40px -14px rgba(40,50,140,.4)}
+/* puste stany w kolumnach ekranu startowego: kompaktowe (ikonka z lewej) */
+.colx :is(p.empty,div.empty){display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px!important;min-height:0}
+.colx :is(p.empty,div.empty)::before{width:30px;height:30px;margin:0;flex:none;border-radius:10px}
+.colx :is(p.empty,div.empty)::after{left:14px;top:50%;margin:-15px 0 0;width:30px;height:30px;font-size:14px}
