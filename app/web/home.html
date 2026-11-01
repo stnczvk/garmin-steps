@@ -568,6 +568,10 @@ $('wsave').onclick=async()=>{const b=$('wsave');b.disabled=true;$('wmsg').textCo
    ['okx-k','okx-s','okx-p','kr-k','kr-s'].forEach(i=>$(i).value='');load()}}
  catch(e){$('wmsg').textContent='Brak połączenia z centrum.'}b.disabled=false};
 load();setInterval(load,90000);
+// synchronizacja z innymi urządzeniami: co 10 s sprawdza ukryte pozycje i stan planera – zmiany z telefonu znikają/pojawiają się od razu
+let PSIG='';setInterval(async()=>{if(document.hidden||window.CENTRUM_ACTIVE===false)return;
+ const H=await get('/api/ui/hidden');if(H&&H.keys&&H.keys.some(k=>!HID.has(k))){H.keys.forEach(k=>HID.add(k));try{localStorage.setItem('home-hide',JSON.stringify([...HID].slice(-400)))}catch(e){}load();return}
+ const r=await get('/api/planer');if(!r)return;const sg=(r.items||[]).map(x=>x.id+x.status+x.when).join('|');if(PSIG&&sg!==PSIG){PSIG=sg;if(!document.activeElement?.closest?.('#pl .ed'))plRefresh();return}PSIG=sg},10000);
 
 // ---------- aktualizacje (Centrum / Dziennik) ----------
 async function upd(fresh){const U=await get('/api/update'+(fresh?'?fresh=1':''));const box=$('upd');if(!U){box.innerHTML='<p class="empty">Nie udało się sprawdzić wersji.</p>';return}
