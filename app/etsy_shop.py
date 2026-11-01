@@ -139,7 +139,7 @@ def _ai_fix(j, need):
     from agency import ai_ready, claude, as_json
     if not ai_ready():
         return {}
-    p = (f"Jesteś ekspertem SEO Etsy. Popraw ofertę cyfrowego szablonu (Google Sheets), po angielsku.\n"
+    p = (f"Jesteś ekspertem SEO Etsy. Popraw ofertę (to może być cyfrowy szablon Google Sheets albo produkt z nadrukiem – trzymaj się typu produktu z tytułu i opisu), w języku obecnej oferty.\n"
          f"TYTUŁ: {j.get('title')}\nTAGI: {', '.join(j.get('tags') or [])}\nOPIS:\n{(j.get('description') or '')[:2500]}\n\n"
          f"Do poprawy: {', '.join(need)}.\nZasady: tags = dokładnie 13 tagów, każdy max 20 znaków, frazy których kupujący szukają, bez powtórzeń "
          f"(zachowaj dobre istniejące). title = 110-140 znaków, najważniejsza fraza na początku, potem 2-3 warianty wyszukiwań, przecinki, bez emoji, "
