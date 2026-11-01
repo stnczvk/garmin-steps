@@ -319,3 +319,18 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
   function go(){stars();tilt();scanCharts();new MutationObserver(sch).observe(document.body,{childList:true,subtree:true})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
 })();
+
+/* fala po kliknięciu w przycisk + ikonki kart reagują na najechanie */
+(function(){
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  var st=document.createElement('style');
+  st.textContent='.krip{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,.35);transform:scale(0);opacity:1;animation:krip .55s ease-out forwards}@keyframes krip{to{transform:scale(1);opacity:0}}'+
+  '.t>h3 .hi,.t>h3 .hi svg{transition:transform .4s cubic-bezier(.3,1.6,.5,1)}.t:hover>h3 .hi{transform:scale(1.1) rotate(-8deg)}'+
+  '.qa button .hi{transition:transform .35s cubic-bezier(.3,1.6,.5,1)}.qa button:hover .hi{transform:translateY(-2px) scale(1.08)}';
+  (document.head||document.documentElement).appendChild(st);
+  document.addEventListener('pointerdown',function(e){var b=e.target.closest&&e.target.closest('.btn,.qa button,.kbtn');if(!b)return;
+    var r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2,s=document.createElement('span');s.className='krip';
+    s.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';
+    var cs=getComputedStyle(b);if(cs.position==='static')b.style.position='relative';if(cs.overflow!=='hidden')b.style.overflow='hidden';
+    b.appendChild(s);setTimeout(function(){s.remove()},600)},{passive:true});
+})();
