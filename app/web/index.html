@@ -1427,7 +1427,7 @@ function setView(v, push) {
   box.querySelectorAll('iframe').forEach(f => { const on = f.dataset.v === v; f.style.display = on ? 'block' : 'none';
     try { f.contentWindow.postMessage({active: on}, location.origin); } catch (e) {} });
   if (v !== 'stats' && !box.querySelector(`iframe[data-v="${v}"]`)) {
-    const f = document.createElement('iframe'); f.dataset.v = v; f.src = '/' + v; f.title = v; f.style.display = 'block';
+    const f = document.createElement('iframe'); f.dataset.v = v; f.src = '/' + v; f.setAttribute('aria-label', v); f.style.display = 'block';
     f.addEventListener('load', () => setTimeout(() => window.hideSplash && hideSplash(), 250), {once: true}); box.appendChild(f);
   }
   if (v === 'stats') { setTimeout(() => pills(), 0); setTimeout(() => window.hideSplash && hideSplash(), 600); }
