@@ -277,7 +277,7 @@ const ago=t=>{const s=(Date.now()-t)/1000;return s<90?'teraz':s<3600?Math.round(
 const today0=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
 document.addEventListener('click',e=>{const h=e.target.closest('[data-hide],[data-hideall]');if(h){e.preventDefault();e.stopPropagation();
   if(h.dataset.hideall){hide(h.dataset.hideall.split(' '));document.querySelectorAll('#tl .ev').forEach(x=>{if(x.querySelector('[data-hide]'))x.remove()});h.remove();return}
-  hide([h.dataset.hide]);const r=h.closest('.it,.ev');if(r){r.style.transition='.2s';r.style.opacity=0;setTimeout(()=>{r.remove();if(r.classList.contains('it')){const n=document.querySelectorAll('#appr .it').length;$('apn').textContent=n;$('apn').className='r chip'+(n?' wr':' ok');if(!n)$('appr').innerHTML='<p class="empty">Nic nie czeka – wszystko ogarnięte.</p>'}},200)}return}
+  hide([h.dataset.hide]);const r=h.closest('.it,.ev');if(r){r.style.transition='.2s';r.style.opacity=0;setTimeout(()=>{r.remove();if(r.classList.contains('it')){const n=document.querySelectorAll('#appr .it').length;$('apn').textContent=n;$('apn').className='r chip'+(n?' wr':' ok');if(!n){$('appr').innerHTML='<p class="empty">Nic nie czeka – wszystko ogarnięte.</p>';$('appr').closest('section')?.classList.remove('kglow');window.APN=0;window.confettiAt&&confettiAt($('appr'))}}},200)}return}
  const t=e.target.closest('[data-go]');if(t){e.preventDefault();go(t.dataset.go)}});
 // motyw
 const curT=()=>{try{return localStorage.getItem('motyw')||'dark'}catch(e){return'dark'}};
@@ -407,6 +407,7 @@ function approvals(A,V,F,G,PL){
  (G?.guardians||[]).filter(g=>g.status==='fail').slice(0,3).forEach(g=>it.push([`${g.name}: problem`,g.msg||'','Sprawdź','straznicy']));
  it.forEach(x=>x.k=hk(x[0]+'|'+x[1]));for(let i=it.length-1;i>=0;i--)if(HID.has(it[i].k))it.splice(i,1);
  $('apn').textContent=it.length;$('apn').className='r chip'+(it.length?' wr':' ok');
+ $('appr').closest('section')?.classList.toggle('kglow',it.length>0);if(window.APN>0&&!it.length&&window.confettiAt)confettiAt($('appr'));window.APN=it.length;
  $('appr').innerHTML=it.length?it.slice(0,6).map(x=>`<div class="it"><div><b title="${esc(x[0])}">${esc(x[0])}</b><small title="${esc(x[1])}">${esc(x[1])}</small></div>${x[5]?`<button class="btn${x[4]?'':' g'}" onclick="document.querySelector('${x[5]}').scrollIntoView({behavior:'smooth'})">${x[2]}</button>`:`<button class="btn${x[4]?'':' g'}" data-go="${x[3]}">${x[2]}</button>`}<button class="x" data-hide="${x.k}" title="Usuń z listy">×</button></div>`).join('')
   :'<p class="empty">Nic nie czeka – wszystko ogarnięte.</p>';
  return it.length;
@@ -507,7 +508,7 @@ $('qn').onsubmit=async e=>{e.preventDefault();const i=$('qni'),v=i.value.trim();
 let PLD=null,AP=null;
 async function plRefresh(){const L=await planer();if(AP)approvals(AP[0],AP[1],AP[2],AP[3],L)}
 let PLO=null;async function planer(){const r=await get('/api/planer');PLD=r;if(!r){$('pl').innerHTML='<p class="empty">Planer niedostępny.</p>';return []}
- const L=(r.items||[]).filter(x=>x.status!=='skipped').sort((a,b)=>(a.when||0)-(b.when||0));$('pln').innerHTML=L.filter(x=>x.status==='draft').length+'<span class="lo"> do zatwierdzenia</span><span class="sh"> do zatw.</span>';
+ const L=(r.items||[]).filter(x=>x.status!=='skipped').sort((a,b)=>(a.when||0)-(b.when||0));$('plc').classList.toggle('kglow',L.some(x=>x.status==='draft'));$('pln').innerHTML=L.filter(x=>x.status==='draft').length+'<span class="lo"> do zatwierdzenia</span><span class="sh"> do zatw.</span>';
  if(!L.length){$('pl').innerHTML='<p class="empty">Gdy film albo karuzela będą gotowe w Montażowni, pojawią się tu jako szkic posta z opisem i godziną – zatwierdzasz jednym kliknięciem.</p>';return L}
  if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#pl .ed'))return L;   // nie przerywaj edycji
  const dk=t=>{const d=new Date(t*1000);d.setHours(0,0,0,0);return d.getTime()},T0=new Date().setHours(0,0,0,0);
@@ -534,7 +535,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('#pl [data-
  if(r.ok===false){toast(r.error||'Nie udało się',1);b.disabled=false;return}
  const M={approve:'Zatwierdzono – opublikuje się o czasie',now:'Publikuję teraz…',skip:'Pominięto',save:'Zapisano zmiany',unapprove:'Cofnięto zatwierdzenie',retry:'Ponawiam publikację'};toast(M[a]||'Gotowe');
  document.activeElement?.blur?.();
- if(a==='approve'||a==='skip'){b.classList.add('kdone');c.classList.add('kleave');setTimeout(plRefresh,800)}else plRefresh()});
+ if(a==='approve'&&window.confettiAt)confettiAt(b,50);if(a==='approve'||a==='skip'){b.classList.add('kdone');c.classList.add('kleave');setTimeout(plRefresh,800)}else plRefresh()});
 $('plh').onclick=async()=>{const h=(PLD?.cfg?.hours)||{};const nm={jedzenie:'Daily jedzenie',karuzela:'Karuzela jedzenia',vlog:'Vlog',cheat:'Cheat meal',przepis:'Przepis'};const nh={};
  for(const k of Object.keys(nm)){const v=prompt(`Godzina publikacji: ${nm[k]} (GG:MM)`,h[k]||'');if(v===null)return;nh[k]=v.trim()}
  await fetch('/api/planer-cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hours:nh})});planer()};
@@ -593,6 +594,7 @@ setTimeout(()=>{document.body.classList.remove('intro');document.body.removeAttr
 // karta Etsy w kolumnie Biznes
 async function etsyCard(){const E=await get('/api/etsy');const box=$('ets');if(!box)return;
  if(!E||!E.connected){box.innerHTML=`<p class="empty">Sklep Etsy nie jest połączony.<br><a href="#" data-go="etsy" style="color:var(--ac2)">Połącz w zakładce Etsy</a></p>`;return}
+ try{const k=new Date().toDateString(),o=JSON.parse(localStorage.getItem('etsy_seen')||'{}'),n=E.all?.orders??0;if(o.n!=null&&n>o.n){setTimeout(()=>{window.confettiAt?confettiAt(box,120):0;toast('🎉 Nowa sprzedaż na Etsy!')},600)}localStorage.setItem('etsy_seen',JSON.stringify({k,n}))}catch(e){}
  const cur=E.currency==='EUR'?'€':(E.currency||''),m=v=>(Math.round((v||0)*100)/100).toLocaleString('pl',{minimumFractionDigits:0,maximumFractionDigits:2});
  const D=(E.days||[]).slice(-14),mx=Math.max(1,...D.map(d=>d.rev||0));
  const act=(E.products||[]).filter(p=>p.url).length,pend=(E.pers||[]).filter(p=>!p.done).length,T=E.traffic||{};
