@@ -325,8 +325,13 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
   if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;
   var st=document.createElement('style');
   st.textContent='.krip{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,.35);transform:scale(0);opacity:1;animation:krip .55s ease-out forwards}@keyframes krip{to{transform:scale(1);opacity:0}}'+
-  '.t>h3 .hi,.t>h3 .hi svg{transition:transform .4s cubic-bezier(.3,1.6,.5,1)}.t:hover>h3 .hi{transform:scale(1.1) rotate(-8deg)}'+
-  '.qa button .hi{transition:transform .35s cubic-bezier(.3,1.6,.5,1)}.qa button:hover .hi{transform:translateY(-2px) scale(1.08)}';
+  '.t>h3 .hi,.qa button .hi{transition:transform .35s cubic-bezier(.2,.9,.3,1.2),box-shadow .35s}'+
+  '.t:hover>h3 .hi,.qa button:hover .hi{transform:translateY(-1px) scale(1.06);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#6e8bff) 16%,transparent),0 8px 20px -8px var(--c,#6e8bff)}'+
+  '@keyframes kre{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}'+
+  '.t:hover>h3 .hi svg .kpl,.qa button:hover .hi svg .kpl,#snav button:hover i svg .kpl{stroke-dasharray:1;animation:kre .6s cubic-bezier(.4,0,.2,1)}';
+  var mark=function(){document.querySelectorAll('.t>h3 .hi svg,.qa .hi svg,#snav i svg').forEach(function(v){if(v.dataset.kpl)return;v.dataset.kpl=1;
+    v.querySelectorAll('path,line,polyline,polygon,rect,circle').forEach(function(e){if(e.getAttribute('fill')&&e.getAttribute('fill')!=='none')return;e.setAttribute('pathLength','1');e.classList.add('kpl')})})};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){mark();setTimeout(mark,1500)});else{mark();setTimeout(mark,1500)}
   (document.head||document.documentElement).appendChild(st);
   document.addEventListener('pointerdown',function(e){var b=e.target.closest&&e.target.closest('.btn,.qa button,.kbtn');if(!b)return;
     var r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2,s=document.createElement('span');s.className='krip';
