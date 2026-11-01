@@ -1829,6 +1829,12 @@ addEventListener('DOMContentLoaded', () => {
 <div id="hm-log"></div><div id="hm-in"><textarea id="hm-t" rows="1" placeholder="Napisz do Hermesa…"></textarea><button id="hm-go">➤</button></div></div>
 <style id="fx2">
 @media (max-width:900px){
+ .side{overscroll-behavior:contain}#snav{overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+ body.s-open .vframe,body.s-open #app{pointer-events:none}
+ body.s-open{overflow:hidden}
+ .side.drag{transition:none!important}
+}
+@media (max-width:900px){
  body.s-open .side .s-tools{display:flex!important;flex-direction:row;align-items:center;gap:10px;padding:12px 12px calc(10px + env(safe-area-inset-bottom));margin-top:auto;border-top:1px solid var(--line)}
  body.s-open .side .s-tools .sb-exp{display:none!important}
  body.s-open .side .s-tools .sb-bell{display:flex!important;align-items:center;justify-content:flex-start;white-space:nowrap;line-height:1;gap:10px;width:100%;height:46px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);font:600 14px Geist,system-ui;position:relative;cursor:pointer}
@@ -1871,6 +1877,19 @@ body:not(.s-wide) #snind:before{left:-13px}
  let lay='';const L=()=>['s-wide','s-mini','s-open'].map(c=>document.body.classList.contains(c)?1:0).join('');lay=L();
  new MutationObserver(()=>{const n=L();if(n===lay)return;lay=n;first=true;setTimeout(mv,320)}).observe(document.body,{attributes:true,attributeFilter:['class']});
  if(window.ResizeObserver)new ResizeObserver(()=>mv()).observe(nav);addEventListener('resize',mv);setTimeout(mv,50);setTimeout(mv,600)})();
+</script>
+<script>
+// telefon: menu boczne da się przesunąć palcem w lewo, żeby je zamknąć; przewijanie listy działa niezależnie
+(()=>{const sd=document.querySelector('.side');if(!sd)return;let x0=null,y0=0,dx=0,mode=null;
+ sd.addEventListener('touchstart',e=>{if(!document.body.classList.contains('s-open')||e.touches.length>1)return;x0=e.touches[0].clientX;y0=e.touches[0].clientY;dx=0;mode=null},{passive:true});
+ sd.addEventListener('touchmove',e=>{if(x0==null)return;const t=e.touches[0],ddx=t.clientX-x0,ddy=t.clientY-y0;
+  if(!mode){if(Math.abs(ddx)<8&&Math.abs(ddy)<8)return;mode=Math.abs(ddx)>Math.abs(ddy)?'x':'y'}
+  if(mode!=='x')return;dx=Math.min(0,ddx);sd.classList.add('drag');sd.style.transform=`translateX(${dx}px)`},{passive:true});
+ const end=()=>{if(x0==null)return;x0=null;sd.classList.remove('drag');sd.style.transform='';if(mode==='x'&&dx<-60)document.body.classList.remove('s-open');mode=null;dx=0};
+ sd.addEventListener('touchend',end);sd.addEventListener('touchcancel',end);
+ // klik w link menu na telefonie zawsze zamyka panel (czasem zostawał otwarty)
+ document.getElementById('snav')?.addEventListener('click',e=>{if(e.target.closest('button[data-v]')&&innerWidth<=900)setTimeout(()=>document.body.classList.remove('s-open'),60)});
+})();
 </script>
 <style>
 .kbtn{display:flex;align-items:center;gap:8px;margin-left:auto;border:1px solid var(--lg-b);background:linear-gradient(145deg,var(--lg-1),var(--lg-2));color:var(--ink);border-radius:12px;height:38px;padding:0 10px 0 12px;font:inherit;font-size:13px;cursor:pointer;opacity:.9}
