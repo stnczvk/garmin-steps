@@ -467,13 +467,14 @@ async function load(){
  try{
   const [D,S,EQ,FG,A,P,AUD,G,V,F,W]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit'),get('/api/guardians'),get('/api/mont-vlog/state'),get('/api/mont/jobs'),get('/api/wallets')]);
   const HK=await get('/api/ui/hidden');if(HK&&HK.keys){HK.keys.forEach(k=>HID.add(k))}
-  const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
+  AP=[A,V,F,G];const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
  }finally{busy=false}
 }
 // ---------- planer postów ----------
 const PST={draft:['do zatwierdzenia','wr'],approved:['zaplanowany','ac'],publishing:['publikuję…','wr'],published:['opublikowany','ok'],error:['błąd','bad'],skipped:['pominięty','']};
 const dtl=t=>{const d=new Date(t*1000);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
-let PLD=null;
+let PLD=null,AP=null;
+async function plRefresh(){const L=await planer();if(AP)approvals(AP[0],AP[1],AP[2],AP[3],L)}
 let PLO=null;async function planer(){const r=await get('/api/planer');PLD=r;if(!r){$('pl').innerHTML='<p class="empty">Planer niedostępny.</p>';return []}
  const L=(r.items||[]).filter(x=>x.status!=='skipped').sort((a,b)=>(a.when||0)-(b.when||0));$('pln').innerHTML=L.filter(x=>x.status==='draft').length+'<span class="lo"> do zatwierdzenia</span><span class="sh"> do zatw.</span>';
  if(!L.length){$('pl').innerHTML='<p class="empty">Gdy film albo karuzela będą gotowe w Montażowni, pojawią się tu jako szkic posta z opisem i godziną – zatwierdzasz jednym kliknięciem.</p>';return L}
@@ -502,7 +503,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('#pl [data-
  if(r.ok===false){toast(r.error||'Nie udało się',1);b.disabled=false;return}
  const M={approve:'Zatwierdzono – opublikuje się o czasie',now:'Publikuję teraz…',skip:'Pominięto',save:'Zapisano zmiany',unapprove:'Cofnięto zatwierdzenie',retry:'Ponawiam publikację'};toast(M[a]||'Gotowe');
  document.activeElement?.blur?.();
- if(a==='approve'||a==='skip'){b.classList.add('kdone');c.classList.add('kleave');setTimeout(planer,800)}else planer()});
+ if(a==='approve'||a==='skip'){b.classList.add('kdone');c.classList.add('kleave');setTimeout(plRefresh,800)}else plRefresh()});
 $('plh').onclick=async()=>{const h=(PLD?.cfg?.hours)||{};const nm={jedzenie:'Daily jedzenie',karuzela:'Karuzela jedzenia',vlog:'Vlog',cheat:'Cheat meal',przepis:'Przepis'};const nh={};
  for(const k of Object.keys(nm)){const v=prompt(`Godzina publikacji: ${nm[k]} (GG:MM)`,h[k]||'');if(v===null)return;nh[k]=v.trim()}
  await fetch('/api/planer-cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hours:nh})});planer()};
