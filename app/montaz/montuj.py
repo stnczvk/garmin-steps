@@ -45,7 +45,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 # ---------------------------------------------------------------------------
 W, H, FPS = 1080, 1920, 30
 
-TITLE_SECONDS = 3.5        # jak długo tytuł jest na ekranie na początku
+TITLE_SECONDS = 2.5        # jak długo tytuł jest na ekranie na początku
 TITLE_FONT_SIZE = 78
 TITLE_TOP = 230            # odległość tytułu od górnej krawędzi (px)
 YELLOW = (255, 214, 0)
@@ -55,16 +55,16 @@ NAPISY_Y = 1300            # środek napisów (px od góry)
 NAPISY_SIZE = 80
 NAPISY_SLOW = 3            # max słów naraz
 
-ZOOM_NA_CIECIACH = 1.09    # „punch-in” co drugi fragment po wycięciu (1.0 = wyłączone)
+ZOOM_NA_CIECIACH = 1.0     # „punch-in” co drugi fragment po wycięciu (1.0 = wyłączone)
 
-LICZNIK = True             # licznik kalorii na górze (rośnie przy każdym posiłku, dane z dziennika)
+LICZNIK = False            # licznik kalorii na górze (rośnie przy każdym posiłku, dane z dziennika)
 LICZNIK_Y = 170
 
 KARTY_Z_DZIENNIKA = False # karta posiłku rysowana z danych dziennika (zamiast screena)
 KOLORY = True              # delikatna korekcja kolorów (kontrast, nasycenie, ciepło) – jedzenie apetyczniej
 EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy liczniku
-PASEK_POSTEPU = True       # cienki żółty pasek na górze, rośnie przez cały film
-KONIEC_SECONDS = 2.0       # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
+PASEK_POSTEPU = False      # cienki żółty pasek na górze, rośnie przez cały film
+KONIEC_SECONDS = 0         # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
 
 PODSUMOWANIE_SECONDS = 4.0 # karta z kaloriami i makro dnia na końcu (z dziennika)
 
@@ -74,6 +74,7 @@ SHOT_CORNER = 30           # zaokrąglenie rogów zrzutu
 
 FOLLOW_SECONDS = 1.8       # naklejka FOLLOW
 LIKE_SECONDS = 1.8         # naklejka LIKE (na samym końcu)
+NAKLEJKI = False           # naklejki FOLLOW / LIKE na końcu (prosty montaż: wyłączone)
 
 MUSIC_VOLUME = 0.07        # głośność muzyki (0-1) - cicho, żeby był słychać Twój głos
 MUSIC_DUCKING = True       # muzyka dodatkowo przycicha, kiedy mówisz
@@ -901,8 +902,8 @@ def finalize(segments, total, workdir, music, out_path, captions=None, summary_p
     lw = Image.open(workdir / "like.png").width
     f_start = max(0.0, total - FOLLOW_SECONDS - LIKE_SECONDS)
     l_start = total - LIKE_SECONDS
-    for png, st, en, x in [(workdir / "follow.png", f_start, l_start, W - fw - 50),
-                           (workdir / "like.png", l_start, total, W - lw - 50)]:
+    for png, st, en, x in ([(workdir / "follow.png", f_start, l_start, W - fw - 50),
+                            (workdir / "like.png", l_start, total, W - lw - 50)] if NAKLEJKI else []):
         a = ANIM.get(str(png))
         if a:
             inputs += ["-i", a[0]]
@@ -1091,8 +1092,9 @@ def main():
         if koniec_png:
             jobs.append(koniec_job(int(m_n.group(1)) + 1 if m_n else None, koniec_png, work))
         jobs += [anim_job(png, SHOT_SECONDS, "karta", work) for pr in prepared_all for png, _ in pr]
-        jobs += [anim_job(work / "follow.png", FOLLOW_SECONDS, "naklejka", work),
-                 anim_job(work / "like.png", LIKE_SECONDS, "naklejka", work)]
+        if NAKLEJKI:
+            jobs += [anim_job(work / "follow.png", FOLLOW_SECONDS, "naklejka", work),
+                     anim_job(work / "like.png", LIKE_SECONDS, "naklejka", work)]
         animate(jobs, work)
 
         segments, total, cap_words, hide, adds, sfx_at = [], 0.0, [], [], [], []
