@@ -1,6 +1,6 @@
 """Menedżer sklepu Etsy: codzienny audyt wszystkich ofert i sklepu + lista konkretnych rzeczy do poprawy.
 Sprawdza tytuły, tagi, opisy, zdjęcia, film, wygasanie, ruch i konwersję, personalizacje, piny i terminy sezonowe."""
-import threading, time
+import re, threading, time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter
@@ -253,3 +253,86 @@ def undo_fix(i: int):
     x["undone"] = True; _write(FIX, F)
     threading.Thread(target=run, daemon=True).start()
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- jednorazowy przegląd ofert z nadrukiem (POD)
+# Tytuł z hasłem z nadruku na początku (każda oferta inny – bez duplikatów), opis z sekcjami pod produkt fizyczny, 13 tagów.
+# Robi się sam raz po wdrożeniu (flaga pod_pass), każda zmiana trafia do dziennika i da się ją cofnąć. Cen nie rusza.
+POD_PASS = "v1"
+
+
+def _pod_ai(j, others):
+    from agency import ai_ready, claude, as_json
+    if not ai_ready():
+        return {}
+    p = (f"Jesteś ekspertem SEO Etsy. To oferta PRODUKTU Z NADRUKIEM (koszulka/bluza/kubek, druk na żądanie). Popraw ją w JĘZYKU OBECNEJ OFERTY "
+         f"(polska oferta po polsku, angielska po angielsku).\nTYTUŁ: {j.get('title')}\nTAGI: {', '.join(j.get('tags') or [])}\n"
+         f"OPIS:\n{(j.get('description') or '')[:2500]}\n\nINNE OFERTY W SKLEPIE (Twój tytuł musi się od nich wyraźnie różnić):\n- " + "\n- ".join(others[:30]) + "\n\n"
+         "Zasady:\n• title: 100-140 znaków, ZACZNIJ od hasła/motywu z nadruku (wyciągnij je z tytułu albo opisu), potem rodzaj produktu i 2-3 frazy "
+         "wyszukiwań (np. śmieszny prezent na święta / Mikołajki / Secret Santa), przecinki, bez emoji, bez CAPS LOCK, bez podwójnych spacji. "
+         "Nie zmieniaj rodzaju produktu (kubek zostaje kubkiem, bluza bluzą).\n"
+         "• tags: dokładnie 13, każdy max 20 znaków, małe litery, frazy kupujących, bez powtórzeń.\n"
+         "• description: zachowaj wszystkie konkretne informacje z obecnego opisu; ułóż 900-1500 znaków zwykłego tekstu w sekcjach "
+         "(po polsku: O WZORZE, PRODUKT, DLA KOGO, PIELĘGNACJA, WAŻNE; po angielsku: THE DESIGN, PRODUCT, PERFECT FOR, CARE, GOOD TO KNOW), punkty z •. "
+         "NIE wymyślaj materiałów, gramatury, pojemności, czasu wysyłki ani bezpieczeństwa w zmywarce, jeśli nie ma ich w obecnym opisie – "
+         "pisz ogólnie (np. 'produkt drukowany na zamówienie', 'kolory na ekranie mogą się nieznacznie różnić'). Pielęgnacja koszulek/bluz: prać na lewej stronie w niskiej temperaturze, nie prasować nadruku.\n"
+         "Zwróć TYLKO JSON: {\"title\": \"...\", \"tags\": [...], \"description\": \"...\"}")
+    try:
+        return as_json(claude(p, max_tokens=2200)) or {}
+    except Exception:
+        return {}
+
+
+def pod_pass(force=False):
+    import etsy_manage as EM
+    F = _read(FIX, {})
+    if F.get("pod_pass") == POD_PASS and not force:
+        return 0
+    L = (_read("etsy.json", {}) or {}).get("listings", [])
+    titles = {str(l["id"]): l.get("title", "") for l in L}
+    log, last, n = F.setdefault("log", []), F.setdefault("last_title", {}), 0
+    for l in L:
+        lid = str(l["id"])
+        try:
+            j = EM._call("GET", f"/listings/{lid}")
+            if j.get("listing_type") == "download" or j.get("is_digital"):
+                continue
+            a = _pod_ai(j, [t for k, t in titles.items() if k != lid])
+            before = {"title": j.get("title"), "tags": j.get("tags") or [], "description": j.get("description") or "", "should_auto_renew": j.get("should_auto_renew")}
+            data = {}
+            t = re.sub(r"\s+", " ", str(a.get("title") or "")).strip()
+            if 70 <= len(t) <= 140 and t not in titles.values():
+                data["title"] = t; titles[lid] = t
+            if isinstance(a.get("tags"), list):
+                tg = list(dict.fromkeys(str(x).strip().lower()[:20] for x in a["tags"] if str(x).strip()))[:13]
+                if len(tg) >= min(13, len(before["tags"]) or 13): data["tags"] = ",".join(tg)
+            d = str(a.get("description") or "").strip()
+            if len(d) >= max(600, int(len(before["description"]) * .8)): data["description"] = d
+            if not data:
+                continue
+            EM._call("PATCH", f"/shops/{EM._sid()}/listings/{lid}", data=data)
+            if "title" in data: last[lid] = time.time()
+            what = [{"tags": "tagi", "title": "tytuł", "description": "opis"}[k] for k in data]
+            log.insert(0, {"t": time.time(), "lid": int(lid), "name": (j.get("title") or "")[:60], "what": what, "before": before,
+                           "after": dict(data), "undone": False, "pod": True})
+            n += 1
+            time.sleep(1.5)
+        except Exception as e:
+            log.insert(0, {"t": time.time(), "lid": int(lid), "name": lid, "what": [], "error": str(e)[:160]})
+    F["log"] = log[:120]; F["pod_pass"] = POD_PASS
+    _write(FIX, F)
+    print(f"etsy pod_pass: poprawiono {n} ofert", flush=True)
+    return n
+
+
+def _pod_boot():
+    time.sleep(300)
+    try:
+        with _lk:
+            if pod_pass():
+                R = audit(); R["done"] = _recent_done(); _write(OUT, R)
+    except Exception as e:
+        print("etsy pod_pass", e, flush=True)
+
+
+threading.Thread(target=_pod_boot, daemon=True).start()
