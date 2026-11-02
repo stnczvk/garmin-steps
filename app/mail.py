@@ -67,7 +67,7 @@ def _ai(item):
          f"OD: {item['from']}\nTEMAT: {item['subject']}\nTREŚĆ:\n{item['body'][:3500]}\n\n"
          "Zwróć TYLKO JSON: {\"cat\": \"wspolpraca|etsy|praca|konto|newsletter|spam|inne\", \"important\": true/false, "
          "\"summary\": \"1-2 zdania po polsku: kto, czego chce, konkrety (kwota, termin)\", "
-         "\"reply\": \"krótki, uprzejmy szkic odpowiedzi w JĘZYKU MAILA, od Bartłomieja; przy współpracy dopytaj o szczegóły (budżet, zakres, termin) zamiast od razu się zgadzać; "
+         "\"reply\": \"krótki, uprzejmy szkic odpowiedzi ZAWSZE PO POLSKU (nawet gdy mail jest po angielsku – Bartłomiej sam zdecyduje, czy przetłumaczyć), od Bartłomieja; przy współpracy dopytaj o szczegóły (budżet, zakres, termin) zamiast od razu się zgadzać; "
          "pusty string, jeśli odpowiedź nie ma sensu (newsletter, spam, powiadomienie)\"}. "
          "important = współpraca, propozycja płatna, pytanie od kupującego, odpowiedź z rekrutacji albo coś wymagającego odpowiedzi.")
     try:
@@ -112,6 +112,11 @@ def poll(n=120):
                 m.logout()
             except Exception:
                 pass
+        redo = 0   # stare szkice (po angielsku) – jednorazowo na nowo, po polsku
+        for it in items:
+            if it.get("dv") != 2 and it.get("important") and redo < 8 and str(it["uid"]) not in (D.get("sent") or {}):
+                a = _ai(it); it["draft"] = a.get("reply") or it.get("draft", ""); redo += 1
+            it["dv"] = 2
         D = {"items": sorted(items, key=lambda x: -x.get("ts", 0))[:n], "at": time.time(), "error": None,
              "sent": D.get("sent", {}), "done": D.get("done", [])}
         _write(DATA, D)
@@ -224,6 +229,21 @@ def api_draft(uid: str):
             return {"ok": False, "error": "nie ma takiego maila"}
         a = _ai(it); it["draft"] = a.get("reply") or it.get("draft", ""); _write(DATA, D)
     return {"ok": True, "draft": it["draft"]}
+
+
+@router.post("/api/mail/translate")
+async def api_translate(req: Request):
+    b = await req.json()
+    txt = str(b.get("text", "")).strip()
+    if not txt:
+        return {"ok": False, "error": "Pusty tekst."}
+    from agency import claude
+    try:
+        out = claude("Przetłumacz tę odpowiedź na mail na naturalny, uprzejmy angielski (zachowaj sens i ton, bez dodawania treści). "
+                     "Zwróć TYLKO przetłumaczony tekst.\n\n" + txt[:4000], max_tokens=1200).strip()
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:120]}
+    return {"ok": True, "text": out}
 
 
 @router.post("/api/mail/{uid}/reply")

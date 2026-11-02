@@ -79,11 +79,14 @@ function show(u,keep){const x=(D?.items||[]).find(i=>i.uid===u);if(!x)return;SEL
  $('pv').innerHTML=`<button class="ib back" id="bk">‹ Wróć</button><h2>${esc(x.subject)}</h2><div class="fr"><b style="color:var(--ink)">${esc(name(x))}</b><span>&lt;${esc(x.addr)}&gt;</span><span>· ${new Date(x.ts*1000).toLocaleString('pl',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</span></div>
   ${x.summary?`<div class="ai"><b>W skrócie</b>${esc(x.summary)}</div>`:''}<div class="bd">${esc(x.body||'(brak treści)')}</div>
   <div class="cp"><label>Odpowiedź</label><textarea id="rt" placeholder="Napisz odpowiedź…">${esc(draftKeep??x.draft??'')}</textarea>
-  <div class="ac"><button class="ib pri" data-a="reply">Wyślij odpowiedź</button><button class="ib" data-a="draft">Nowy szkic AI</button><button class="ib" data-a="${x.seen?'unseen':'open'}">${x.seen?'Oznacz jako nieprzeczytane':'Oznacz jako przeczytane'}</button></div></div>`;
+  <div class="ac"><button class="ib pri" data-a="reply">Wyślij odpowiedź</button><button class="ib" data-a="draft">Nowy szkic AI</button><button class="ib" data-t="en">Przetłumacz na angielski</button><button class="ib" data-a="${x.seen?'unseen':'open'}">${x.seen?'Oznacz jako nieprzeczytane':'Oznacz jako przeczytane'}</button></div></div>`;
  $('bk').onclick=()=>{document.body.classList.remove('det');SEL=null;list()};
  list();if(!x.seen&&!keep){x.seen=true;fetch(`/api/mail/${encodeURIComponent(u)}/open`,{method:'POST'});setTimeout(()=>{list();show(u,true)},50)}}
 $('ls').addEventListener('click',e=>{const it=e.target.closest('.it');if(it)show(it.dataset.u)});
-$('pv').addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b||!SEL)return;const a=b.dataset.a,x=D.items.find(i=>i.uid===SEL);
+$('pv').addEventListener('click',async e=>{const tb=e.target.closest('[data-t]');if(tb){const t=$('rt').value.trim();if(!t)return T('Najpierw napisz odpowiedź',1);tb.disabled=true;
+ const r=await fetch('/api/mail/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})}).then(r=>r.json()).catch(()=>({ok:false}));tb.disabled=false;
+ if(!r.ok)return T(r.error||'Nie udało się',1);$('rt').value=r.text;return T('Przetłumaczono – sprawdź przed wysłaniem')}
+ const b=e.target.closest('[data-a]');if(!b||!SEL)return;const a=b.dataset.a,x=D.items.find(i=>i.uid===SEL);
  if(a==='reply'){const t=$('rt').value.trim();if(!t)return T('Napisz odpowiedź',1);if(!confirm(`Wysłać odpowiedź do ${x.addr}?`))return}
  b.disabled=true;const r=await fetch(`/api/mail/${encodeURIComponent(SEL)}/${a}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:$('rt')?.value||''})}).then(r=>r.json()).catch(()=>({ok:false,error:'brak połączenia'}));b.disabled=false;
  if(!r.ok)return T(r.error||'Nie udało się',1);
