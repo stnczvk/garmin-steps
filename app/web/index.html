@@ -606,10 +606,10 @@ body.kb .tbar,body.kb #tbar{display:none!important}body.kb.v-ext .vframe{margin-
 body.v-ext{box-sizing:border-box;padding-top:env(safe-area-inset-top)}
 #app{padding-top:calc(24px + env(safe-area-inset-top))!important}
 /* ekran startu: szklany kafel z logo (B) + fale i rozsunięcie od środka (F) */
-#splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;pointer-events:auto}
+#splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;pointer-events:auto;background:radial-gradient(70% 45% at 50% 42%,rgba(110,139,255,.30),transparent 70%),radial-gradient(60% 40% at 70% 70%,rgba(181,156,255,.16),transparent 70%),linear-gradient(180deg,#10144a 0%,#0a0c2a 50%,#07081c 100%);transition:opacity .5s ease .1s,visibility 0s .6s}
 #splash .half{position:absolute;left:0;right:0;height:50.5%;background:radial-gradient(70% 60% at 30% 100%,rgba(110,139,255,.32),transparent 70%),radial-gradient(60% 60% at 80% 100%,rgba(181,156,255,.24),transparent 70%),#07081c;transition:transform .75s cubic-bezier(.7,0,.2,1)}
 #splash .half.t{top:0}#splash .half.b{bottom:0;background:radial-gradient(70% 60% at 30% 0%,rgba(110,139,255,.32),transparent 70%),radial-gradient(60% 60% at 80% 0%,rgba(181,156,255,.24),transparent 70% ),#07081c}
-#splash.out .half.t{transform:translateY(-101%)}#splash.out .half.b{transform:translateY(101%)}
+#splash .half{display:none!important}#splash.out{opacity:0;visibility:hidden}
 #splash.out{pointer-events:none}
 #splash .sp{position:relative;display:flex;flex-direction:column;align-items:center;gap:16px;transition:opacity .35s,transform .45s cubic-bezier(.7,0,.2,1)}
 #splash.out .sp{opacity:0;transform:scale(.85)}
