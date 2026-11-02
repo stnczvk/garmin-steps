@@ -1471,12 +1471,13 @@ if (window.visualViewport) {
   const vv = visualViewport;
   const kb = () => {
     const full = window.__fullVH || innerHeight;
-    const open = vv.height < full - 150 && matchMedia('(max-width: 900px)').matches;
+    const ae = typeof deepActive === 'function' ? deepActive() : document.activeElement, ed = ae && (/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) || ae.isContentEditable);
+    const open = ed && vv.height < full - 150 && matchMedia('(max-width: 900px)').matches;   // tryb klawiatury tylko gdy coś jest naprawdę zaznaczone do pisania
     document.body.classList.toggle('kb', open);
     if (open) {
       document.documentElement.style.setProperty('--vh', vv.height + 'px');
       document.body.style.transform = `translateY(${vv.offsetTop}px)`;
-    } else if (document.body.style.transform) {
+    } else if (document.body.style.transform || document.documentElement.style.getPropertyValue('--vh') !== (window.__fullVH || innerHeight) + 'px') {
       document.body.style.transform = ''; sizeApp();
     }
   };
