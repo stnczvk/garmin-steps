@@ -642,7 +642,7 @@ load();setInterval(load,90000);
 // synchronizacja z innymi urządzeniami: co 10 s sprawdza ukryte pozycje i stan planera – zmiany z telefonu znikają/pojawiają się od razu
 let PSIG='';setInterval(async()=>{if(document.hidden||window.CENTRUM_ACTIVE===false)return;
  const H=await get('/api/ui/hidden');if(H&&H.keys&&H.keys.some(k=>!HID.has(k))){H.keys.forEach(k=>HID.add(k));try{localStorage.setItem('home-hide',JSON.stringify([...HID].slice(-400)))}catch(e){}load();return}
- const r=await get('/api/planer');if(!r)return;const sg=(r.items||[]).map(x=>x.id+x.status+x.when).join('|');if(PSIG&&sg!==PSIG){PSIG=sg;if(!document.activeElement?.closest?.('#pl .ed'))plRefresh();return}PSIG=sg},10000);
+ const r=await get('/api/planer');if(!r)return;const sg=(r.items||[]).map(x=>x.id+x.status+x.when).join('|');if(PSIG&&sg!==PSIG){PSIG=sg;if(!document.activeElement?.closest?.('#pl .ed'))plRefresh();return}PSIG=sg},20000);
 
 // ---------- aktualizacje (Centrum / Dziennik) ----------
 async function upd(fresh){const U=await get('/api/update'+(fresh?'?fresh=1':''));const box=$('upd');if(!U){box.innerHTML='<p class="empty">Nie udało się sprawdzić wersji.</p>';return}
@@ -672,7 +672,7 @@ upd();
 function markAtt(){const set=(sec,on)=>{if(!sec)return;sec.classList.toggle('att',!!on);if(on&&!sec.querySelector(':scope>.shine')){const i=document.createElement('i');i.className='shine';sec.prepend(i)}};
  set($('appr')?.closest('section'),+($('apn')?.textContent||0)>0);
  set($('plc'),(PLD?.items||[]).some(x=>x.status==='draft'))}
-setInterval(markAtt,4000);setTimeout(markAtt,1500);
+setInterval(markAtt,10000);setTimeout(markAtt,1500);
 // wejście tylko raz
 setTimeout(()=>{document.body.classList.remove('intro');document.body.removeAttribute('data-intro')},2200);
 // telefon: przesuwanie palcem między działami

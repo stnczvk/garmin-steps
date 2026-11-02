@@ -1488,7 +1488,7 @@ if (window.visualViewport) {
 // strażnik zakładek: to, co widać, zawsze zgadza się z zaznaczeniem w menu
 setInterval(() => { const v = document.body.dataset.view; if (!v || v === 'stats') return;
   const fs = [...document.querySelectorAll('#vframe iframe')], bad = fs.some(f => f.classList.contains('on') !== (f.dataset.v === v));
-  if (bad || !fs.some(f => f.dataset.v === v)) setView(v); }, 1500);
+  if (bad || !fs.some(f => f.dataset.v === v)) setView(v); }, 2500);
 function deepActive() { let a = document.activeElement; try { while (a && a.tagName === 'IFRAME' && a.contentDocument) a = a.contentDocument.activeElement; } catch (e) {} return a; }
 function kbFix() {
   if (!document.body.classList.contains('kb')) return;
@@ -1496,7 +1496,7 @@ function kbFix() {
   const full = window.__fullVH || innerHeight, vvh = window.visualViewport ? visualViewport.height : innerHeight;
   if (!ed || vvh >= full - 150) { document.body.classList.remove('kb'); document.body.style.transform = ''; sizeApp(); }
 }
-setInterval(kbFix, 1500);
+setInterval(() => { if (!document.hidden) kbFix(); }, 3000);
 addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.kbcheck) setTimeout(kbFix, 350); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(kbFix, 300); });
 $('#vframe').addEventListener('load', sizeApp, true);
