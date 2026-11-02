@@ -1851,7 +1851,7 @@ addEventListener('DOMContentLoaded', () => {
 @media (min-width:901px){
  /* jeden układ w obu stanach: na dole dzwonek + przycisk zwijania/rozwijania */
  .s-col{display:none!important}
- body.s-wide .s-tools .sb-exp,body:not(.s-wide) .s-tools .sb-exp,body:not(.s-wide) .s-tools .sb-bell{display:flex!important}
+ body.s-wide .s-tools .sb-exp,body:not(.s-wide) .s-tools .sb-exp{display:flex!important}body:not(.s-wide) .s-tools .sb-bell{display:none!important}
  body:not(.s-wide) .s-tools{flex-direction:column;gap:6px}
  .sb-exp svg{transition:transform .35s cubic-bezier(.2,.8,.2,1)}body.s-wide .sb-exp svg{transform:scaleX(-1)}
  .side{transition:width .34s cubic-bezier(.2,.8,.2,1),padding .34s cubic-bezier(.2,.8,.2,1)!important}
@@ -1865,8 +1865,9 @@ addEventListener('DOMContentLoaded', () => {
  #snav button i{width:22px!important;flex:none}#snav button svg{width:20px!important;height:20px!important}
  .s-tools button{width:40px!important;height:40px!important}
  .s-brand img{width:40px!important;height:40px!important}body.s-wide .s-brand{padding-left:4px!important}
- body:not(.s-wide) .s-grp{margin:5px auto!important}
- @media (max-height:860px){body:not(.s-wide) #snav button,body.s-wide #snav button{height:36px!important;min-height:36px}}
+ body:not(.s-wide) .s-grp{margin:17px auto 18px!important}
+ .s-tools .sb-exp{order:-1}
+ @media (max-height:860px){body:not(.s-wide) #snav button,body.s-wide #snav button{height:34px!important;min-height:34px}}
 }
 /* zakładki ułożone jedna na drugiej – pokazujemy przez visibility, nie display (Safari potrafił zostawić na ekranie starą zakładkę) */
 .vframe{position:relative}
