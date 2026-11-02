@@ -1797,7 +1797,11 @@ load().then(async () => {
  // pasek boczny: wąski domyślnie, „‹” rozwija
  document.body.classList.remove('s-mini');
  try{if(localStorage.getItem('menu-wide')==='1')document.body.classList.add('s-wide')}catch(e){}
- const col=document.getElementById('s-col');if(col)col.onclick=()=>{const w=document.body.classList.toggle('s-wide');try{localStorage.setItem('menu-wide',w?'1':'0')}catch(e){}};
+ document.querySelectorAll('#snav button').forEach((b,i)=>b.style.setProperty('--i',i));
+ if(document.body.classList.contains('s-wide'))document.body.classList.add('s-wide-c');
+ let swt=0;const col=document.getElementById('s-col');if(col)col.onclick=()=>{const B=document.body,w=B.classList.toggle('s-wide');clearTimeout(swt);
+  if(w)swt=setTimeout(()=>B.classList.add('s-wide-c'),300);else B.classList.remove('s-wide-c');
+  try{localStorage.setItem('menu-wide',w?'1':'0')}catch(e){}};
  const st=document.getElementById('stools'),bell=document.getElementById('bell');
  if(st&&bell){const b=document.createElement('button');b.className='sb-bell';b.onclick=()=>bell.click();st.appendChild(b);
   const ON='<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" fill="none" stroke-linecap="round"/></svg><i class="bdot"></i>',
@@ -1854,7 +1858,12 @@ addEventListener('DOMContentLoaded', () => {
  body.s-wide .s-tools .sb-exp,body:not(.s-wide) .s-tools .sb-exp{display:flex!important}body:not(.s-wide) .s-tools .sb-bell{display:none!important}
  body:not(.s-wide) .s-tools{flex-direction:column;gap:6px}
  .sb-exp svg{transition:transform .35s cubic-bezier(.2,.8,.2,1)}body.s-wide .sb-exp svg{transform:scaleX(-1)}
- .side{transition:width .26s cubic-bezier(.2,.8,.2,1)!important}
+ .side{transition:width .3s cubic-bezier(.32,.72,0,1),box-shadow .3s ease!important;will-change:width}
+ body.s-wide .side{box-shadow:14px 0 40px -18px rgba(0,0,0,.65)!important}
+ html:not([data-theme=light]) body #side.side,html:not([data-theme=light]) body.s-wide #side.side{background:linear-gradient(180deg,#131634,#0b0d22)!important}
+ /* treść przesuwa się dopiero po wysunięciu paska (jedno przeliczenie strony zamiast szarpania w trakcie) */
+ body.s-wide{--sw:72px!important}body.s-wide.s-wide-c{--sw:244px!important}
+ body.s-wide #snav button span{animation:kfin .32s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 14ms + 70ms)}
  body.lg{transition:none!important}   /* treść (i zakładka w ramce) zmienia szerokość raz, a nie w każdej klatce – stąd był lag */
  @keyframes kfin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
  body.s-wide #snav button span,body.s-wide .s-grp,body.s-wide .s-brand b{animation:kfin .32s .12s both}
