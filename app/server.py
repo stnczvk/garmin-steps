@@ -156,6 +156,8 @@ from planer import router as planer_router  # noqa: E402
 app.include_router(planer_router)
 from weekly import router as weekly_router  # noqa: E402
 app.include_router(weekly_router)
+from mail import router as mail_router  # noqa: E402
+app.include_router(mail_router)
 
 
 @app.get("/")
