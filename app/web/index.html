@@ -662,7 +662,7 @@ body.lg{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/20
 .s-tools .sb-exp:hover{transform:translateX(2px)}
  .s-tools .dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
  .s-foot{display:none!important}
- body:not(.s-wide) .s-col{display:none}
+ body:not(.s-wide) .s-col{display:grid;place-items:center;width:34px;height:26px;padding:0;font-size:18px;transform:rotate(180deg);border-radius:9px;color:var(--soft)}body:not(.s-wide) .s-col:hover{color:var(--ink);background:rgba(255,255,255,.07)}
 }
 /* Statystyki w stylu ekranu głównego */
 body.lg .head{display:none!important}
@@ -1848,6 +1848,12 @@ addEventListener('DOMContentLoaded', () => {
 <div id="hm"><div class="hh"><div class="av">H</div><div><b>Hermes</b><small id="hm-st">łączę…</small></div><button id="hm-clr" title="Nowa rozmowa">Wyczyść</button><button id="hm-x" title="Zamknij">×</button></div>
 <div id="hm-log"></div><div id="hm-in"><textarea id="hm-t" rows="1" placeholder="Napisz do Hermesa…"></textarea><button id="hm-go">➤</button></div></div>
 <style id="fx2">
+@media (min-width:901px){
+ body:not(.s-wide) .s-tools .sb-exp{display:none!important}
+ body:not(.s-wide) #snav{gap:2px!important}
+ @media (max-height:980px){body:not(.s-wide) #snav button{width:42px!important;height:40px!important}body:not(.s-wide) .s-grp{margin:5px auto!important}}
+ @media (max-height:860px){body:not(.s-wide) #snav button{height:36px!important}}
+}
 /* zakładki ułożone jedna na drugiej – pokazujemy przez visibility, nie display (Safari potrafił zostawić na ekranie starą zakładkę) */
 .vframe{position:relative}
 .vframe iframe{position:absolute!important;top:0;left:0;width:100%!important;min-width:0!important;height:100%!important;display:block!important;visibility:hidden;pointer-events:none;z-index:0;animation:none!important}
