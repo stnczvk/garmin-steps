@@ -65,7 +65,7 @@
     film:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4"/>',
     target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
-    key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M17 6l3 3M15 8l2 2"/>',
+    key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M17 6l3 3M15 8l2 2"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/>',
     brief:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
     grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
     act:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
@@ -92,7 +92,7 @@
     if(/flex|grid/.test(d)&&fn){var w=document.createElement('span');w.className='hxw';h.insertBefore(w,fn);w.appendChild(s);w.appendChild(fn)}
     else h.insertBefore(s,ref);
   }
-  var H1={'montazownia':'film','skaner-stats':'trend','skaner-boty':'cpu','skaner-sygnaly':'zap','skaner':'act','agencja':'brief','straznicy':'shield','powiadomienia':'bell','pozaskala':'trend','hasla':'key','etsy':'bag','':'grid','index.html':'grid'};
+  var H1={'montazownia':'film','skaner-stats':'trend','skaner-boty':'cpu','skaner-sygnaly':'zap','skaner':'act','agencja':'brief','straznicy':'shield','powiadomienia':'bell','pozaskala':'trend','hasla':'key','etsy':'bag','poczta':'mail','':'grid','index.html':'grid'};
   H1[pth.replace(/\.html$/,'')]&&(H1[pth]=H1[pth.replace(/\.html$/,'')]);
   function run(root){
     (root.querySelectorAll?root:document).querySelectorAll('h1,h2,h3').forEach(function(h){

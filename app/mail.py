@@ -76,7 +76,7 @@ def _ai(item):
         return {}
 
 
-def poll(n=40):
+def poll(n=120):
     c = _cfg()
     if not c.get("email") or not c.get("password"):
         return
@@ -185,6 +185,34 @@ def api_seen(uid: str):
         D, it = _find(uid)
         if it: it["seen"] = True
         D.setdefault("done", []).append(str(uid)); D["done"] = D["done"][-300:]; _write(DATA, D)
+    return {"ok": True}
+
+
+@router.post("/api/mail/{uid}/unseen")
+def api_unseen(uid: str):
+    c = _cfg()
+    try:
+        m = _imap(c); m.select("INBOX"); m.uid("store", uid, "-FLAGS", "(\\Seen)"); m.logout()
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:120]}
+    with _lk:
+        D, it = _find(uid)
+        if it: it["seen"] = False
+        D["done"] = [x for x in D.get("done", []) if x != str(uid)]; _write(DATA, D)
+    return {"ok": True}
+
+
+@router.post("/api/mail/{uid}/open")
+def api_open(uid: str):
+    """Otwarcie w zakładce Poczta = przeczytany (bez chowania z listy)."""
+    c = _cfg()
+    try:
+        m = _imap(c); m.select("INBOX"); m.uid("store", uid, "+FLAGS", "(\\Seen)"); m.logout()
+    except Exception:
+        pass
+    with _lk:
+        D, it = _find(uid)
+        if it: it["seen"] = True; _write(DATA, D)
     return {"ok": True}
 
 

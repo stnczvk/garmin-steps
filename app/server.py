@@ -165,7 +165,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html"}
+PAGES = {"home": "home.html", "poczta": "poczta.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html"}
 
 
 def _page(req: Request, name: str):
@@ -212,6 +212,11 @@ def montazownia(req: Request):
 @app.get("/notatki")
 def notatki(req: Request):
     return _page(req, "notatki")
+
+
+@app.get("/poczta")
+def poczta(req: Request):
+    return _page(req, "poczta")
 
 
 @app.get("/hasla")

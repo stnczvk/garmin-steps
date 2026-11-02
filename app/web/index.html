@@ -774,6 +774,7 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
     <button data-v="home"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></i><span>Ekran główny</span></button>
     <button data-v="straznicy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></i><span>Strażnicy</span><em class="s-badge" id="gbadge"></em></button>
     <button data-v="powiadomienia"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></i><span>Powiadomienia</span><em class="s-badge" id="nbadge"></em></button>
+    <button data-v="poczta"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/></svg></i><span>Poczta</span><em class="s-badge" id="mbadge"></em></button>
     <button data-v="hasla"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></i><span>Hasła</span></button>
     <button data-v="notatki"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></i><span>Notatki</span></button>
     <div class="s-grp">Biznes</div>
@@ -1423,7 +1424,7 @@ $('#theme').onclick = e => {
 setTheme(document.documentElement.dataset.theme || 'auto');
 
 // widoki z menu bocznego: Ekran główny / Statystyki / Agencja AI / Pipeline / Skaner (osobne strony w iframe, ładowane raz)
-const VIEWS = ['home', 'straznicy', 'powiadomienia', 'montazownia', 'notatki', 'hasla', 'etsy', 'stats', 'agencja', 'pozaskala', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
+const VIEWS = ['home', 'straznicy', 'powiadomienia', 'poczta', 'montazownia', 'notatki', 'hasla', 'etsy', 'stats', 'agencja', 'pozaskala', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
 function setView(v, push) {
   v = VIEWS.includes(v) ? v : 'home';
   document.querySelectorAll('#snav button').forEach(x => x.dataset.v === v ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
@@ -1511,6 +1512,8 @@ function route() {
   }
 }
 route(); addEventListener('hashchange', route);
+async function mBadge(){try{const r=await fetch('/api/mail');if(r.ok){const d=await r.json();const b=document.getElementById('mbadge');if(b){b.className='s-badge'+(d.unread?' w':'');b.textContent=d.unread?(d.unread>99?'99+':d.unread):''}}}catch(e){}}
+setTimeout(mBadge,3000);setInterval(mBadge,120000);
 function nBadgeSet(n) { const b = $('#nbadge'); b.className = 's-badge' + (n ? ' w' : ''); b.textContent = n ? (n > 99 ? '99+' : n) : ''; }
 async function nBadge() { try { const r = await fetch('/api/notifs?limit=1'); if (r.ok) nBadgeSet((await r.json()).unread); } catch (e) {} }
 nBadge(); setInterval(nBadge, 60000);
