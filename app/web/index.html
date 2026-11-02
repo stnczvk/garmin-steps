@@ -1799,19 +1799,17 @@ load().then(async () => {
  try{if(localStorage.getItem('menu-wide')==='1')document.body.classList.add('s-wide')}catch(e){}
  document.querySelectorAll('#snav button').forEach((b,i)=>b.style.setProperty('--i',i));
  if(document.body.classList.contains('s-wide'))document.body.classList.add('s-wide-c');
- // zwijanie/rozwijanie: treść na chwilę przygasa (wtedy przelicza się jej układ – niewidoczny „przeskok” kart),
- // a potem wjeżdża razem z paskiem i rozjaśnia się (przesunięcie robi karta graficzna)
+ // zwijanie/rozwijanie: treść wjeżdża razem z paskiem (przesunięcie robi karta graficzna)
  let swBusy=false;const col=document.getElementById('s-col');if(col)col.onclick=()=>{if(swBusy)return;swBusy=true;const B=document.body;
   const els=[...document.querySelectorAll('#vframe,#app,#head')].filter(e=>getComputedStyle(e).display!=='none');
   const rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
   const go=()=>{const before=parseFloat(getComputedStyle(B).paddingLeft)||0;const w=B.classList.toggle('s-wide');B.classList.toggle('s-wide-c',w);
    const dx=before-(parseFloat(getComputedStyle(B).paddingLeft)||0);
    els.forEach(e=>{e.style.transition='none';e.style.transform=`translateX(${dx}px)`});void B.offsetWidth;
-   requestAnimationFrame(()=>requestAnimationFrame(()=>els.forEach(e=>{e.style.transition='transform .32s cubic-bezier(.32,.72,0,1),opacity .26s ease .06s';e.style.transform='translateX(0)';e.style.opacity='1'})));
+   requestAnimationFrame(()=>requestAnimationFrame(()=>els.forEach(e=>{e.style.transition='transform .32s cubic-bezier(.32,.72,0,1)';e.style.transform='translateX(0)'})));
    setTimeout(()=>{els.forEach(e=>{e.style.transition='';e.style.transform='';e.style.opacity=''});swBusy=false},420);
    try{localStorage.setItem('menu-wide',w?'1':'0')}catch(e){}};
-  if(rm){go();return}
-  els.forEach(e=>{e.style.transition='opacity .09s ease';e.style.opacity='.15'});setTimeout(go,95)};
+  go()};
  const st=document.getElementById('stools'),bell=document.getElementById('bell');
  if(st&&bell){const b=document.createElement('button');b.className='sb-bell';b.onclick=()=>bell.click();st.appendChild(b);
   const ON='<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" fill="none" stroke-linecap="round"/></svg><i class="bdot"></i>',
