@@ -1853,14 +1853,20 @@ addEventListener('DOMContentLoaded', () => {
  .s-col{display:none!important}
  body.s-wide .s-tools .sb-exp,body:not(.s-wide) .s-tools .sb-exp,body:not(.s-wide) .s-tools .sb-bell{display:flex!important}
  body:not(.s-wide) .s-tools{flex-direction:column;gap:6px}
- body:not(.s-wide) .s-tools button{width:40px!important;height:38px!important}
  .sb-exp svg{transition:transform .35s cubic-bezier(.2,.8,.2,1)}body.s-wide .sb-exp svg{transform:scaleX(-1)}
  .side{transition:width .34s cubic-bezier(.2,.8,.2,1),padding .34s cubic-bezier(.2,.8,.2,1)!important}
  @keyframes kfin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
  body.s-wide #snav button span,body.s-wide .s-grp,body.s-wide .s-brand b{animation:kfin .32s .12s both}
  body:not(.s-wide) #snav{gap:2px!important}
- @media (max-height:980px){body:not(.s-wide) #snav button{width:42px!important;height:40px!important}body:not(.s-wide) .s-grp{margin:5px auto!important}}
- @media (max-height:860px){body:not(.s-wide) #snav button{height:36px!important}}
+ /* te same rozmiary w obu stanach – ikony nie „skaczą” przy zwijaniu/rozwijaniu */
+ body:not(.s-wide) #snav button,body.s-wide #snav button{height:40px!important;min-height:40px}#snav{gap:2px!important}
+ body:not(.s-wide) #snav button{width:42px!important}
+ body.s-wide #snav button{padding:0 12px 0 13px!important;gap:12px}
+ #snav button i{width:22px!important;flex:none}#snav button svg{width:20px!important;height:20px!important}
+ .s-tools button{width:40px!important;height:40px!important}
+ .s-brand img{width:40px!important;height:40px!important}body.s-wide .s-brand{padding-left:4px!important}
+ body:not(.s-wide) .s-grp{margin:5px auto!important}
+ @media (max-height:860px){body:not(.s-wide) #snav button,body.s-wide #snav button{height:36px!important;min-height:36px}}
 }
 /* zakładki ułożone jedna na drugiej – pokazujemy przez visibility, nie display (Safari potrafił zostawić na ekranie starą zakładkę) */
 .vframe{position:relative}
