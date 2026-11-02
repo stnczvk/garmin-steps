@@ -1439,6 +1439,7 @@ function setView(v, push) {
   }
   if (v === 'stats') { setTimeout(() => pills(), 0); setTimeout(() => window.hideSplash && hideSplash(), 600); }
   if (push) history.replaceState(null, '', '#' + v);
+  if (typeof kbFix === 'function') setTimeout(kbFix, 50);
 }
 $('#snav').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v, true); };
 $('#burger').onclick = () => document.body.classList.toggle('s-open');
@@ -1481,6 +1482,17 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb);
 }
+// zabezpieczenie: czasem (iPhone) po schowaniu klawiatury aplikacja zostawała „ściśnięta” – bez dolnego menu i z ucięta zakładką
+function deepActive() { let a = document.activeElement; try { while (a && a.tagName === 'IFRAME' && a.contentDocument) a = a.contentDocument.activeElement; } catch (e) {} return a; }
+function kbFix() {
+  if (!document.body.classList.contains('kb')) return;
+  const a = deepActive(), ed = a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable);
+  const full = window.__fullVH || innerHeight, vvh = window.visualViewport ? visualViewport.height : innerHeight;
+  if (!ed || vvh >= full - 150) { document.body.classList.remove('kb'); document.body.style.transform = ''; sizeApp(); }
+}
+setInterval(kbFix, 1500);
+addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.kbcheck) setTimeout(kbFix, 350); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(kbFix, 300); });
 $('#vframe').addEventListener('load', sizeApp, true);
 sizeApp();
 addEventListener('message', e => { if (e.origin !== location.origin || !e.data) return; if (e.data.go) setView(e.data.go, true); if (e.data.setTheme) setTheme(e.data.setTheme, true);

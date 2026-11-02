@@ -366,3 +366,5 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
   function go(){sk();tod();setInterval(tod,600000);new MutationObserver(sch).observe(document.body,{childList:true,subtree:true})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
 })();
+// klawiatura schowana w zakładce → główne okno sprawdza, czy nie zostało „ściśnięte”
+if (window.parent !== window) addEventListener('focusout', function () { try { window.parent.postMessage({kbcheck: 1}, location.origin); } catch (e) {} }, true);
