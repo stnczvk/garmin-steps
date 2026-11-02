@@ -1803,11 +1803,12 @@ load().then(async () => {
  let swBusy=false;const col=document.getElementById('s-col');if(col)col.onclick=()=>{if(swBusy)return;swBusy=true;const B=document.body;
   const els=[...document.querySelectorAll('#vframe,#app,#head')].filter(e=>getComputedStyle(e).display!=='none');
   const rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const go=()=>{const before=parseFloat(getComputedStyle(B).paddingLeft)||0;const w=B.classList.toggle('s-wide');B.classList.toggle('s-wide-c',w);
-   const dx=before-(parseFloat(getComputedStyle(B).paddingLeft)||0);
-   els.forEach(e=>{e.style.transition='none';e.style.transform=`translateX(${dx}px)`});void B.offsetWidth;
+  const go=()=>{const r0=els.map(e=>e.getBoundingClientRect());const w=B.classList.toggle('s-wide');B.classList.toggle('s-wide-c',w);
+   // FLIP: treść od razu ma nowy układ, ale startuje „rozciągnięta” do starej pozycji i szerokości, i płynnie wraca do właściwej
+   els.forEach((e,i)=>{const r1=e.getBoundingClientRect(),sx=r1.width?r0[i].width/r1.width:1;e.style.transformOrigin='0 0';e.style.transition='none';
+    e.style.transform=`translateX(${r0[i].left-r1.left}px) scaleX(${sx})`});void B.offsetWidth;
    requestAnimationFrame(()=>requestAnimationFrame(()=>els.forEach(e=>{e.style.transition='transform .32s cubic-bezier(.32,.72,0,1)';e.style.transform='translateX(0)'})));
-   setTimeout(()=>{els.forEach(e=>{e.style.transition='';e.style.transform='';e.style.opacity=''});swBusy=false},420);
+   setTimeout(()=>{els.forEach(e=>{e.style.transition='';e.style.transform='';e.style.opacity='';e.style.transformOrigin=''});swBusy=false},420);
    try{localStorage.setItem('menu-wide',w?'1':'0')}catch(e){}};
   go()};
  const st=document.getElementById('stools'),bell=document.getElementById('bell');
