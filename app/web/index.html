@@ -1799,8 +1799,14 @@ load().then(async () => {
  try{if(localStorage.getItem('menu-wide')==='1')document.body.classList.add('s-wide')}catch(e){}
  document.querySelectorAll('#snav button').forEach((b,i)=>b.style.setProperty('--i',i));
  if(document.body.classList.contains('s-wide'))document.body.classList.add('s-wide-c');
- let swt=0;const col=document.getElementById('s-col');if(col)col.onclick=()=>{const B=document.body,w=B.classList.toggle('s-wide');clearTimeout(swt);
-  if(w)swt=setTimeout(()=>B.classList.add('s-wide-c'),300);else B.classList.remove('s-wide-c');
+ // treść jedzie razem z paskiem: układ zmienia się raz, a przesunięcie robi karta graficzna (transform)
+ const col=document.getElementById('s-col');if(col)col.onclick=()=>{const B=document.body,before=parseFloat(getComputedStyle(B).paddingLeft)||0;
+  const w=B.classList.toggle('s-wide');B.classList.toggle('s-wide-c',w);
+  const dx=before-(parseFloat(getComputedStyle(B).paddingLeft)||0);
+  if(dx&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const els=[...document.querySelectorAll('#vframe,#app,#head')].filter(e=>e.offsetParent!==null||e.id==='vframe');
+   els.forEach(e=>{e.style.transition='none';e.style.transform=`translateX(${dx}px)`});void B.offsetWidth;
+   requestAnimationFrame(()=>els.forEach(e=>{e.style.transition='transform .3s cubic-bezier(.32,.72,0,1)';e.style.transform='translateX(0)'}));
+   setTimeout(()=>els.forEach(e=>{e.style.transition='';e.style.transform=''}),360)}
   try{localStorage.setItem('menu-wide',w?'1':'0')}catch(e){}};
  const st=document.getElementById('stools'),bell=document.getElementById('bell');
  if(st&&bell){const b=document.createElement('button');b.className='sb-bell';b.onclick=()=>bell.click();st.appendChild(b);
@@ -1878,6 +1884,7 @@ addEventListener('DOMContentLoaded', () => {
  body:not(.s-wide) .s-grp{margin:17px auto 18px!important}
  .s-tools .sb-exp{order:-1}
  @media (max-height:860px){body:not(.s-wide) #snav button,body.s-wide #snav button{height:34px!important;min-height:34px}}
+ @media (max-height:760px){body:not(.s-wide) #snav{overflow-y:auto!important;overflow-x:hidden!important;min-height:0;flex:1 1 auto;scrollbar-width:none}body:not(.s-wide) #snav::-webkit-scrollbar{display:none}}
 }
 /* zakładki ułożone jedna na drugiej – pokazujemy przez visibility, nie display (Safari potrafił zostawić na ekranie starą zakładkę) */
 .vframe{position:relative}
