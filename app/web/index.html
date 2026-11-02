@@ -1432,10 +1432,10 @@ function setView(v, push) {
   document.body.classList.remove('s-open');
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');
   const box = $('#vframe');
-  box.querySelectorAll('iframe').forEach(f => { const on = f.dataset.v === v; f.style.display = on ? 'block' : 'none'; f.style.visibility = on ? 'visible' : 'hidden'; f.style.zIndex = on ? '2' : '0'; if (on) { f.style.transform = 'translateZ(0)'; void f.offsetHeight; requestAnimationFrame(() => { f.style.transform = ''; }); }
+  box.querySelectorAll('iframe').forEach(f => { const on = f.dataset.v === v; f.classList.toggle('on', on); f.style.display = on ? 'block' : 'none'; f.style.visibility = on ? 'visible' : 'hidden'; f.style.zIndex = on ? '2' : '0'; if (on) { f.style.transform = 'translateZ(0)'; void f.offsetHeight; requestAnimationFrame(() => { f.style.transform = ''; }); }
     try { f.contentWindow.postMessage({active: on}, location.origin); } catch (e) {} });
   if (v !== 'stats' && !box.querySelector(`iframe[data-v="${v}"]`)) {
-    const f = document.createElement('iframe'); f.dataset.v = v; f.src = '/' + v; f.setAttribute('aria-label', v); f.style.display = 'block';
+    const f = document.createElement('iframe'); f.dataset.v = v; f.className = 'on'; f.src = '/' + v; f.setAttribute('aria-label', v); f.style.display = 'block';
     f.addEventListener('load', () => setTimeout(() => window.hideSplash && hideSplash(), 250), {once: true}); box.appendChild(f);
   }
   if (v === 'stats') { setTimeout(() => pills(), 0); setTimeout(() => window.hideSplash && hideSplash(), 600); }
@@ -1485,6 +1485,10 @@ if (window.visualViewport) {
   vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb);
 }
 // zabezpieczenie: czasem (iPhone) po schowaniu klawiatury aplikacja zostawała „ściśnięta” – bez dolnego menu i z ucięta zakładką
+// strażnik zakładek: to, co widać, zawsze zgadza się z zaznaczeniem w menu
+setInterval(() => { const v = document.body.dataset.view; if (!v || v === 'stats') return;
+  const fs = [...document.querySelectorAll('#vframe iframe')], bad = fs.some(f => f.classList.contains('on') !== (f.dataset.v === v));
+  if (bad || !fs.some(f => f.dataset.v === v)) setView(v); }, 1500);
 function deepActive() { let a = document.activeElement; try { while (a && a.tagName === 'IFRAME' && a.contentDocument) a = a.contentDocument.activeElement; } catch (e) {} return a; }
 function kbFix() {
   if (!document.body.classList.contains('kb')) return;
@@ -1844,6 +1848,10 @@ addEventListener('DOMContentLoaded', () => {
 <div id="hm"><div class="hh"><div class="av">H</div><div><b>Hermes</b><small id="hm-st">łączę…</small></div><button id="hm-clr" title="Nowa rozmowa">Wyczyść</button><button id="hm-x" title="Zamknij">×</button></div>
 <div id="hm-log"></div><div id="hm-in"><textarea id="hm-t" rows="1" placeholder="Napisz do Hermesa…"></textarea><button id="hm-go">➤</button></div></div>
 <style id="fx2">
+/* zakładki ułożone jedna na drugiej – pokazujemy przez visibility, nie display (Safari potrafił zostawić na ekranie starą zakładkę) */
+.vframe{position:relative}
+.vframe iframe{position:absolute!important;top:0;left:0;width:100%!important;min-width:0!important;height:100%!important;display:block!important;visibility:hidden;pointer-events:none;z-index:0;animation:none!important}
+.vframe iframe.on{visibility:visible;pointer-events:auto;z-index:2}
 @media (max-width:900px){
  .side{overscroll-behavior:contain}#snav{overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
  body.s-open .vframe,body.s-open #app{pointer-events:none}
