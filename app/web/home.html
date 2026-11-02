@@ -571,15 +571,16 @@ async function mailCard(){const r=await get('/api/mail');MAILD=r;const box=$('ml
  const L=r.items||[],imp=L.filter(x=>!x.seen&&!x.done),show=imp.slice(0,6);
  const ago=t=>{const m=Math.round((Date.now()/1000-t)/60);return m<60?`${m} min`:m<1440?`${Math.round(m/60)} h`:new Date(t*1000).toLocaleDateString('pl',{day:'numeric',month:'short'})};
  box.innerHTML=(r.error?`<p class="empty">Błąd poczty: ${esc(r.error)}</p>`:'')+(show.length?show.map(x=>{const c=MCAT[x.cat]||MCAT.inne;return `<div class="mli${x.seen?'':' un'}${MOP===x.uid?' op':''}" data-u="${esc(x.uid)}"><div class="mh"><i class="d"></i><div class="mm"><b>${esc(x.from.split('<')[0].replace(/"/g,'').trim()||x.addr)}</b><small>${esc(x.subject)}</small>${x.summary?`<p>${esc(x.summary)}</p>`:''}</div><div class="mt">${ago(x.ts)}<span class="chip ${c[1]}">${x.replied?'odpowiedziano':c[0]}</span></div></div>
-  <div class="mx"><div class="mb">${esc(x.body||'')}</div><textarea data-mt placeholder="Twoja odpowiedź…">${esc(x.draft||'')}</textarea><div class="ac"><button class="btn" data-ma="reply">Wyślij odpowiedź</button><button class="btn g" data-ma="draft">Nowy szkic AI</button><button class="btn g" data-ma="seen">Przeczytane – schowaj</button></div></div></div>`}).join(''):'<p class="empty">Brak nowych maili.</p>')+
+  <div class="mx"><div class="mb">${esc(x.body||'')}</div><textarea data-mt placeholder="Twoja odpowiedź…">${esc(x.draft||'')}</textarea><div class="ac"><button class="btn" data-ma="reply">Wyślij odpowiedź</button><button class="btn g" data-ma="draft">Nowy szkic AI</button><button class="btn g" data-ma="seen">Przeczytane – schowaj</button><button class="btn g" data-ma="delete" style="color:var(--bad)">Usuń</button></div></div></div>`}).join(''):'<p class="empty">Brak nowych maili.</p>')+
   `<button class="mlmore" data-go="poczta">${imp.length>show.length?`+${imp.length-show.length} więcej · `:''}Otwórz pocztę →</button>`}
 document.addEventListener('click',async e=>{const h=e.target.closest('#ml .mh');if(h){const c=h.closest('.mli');const o=c.classList.toggle('op');MOP=o?c.dataset.u:null;return}
  const b=e.target.closest('#ml [data-ma]');if(!b)return;const c=b.closest('.mli'),u=c.dataset.u,a=b.dataset.ma;
+ if(a==='delete'&&!confirm('Przenieść tego maila do Kosza w iCloud?'))return;
  if(a==='reply'){const t=c.querySelector('[data-mt]').value.trim();if(!t)return toast('Napisz odpowiedź',1);const x=(MAILD.items||[]).find(i=>i.uid===u);if(!confirm(`Wysłać odpowiedź do ${x?.addr||'nadawcy'}?`))return;}
  b.disabled=true;const r=await (await fetch(`/api/mail/${encodeURIComponent(u)}/${a}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:c.querySelector('[data-mt]')?.value||''})})).json().catch(()=>({ok:false,error:'brak połączenia'}));b.disabled=false;
  if(!r.ok)return toast(r.error||'Nie udało się',1);
  if(a==='draft'){c.querySelector('[data-mt]').value=r.draft||'';toast('Nowy szkic gotowy');return}
- toast(a==='reply'?'Wysłano ✉️':'Schowano');if(a==='reply'&&window.confettiAt)confettiAt(b,40);MOP=null;await mailCard();if(AP)approvals(AP[0],AP[1],AP[2],AP[3],PLD?.items||[])});
+ toast(a==='reply'?'Wysłano ✉️':a==='delete'?'Przeniesiono do Kosza':'Schowano');if(a==='reply'&&window.confettiAt)confettiAt(b,40);MOP=null;await mailCard();if(AP)approvals(AP[0],AP[1],AP[2],AP[3],PLD?.items||[])});
 $('mlr')&&($('mlr').onclick=async()=>{await fetch('/api/mail/refresh',{method:'POST'});toast('Sprawdzam pocztę…');setTimeout(mailCard,9000)});
 let PLD=null,AP=null;
 async function plRefresh(){const L=await planer();kal();if(AP)approvals(AP[0],AP[1],AP[2],AP[3],L)}

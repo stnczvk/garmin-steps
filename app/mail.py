@@ -231,6 +231,36 @@ def api_draft(uid: str):
     return {"ok": True, "draft": it["draft"]}
 
 
+@router.post("/api/mail/{uid}/delete")
+def api_delete(uid: str):
+    """Przeniesienie do Kosza w iCloud (da się przywrócić z Kosza przez 30 dni)."""
+    c = _cfg()
+    try:
+        m = _imap(c); m.select("INBOX")
+        ok = False
+        for box in ("Deleted Messages", "Trash"):
+            try:
+                if m.uid("MOVE", uid, f'"{box}"')[0] == "OK":
+                    ok = True; break
+            except Exception:
+                pass
+            try:
+                if m.uid("COPY", uid, f'"{box}"')[0] == "OK":
+                    m.uid("STORE", uid, "+FLAGS", "(\\Deleted)"); m.expunge(); ok = True; break
+            except Exception:
+                pass
+        m.logout()
+        if not ok:
+            return {"ok": False, "error": "iCloud nie przeniósł maila do Kosza."}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:120]}
+    with _lk:
+        D = _read(DATA, {"items": []})
+        D["items"] = [x for x in D.get("items", []) if str(x["uid"]) != str(uid)]
+        _write(DATA, D)
+    return {"ok": True}
+
+
 @router.post("/api/mail/translate")
 async def api_translate(req: Request):
     b = await req.json()
