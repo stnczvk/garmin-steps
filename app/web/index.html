@@ -1431,7 +1431,7 @@ function setView(v, push) {
   document.body.classList.remove('s-open');
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');
   const box = $('#vframe');
-  box.querySelectorAll('iframe').forEach(f => { const on = f.dataset.v === v; f.style.display = on ? 'block' : 'none';
+  box.querySelectorAll('iframe').forEach(f => { const on = f.dataset.v === v; f.style.display = on ? 'block' : 'none'; f.style.visibility = on ? 'visible' : 'hidden'; f.style.zIndex = on ? '2' : '0'; if (on) { f.style.transform = 'translateZ(0)'; void f.offsetHeight; requestAnimationFrame(() => { f.style.transform = ''; }); }
     try { f.contentWindow.postMessage({active: on}, location.origin); } catch (e) {} });
   if (v !== 'stats' && !box.querySelector(`iframe[data-v="${v}"]`)) {
     const f = document.createElement('iframe'); f.dataset.v = v; f.src = '/' + v; f.setAttribute('aria-label', v); f.style.display = 'block';
@@ -1863,6 +1863,7 @@ body:not(.s-wide) #snind:before{left:-13px}
 #snav button[aria-current=page] i{filter:drop-shadow(0 0 6px rgba(181,156,255,.7))}
 @keyframes vfade2{from{opacity:0;transform:translateY(10px) scale(.992);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
 .vframe iframe{animation:vfade .22s ease-out}
+@media (hover:none){.vframe iframe{animation:none!important}}
 @media (prefers-reduced-motion:reduce){#snind,#snav button i,#snav button:after{transition:none}.vframe iframe{animation:none}}
 </style>
 <script>
