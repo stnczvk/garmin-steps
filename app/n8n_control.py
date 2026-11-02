@@ -499,13 +499,24 @@ STICK = """## SERIES OVERRIDE – "What If?" starring Stick (this section overri
 - thumbnail_prompt: Stick (red cap) with a shocked face inside the scenario, topic-themed background in the episode palette, same 2D flat style, one clear focal point, no text.
 
 """
+STICK_V2 = STICK
+BOLT = "his sidekick BOLT (a tiny round white robot with one big glowing blue eye and two short antennae, floating at Stick's shoulder)"
+STICK = (STICK_V2
+         .replace("- Story beats across the 5 scenes:",
+                  "- RECURRING OPENING (every episode, same way): scene 1 opens with Stick adjusting his red cap while looking at the viewer, and the narration starts with the words \"What if\" (the episode question).\n"
+                  "- SIDEKICK: Stick always travels with " + BOLT + ". Bolt appears in the image prompts of at least 3 of the 5 scenes with exactly the same look, reacting (shocked, scanning, holding a tiny sign). "
+                  "Bolt gets at most ONE short funny-but-true line per episode in the narration, written as: Bolt beeps: \"...\".\n"
+                  "- Story beats across the 5 scenes:")
+         .replace("the stick figure character Stick (black stick body, round white head, dot eyes, red baseball cap),",
+                  "the stick figure character Stick (black stick body, round white head, dot eyes, red baseball cap) and " + BOLT + " when present,")
+         .replace("thumbnail_prompt: Stick (red cap) with a shocked face", "thumbnail_prompt: Stick (red cap) and Bolt with shocked faces"))
 JUDGE_NOTE = "\n\n## Note\nThe channel is now a 2D stick-figure story series (\"What If?\" starring Stick). Do not penalize the cartoon style; reward clear story beats and a scenario a 13-year-old instantly understands."
 
 
 def apply_stickman(force=False):
     from agency import _read, _write
     st = _read("agency_settings.json", {})
-    if st.get("stickman_applied") and st.get("stickman_v2") and not force:
+    if st.get("stickman_applied") and st.get("stickman_v3") and not force:
         return {"ok": True, "already": True}
     try:
         wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
@@ -525,6 +536,9 @@ def apply_stickman(force=False):
         if n["name"] in ("Message a model", "Regenerate Script") and STICK_MARK not in c:
             v["content"] = ("=" + STICK + c[1:]) if c.startswith("=") else STICK + c
             done.append(n["name"])
+        elif n["name"] in ("Message a model", "Regenerate Script") and STICK_V2 in c and STICK not in c:
+            v["content"] = c.replace(STICK_V2, STICK)          # stałe otwarcie + pomocnik Bolt
+            done.append(n["name"] + " (otwarcie, Bolt)")
         elif n["name"] in ("Message a model", "Regenerate Script") and STICK_V1 in c:
             v["content"] = c.replace(STICK_V1, STICK)          # czerwona czapka + tło zależne od tematu
             done.append(n["name"] + " (czapka, tła)")
@@ -542,7 +556,7 @@ def apply_stickman(force=False):
         if g.get("active"):
             n8n("POST", f"/api/v1/workflows/{g['id']}/activate")
     st = _read("agency_settings.json", {})
-    st.update(stickman=True, stickman_v2=time.time())
+    st.update(stickman=True, stickman_v2=st.get("stickman_v2") or time.time(), stickman_v3=time.time())
     st.setdefault("stickman_applied", time.time())
     _write("agency_settings.json", st)
     log("op", "PozaSkala → seria „What If?” ze stickmanem (" + (", ".join(done) or "już ustawione") + ")", "ok")
