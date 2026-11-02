@@ -131,6 +131,17 @@ details.vj:not([open])>summary{margin:0}.vj .vtt{max-width:40ch;overflow:hidden;
 body.m-dash.sv-food .s-vlog,body.m-dash.sv-food .s-cheat,body.m-dash.sv-vlog .s-food,body.m-dash.sv-vlog .s-cheat:not(.s-vlog),
 body.m-dash.sv-cheat .s-food,body.m-dash.sv-cheat .s-vlog:not(.s-cheat){display:none!important}
 /* zwijane sekcje */
+.gtabs{display:inline-flex;gap:3px;padding:3px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);margin-bottom:12px;max-width:100%;overflow-x:auto}
+.gtabs button{border:0;background:none;color:var(--soft);font:600 12.5px Geist,system-ui;padding:7px 12px;border-radius:9px;cursor:pointer;white-space:nowrap}.gtabs button.on{background:rgba(255,255,255,.12);color:var(--ink)}
+.gf{display:grid;gap:10px;max-width:560px}.gf[hidden]{display:none}.gf input,.gf select{width:100%;box-sizing:border-box;min-width:0}.gf label{display:grid;gap:5px;font-size:12.5px;color:var(--soft);font-weight:600}
+.gf input,.gf select{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:11px;padding:9px 11px;color:var(--ink);font:inherit;font-size:13.5px;font-weight:500}
+.gf .btn{justify-self:start}.gd{display:flex;gap:6px;flex-wrap:wrap}.gd label{display:flex;flex-direction:row;align-items:center;gap:6px;background:rgba(255,255,255,.06);border-radius:9px;padding:6px 10px;cursor:pointer;font-weight:600}
+#gjobs{margin-top:16px;display:grid;gap:10px}.gj{border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:11px 13px;background:rgba(255,255,255,.03)}
+.gj .h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.gj .h b{font-size:13.5px}.gj .h small{color:var(--soft);font-size:12px}.gj .h .st{margin-left:auto;font-size:11.5px;font-weight:650;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.08)}
+.gj .st.done{background:rgba(61,220,132,.15);color:#5fe39b}.gj .st.error{background:rgba(255,107,107,.15);color:#ff8a8a}.gj .st.work{background:rgba(110,139,255,.18);color:#a9b8ff}
+.gj .pv{display:flex;gap:8px;overflow-x:auto;margin-top:9px}.gj .pv img{height:90px;border-radius:9px;cursor:zoom-in;flex:none;background:#000}
+.gj .fl{font-size:11.5px;color:var(--soft);margin-top:6px;word-break:break-all}
+#gbig{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);display:none;place-items:center;padding:20px;cursor:zoom-out}#gbig img{max-width:100%;max-height:100%;border-radius:12px}#gbig.on{display:grid}
 .fold-s{margin-bottom:12px}.fold-s .fh{display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none}
 .fold-s .fh small{color:var(--faint);font-weight:500;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .fold-s .fh .chev{margin-left:auto;color:var(--faint);transition:transform .2s;flex:none}.fold-s.closed .chev{transform:rotate(-90deg)}
@@ -197,6 +208,14 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
  </div>
  <section class="glass vlog dash-only s-vlog fold-s" id="vsec" data-fold="vjobs"><h2 class="fh">🎥 Zlecenia <small id="vmac"></small><span class="chev">▾</span></h2>
   <div class="fb"><div id="vjobs"><p class="mut">Ładuję…</p></div></div></section>
+<section class="glass dash-only fold-s" id="gsec" data-fold="graf"><h2 class="fh">🎨 Grafiki do vloga <small id="gmac"></small><span class="chev">▾</span></h2>
+  <div class="fb"><div class="gtabs" id="gtabs"><button data-g="dni" class="on">Przejścia dni</button><button data-g="napis">Własny napis</button><button data-g="miniatura">Miniatura</button></div>
+  <div class="gf" data-gf="dni"><label>Poniedziałek tygodnia<input type="date" id="g-start"></label><div class="gd" id="g-days"></div><p class="mut">Dostaniesz animację na każdy zaznaczony dzień, np. „Poniedziałek · 3 listopada” – w tym samym stylu i z dźwiękiem co paczka.</p><button class="btn pri" data-go="dni">Generuj przejścia</button></div>
+  <div class="gf" data-gf="napis" hidden><label>Tekst<input id="g-ntext" placeholder="np. Zakupy na redukcji"></label><label>Mały napis (opcjonalnie)<input id="g-nsmall" placeholder="np. rozdział, dziś, tydzień 7"></label>
+   <label>Rodzaj<select id="g-nkind"><option value="karta">Karta na środek (jak rozdziały)</option><option value="gora">Napis u góry z lewej (jak „W dzisiejszym odcinku”)</option><option value="pasek">Biały pasek na dole (jak nicki)</option></select></label><button class="btn pri" data-go="napis">Generuj napis</button></div>
+  <div class="gf" data-gf="miniatura" hidden><label>Napis na miniaturze<input id="g-mtext" placeholder="np. -1,2 kg  albo  Najgorszy tydzień redukcji?"></label><label>Podpis pod spodem (opcjonalnie)<input id="g-msub" placeholder="np. w tydzień na redukcji"></label><label>Pigułka (opcjonalnie)<input id="g-mtag" placeholder="np. Tydzień 7"></label>
+   <p class="mut">Zdjęcie bierze się samo: najnowsze z folderu „Animacje vlog YT/Miniatury/zdjęcia” (jeśli wrzucisz), a jak go nie ma – najlepsza klatka z ostatniego nagrania pozowania. Tło wycina się automatycznie. Dostaniesz 2 warianty.</p><button class="btn pri" data-go="miniatura">Generuj miniaturę</button></div>
+  <div id="gjobs"></div></div></section>
  <section class="glass vlog dash-only s-cheat fold-s" id="csec" data-fold="cjobs"><h2 class="fh">🍔 <span class="lg-only">Cheat meale – </span>Zlecenia <small id="cmac"></small><span class="chev">▾</span></h2>
   <div class="fb"><div class="row" style="margin:0 0 10px"><button class="btn pri" id="cheatb2">🍔 Nowy cheat meal</button></div><div id="cjobs"><p class="mut">Ładuję…</p></div></div></section>
  <section class="glass dash-only s-cheat fold-s" data-fold="cfilms"><h2 class="fh">🎞 Zmontowane<span class="lg-only">&nbsp;cheat meale</span> <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
@@ -509,6 +528,35 @@ async function vfilms(){let r;try{r=await (await fetch('/api/mont-vlog/films')).
 vfilms();setInterval(vfilms,120000);
 vload();setInterval(vload,8000);
 load();setInterval(load,15000);
+</script>
+
+<div id="gbig"><img alt=""></div>
+<script>
+(()=>{const $g=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const T=(m,e)=>window.toast?toast(m,e):alert(m);if(!$g('gsec'))return;
+ const DN=['Pon','Wt','Śr','Czw','Pt','Sob','Nd'];$g('g-days').innerHTML=DN.map((d,i)=>`<label><input type="checkbox" data-d="${i}" checked>${d}</label>`).join('');
+ const nm=new Date();nm.setDate(nm.getDate()+((8-nm.getDay())%7||7));$g('g-start').value=nm.toISOString().slice(0,10);
+ $g('gtabs').onclick=e=>{const b=e.target.closest('[data-g]');if(!b)return;$g('gtabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('#gsec [data-gf]').forEach(f=>f.hidden=f.dataset.gf!==b.dataset.g)};
+ document.querySelectorAll('#gsec [data-go]').forEach(b=>b.onclick=async()=>{const t=b.dataset.go;let body={type:t};
+  if(t==='dni'){body.start=$g('g-start').value;body.days=[...document.querySelectorAll('#g-days [data-d]:checked')].map(x=>+x.dataset.d);if(!body.days.length)return T('Zaznacz choć jeden dzień',1)}
+  if(t==='napis'){body.text=$g('g-ntext').value;body.small=$g('g-nsmall').value;body.kind=$g('g-nkind').value}
+  if(t==='miniatura'){body.text=$g('g-mtext').value;body.sub=$g('g-msub').value;body.tag=$g('g-mtag').value}
+  b.disabled=true;const r=await fetch('/api/grafiki',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).catch(()=>({ok:false,error:'brak połączenia'}));b.disabled=false;
+  if(!r.ok)return T(r.error||'Nie udało się',1);T('Zlecone – Mac zaraz zacznie');load()});
+ const TN={dni:'Przejścia dni',napis:'Własny napis',miniatura:'Miniatura'},SN={queued:['czeka','work'],claimed:['Mac zaczyna','work'],working:['renderuje','work'],done:['gotowe','done'],error:['błąd','error']};
+ const sum=j=>{const p=j.params||{};return j.type==='dni'?`od ${p.start} · ${(p.days||[0,1,2,3,4,5,6]).length} dni`:j.type==='napis'?`„${p.text}”`:`„${p.text}”${p.tag?' · '+p.tag:''}`};
+ let tm=0;async function load(){const r=await fetch('/api/grafiki').then(r=>r.json()).catch(()=>null);if(!r)return;
+  $g('gmac').textContent=r.mac_online?'Mac online':'Mac offline – zrobi, gdy się włączy';
+  $g('gjobs').innerHTML=r.jobs.slice(0,10).map(j=>{const s=SN[j.state]||[j.state,''];return `<div class="gj"><div class="h"><b>${TN[j.type]||j.type}</b><small>${esc(sum(j))}</small><span class="st ${s[1]}">${s[0]}</span></div>
+   ${j.state!=='done'?`<div class="fl">${esc(j.error||j.step||'')}${j.state==='error'?` · <a href="#" data-retry="${j.id}" style="color:#a9b8ff">Ponów</a>`:''}</div>`:''}
+   ${j.previews?`<div class="pv">${Array.from({length:j.previews},(_,i)=>`<img src="/api/grafiki/${j.id}/preview/${i}" loading="lazy" alt="">`).join('')}</div>`:''}
+   ${j.files?.length?`<div class="fl">Na Macu: Animacje vlog YT / ${j.files.map(esc).join(', ')}</div>`:''}</div>`}).join('');
+  clearTimeout(tm);if(r.jobs.some(j=>!['done','error'].includes(j.state)))tm=setTimeout(load,5000)}
+ $g('gjobs').onclick=async e=>{const im=e.target.closest('.pv img');if(im){$g('gbig').querySelector('img').src=im.src;$g('gbig').classList.add('on');return}
+  const r=e.target.closest('[data-retry]');if(r){e.preventDefault();await fetch(`/api/grafiki/${r.dataset.retry}/retry`,{method:'POST'});load()}};
+ $g('gbig').onclick=()=>$g('gbig').classList.remove('on');
+ load();
+})();
 </script>
 </body>
 </html>

@@ -1034,6 +1034,14 @@ def hook_next(req: Request, last: int = 0, loose: int = 0, plast: int = 0, ploos
         if j:
             j.update(state="claimed", step="Mac otwiera montaż…", claimed=time.time())
         _wr("mont_vlog.json", v)
+    if not j and not busy:   # wolny Mac → zlecenia grafik do vloga
+        try:
+            from grafiki import claim
+            gid = claim()
+            if gid:
+                return {"job": {"id": gid}}
+        except Exception as e:
+            print("grafiki claim", e, flush=True)
     return {"job": j and {"id": j["id"]}}
 
 
