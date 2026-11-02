@@ -265,6 +265,7 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
 
   /* 1. gwiazdy – rysowane RAZ na płótno, ruch i migotanie robi karta graficzna (CSS), bez przerysowywania co klatkę */
   function stars(){
+    return;   // gwiazdy wyłączone – samo tło z gradientem (prościej i lżej)
     if(RM||document.getElementById('kstars'))return;
     var top=window.parent===window;
     var st2=document.createElement('style');
