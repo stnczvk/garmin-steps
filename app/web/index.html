@@ -1854,7 +1854,8 @@ addEventListener('DOMContentLoaded', () => {
  body.s-wide .s-tools .sb-exp,body:not(.s-wide) .s-tools .sb-exp{display:flex!important}body:not(.s-wide) .s-tools .sb-bell{display:none!important}
  body:not(.s-wide) .s-tools{flex-direction:column;gap:6px}
  .sb-exp svg{transition:transform .35s cubic-bezier(.2,.8,.2,1)}body.s-wide .sb-exp svg{transform:scaleX(-1)}
- .side{transition:width .34s cubic-bezier(.2,.8,.2,1),padding .34s cubic-bezier(.2,.8,.2,1)!important}
+ .side{transition:width .26s cubic-bezier(.2,.8,.2,1)!important;contain:layout paint}
+ body.lg{transition:none!important}   /* treść (i zakładka w ramce) zmienia szerokość raz, a nie w każdej klatce – stąd był lag */
  @keyframes kfin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
  body.s-wide #snav button span,body.s-wide .s-grp,body.s-wide .s-brand b{animation:kfin .32s .12s both}
  body:not(.s-wide) #snav{gap:2px!important}
