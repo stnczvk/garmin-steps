@@ -450,3 +450,68 @@ def api_prev(pid: str, i: int = 0):
     if not f or not os.path.isfile(f):
         return JSONResponse({"error": "plik zniknął"}, status_code=404)
     return FileResponse(f, media_type="video/mp4" if it["kind"] == "film" else "image/jpeg")
+
+# ---------- własne posty (wgrane z telefonu/komputera w Treściach) ----------
+UPD = SOCIAL_ROOT / "posty_wlasne"
+
+
+@router.post("/api/planer/upload")
+async def api_upload(req: Request, name: str = "plik.mp4"):
+    """Plik wysyłany surowo w body (strumieniowo – filmy mogą mieć setki MB)."""
+    ext = os.path.splitext(name.lower())[1]
+    if ext not in (".mp4", ".mov", ".jpg", ".jpeg"):
+        return {"ok": False, "error": "Obsługuję filmy MP4/MOV i zdjęcia JPG."}
+    UPD.mkdir(parents=True, exist_ok=True)
+    for f in UPD.iterdir():                      # sprzątanie: starsze niż 30 dni
+        if f.is_file() and time.time() - f.stat().st_mtime > 30 * 86400 and not any(str(f) in (x.get("file", ""), *(x.get("files") or [])) for x in plan() if x["status"] in ("draft", "approved", "error")):
+            f.unlink(missing_ok=True)
+    fid = secrets.token_hex(6)
+    path = UPD / f"{fid}{'.jpg' if ext == '.jpeg' else ext}"
+    n = 0
+    with open(path, "wb") as fh:
+        async for chunk in req.stream():
+            n += len(chunk)
+            if n > 2_000_000_000:
+                fh.close(); path.unlink(missing_ok=True)
+                return {"ok": False, "error": "Plik za duży (max 2 GB)."}
+            fh.write(chunk)
+    if n < 1000:
+        path.unlink(missing_ok=True)
+        return {"ok": False, "error": "Pusty plik."}
+    return {"ok": True, "id": path.name}
+
+
+@router.post("/api/planer/add")
+async def api_add(req: Request):
+    b = await req.json()
+    files = [UPD / os.path.basename(x) for x in (b.get("files") or [])]
+    files = [f for f in files if f.is_file()]
+    if not files:
+        return {"ok": False, "error": "Najpierw wgraj plik."}
+    kind = "film" if files[0].suffix in (".mp4", ".mov") else "karuzela"
+    try:
+        when = datetime.fromisoformat(b["when"]).replace(tzinfo=TZ).timestamp()
+    except Exception:
+        return {"ok": False, "error": "Wybierz datę i godzinę."}
+    allowed = ("instagram", "youtube", "tiktok") if kind == "film" else ("instagram",)
+    pl = [p for p in (b.get("platforms") or []) if p in allowed]
+    if not pl:
+        return {"ok": False, "error": "Wybierz platformę."}
+    cap = str(b.get("caption") or "")[:2200]
+    item = {"src": f"up:{files[0].name}", "kind": kind, "series": "wlasny", "label": (str(b.get("label") or "").strip() or (cap.split("\n")[0][:60] if cap else "Własny post")),
+            "when": when, "platforms": pl, "caption": cap, "tiktok": str(b.get("tiktok") or cap)[:2200], "yt_title": str(b.get("yt_title") or "")[:100]}
+    if kind == "film":
+        item["file"] = str(files[0])
+    else:
+        item["files"] = [str(f) for f in files[:10]]
+    it = _add(item)
+    if not it:
+        return {"ok": False, "error": "Ten plik już jest w planerze."}
+    if b.get("approve"):
+        with _lock:
+            P = plan()
+            x = next((x for x in P if x["id"] == it["id"]), None)
+            if x:
+                x["status"] = "approved"
+                save(P)
+    return {"ok": True, "id": it["id"]}

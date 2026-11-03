@@ -130,6 +130,12 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .c .add2{margin-top:auto;border:1px dashed var(--line);background:none;color:var(--soft);border-radius:10px;padding:7px;font:500 12px Geist,system-ui;cursor:pointer;opacity:0;transition:opacity .15s}
 .c:hover .add2{opacity:1}
 @media(max-width:760px){.cal.wkv .c .n b{visibility:visible}.bar .mn{min-width:0;font-size:15px}.bar .ib.pri{margin-left:auto}.cal.wkv .c{min-height:0}.cal.wkv .c.nil{display:flex}.c .add2{opacity:1}.cal.wkv .c .add2{padding:6px}.stat .nx{flex-basis:100%}}
+.up{border:2px dashed var(--line);border-radius:14px;padding:18px;text-align:center;color:var(--soft);cursor:pointer;display:block}
+.up:hover{border-color:#6e8bff;color:var(--ink)}.up input{display:none}
+.upl{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.upl img,.upl video{width:54px;height:72px;object-fit:cover;border-radius:8px;background:#000}
+.fl input[type=checkbox]{width:auto;flex:none;margin:0}.fl .pls label,.fl label.chk{text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink);justify-content:flex-start}
+.pls{display:flex;gap:8px;flex-wrap:wrap}.pls label{display:flex;gap:6px;align-items:center;background:var(--v3-s1);border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13px;cursor:pointer}
+.prog{height:6px;border-radius:3px;background:var(--v3-s1);overflow:hidden;margin-top:6px}.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6e8bff,#b59cff);transition:width .2s}
 @media(max-width:1180px){
  .cal.wkv .wd{display:none}.cal.wkv .wk{grid-template-columns:1fr}.cal.wkv .c{min-height:0}.cal.wkv .c.nil{display:flex}
  .cal.wkv .c .n b{visibility:visible}.c .n .dl{display:inline}
@@ -154,7 +160,7 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
   <div class="sg" id="vw"><span class="pill"></span><button data-v="w">Tydzień</button><button data-v="m">Miesiąc</button></div>
   <button class="ib sq" id="pv" aria-label="Wcześniej">‹</button><div class="mn" id="mn">…</div><button class="ib sq" id="nx" aria-label="Później">›</button>
   <button class="ib" id="td" title="Wróć do bieżącego tygodnia/miesiąca">↺ Dziś</button><span style="flex:1"></span>
-  <button class="ib pri" id="nw">+ Pomysł</button>
+  <button class="ib" id="np">+ Post</button><button class="ib pri" id="nw">+ Pomysł</button>
  </div>
  <div class="stat" id="stat"></div>
  <div class="gr" data-noicon>
@@ -294,6 +300,35 @@ function save(){try{localStorage.setItem('tresci-m',M);localStorage.setItem('tre
 const closeM=()=>$('mb').classList.remove('on');$('mb').onclick=e=>{if(e.target===$("mb"))closeM()};
 document.addEventListener('keydown',e=>{if(e.key==="Escape")closeM()});
 
+// ---------- własny post: wgraj film/zdjęcia z telefonu lub komputera → planer ----------
+$('np').onclick=()=>openPost2();
+async function openPost2(day){let tt=false;try{tt=(await (await fetch('/api/tiktok/status')).json()).connected}catch(e){}
+ const d=new Date();d.setMinutes(0,0,0);d.setHours(d.getHours()+2);const dv=day?day+'T18:00':`${ds(d)}T${String(d.getHours()).padStart(2,'0')}:00`;
+ $('md').innerHTML=`<h2><span>Nowy post</span><button class="x" onclick="closeM()">✕</button></h2>
+ <label class="up" id="upz"><input type="file" id="upf" accept="video/mp4,video/quicktime,image/*" multiple>📤 Wybierz film (MP4/MOV) albo zdjęcia do karuzeli (do 10)<div class="upl" id="upl"></div><div class="prog" id="upp" hidden><i></i></div></label>
+ <div class="fg" style="margin-top:12px"><div class="fl w"><label>Opis</label><textarea id="pc" rows="4" placeholder="Opis posta z hashtagami"></textarea></div>
+ <div class="fl"><label>Kiedy</label><input type="datetime-local" id="pw" value="${dv}"></div>
+ <div class="fl" style="grid-column:span 2"><label>Gdzie</label><div class="pls" id="ppl"><label><input type="checkbox" value="instagram" checked>Instagram</label><label data-film><input type="checkbox" value="youtube">YouTube</label>${tt?'<label data-film><input type="checkbox" value="tiktok">TikTok</label>':''}</div></div>
+ <div class="fl w" data-film><label>Tytuł na YouTube (opcjonalnie)</label><input id="pyt" placeholder="puste = pierwsze zdanie opisu"></div>
+ <div class="fl w"><label class="chk" style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="pap" checked>Zatwierdź od razu (opublikuje się sam o tej godzinie)</label></div></div>
+ <div class="ac"><span class="sp"></span><button class="ib pri" id="psv" disabled>Dodaj do planera</button></div>`;
+ $('mb').classList.add('on');let files=[];
+ const kindSet=()=>{const film=files[0]&&/^video/.test(files[0].type);document.querySelectorAll('#md [data-film]').forEach(e=>e.hidden=files.length&&!film);$('psv').disabled=!files.length};
+ $('upf').onchange=()=>{const F=[...$('upf').files];const v=F.find(f=>/^video/.test(f.type));files=v?[v]:F.filter(f=>/^image/.test(f.type)).slice(0,10);
+  $('upl').innerHTML=files.map(f=>/^video/.test(f.type)?`<video src="${URL.createObjectURL(f)}#t=0.5" muted playsinline preload="metadata"></video>`:`<img src="${URL.createObjectURL(f)}" alt="">`).join('')+(files.length?`<small style="align-self:center">${v?'film':files.length+' zdj. – karuzela'}</small>`:'');kindSet()};
+ $('psv').onclick=async()=>{const b=$('psv');b.disabled=true;$('upp').hidden=false;const ids=[];
+  try{for(let i=0;i<files.length;i++){b.textContent=`Wysyłam ${i+1}/${files.length}…`;let f=files[i],name=f.name;
+    if(/^image/.test(f.type)){f=await toJpg(f);name='zdj.jpg'}
+    const r=await xhrUp(f,name,p=>$('upp').querySelector('i').style.width=((i+p)/files.length*100)+'%');if(!r.ok)throw new Error(r.error||'błąd wysyłki');ids.push(r.id)}
+   b.textContent='Dodaję…';
+   const r=await api('/api/planer/add',{files:ids,caption:$('pc').value,when:$('pw').value,yt_title:$('pyt')?.value||'',approve:$('pap').checked,platforms:[...document.querySelectorAll('#ppl input:checked')].filter(i=>!i.closest('[hidden]')).map(i=>i.value)});
+   if(!r.ok)throw new Error(r.error||'nie udało się');closeM();toast($('pap').checked?'Dodane i zatwierdzone':'Dodane – zatwierdź na ekranie głównym');load()}
+  catch(e){toast(e.message,1);b.disabled=false;b.textContent='Dodaj do planera'}}}
+function xhrUp(f,name,onp){return new Promise(res=>{const x=new XMLHttpRequest();x.open('POST','/api/planer/upload?name='+encodeURIComponent(name));
+ x.upload.onprogress=e=>e.lengthComputable&&onp(e.loaded/e.total);x.onload=()=>{try{res(JSON.parse(x.responseText))}catch(e){res({ok:false,error:'serwer: '+x.status})}};x.onerror=()=>res({ok:false,error:'brak połączenia'});x.send(f)})}
+async function toJpg(f){const u=URL.createObjectURL(f);try{const im=await new Promise((ok,er)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=er;i.src=u});
+ const s=Math.min(1,2160/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*s);c.height=Math.round(im.naturalHeight*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+ return await new Promise(r=>c.toBlob(r,'image/jpeg',.92))}finally{URL.revokeObjectURL(u)}}
 function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie',approved:p.ext?'zaplanowany w YT Studio':'zaplanowany',publishing:'publikuje się…',published:'opublikowany',error:'błąd publikacji'}[p.status]||p.status;
  const dt=new Date(p.t*1000);
  $('md').innerHTML=`<h2><span>${esc(p.label)}</span><button class="x" onclick="closeM()">✕</button></h2>
