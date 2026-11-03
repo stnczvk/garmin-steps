@@ -265,6 +265,31 @@ def skaner(req: Request):
     return _page(req, "skaner")
 
 
+_LEGAL_CSS = "body{font:16px/1.6 system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#222}h1{font-size:26px}h2{font-size:18px;margin-top:28px}"
+
+
+@app.get("/regulamin")
+def terms():
+    # publiczna strona wymagana przez TikTok for Developers (Terms of Service URL)
+    return HTMLResponse(f"""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Terms of Service – Centrum</title><style>{_LEGAL_CSS}</style>
+<h1>Terms of Service</h1><p>Last updated: 3 November 2026</p>
+<p>Centrum is a private tool used by a single content creator (Bartłomiej Stańczuk) to plan and publish his own videos to his own social media accounts (TikTok, Instagram, YouTube). It is not offered to the public and has no other users.</p>
+<h2>Use</h2><p>Access requires a password held only by the owner. The tool uploads videos to the owner's own TikTok account only after the owner connects the account through TikTok's official login and approves each post.</p>
+<h2>TikTok</h2><p>Use of TikTok features through Centrum is also subject to TikTok's Terms of Service. The owner can disconnect TikTok at any time in Centrum settings or in the TikTok app.</p>
+<h2>Contact</h2><p>For questions about these terms contact the owner via the e-mail listed on his TikTok profile.</p></html>""")
+
+
+@app.get("/prywatnosc")
+def privacy():
+    return HTMLResponse(f"""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy Policy – Centrum</title><style>{_LEGAL_CSS}</style>
+<h1>Privacy Policy</h1><p>Last updated: 3 November 2026</p>
+<p>Centrum is a private, single-user tool. It is used only by its owner to manage his own social media accounts.</p>
+<h2>Data we access</h2><p>When the owner connects TikTok, Centrum receives an access token and basic profile information (display name, open ID) for the owner's account, and uses the Content Posting API to upload the owner's own videos.</p>
+<h2>Storage</h2><p>Tokens are stored on the owner's private server in files readable only by the server process, are never shared with third parties and are used only to publish the owner's content.</p>
+<h2>Deletion</h2><p>Disconnecting TikTok in Centrum settings deletes the stored tokens immediately. Access can also be revoked in the TikTok app (Settings → Security → Manage app permissions).</p>
+<h2>Third parties</h2><p>No data is sold or shared. No other users' data is collected.</p></html>""")
+
+
 STATIC = {"manifest.webmanifest": "application/manifest+json", "icon-192.png": "image/png", "icon-512.png": "image/png",
           "icon-maskable-512.png": "image/png", "apple-touch-icon.png": "image/png", "favicon.png": "image/png",
           "sw.js": "text/javascript", "ikona-180.png": "image/png", "ikona-192.png": "image/png", "ikona-512.png": "image/png",
