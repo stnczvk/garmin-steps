@@ -56,6 +56,9 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .bignum{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px}.bignum b{font-size:28px;font-weight:750;letter-spacing:-.02em}.bignum small{color:var(--soft);font-size:12.5px}
 .chart{position:relative;height:110px;display:flex;align-items:flex-end;gap:4px;padding:6px 0 0;margin:6px 0 4px}
 .chart .base{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in srgb,var(--soft) 55%,transparent)}.chart .base span{position:absolute;right:0;top:-15px;font-size:10px;color:var(--soft)}
+.hrs{display:grid;gap:6px}.hr{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:12px;background:var(--v3-s1);border:1px solid var(--line)}
+.hr span{flex:1;font-size:13px}.hr input{background:var(--v3-s2);border:1px solid var(--line);border-radius:9px;padding:6px 8px;color:var(--ink);font:600 13px Geist,system-ui;width:96px}
+.hr input:focus{outline:none;border-color:#8b7cc7}.hr i{font-style:normal;font-size:11px;color:#5fe39b;opacity:0;transition:opacity .3s;width:14px}.hr i.on{opacity:1}
 .ctip{position:absolute;bottom:calc(100% + 8px);left:0;z-index:5;width:230px;display:flex;gap:9px;padding:9px;border-radius:12px;background:var(--v3-s3);border:1px solid var(--line);box-shadow:0 14px 34px -10px rgba(0,0,0,.6);opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .15s,transform .15s,left .15s}
 .ctip.on{opacity:1;transform:none}.ctip img{width:38px;height:54px;border-radius:7px;object-fit:cover;flex:none;background:#000}.ctip>div{min-width:0;display:grid;gap:3px}
 .ctip b{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ctip small{color:var(--soft);font-size:11px}.ctip .cv{display:flex;gap:7px;align-items:center;font-size:11.5px;color:var(--soft);flex-wrap:wrap}.ctip .cv .rel{font-size:11px}
@@ -176,6 +179,7 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
   <div class="side">
    <div class="t pn"><h3>Bank pomysłów <small>bez daty</small></h3><div class="bank" id="bank" data-day=""></div></div>
    <div class="t pn"><h3>Twoje wyniki <small>ostatnie 30 dni</small></h3><div id="sum"></div><div id="res"></div></div>
+   <div class="t pn"><h3>Godziny publikacji <small>nowe posty dostają tę godzinę</small></h3><div class="hrs" id="hrs"><p style="color:var(--soft);font-size:12.5px;margin:4px">Ładuję…</p></div></div>
   </div>
  </div>
 </div>
@@ -417,6 +421,13 @@ function openIdea(i){i=i||{};const isNew=!i.id;
   await load();openIdea(D.ideas.find(x=>x.id===it.id)||r.idea)};
  if($('dl'))$('dl').onclick=async()=>{if(!confirm('Usunąć ten pomysł?'))return;await api('/api/tresci/idea/'+i.id+'/delete',{});closeM();load()};
 }
+// ---------- godziny publikacji (domyślne dla nowych postów z Montażowni) ----------
+const HRN={jedzenie:['🍽','Daily jedzenie'],karuzela:['🖼','Karuzela jedzenia'],vlog:['🎥','Vlog'],cheat:['🍔','Cheat meal'],przepis:['🥣','Przepis']};
+async function hrs(){let r;try{r=await (await fetch('/api/planer')).json()}catch(e){}const h=(r&&r.cfg&&r.cfg.hours)||{};
+ $('hrs').innerHTML=Object.entries(HRN).map(([k,[ic,n]])=>`<label class="hr"><span>${ic} ${n}</span><input type="time" data-h="${k}" value="${esc(h[k]||'')}"><i>✓</i></label>`).join('');
+ $('hrs').querySelectorAll('input').forEach(i=>i.onchange=async()=>{if(!/^\d{1,2}:\d{2}$/.test(i.value))return;const r=await api('/api/planer-cfg',{hours:{[i.dataset.h]:i.value}});
+  const ok=i.nextElementSibling;if(r&&r.ok){ok.classList.add('on');setTimeout(()=>ok.classList.remove('on'),1500)}else toast('Nie udało się zapisać')})}
+hrs();
 load();
 const DAY0=ds(new Date());
 setInterval(()=>{if(ds(new Date())!==DAY0&&!$('mb').classList.contains('on')&&!drag){location.reload();return}   // nowy dzień → tydzień przesuwa się o 1
