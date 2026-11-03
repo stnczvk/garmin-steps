@@ -57,13 +57,41 @@ async def api_new(req: Request):
         return {"ok": False, "error": "Wpisz godziny, np. 7:30 Pobudka."}
     if tp == "dni" and not b.get("start"):
         return {"ok": False, "error": "Wybierz datę."}
-    keep = {"dni": ("start", "days"), "napis": ("text", "small", "kind"), "miniatura": ("text", "sub", "tag", "layout", "accent", "count"),
+    keep = {"dni": ("start", "days"), "napis": ("text", "small", "kind"), "miniatura": ("text", "sub", "tag", "layout", "accent", "count", "photo", "food", "food_folder"),
             "godzina": ("times", "style")}[tp]
     j = {"id": secrets.token_hex(4), "type": tp, "params": {k: b.get(k) for k in keep if b.get(k) not in (None, "")},
          "state": "queued", "step": "czeka na Maca", "created": time.time(), "files": [], "previews": 0}
     with _lk:
         L = _jobs(); L.append(j); _write(F, L[-60:])
     return {"ok": True, "job": j}
+
+
+UP = ROOT / "grafiki_up"
+
+
+@router.post("/api/grafiki/upload")
+async def api_upload(req: Request):
+    """Zdjęcie do miniatury (Twoje albo jedzenie) – przeglądarka wysyła już JPEG (max ~2000 px)."""
+    data = await req.body()
+    if not data or len(data) > 12_000_000 or not data[:3] == b"\xff\xd8\xff":
+        return {"ok": False, "error": "Wyślij zdjęcie JPG (max 12 MB)."}
+    UP.mkdir(parents=True, exist_ok=True)
+    for f in UP.glob("*.jpg"):                      # sprzątanie: starsze niż 14 dni
+        if time.time() - f.stat().st_mtime > 14 * 86400:
+            f.unlink(missing_ok=True)
+    fid = secrets.token_hex(6)
+    (UP / f"{fid}.jpg").write_bytes(data)
+    return {"ok": True, "id": fid}
+
+
+@router.get("/api/mont-hook/grafika-plik/{fid}")
+def hook_file(fid: str, req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    f = UP / f"{os.path.basename(fid)}.jpg"
+    if not f.is_file():
+        return JSONResponse({"error": "brak"}, status_code=404)
+    return FileResponse(f, media_type="image/jpeg")
 
 
 @router.post("/api/grafiki/{gid}/retry")
