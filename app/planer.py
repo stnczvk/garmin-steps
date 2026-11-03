@@ -35,8 +35,10 @@ def save(P):
     _write(PLAN, P[-150:])
 
 
-def _film_pl():
+def _film_pl(series=""):
     L = list(cfg()["platforms"]["film"])
+    if series == "vlog":          # vlogi Bartłomiej wrzuca na TikToka sam
+        return L
     try:
         import tiktok_pub
         if tiktok_pub.connected() and "tiktok" not in L:
@@ -135,7 +137,7 @@ def scan():
         job = next((j for j in reversed(V) if (j.get("kind") or "vlog") == kind and ep and str(j.get("ep")) == ep.group(1) and j.get("state") == "done"), None)
         o = _opis(kind, job["id"]) if job else {"ok": False}
         _add({"src": f"vf:{nm}", "kind": "film", "series": kind, "label": nm, "file": str(f), "when": _when(kind),
-              "platforms": _film_pl(), "caption": (o.get("instagram") or "") if o.get("ok") else "", "tiktok": o.get("tiktok", ""), "yt_title": ""})
+              "platforms": _film_pl(kind), "caption": (o.get("instagram") or "") if o.get("ok") else "", "tiktok": o.get("tiktok", ""), "yt_title": ""})
 
 
 DROP = "posts_dropped.json"
