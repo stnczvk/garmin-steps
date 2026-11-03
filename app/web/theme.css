@@ -11,9 +11,10 @@ html:not([data-theme=light]){
  --glow1:rgba(139,124,199,.14)!important;--glow2:transparent!important;--accent:#8b7cc7!important;--surface:#16151f!important;--line-soft:rgba(255,255,255,.06)!important;
  --head:rgba(17,16,26,.75)!important;--o-ac:#8b7cc7!important}
 /* tło: gradient B – jaśniejszy błękit u góry, ciemnieje w dół */
-html:not([data-theme=light]) body{background:radial-gradient(90% 55% at 50% 0%,rgba(90,59,140,.30),transparent 70%),linear-gradient(180deg,#2a1e4d 0%,#14111f 45%,#0e0b1d 100%) fixed!important;background-color:#0e0b1d!important}
+html:not([data-theme=light]){background:#0e0b1d!important}html:not([data-theme=light]) body,html:not([data-theme=light]) body.lg,html:not([data-theme=light]) html body.lg{background:transparent!important;background-color:transparent!important;background-attachment:scroll!important}
 html:not([data-theme=light]) .lg-bg{display:none!important}
-html:not([data-theme=light]) body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.07;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+/* tło jako osobna, przyklejona warstwa (GPU) – bez „background-attachment: fixed” i bez szumu z mieszaniem kolorów, które przy przewijaniu przemalowywały cały ekran */
+html:not([data-theme=light]) body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;transform:translateZ(0);will-change:transform;background:radial-gradient(90% 55% at 50% 0%,rgba(90,59,140,.30),transparent 70%),linear-gradient(180deg,#2a1e4d 0%,#14111f 45%,#0e0b1d 100%)}
 /* karty: ciemny gradient, cienka ramka, podświetlona górna krawędź i świecący pasek */
 html:not([data-theme=light]) :is(.lg .glass,.lg .card,.lg .kpi,.lg .stage,.lg #panel,.t,.sec,.box){
  background:linear-gradient(90deg,transparent 12%,color-mix(in oklab,var(--kb,#a294d8) 85%,transparent) 50%,transparent 88%) top/100% 1.5px no-repeat,linear-gradient(180deg,var(--k-c1),var(--k-c2))!important;
