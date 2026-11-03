@@ -76,7 +76,7 @@ def api_get(month: str = ""):
         st = [rid[i] for i in ids if i in rid]
         posts.append({"id": x["id"], "src": "plan", "t": x.get("done_at") if x["status"] == "published" else x["when"],
                       "label": x.get("label"), "status": x["status"], "kind": x.get("kind"), "platforms": x.get("platforms"),
-                      "thumb": f"/api/planer/{x['id']}/preview" if x.get("kind") == "karuzela" else "",
+                      "thumb": f"/api/planer/{x['id']}/thumb",
                       "video": f"/api/planer/{x['id']}/preview" if x.get("kind") == "film" else "",
                       "rel": max((s["rel"] for s in st if s["rel"]), default=None), "views": sum(s["views"] for s in st) or None,
                       "movable": x["status"] in ("draft", "approved", "error"),

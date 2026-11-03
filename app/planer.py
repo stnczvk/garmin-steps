@@ -515,3 +515,32 @@ async def api_add(req: Request):
                 x["status"] = "approved"
                 save(P)
     return {"ok": True, "id": it["id"]}
+
+
+
+# ---------- lekkie miniatury JPG zamiast <video> w kalendarzu i planerze (mniej lagów) ----------
+THUMBS = SOCIAL_ROOT / "thumbs"
+
+
+@router.get("/api/planer/{pid}/thumb")
+def api_thumb(pid: str):
+    import shutil, subprocess
+    it = next((x for x in plan() if x["id"] == pid), None)
+    if not it:
+        return JSONResponse({"error": "nie ma"}, status_code=404)
+    src = it.get("file") if it["kind"] == "film" else (it.get("files") or [None])[0]
+    if not src or not os.path.isfile(src):
+        return JSONResponse({"error": "plik zniknął"}, status_code=404)
+    THUMBS.mkdir(parents=True, exist_ok=True)
+    out = THUMBS / f"{os.path.basename(pid)}.jpg"
+    if not out.exists() or out.stat().st_mtime < os.path.getmtime(src):
+        ff = shutil.which("ffmpeg") or "ffmpeg"
+        args = ([ff, "-y", "-v", "error", "-ss", "1", "-i", src, "-frames:v", "1"] if it["kind"] == "film" else [ff, "-y", "-v", "error", "-i", src]) + \
+               ["-vf", "scale=240:-2", "-q:v", "5", str(out)]
+        r = subprocess.run(args, capture_output=True, timeout=30)
+        if r.returncode or not out.exists():
+            if it["kind"] == "film":       # film krótszy niż 1 s
+                subprocess.run([ff, "-y", "-v", "error", "-i", src, "-frames:v", "1", "-vf", "scale=240:-2", "-q:v", "5", str(out)], capture_output=True, timeout=30)
+            if not out.exists():
+                return JSONResponse({"error": "brak klatki"}, status_code=404)
+    return FileResponse(out, media_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})

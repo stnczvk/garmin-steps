@@ -381,7 +381,7 @@ if (window.parent !== window) addEventListener('focusout', function () { try { w
 
 /* oszczędzanie baterii: po 25 s bez dotyku/myszy wszystkie zapętlone animacje stają (wracają przy pierwszym ruchu) */
 (function(){
-  var st=document.createElement('style');st.textContent='html.kidle *,html.kidle *:before,html.kidle *:after{animation-play-state:paused!important}';
+  var st=document.createElement('style');st.textContent='html.kidle *,html.kidle *:before,html.kidle *:after,html.kpause *,html.kpause *:before,html.kpause *:after{animation-play-state:paused!important}';
   (document.head||document.documentElement).appendChild(st);
   var t=0,root=document.documentElement;
   function wake(){if(root.classList.contains('kidle'))root.classList.remove('kidle');clearTimeout(t);t=setTimeout(function(){root.classList.add('kidle')},25000)}
