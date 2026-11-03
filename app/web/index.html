@@ -1524,7 +1524,7 @@ function setView(v, push) {
   document.querySelectorAll('#snav button').forEach(x => x.dataset.v === v ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
   const isS = v === 'stats' || v === 'stats-ps';
   document.body.classList.toggle('v-ext', !isS); document.body.dataset.view = v;
-  if (isS) { const gb = $('#tabs').querySelector(`[data-g="${v === 'stats' ? 'prywatne' : 'pozaskala'}"]`); if (gb && gb.getAttribute('aria-pressed') !== 'true') { gb.click(); try { loadSettings(); } catch (e) {} } }
+  if (isS) { const gb = $('#tabs').querySelector(`[data-g="${v === 'stats' ? 'prywatne' : 'pozaskala'}"]`); if (gb && gb.getAttribute('aria-pressed') !== 'true') { gb.click(); try { loadSettings(); } catch (e) {} } try { renderReport(); } catch (e) {} }
   document.body.classList.remove('s-open');
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');
   const box = $('#vframe');
@@ -1771,6 +1771,9 @@ function renderReport() {
   const best = rep.best && (!group || ra.some(a => a.key === rep.best.key)) ? rep.best : null;
   const f = d => new Date(d + 'T12:00').toLocaleDateString('pl-PL', {day: 'numeric', month: 'short'});
   const i = repWeeks.indexOf(repWeek);
+  // wskazówki tylko o kontach z tej zakładki (bez prywatnych w PozaSkali i odwrotnie)
+  const other = rep.accounts.filter(a => group && a.group !== group).map(a => (a.name || '').replace(/^@/, '').toLowerCase()).filter(Boolean);
+  const tips = (rep.tips || []).filter(x => !other.some(n => x.toLowerCase().includes(n)));
   box.innerHTML = `<div class="card-h" id="raport-h"><h2>Raport tygodnia</h2><span class="rhead"><small class="num">${f(rep.week)} – ${f(rep.end)}</small>
       <button class="ghost" id="rp" ${i <= 0 ? 'disabled' : ''} aria-label="Poprzedni tydzień" style="padding:4px 8px">‹</button><button id="rn" ${i >= repWeeks.length - 1 ? 'disabled' : ''} aria-label="Następny tydzień" style="padding:4px 8px">›</button></span></div>
     <div class="cpad">
@@ -1784,7 +1787,7 @@ function renderReport() {
         <span class="g"><b class="num">+${fmt(best.gain)}</b><small>wyświetleń w tym tyg.</small></span></a>` : ''}
       <div class="racc">${ra.map(a => `<div class="ra" style="--pc:var(--${VAR[a.platform]})"><span class="logo">${ICON[a.platform]}</span><span class="nm">${esc(a.name)}</span>
         <span>${chip(a.followers_delta)}</span><span class="vv num">${fmt(a.views)} wyśw.</span></div>`).join('')}</div>
-      ${rep.tips?.length ? `<ul class="tips">${rep.tips.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${tips.length ? `<ul class="tips">${tips.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
     </div>`;
   const nav = d => { if (repWeeks[i + d]) loadReport(repWeeks[i + d]); };
   $('#rp').onclick = () => nav(-1); $('#rn').onclick = () => nav(1);
