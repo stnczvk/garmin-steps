@@ -1,7 +1,7 @@
 /* Dashboard v3 – wspólny wygląd wszystkich zakładek (ładowany po glass.css i stylach strony).
    Te same kolory, kafle, przyciski i pola co na nowym ekranie głównym. */
 html:root{--ink:#ecebf4;--txt:#ecebf4;--soft:#a9a8bd;--mut:#8d8ca3;--faint:#6f6e86;--ok:#3ddc84;--pos:#3ddc84;--bad:#ff6b7a;--neg:#ff6b7a;--fail:#ff6b7a;
- --warn:#ffc24b;--acc:#6e8bff;--line:rgba(255,255,255,.07);--bg:#0d0e14;--panel:#14151e;--idle:#4b4a60;
+ --warn:#ffc24b;--acc:#8b7cc7;--line:rgba(255,255,255,.07);--bg:#0d0e14;--panel:#14151e;--idle:#4b4a60;
  --v3-s1:#14151e;--v3-s2:#1b1c28;--v3-s3:#242536;--v3-hi:rgba(255,255,255,.09);--v3-sh:0 10px 30px -18px rgba(5,4,20,.9)}
 html:root[data-theme=light]{--ink:#14141c;--txt:#14141c;--soft:#4c4c62;--mut:#62627a;--faint:#9a9ab0;--ok:#16a34a;--pos:#16a34a;--bad:#d9364a;--neg:#d9364a;--fail:#d9364a;
  --warn:#b7791f;--acc:#6e56cf;--line:rgba(20,20,40,.09);--bg:#f3f3f7;--panel:#ffffff;--v3-s1:#ffffff;--v3-s2:#ffffff;--v3-s3:#ececf3;--v3-hi:rgba(255,255,255,.9);--v3-sh:0 10px 30px -18px rgba(40,40,80,.18)}
@@ -60,7 +60,7 @@ html{background:#0b0c12!important}:root[data-theme=light]{background:#f3f3f7!imp
 .lg #top,.lg .topbar,.lg .bar.top{background:var(--v3-s1)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid var(--line)!important;box-shadow:none!important}
 
 /* ---- tło v3 (wspólne dla wszystkich zakładek): delikatne ziarno + miękkie światła ---- */
-:root{--v3-bgimg:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(900px 560px at 12% -8%,rgba(110,139,255,.26),transparent 70%),radial-gradient(760px 480px at 100% 0%,rgba(40,140,255,.14),transparent 70%),radial-gradient(520px 420px at 55% 38%,rgba(110,139,255,.05),transparent 70%),radial-gradient(900px 600px at 85% 115%,rgba(61,220,132,.08),transparent 70%),radial-gradient(700px 520px at -5% 105%,rgba(236,72,153,.07),transparent 70%),linear-gradient(180deg,#10111a 0%,#0c0d14 50%,#0a0b10 100%)}
+:root{--v3-bgimg:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),radial-gradient(900px 560px at 12% -8%,rgba(139,124,199,.26),transparent 70%),radial-gradient(760px 480px at 100% 0%,rgba(40,140,255,.14),transparent 70%),radial-gradient(520px 420px at 55% 38%,rgba(139,124,199,.05),transparent 70%),radial-gradient(900px 600px at 85% 115%,rgba(61,220,132,.08),transparent 70%),radial-gradient(700px 520px at -5% 105%,rgba(236,72,153,.07),transparent 70%),linear-gradient(180deg,#10111a 0%,#0c0d14 50%,#0a0b10 100%)}
 :root[data-theme=light]{--v3-bgimg:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5)}
 @media (prefers-color-scheme:light){:root:not([data-theme=dark]):not(.lg-dark){--v3-bgimg:radial-gradient(70% 55% at 12% -10%,rgba(110,86,207,.13),transparent 65%),radial-gradient(55% 45% at 105% 8%,rgba(56,189,248,.08),transparent 65%),linear-gradient(180deg,#f6f6fa,#eff0f5)}}
 html body.lg,body.lg{background:var(--v3-bgimg) !important;background-attachment:fixed !important;background-color:#0b0c12 !important}
@@ -72,7 +72,7 @@ body.dash #stars{display:none!important}
 .lg .wrap>p.sub,.lg .wrap>.top p,.lg .wrap>.hero p,.lg .wrap>div:first-child>p{color:var(--mut)!important;font-size:14px}
 body.lg{min-height:100dvh}
 /* kafle działów i karty: lekka poświata w rogu jak na ekranie głównym */
-.lg .dc{background:radial-gradient(120% 70% at 0% 0%,color-mix(in srgb,var(--c,#6e8bff) 10%,transparent),transparent 55%),linear-gradient(180deg,var(--v3-s2),var(--v3-s1))!important}
+.lg .dc{background:radial-gradient(120% 70% at 0% 0%,color-mix(in srgb,var(--c,#8b7cc7) 10%,transparent),transparent 55%),linear-gradient(180deg,var(--v3-s2),var(--v3-s1))!important}
 /* puste stany – czytelniejsze */
 .lg .empty,.lg .mut.empty{color:var(--mut)}
 /* kafelki ikon w nagłówkach (glass.js) */
@@ -82,7 +82,7 @@ body.lg{min-height:100dvh}
 @media(max-width:760px){.hx{width:24px;height:24px;margin-right:8px}.hx.big{width:30px;height:30px;vertical-align:-5px}.hx.big svg{width:16px;height:16px}}
 /* przyciski szybkich akcji (jak na ekranie głównym) */
 .btn.qb,.lg .btn.qb{background:linear-gradient(180deg,var(--v3-s2,#1b1c28),var(--v3-s1,#14151e))!important;color:inherit!important;border:1px solid rgba(255,255,255,.08)!important;border-radius:14px!important;padding:6px 14px 6px 6px!important;gap:9px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important;font-weight:600}
-.btn.qb:hover{border-color:rgba(110,139,255,.45)!important}.btn.qb:active{transform:scale(.97)}
+.btn.qb:hover{border-color:rgba(139,124,199,.45)!important}.btn.qb:active{transform:scale(.97)}
 .btn.qb>i{font-style:normal;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13.5px;background:color-mix(in srgb,var(--c) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 24%,transparent)}
 .hxw{display:inline;white-space:nowrap}
 .hx svg{min-width:0!important;display:block}
@@ -100,7 +100,7 @@ body.lg{min-height:100dvh}
 /* ===== Agencja / Skaner – widok Dashboard w stylu ekranu głównego ===== */
 body.dash header{left:0!important;right:0!important;top:0!important;border-radius:0!important;background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:22px 26px 8px!important;max-width:1532px;margin:0 auto}
 body.dash header .logo{font-size:24px;font-weight:650;letter-spacing:-.025em}
-body.dash header .logo i{width:36px;height:36px;border-radius:11px;font-size:17px;background:color-mix(in srgb,#6e8bff 18%,transparent)!important;color:#b59cff;box-shadow:inset 0 0 0 1px rgba(110,139,255,.3)}
+body.dash header .logo i{width:36px;height:36px;border-radius:11px;font-size:17px;background:color-mix(in srgb,#8b7cc7 18%,transparent)!important;color:#c9c2e3;box-shadow:inset 0 0 0 1px rgba(139,124,199,.3)}
 body.dash header .logo span{font-size:14px}
 body.dash header .stats span{background:var(--v3-s1);border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:12.5px}
 body.dash #dash{padding:12px 26px 48px!important}

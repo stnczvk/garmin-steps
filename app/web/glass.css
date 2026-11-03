@@ -4,18 +4,18 @@
   --lg-hi:rgba(255,255,255,.32); --lg-lo:rgba(255,255,255,.03); --lg-sh:0 18px 50px -20px rgba(0,0,0,.7);
   --lg-blur:saturate(185%) blur(24px); --lg-r:22px;
   --lg-base:#06070c;
-  --lg-a:rgba(110,139,255,.42); --lg-b2:rgba(0,170,255,.32); --lg-c:rgba(255,70,160,.24); --lg-d:rgba(30,215,160,.20);
+  --lg-a:rgba(139,124,199,.42); --lg-b2:rgba(0,170,255,.32); --lg-c:rgba(255,70,160,.24); --lg-d:rgba(30,215,160,.20);
 }
 :root[data-theme=light]{
   --lg-1:rgba(255,255,255,.72); --lg-2:rgba(255,255,255,.42); --lg-b:rgba(255,255,255,.85);
   --lg-hi:rgba(255,255,255,1); --lg-lo:rgba(0,0,0,.03); --lg-sh:0 18px 50px -24px rgba(40,40,90,.35);
-  --lg-base:#eef0f8; --lg-a:rgba(110,139,255,.30); --lg-b2:rgba(0,170,255,.22); --lg-c:rgba(255,70,160,.18); --lg-d:rgba(30,215,160,.16);
+  --lg-base:#eef0f8; --lg-a:rgba(139,124,199,.30); --lg-b2:rgba(0,170,255,.22); --lg-c:rgba(255,70,160,.18); --lg-d:rgba(30,215,160,.16);
 }
 @media (prefers-color-scheme:light){
   :root:not([data-theme=dark]):not(.lg-dark){
     --lg-1:rgba(255,255,255,.72); --lg-2:rgba(255,255,255,.42); --lg-b:rgba(255,255,255,.85);
     --lg-hi:rgba(255,255,255,1); --lg-lo:rgba(0,0,0,.03); --lg-sh:0 18px 50px -24px rgba(40,40,90,.35);
-    --lg-base:#eef0f8; --lg-a:rgba(110,139,255,.30); --lg-b2:rgba(0,170,255,.22); --lg-c:rgba(255,70,160,.18); --lg-d:rgba(30,215,160,.16);
+    --lg-base:#eef0f8; --lg-a:rgba(139,124,199,.30); --lg-b2:rgba(0,170,255,.22); --lg-c:rgba(255,70,160,.18); --lg-d:rgba(30,215,160,.16);
   }
 }
 
@@ -99,13 +99,13 @@ body.lg{padding-bottom:var(--sab,0px)}
    Matowe, nieprzezroczyste kafle z delikatną głębią (zamiast rozmytego szkła): czytelniej i dużo lżej dla baterii. */
 :root{--lg-base:#0d0e14;--lg-1:#1b1c28;--lg-2:#14151e;--lg-b:rgba(255,255,255,.06);--lg-hi:rgba(255,255,255,.09);--lg-lo:rgba(0,0,0,0);
   --lg-sh:0 10px 30px -18px rgba(5,4,20,.9);--lg-blur:none;--lg-r:24px;
-  --lg-a:rgba(110,139,255,.16);--lg-b2:rgba(61,220,132,.05);--lg-c:transparent;--lg-d:transparent}
+  --lg-a:rgba(139,124,199,.16);--lg-b2:rgba(61,220,132,.05);--lg-c:transparent;--lg-d:transparent}
 :root[data-theme=light]{--lg-base:#f3f3f7;--lg-1:#ffffff;--lg-2:#ffffff;--lg-b:rgba(20,20,40,.08);--lg-hi:rgba(255,255,255,.9);
   --lg-sh:0 10px 30px -18px rgba(40,40,80,.18);--lg-a:rgba(110,86,207,.10);--lg-b2:rgba(22,163,74,.05)}
 @media (prefers-color-scheme:light){:root:not([data-theme=dark]):not(.lg-dark){--lg-base:#f3f3f7;--lg-1:#ffffff;--lg-2:#ffffff;--lg-b:rgba(20,20,40,.08);--lg-hi:rgba(255,255,255,.9);
   --lg-sh:0 10px 30px -18px rgba(40,40,80,.18);--lg-a:rgba(110,86,207,.10);--lg-b2:rgba(22,163,74,.05)}}
 .lg .glass,.lg .card,.lg .head,.lg .kpi,.lg .stage,.lg header,.lg #panel,.lg #mini,.lg .lbl,.lg .ev,.lg .chip,.lg #chartbtn,.lg .cb-in,.lg .lg-btn{
-  background:radial-gradient(120% 70% at 0% 0%,rgba(110,139,255,.07),transparent 50%),linear-gradient(180deg,var(--lg-1),var(--lg-2)) !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  background:radial-gradient(120% 70% at 0% 0%,rgba(139,124,199,.07),transparent 50%),linear-gradient(180deg,var(--lg-1),var(--lg-2)) !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;
   border:1px solid var(--lg-b) !important;box-shadow:inset 0 1px 0 var(--lg-hi),var(--lg-sh) !important}
 .lg .head{border-width:0 0 1px 0 !important}
 .lg .glass,.lg .card,.lg .kpi,.lg .stage,.lg #panel{border-radius:var(--lg-r) !important}

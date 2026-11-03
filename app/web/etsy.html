@@ -50,10 +50,10 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 /* piny do zatwierdzenia */
 .pd{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:10px 0}.pd+.pd{border-top:1px solid var(--ln,rgba(255,255,255,.08))}
 .pd img{width:64px;height:96px;object-fit:cover;border-radius:10px;box-shadow:0 8px 20px -10px #000,inset 0 0 0 1px rgba(255,255,255,.15)}
-.pd b{display:block;font-size:13.5px;line-height:1.3}.pd small{display:block;color:var(--mu,#9aa0c8);font-size:12px;margin-top:3px}
+.pd b{display:block;font-size:13.5px;line-height:1.3}.pd small{display:block;color:var(--mu,#a29bc3);font-size:12px;margin-top:3px}
 .pd textarea{width:100%;min-height:62px;margin-top:6px;resize:vertical;font:12.5px/1.4 inherit;font-family:inherit;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.04);color:inherit;border:1px solid var(--ln,rgba(255,255,255,.08))}
 .pd .ac{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.pd .ac button,.pd .ac a{font:600 12px Geist,system-ui;padding:7px 11px;border-radius:10px;border:1px solid var(--ln,rgba(255,255,255,.1));background:rgba(255,255,255,.05);color:inherit;text-decoration:none;cursor:pointer}
-.pd .ac .go{background:linear-gradient(135deg,#6e8bff,#b59cff);color:#fff;border-color:transparent;box-shadow:0 8px 18px -10px #6e8bff}
+.pd .ac .go{background:linear-gradient(135deg,#5a3b8c,#8b7cc7);color:#fff;border-color:transparent;box-shadow:0 8px 18px -10px #8b7cc7}
 
 /* menedżer sklepu */
 .au-h{display:flex;align-items:center;gap:16px;margin-top:10px}.au-s{width:74px;height:74px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 22px 'Bricolage Grotesque',Geist,system-ui;
@@ -61,9 +61,9 @@ td{padding:10px;border-bottom:1px solid var(--line);font-size:13.5px}tr:last-chi
 .au-w{position:relative;width:74px;height:74px;flex:none}.au-w b{position:absolute;inset:0;display:grid;place-items:center;font:700 21px 'Bricolage Grotesque',Geist,system-ui}
 .au-l{display:flex;flex-direction:column;gap:7px;margin-top:14px;max-height:460px;overflow:auto}
 .au-i{display:grid;grid-template-columns:10px 1fr;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);font-size:13px}
-.au-i i{width:8px;height:8px;border-radius:50%;margin-top:5px;background:#8a9dff}.au-i.warn i{background:#ffc24b}.au-i.fail i{background:#ff6b7a;box-shadow:0 0 8px #ff6b7a}
-.au-i b{font-weight:600}.au-i small{display:block;color:var(--soft,#b6bbe0);margin-top:3px;line-height:1.4}
-.au-f{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}.au-f button{font:600 12px Geist,system-ui;padding:6px 11px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:inherit;cursor:pointer}.au-f button.on{background:linear-gradient(135deg,rgba(110,139,255,.4),rgba(181,156,255,.25));border-color:rgba(181,156,255,.4)}
+.au-i i{width:8px;height:8px;border-radius:50%;margin-top:5px;background:#a294d8}.au-i.warn i{background:#ffc24b}.au-i.fail i{background:#ff6b7a;box-shadow:0 0 8px #ff6b7a}
+.au-i b{font-weight:600}.au-i small{display:block;color:var(--soft,#c9c2e3);margin-top:3px;line-height:1.4}
+.au-f{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}.au-f button{font:600 12px Geist,system-ui;padding:6px 11px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:inherit;cursor:pointer}.au-f button.on{background:linear-gradient(135deg,rgba(139,124,199,.4),rgba(201,194,227,.25));border-color:rgba(201,194,227,.4)}
 .au-i.fx{grid-template-columns:10px minmax(0,1fr) auto;align-items:start}.au-i.fx small{overflow-wrap:anywhere}.au-i.fx .ib{padding:6px 12px;font-size:12.5px;white-space:nowrap;align-self:center}
 .au-i.done{opacity:.75}.au-i.done i{background:#6fd5a6!important;box-shadow:0 0 8px #6fd5a6}.au-i.done b:before{content:"✓ ";color:#6fd5a6}
 </style>
@@ -213,7 +213,7 @@ async function pinDrafts(boxId){const box=document.getElementById(boxId);if(!box
  box.innerHTML=(P.pending.length?P.pending.map(d=>`<div class="pd" data-k="${e2(d.key)}"><img src="${e2(d.img_url)}" alt=""><div><b>${e2(d.title)}</b><small>Tablica: ${e2(d.board)}</small>
   <textarea data-f="desc">${e2(d.desc)}</textarea><div class="ac">${P.api?`<button class="go" data-a="api">Opublikuj</button>`:`<a class="go" href="${e2(d.builder)}" target="_blank" rel="noopener" data-a="open">Opublikuj w Pintereście</a>`}<button data-a="done" title="Kliknij po opublikowaniu w kreatorze">Gotowe</button><button data-a="skip">Pomiń</button></div></div></div>`).join('')
   :`<p class="empty">Brak szkiców. Bot przygotowuje nowe codziennie o ${P.hours.map(h=>h+':00').join(' i ')}.</p>`)
-  +`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--mu,#9aa0c8)"><span>W puli jeszcze ${P.left} pinów</span><button data-a="new" style="font:600 12px Geist,system-ui;padding:7px 11px;border-radius:10px;border:1px solid var(--ln,rgba(255,255,255,.1));background:rgba(255,255,255,.05);color:inherit;cursor:pointer">+ Przygotuj szkic</button></div>`;
+  +`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--mu,#a29bc3)"><span>W puli jeszcze ${P.left} pinów</span><button data-a="new" style="font:600 12px Geist,system-ui;padding:7px 11px;border-radius:10px;border:1px solid var(--ln,rgba(255,255,255,.1));background:rgba(255,255,255,.05);color:inherit;cursor:pointer">+ Przygotuj szkic</button></div>`;
  box.onclick=async ev=>{const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,row=b.closest('.pd');
   if(a==='new'){const r=await (await fetch('/api/pinterest/drafts/new',{method:'POST'})).json();if(!r.ok)(window.toast||alert)(r.error,1);return pinDrafts(boxId)}
   const k=row.dataset.k,t=row.querySelector('textarea');

@@ -72,7 +72,7 @@
     act:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
     bag:'<path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/>'
   };
-  var C={v:'#6e8bff',p:'#ff6fa5',b:'#5ad1ff',g:'#3ddc84',y:'#ffc24b'};
+  var C={v:'#8b7cc7',p:'#ff6fa5',b:'#5ad1ff',g:'#3ddc84',y:'#ffc24b'};
   var K=[[/sprzeda|przych/i,'trend',C.g],[/personaliz/i,'users',C.p],[/produkt/i,'grid',C.b],[/zamówie/i,'list',C.y],[/obserwuj|follow/i,'users',C.p],[/wyświetl|zasięg|views/i,'eye',C.b],[/kapita|pnl|krzyw|wynik|wzrost|portfel/i,'trend',C.g],
     [/pora |kiedy|kalendarz|godzin|czas/i,'clock',C.y],[/post|publik/i,'send',C.b],[/raport|analityk|co działa|opis/i,'doc',C.v],
     [/platform|kierunek|reżim|sposób|udział|symbol/i,'pie',C.v],[/transakc|pozycj|aktywne|otwarte|kolejk|histori/i,'list',C.y],
@@ -254,7 +254,7 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
   st.textContent='#kstars{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1}'+
   '@property --ga{syntax:"<angle>";inherits:false;initial-value:0deg}'+
   '.kglow{position:relative}.kglow:after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:2;'+
-  'background:conic-gradient(from var(--ga),transparent 0 55%,#6e8bff 70%,#b59cff 82%,#ffc24b 90%,transparent 100%);'+
+  'background:conic-gradient(from var(--ga),transparent 0 55%,#8b7cc7 70%,#c9c2e3 82%,#ffc24b 90%,transparent 100%);'+
   '-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:kga 6s linear infinite}'+
   '@keyframes kga{to{--ga:360deg}}'+
   '.kdraw{stroke-dasharray:1;stroke-dashoffset:1;animation:kdr 1.1s cubic-bezier(.3,.7,.2,1) forwards}@keyframes kdr{to{stroke-dashoffset:0}}'+
@@ -296,7 +296,7 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
 
   /* 3. konfetti */
   window.confetti=function(o){if(RM)return;o=o||{};var c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999';document.body.appendChild(c);
-    var x=c.getContext('2d'),W=c.width=innerWidth,H=c.height=innerHeight,C=['#6e8bff','#b59cff','#ffc24b','#3ddc84','#ff6fa5','#5ad1ff'],P=[],ox=o.x!=null?o.x:W/2,oy=o.y!=null?o.y:H*.35,n=o.n||90;
+    var x=c.getContext('2d'),W=c.width=innerWidth,H=c.height=innerHeight,C=['#8b7cc7','#c9c2e3','#ffc24b','#3ddc84','#ff6fa5','#5ad1ff'],P=[],ox=o.x!=null?o.x:W/2,oy=o.y!=null?o.y:H*.35,n=o.n||90;
     for(var i=0;i<n;i++){var a=Math.random()*6.283,sp=Math.random()*8+3;P.push({x:ox,y:oy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-5,w:Math.random()*6+4,h:Math.random()*4+3,r:Math.random()*6,vr:Math.random()*.3-.15,c:C[i%C.length]})}
     var t0=performance.now();(function f(ts){var k=(ts-t0)/1800;x.clearRect(0,0,W,H);
       P.forEach(function(p){p.vy+=.28;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;x.save();x.globalAlpha=Math.max(0,1-k*k);x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.w/2,-p.h/2,p.w,p.h);x.restore()});
@@ -336,7 +336,7 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
   var st=document.createElement('style');
   st.textContent='.krip{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,.35);transform:scale(0);opacity:1;animation:krip .55s ease-out forwards}@keyframes krip{to{transform:scale(1);opacity:0}}'+
   '.t>h3 .hi,.qa button .hi{transition:transform .35s cubic-bezier(.2,.9,.3,1.2),box-shadow .35s}'+
-  '.t:hover>h3 .hi,.qa button:hover .hi{transform:translateY(-1px) scale(1.06);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#6e8bff) 16%,transparent),0 8px 20px -8px var(--c,#6e8bff)}'+
+  '.t:hover>h3 .hi,.qa button:hover .hi{transform:translateY(-1px) scale(1.06);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#8b7cc7) 16%,transparent),0 8px 20px -8px var(--c,#8b7cc7)}'+
   '@keyframes kre{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}'+
   '.t:hover>h3 .hi svg .kpl,.qa button:hover .hi svg .kpl,#snav button:hover i svg .kpl{stroke-dasharray:1;animation:kre .6s cubic-bezier(.4,0,.2,1)}';
   var mark=function(){document.querySelectorAll('.t>h3 .hi svg,.qa .hi svg,#snav i svg').forEach(function(v){if(v.dataset.kpl)return;v.dataset.kpl=1;

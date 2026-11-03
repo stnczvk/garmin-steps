@@ -10,7 +10,7 @@
 <style>
 button,input,select,textarea{font-family:inherit}
 
-:root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--ok:#3DDC84;--warn:#F5B25A;--bad:#FF5C6C;--acc:#8a9dff;--line:rgba(255,255,255,.08)}
+:root{--ink:#F4F4F5;--soft:#B4B4BE;--faint:#7A7A86;--ok:#3DDC84;--warn:#F5B25A;--bad:#FF5C6C;--acc:#a294d8;--line:rgba(255,255,255,.08)}
 :root[data-theme=light]{--ink:#0B0B12;--soft:#4A4A57;--faint:#80808C;--ok:#16A34A;--warn:#B26A00;--bad:#DC2F45;--acc:#6E56CF;--line:rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:#06070c}html[data-theme=light]{background:#eef0f8}
@@ -23,7 +23,7 @@ body{background:transparent}
 .top p{color:var(--soft);margin-top:2px}
 .top .r{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
 .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.15);background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));color:var(--ink);font:600 13px Geist,system-ui;padding:9px 14px;border-radius:999px;cursor:pointer;text-decoration:none}
-.btn.pri{background:linear-gradient(145deg,#6e8bff,#5b8cff);border-color:transparent;color:#fff}
+.btn.pri{background:linear-gradient(145deg,#8b7cc7,#5b8cff);border-color:transparent;color:#fff}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:14px;align-items:start}
 .list .j{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 6px;border-top:1px solid var(--line);cursor:pointer;border-radius:10px}
@@ -53,7 +53,7 @@ pre{white-space:pre-wrap;font:12px/1.5 Geist,system-ui,sans-serif;color:var(--so
 .nf input{border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);border-radius:10px;padding:9px 10px;font:14px Geist,system-ui}
 .drop{border:1.5px dashed rgba(255,255,255,.18);border-radius:14px;padding:14px;cursor:pointer;min-width:0}
 .drop b{color:var(--ink);font-size:14px}.drop span{overflow-wrap:anywhere}.drop.has{border-color:var(--acc);background:rgba(158,140,252,.08)}
-.bar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:linear-gradient(90deg,#6e8bff,#5b8cff);width:0}
+.bar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:linear-gradient(90deg,#8b7cc7,#5b8cff);width:0}
 @media(max-width:900px){.nf,.nf2{grid-template-columns:minmax(0,1fr)}}
 .vt{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:14px}
 .vt button{border:0;background:transparent;color:var(--soft);font:600 12.5px Geist,system-ui;padding:6px 12px;border-radius:8px;cursor:pointer}
@@ -70,7 +70,7 @@ body.m-office #c3{height:calc(100vh - 230px);max-height:none;min-height:340px}
 .vt.sec{display:inline-flex}.vt.sec em{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle;visibility:hidden}.vt.sec em.on{visibility:visible}
 .fixd{margin-top:10px}
 .kpk{margin-top:10px;display:flex;flex-direction:column;gap:12px}.kpm b{font-size:13px}.kpg{display:flex;gap:6px;overflow-x:auto;padding:6px 0}
-.kpg img{height:110px;aspect-ratio:9/16;object-fit:cover;border-radius:10px;flex:none;cursor:pointer;border:3px solid transparent}.kpg img.on{border-color:#6e8bff}.kpg img:hover{border-color:rgba(110,139,255,.5)}
+.kpg img{height:110px;aspect-ratio:9/16;object-fit:cover;border-radius:10px;flex:none;cursor:pointer;border:3px solid transparent}.kpg img.on{border-color:#8b7cc7}.kpg img:hover{border-color:rgba(139,124,199,.5)}
 .karu{margin-top:10px}.karu summary{font-weight:600;cursor:pointer}.karu .ks{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scroll-snap-type:x mandatory}
 .karu .ks img{height:220px;aspect-ratio:4/5;object-fit:cover;border-radius:12px;flex:none;scroll-snap-align:start;background:#111}
 details.opis{margin-top:10px}details.opis summary{font-weight:600;cursor:pointer}.opis .ob{display:flex;flex-direction:column;gap:6px;margin-top:8px}
@@ -102,10 +102,10 @@ details.opis{margin-top:10px}details.opis summary{font-weight:600;cursor:pointer
 .live{margin:0 0 14px;padding:14px 16px;border-radius:18px;border:1px solid rgba(158,140,252,.45);background:linear-gradient(145deg,rgba(158,140,252,.16),rgba(255,255,255,.04));box-shadow:0 0 0 1px rgba(158,140,252,.08),0 10px 30px rgba(80,60,200,.18)}
 .live:empty{display:none}.live+.live{margin-top:-6px}
 .live .lh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.live .lh b{font-size:15px}.live .lh small{color:var(--soft);margin-left:auto;font:500 12px Geist,system-ui,sans-serif}
-.live .sp{width:10px;height:10px;border-radius:50%;background:#8a9dff;box-shadow:0 0 0 0 rgba(158,140,252,.7);animation:lp 1.4s infinite}
+.live .sp{width:10px;height:10px;border-radius:50%;background:#a294d8;box-shadow:0 0 0 0 rgba(158,140,252,.7);animation:lp 1.4s infinite}
 @keyframes lp{70%{box-shadow:0 0 0 9px rgba(158,140,252,0)}100%{box-shadow:0 0 0 0 rgba(158,140,252,0)}}
 .stp{display:flex;gap:4px;margin:12px 0 8px}.stp div{flex:1;min-width:0}.stp i{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.12)}
-.stp div.d i{background:var(--ok,#5bd68a)}.stp div.a i{background:#8a9dff;animation:lb 1.2s ease-in-out infinite alternate}@keyframes lb{to{opacity:.45}}
+.stp div.d i{background:var(--ok,#5bd68a)}.stp div.a i{background:#a294d8;animation:lb 1.2s ease-in-out infinite alternate}@keyframes lb{to{opacity:.45}}
 .stp span{display:block;font-size:11px;color:var(--faint);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stp div.a span{color:var(--ink);font-weight:600}
 .live .ll{font:12px/1.45 Geist,system-ui,sans-serif;color:var(--soft);white-space:pre-wrap;max-height:4.4em;overflow:hidden}
 .live .ask{margin-top:8px;color:var(--warn)}
@@ -141,7 +141,7 @@ body.m-dash.sv-cheat .s-food,body.m-dash.sv-cheat .s-vlog:not(.s-cheat){display:
 .gf .btn{justify-self:start}.gd{display:flex;gap:6px;flex-wrap:wrap}.gd label{display:flex;flex-direction:row;align-items:center;gap:6px;background:rgba(255,255,255,.06);border-radius:9px;padding:6px 10px;cursor:pointer;font-weight:600}
 #gjobs{margin-top:16px;display:grid;gap:10px}.gj{border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:11px 13px;background:rgba(255,255,255,.03)}
 .gj .h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.gj .h b{font-size:13.5px}.gj .h small{color:var(--soft);font-size:12px}.gj .h .st{margin-left:auto;font-size:11.5px;font-weight:650;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.08)}
-.gj .st.done{background:rgba(61,220,132,.15);color:#5fe39b}.gj .st.error{background:rgba(255,107,107,.15);color:#ff8a8a}.gj .st.work{background:rgba(110,139,255,.18);color:#a9b8ff}
+.gj .st.done{background:rgba(61,220,132,.15);color:#5fe39b}.gj .st.error{background:rgba(255,107,107,.15);color:#ff8a8a}.gj .st.work{background:rgba(139,124,199,.18);color:#c9c2e3}
 .gj .pv{display:flex;gap:8px;overflow-x:auto;margin-top:9px}.gj .pv img{height:90px;border-radius:9px;cursor:zoom-in;flex:none;background:#000}
 .gj .fl{font-size:11.5px;color:var(--soft);margin-top:6px;word-break:break-all}
 #gbig{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);display:none;place-items:center;padding:20px;cursor:zoom-out}#gbig img{max-width:100%;max-height:100%;border-radius:12px}#gbig.on{display:grid}
@@ -170,7 +170,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 @media(max-width:700px){.vp{grid-template-columns:minmax(0,1fr)}.vp video{max-height:70vh}}
 .hvw{position:relative;cursor:pointer;border-radius:10px;overflow:hidden}.hvw video{display:block}
 .hvs{position:absolute;right:8px;bottom:8px;font-size:13px;padding:3px 7px;border-radius:99px;background:rgba(0,0,0,.55);pointer-events:none}
-.hvw:hover{outline:2px solid #8a9dff;outline-offset:-2px}
+.hvw:hover{outline:2px solid #a294d8;outline-offset:-2px}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -190,7 +190,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
   </div>
   <div class="nf2">
    <label class="drop" id="dropc"><input type="file" id="fc" accept="video/*,.mov,.mp4,.m4v" multiple hidden><b>🎞 Wybierz klipy</b><span id="fcl">każdy posiłek = osobny klip, kolejność ustali się po godzinie nagrania</span></label>
-   <label class="drop has"><input type="checkbox" id="kd" checked style="accent-color:#6e8bff;width:18px;height:18px"><b>🖼 Karty posiłków z Dziennika</b><span>Jak dotąd: karty z posiłków wpisanych w dzienniku i tytuł z Twoim celem kcal. Po wysłaniu klipów otworzy się na chwilę Dziennik, zrobi karty i sam uruchomi montaż.</span></label>
+   <label class="drop has"><input type="checkbox" id="kd" checked style="accent-color:#8b7cc7;width:18px;height:18px"><b>🖼 Karty posiłków z Dziennika</b><span>Jak dotąd: karty z posiłków wpisanych w dzienniku i tytuł z Twoim celem kcal. Po wysłaniu klipów otworzy się na chwilę Dziennik, zrobi karty i sam uruchomi montaż.</span></label>
   </div>
   <div class="row"><button class="btn pri" id="go" disabled>✂️ Zmontuj</button><button class="btn" id="cancel">Anuluj</button><span class="mut" id="up"></span></div>
  </section>
@@ -201,7 +201,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
     <label>Klipy<span id="vsrc" class="mut" style="font-size:13px;padding-top:9px"></span></label></div>
    <div class="nf2"><label class="drop" id="vdrop"><input type="file" id="vf" accept="video/*,image/*,.mov,.mp4,.m4v,.png,.jpg,.jpeg" multiple hidden><b>📤 Wyślij klipy z telefonu (opcjonalnie)</b><span id="vfl">albo wrzuć je na Macu do _SUROWE/vlog – tak jak dotąd</span></label>
     <label class="drop vonly" id="pdrop"><input type="file" id="pf" accept="video/*,.mov,.mp4,.m4v" multiple hidden><b>💪 Pozowanie – update formy (opcjonalnie)</b><span id="pfl">klipy z pozowania – wejdą jako blok „UPDATE FORMY” przed podsumowaniem (na Macu: nazwij je poz_…)</span></label>
-    <label class="drop vonly"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="vvo" style="accent-color:#6e8bff;width:18px;height:18px"><b>Dogrywam dziś głos do klipów bez mowy</b></span><span>Tak – klipy bez mowy w normalnej prędkości, do 8 s, każdy na cały ekran. Nie – jak zwykle (przyspieszone, w parach).</span></label></div>
+    <label class="drop vonly"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="vvo" style="accent-color:#8b7cc7;width:18px;height:18px"><b>Dogrywam dziś głos do klipów bez mowy</b></span><span>Tak – klipy bez mowy w normalnej prędkości, do 8 s, każdy na cały ekran. Nie – jak zwykle (przyspieszone, w parach).</span></label></div>
    <div class="row"><button class="btn pri" id="vgo">🎥 Zmontuj odcinek</button><button class="btn" id="vcancel">Anuluj</button><span class="mut" id="vup"></span></div>
   </div>
  </section>
@@ -564,7 +564,7 @@ load();setInterval(load,15000);
  let tm=0;async function load(){const r=await fetch('/api/grafiki').then(r=>r.json()).catch(()=>null);if(!r)return;
   $g('gmac').textContent=r.mac_online?'Mac online':'Mac offline – zrobi, gdy się włączy';
   $g('gjobs').innerHTML=r.jobs.slice(0,10).map(j=>{const s=SN[j.state]||[j.state,''];return `<div class="gj"><div class="h"><b>${TN[j.type]||j.type}</b><small>${esc(sum(j))}</small><span class="st ${s[1]}">${s[0]}</span></div>
-   ${j.state!=='done'?`<div class="fl">${esc(j.error||j.step||'')}${j.state==='error'?` · <a href="#" data-retry="${j.id}" style="color:#a9b8ff">Ponów</a>`:''}</div>`:''}
+   ${j.state!=='done'?`<div class="fl">${esc(j.error||j.step||'')}${j.state==='error'?` · <a href="#" data-retry="${j.id}" style="color:#c9c2e3">Ponów</a>`:''}</div>`:''}
    ${j.previews?`<div class="pv">${Array.from({length:j.previews},(_,i)=>`<img src="/api/grafiki/${j.id}/preview/${i}" loading="lazy" alt="">`).join('')}</div>`:''}
    ${j.files?.length?`<div class="fl">Na Macu: Animacje vlog YT / ${j.files.map(esc).join(', ')}</div>`:''}</div>`}).join('');
   clearTimeout(tm);if(r.jobs.some(j=>!['done','error'].includes(j.state)))tm=setTimeout(load,5000)}

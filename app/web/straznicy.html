@@ -184,7 +184,7 @@ load();setInterval(load,30000);
  const add=(m,x,y,z,p=scene)=>{m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;p.add(m);return m};
  const B=(w,h,d,m,x,y,z,p)=>add(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m),x,y+h/2,z,p);
  scene.add(new THREE.HemisphereLight(0xb9adff,0x07080d,.45));const s=new THREE.DirectionalLight(0xc9bcff,.45);s.position.set(6,14,10);s.castShadow=true;s.shadow.mapSize.set(1024,1024);Object.assign(s.shadow.camera,{left:-14,right:14,top:14,bottom:-14});scene.add(s);
- const fl=document.createElement('canvas');fl.width=fl.height=256;{const x=fl.getContext('2d');x.fillStyle='#12131c';x.fillRect(0,0,256,256);x.strokeStyle='rgba(110,139,255,.16)';x.lineWidth=2;for(let i=0;i<=8;i++){x.beginPath();x.moveTo(i*32,0);x.lineTo(i*32,256);x.stroke();x.beginPath();x.moveTo(0,i*32);x.lineTo(256,i*32);x.stroke()}}
+ const fl=document.createElement('canvas');fl.width=fl.height=256;{const x=fl.getContext('2d');x.fillStyle='#12131c';x.fillRect(0,0,256,256);x.strokeStyle='rgba(139,124,199,.16)';x.lineWidth=2;for(let i=0;i<=8;i++){x.beginPath();x.moveTo(i*32,0);x.lineTo(i*32,256);x.stroke();x.beginPath();x.moveTo(0,i*32);x.lineTo(256,i*32);x.stroke()}}
  const ft=new THREE.CanvasTexture(fl);ft.wrapS=ft.wrapT=THREE.RepeatWrapping;ft.repeat.set(4,3);
  B(18,.2,13,new THREE.MeshStandardMaterial({map:ft,roughness:.55,metalness:.2}),0,-.2,0);B(18,6.6,.3,M('#161724',{r:.8}),0,0,-6.6);B(.3,6.6,13,M('#161724',{r:.8}),-9,0,0);
  // łukowy pulpit operatorów
@@ -198,7 +198,7 @@ load();setInterval(load,30000);
  // makieta systemów
  B(4,.85,2.4,M('#20252f',{m:.3,r:.4}),5.2,0,4.4);const tb=add(new THREE.Mesh(new THREE.BoxGeometry(3.7,.04,2.1),new THREE.MeshBasicMaterial({color:'#0b2a3a'})),5.2,.88,4.4);
  const pins=[];for(let i=0;i<8;i++){const x=4+(i%4)*.8,z=3.9+Math.floor(i/4)*1,h=.2+((i*7)%5)*.1;B(.4,h,.4,M('#5a6480',{e:'#1a2a40',ei:.4}),x,.88,z);pins.push(add(new THREE.Mesh(new THREE.SphereGeometry(.08,10,8),new THREE.MeshBasicMaterial({color:'#3ddc84'})),x,.88+h+.14,z))}
- for(let i=0;i<4;i++){const l=add(new THREE.Mesh(new THREE.BoxGeometry(14,.04,.08),new THREE.MeshBasicMaterial({color:'#6e8bff'})),0,6.4,-5+i*3);l.castShadow=false}
+ for(let i=0;i<4;i++){const l=add(new THREE.Mesh(new THREE.BoxGeometry(14,.04,.08),new THREE.MeshBasicMaterial({color:'#8b7cc7'})),0,6.4,-5+i*3);l.castShadow=false}
  [-6,0,6].forEach(x=>{const p=new THREE.PointLight(0x8f7bff,.9,8,2);p.position.set(x,5.2,1);scene.add(p)});const wl=new THREE.PointLight(0x8f7bff,1.3,12,2);wl.position.set(0,3,-4.5);scene.add(wl);
  // ściana ekranów – jeden ekran na strażnika
  let mons=[];const COL={ok:'#3ddc84',warn:'#f5b25a',fail:'#ff5c6c',idle:'#6b7088'};
