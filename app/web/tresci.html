@@ -189,8 +189,9 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 let D=null,M=null,V='w',W=null;try{V=localStorage.getItem('tresci-v')||'w';W=localStorage.getItem('tresci-w')}catch(e){}
 const now=new Date();
 function wkStart(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function rollStart(){const x=new Date(now.getFullYear(),now.getMonth(),now.getDate());x.setDate(x.getDate()-1);return x}   // tydzień „ruchomy”: wczoraj + dziś + 5 dni
 function pd(k){const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
-if(!W)W=ds(wkStart(now));try{M=localStorage.getItem('tresci-m')}catch(e){}if(!M)M=ym(now);
+W=ds(rollStart());try{M=localStorage.getItem('tresci-m')}catch(e){}if(!M)M=ym(now);
 function ym(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function ds(d){return ym(d)+'-'+String(d.getDate()).padStart(2,'0')}
 const dayOf=t=>ds(new Date(t*1000));
@@ -219,7 +220,7 @@ function draw(){
  if(V==='w'){const s0=pd(W),e0=new Date(s0);e0.setDate(s0.getDate()+6);
   const f=(d,o)=>d.toLocaleDateString('pl-PL',o);$('mn').classList.remove('cap');
   $('mn').textContent=s0.getMonth()===e0.getMonth()?`${s0.getDate()}–${f(e0,{day:'numeric',month:'long'})}`:`${f(s0,{day:'numeric',month:'short'})} – ${f(e0,{day:'numeric',month:'short'})}`;
-  $('td').classList.toggle('hide',W===ds(wkStart(now)));
+  $('td').classList.toggle('hide',W===ds(rollStart()));
   h='<div class="wk">';for(let i=0;i<7;i++){const d=new Date(s0);d.setDate(s0.getDate()+i);days.push(ds(d));h+=cell(d,by,today,false)}h+='</div>';
  }else{const [y,m]=M.split('-').map(Number),first=new Date(y,m-1,1);
   $('mn').classList.add('cap');$('mn').textContent=first.toLocaleDateString('pl-PL',{month:'long',year:'numeric'});$('td').classList.toggle('hide',M===ym(now));
@@ -227,7 +228,7 @@ function draw(){
   for(let w=0;w<6;w++){const d0=new Date(start);d0.setDate(start.getDate()+w*7);if(w>=4&&d0.getMonth()!==m-1&&d0>first)break;
    h+='<div class="wk">';for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+w*7+i);if(d.getMonth()===m-1)days.push(ds(d));h+=cell(d,by,today,d.getMonth()!==m-1)}h+='</div>'}}
  $('grid').innerHTML=h;
- const dn=['pon','wt','śr','czw','pt','sob','nd'],tdi=(now.getDay()+6)%7,showT=V==='w'?W===ds(wkStart(now)):M===ym(now);
+ const dn=['pon','wt','śr','czw','pt','sob','nd'],tdi=(now.getDay()+6)%7,showT=V==='w'?W===ds(rollStart()):M===ym(now);
  $('wd').innerHTML=dn.map((n,i)=>{if(V!=='w')return `<div class="${M===ym(now)&&i===tdi?'td':''}">${n}</div>`;const d=pd(W);d.setDate(d.getDate()+i);return `<div class="${ds(d)===today?'td':''}">${n} ${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</div>`}).join('');
  stat(days,by);
  const bank=D.ideas.filter(i=>!i.day&&i.stage!=='opublikowane');
@@ -313,8 +314,8 @@ document.addEventListener('click',e=>{if(Date.now()-suppress<300)return;
  const ch=e.target.closest('.ch,.cd');if(!ch)return;
  if(ch.classList.contains('idea'))openIdea(D.ideas.find(i=>i.id===ch.dataset.id));else openPost(D.posts.find(p=>p.id===ch.dataset.id))});
 $('pv').onclick=()=>shift(-1);$('nx').onclick=()=>shift(1);$('nw').onclick=()=>openIdea({});
-$('td').onclick=()=>{W=ds(wkStart(now));M=ym(now);save();load().then(()=>{const c=document.querySelector('.c.today');if(c){c.scrollIntoView({block:'nearest',behavior:'smooth'});c.animate&&c.animate([{boxShadow:'0 0 0 3px #8b7cc7'},{boxShadow:'0 0 0 0 transparent'}],{duration:1200})}})};
-$('vw').onclick=async e=>{const b=e.target.closest('button');if(!b||b.dataset.v===V)return;V=b.dataset.v;document.querySelectorAll('#vw button').forEach(x=>x.classList.toggle('on',x===b));pill();const g=$('grid');g.classList.remove('sw-in');g.classList.add('sw-out');await new Promise(r=>setTimeout(r,160));if(V==='m')M=pd(W).getDate()>24?ym(new Date(pd(W).getTime()+6*864e5)):W.slice(0,7);else{const t=ds(now);W=t.slice(0,7)===M?ds(wkStart(now)):ds(wkStart(pd(M+'-01')))}save();await load();g.classList.remove('sw-out');void g.offsetWidth;g.classList.add('sw-in');setTimeout(()=>g.classList.remove('sw-in'),400)};
+$('td').onclick=()=>{W=ds(rollStart());M=ym(now);save();load().then(()=>{const c=document.querySelector('.c.today');if(c){c.scrollIntoView({block:'nearest',behavior:'smooth'});c.animate&&c.animate([{boxShadow:'0 0 0 3px #8b7cc7'},{boxShadow:'0 0 0 0 transparent'}],{duration:1200})}})};
+$('vw').onclick=async e=>{const b=e.target.closest('button');if(!b||b.dataset.v===V)return;V=b.dataset.v;document.querySelectorAll('#vw button').forEach(x=>x.classList.toggle('on',x===b));pill();const g=$('grid');g.classList.remove('sw-in');g.classList.add('sw-out');await new Promise(r=>setTimeout(r,160));if(V==='m')M=pd(W).getDate()>24?ym(new Date(pd(W).getTime()+6*864e5)):W.slice(0,7);else{const t=ds(now);W=t.slice(0,7)===M?ds(rollStart()):ds(pd(M+'-01'))}save();await load();g.classList.remove('sw-out');void g.offsetWidth;g.classList.add('sw-in');setTimeout(()=>g.classList.remove('sw-in'),400)};
 function shift(n){if(V==='w'){const d=pd(W);d.setDate(d.getDate()+7*n);W=ds(d)}else{const[y,m]=M.split('-').map(Number);M=ym(new Date(y,m-1+n,1))}save();load()}
 function save(){try{localStorage.setItem('tresci-m',M);localStorage.setItem('tresci-v',V);localStorage.setItem('tresci-w',W)}catch(e){}}
 const closeM=()=>$('mb').classList.remove('on');$('mb').onclick=e=>{if(e.target===$("mb"))closeM()};
@@ -417,7 +418,9 @@ function openIdea(i){i=i||{};const isNew=!i.id;
  if($('dl'))$('dl').onclick=async()=>{if(!confirm('Usunąć ten pomysł?'))return;await api('/api/tresci/idea/'+i.id+'/delete',{});closeM();load()};
 }
 load();
-setInterval(()=>{if(!document.hidden&&!$('mb').classList.contains('on')&&!drag)load(true)},60000);
+const DAY0=ds(new Date());
+setInterval(()=>{if(ds(new Date())!==DAY0&&!$('mb').classList.contains('on')&&!drag){location.reload();return}   // nowy dzień → tydzień przesuwa się o 1
+ if(!document.hidden&&!$('mb').classList.contains('on')&&!drag)load(true)},60000);
 </script>
 </body>
 </html>
