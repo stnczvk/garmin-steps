@@ -130,7 +130,6 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .c .add2{margin-top:auto;border:1px dashed var(--line);background:none;color:var(--soft);border-radius:10px;padding:7px;font:500 12px Geist,system-ui;cursor:pointer;opacity:0;transition:opacity .15s}
 .c:hover .add2{opacity:1}
 @media(max-width:760px){.cal.wkv .c .n b{visibility:visible}.bar .mn{min-width:0;font-size:15px}.bar .ib.pri{margin-left:auto}.cal.wkv .c{min-height:0}.cal.wkv .c.nil{display:flex}.c .add2{opacity:1}.cal.wkv .c .add2{padding:6px}.stat .nx{flex-basis:100%}}
-.more3{border:0;background:none;color:#a9b8ff;font:600 11.5px Geist,system-ui;text-align:left;padding:3px 6px;cursor:pointer;border-radius:8px}.more3:hover{background:var(--v3-s3)}
 @media(max-width:1180px){
  .cal.wkv .wd{display:none}.cal.wkv .wk{grid-template-columns:1fr}.cal.wkv .c{min-height:0}.cal.wkv .c.nil{display:flex}
  .cal.wkv .c .n b{visibility:visible}.c .n .dl{display:inline}
@@ -222,7 +221,7 @@ function draw(){
 function cell(d,by,today,out){if(out)return '<div class="c blank" aria-hidden="true"></div>';const k=ds(d),L=by[k]||[],big=V==='w';
  const cls=['c',out?'out':'',k===today?'today':'',k<today?'past':'',L.length?'':'nil'].join(' ');
  return `<div class="${cls}" data-day="${k}"><div class="n"><b>${d.getDate()}<span class="dl"> · ${d.toLocaleDateString('pl-PL',{weekday:'long'})}</span></b><span class="tdl">DZIŚ</span><button class="add" data-add="${k}" title="Dodaj pomysł">+</button></div>`+
-  (big?L.map(x=>x.t==='i'?ideaCd(x.o):postCd(x.o)).join(''):(L.length>4?L.slice(0,3).map(x=>x.t==='i'?ideaCh(x.o):postCh(x.o)).join('')+`<button class="more3" data-week="${k}">+${L.length-3} więcej</button>`:L.map(x=>x.t==='i'?ideaCh(x.o):postCh(x.o)).join('')))+
+  L.map(x=>x.t==='i'?(big?ideaCd(x.o):ideaCh(x.o)):(big?postCd(x.o):postCh(x.o))).join('')+
   (k>=today?`<button class="add2" data-add="${k}">+ pomysł na ten dzień</button>`:'')+'</div>'}
 function stat(days,by){const set=new Set(days);let c={draft:0,approved:0,published:0,idea:0};
  days.forEach(k=>(by[k]||[]).forEach(x=>{if(x.t==='i')c.idea++;else if(x.o.status==='draft')c.draft++;else if(x.o.status==='published')c.published++;else c.approved++}));
@@ -285,7 +284,6 @@ document.addEventListener('pointerup',end);document.addEventListener('pointercan
 // ---------- kliknięcia ----------
 document.addEventListener('click',e=>{if(Date.now()-suppress<300)return;
  const a=e.target.closest('[data-add]');if(a){openIdea({day:a.dataset.add});return}
- const wk=e.target.closest('[data-week]');if(wk){V='w';W=ds(wkStart(pd(wk.dataset.week)));save();load();return}
  const ch=e.target.closest('.ch,.cd');if(!ch)return;
  if(ch.classList.contains('idea'))openIdea(D.ideas.find(i=>i.id===ch.dataset.id));else openPost(D.posts.find(p=>p.id===ch.dataset.id))});
 $('pv').onclick=()=>shift(-1);$('nx').onclick=()=>shift(1);$('nw').onclick=()=>openIdea({});
