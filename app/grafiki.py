@@ -12,7 +12,7 @@ router = APIRouter()
 F = "grafiki.json"
 DIR = ROOT / "grafiki_prev"
 _lk = threading.RLock()
-TYPES = {"dni", "napis", "miniatura"}
+TYPES = {"dni", "napis", "miniatura", "godzina"}
 
 
 def _tok(req):
@@ -53,9 +53,12 @@ async def api_new(req: Request):
         return {"ok": False, "error": "nieznany rodzaj"}
     if tp in ("napis", "miniatura") and not str(b.get("text", "")).strip():
         return {"ok": False, "error": "Wpisz tekst."}
+    if tp == "godzina" and not str(b.get("times", "")).strip():
+        return {"ok": False, "error": "Wpisz godziny, np. 7:30 Pobudka."}
     if tp == "dni" and not b.get("start"):
         return {"ok": False, "error": "Wybierz datę."}
-    keep = {"dni": ("start", "days"), "napis": ("text", "small", "kind"), "miniatura": ("text", "sub", "tag")}[tp]
+    keep = {"dni": ("start", "days"), "napis": ("text", "small", "kind"), "miniatura": ("text", "sub", "tag", "layout", "accent", "count"),
+            "godzina": ("times", "style")}[tp]
     j = {"id": secrets.token_hex(4), "type": tp, "params": {k: b.get(k) for k in keep if b.get(k) not in (None, "")},
          "state": "queued", "step": "czeka na Maca", "created": time.time(), "files": [], "previews": 0}
     with _lk:
