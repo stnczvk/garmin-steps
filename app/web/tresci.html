@@ -56,7 +56,11 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .bignum{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px}.bignum b{font-size:28px;font-weight:750;letter-spacing:-.02em}.bignum small{color:var(--soft);font-size:12.5px}
 .chart{position:relative;height:110px;display:flex;align-items:flex-end;gap:4px;padding:6px 0 0;margin:6px 0 4px}
 .chart .base{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in srgb,var(--soft) 55%,transparent)}.chart .base span{position:absolute;right:0;top:-15px;font-size:10px;color:var(--soft)}
-.chart a{flex:1;min-width:0;border-radius:5px 5px 2px 2px;position:relative;transition:filter .15s;display:block}.chart a:hover{filter:brightness(1.3)}
+.ctip{position:absolute;bottom:calc(100% + 8px);left:0;z-index:5;width:230px;display:flex;gap:9px;padding:9px;border-radius:12px;background:var(--v3-s3);border:1px solid var(--line);box-shadow:0 14px 34px -10px rgba(0,0,0,.6);opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .15s,transform .15s,left .15s}
+.ctip.on{opacity:1;transform:none}.ctip img{width:38px;height:54px;border-radius:7px;object-fit:cover;flex:none;background:#000}.ctip>div{min-width:0;display:grid;gap:3px}
+.ctip b{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ctip small{color:var(--soft);font-size:11px}.ctip .cv{display:flex;gap:7px;align-items:center;font-size:11.5px;color:var(--soft);flex-wrap:wrap}.ctip .cv .rel{font-size:11px}
+.chart.hov a:not(.on){opacity:.35!important}.chart a.on{filter:brightness(1.25)}
+.chart a{flex:1;min-width:0;border-radius:5px 5px 2px 2px;position:relative;transition:filter .15s,opacity .15s;display:block}.chart a:hover{filter:brightness(1.3)}
 .cx{display:flex;justify-content:space-between;font-size:10.5px;color:var(--soft);margin-bottom:12px}
 .lst h4{margin:12px 0 4px;font-size:11px;font-weight:650;color:var(--soft);text-transform:uppercase;letter-spacing:.06em}
 .ro{display:flex;gap:9px;align-items:center;padding:6px;border-radius:11px;text-decoration:none;color:inherit}
@@ -231,6 +235,15 @@ function cell(d,by,today,out){const k=ds(d),L=by[k]||[],big=V==='w';
  return `<div class="${cls}" data-day="${k}"><div class="n"><b>${d.getDate()}<span class="dl"> · ${d.toLocaleDateString('pl-PL',{weekday:'long'})}</span></b><span class="tdl">DZIŚ</span><button class="add" data-add="${k}" title="Dodaj pomysł">+</button></div>`+
   L.map(x=>x.t==='i'?(big?ideaCd(x.o):ideaCh(x.o)):(big?postCd(x.o):postCh(x.o))).join('')+
   (k>=today?`<button class="add2" data-add="${k}">+ pomysł na ten dzień</button>`:'')+'</div>'}
+function chartTip(C){const ch=document.querySelector('#res .chart'),tip=$('ctip');if(!ch)return;let cur=-1;
+ const show=a=>{const i=+a.dataset.ci,r=C[i];if(!r)return;cur=i;ch.classList.add('hov');ch.querySelectorAll('a').forEach(x=>x.classList.toggle('on',x===a));
+  const dt=new Date(r.t*1000).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
+  tip.innerHTML=`${r.thumb?`<img src="${esc(r.thumb)}" alt="">`:''}<div><b>${esc(r.title||'(bez opisu)')}</b><small>${PL[r.platform]||r.platform} · ${dt}</small><div class="cv"><span class="rel ${relC(r.rel)}">${r.rel.toFixed(2)}×${r.fresh?'…':''}</span><span>${r.views.toLocaleString('pl-PL')} wyśw.</span>${r.likes?`<span>♥ ${r.likes.toLocaleString('pl-PL')}</span>`:''}</div>${r.fresh?'<small>świeży – liczby jeszcze rosną</small>':''}</div>`;
+  tip.classList.add('on');const cw=ch.clientWidth,tw=tip.offsetWidth,x=a.offsetLeft+a.offsetWidth/2;tip.style.left=Math.max(0,Math.min(cw-tw,x-tw/2))+'px'};
+ const hide=()=>{cur=-1;ch.classList.remove('hov');tip.classList.remove('on');ch.querySelectorAll('a.on').forEach(x=>x.classList.remove('on'))};
+ ch.querySelectorAll('a').forEach(a=>{a.addEventListener('mouseenter',()=>show(a));a.addEventListener('focus',()=>show(a));
+  a.addEventListener('click',e=>{if(matchMedia('(hover:none)').matches&&cur!==+a.dataset.ci){e.preventDefault();show(a)}})});
+ ch.addEventListener('mouseleave',hide)}
 function stat(days,by){const set=new Set(days);let c={draft:0,approved:0,published:0,idea:0};
  days.forEach(k=>(by[k]||[]).forEach(x=>{if(x.t==='i')c.idea++;else if(x.o.status==='draft')c.draft++;else if(x.o.status==='published')c.published++;else c.approved++}));
  const nx=D.posts.filter(p=>p.status!=='published'&&p.t>Date.now()/1000).sort((a,b)=>a.t-b.t)[0];
@@ -259,9 +272,10 @@ function res(){const now_=Date.now()/1000,R=(D.results||[]).filter(r=>r.rel!=nul
  const col=r=>r.rel>=1.5?'#3ddc84':r.rel<0.7?'#ff6b7a':'#8b7cc7';
  const row=r=>`<a class="ro" href="${esc(r.url)}" target="_blank" rel="noopener">${r.thumb?`<img src="${esc(r.thumb)}" loading="lazy" alt="">`:'<img alt="">'}<div class="m"><b>${esc(r.title||'(bez opisu)')}</b><small>${PL[r.platform]||r.platform} · ${new Date(r.t*1000).toLocaleDateString('pl-PL',{day:'numeric',month:'short'})} · ${r.views.toLocaleString('pl-PL')} wyśw.</small></div><div class="bx">${relB(r.rel,r.fresh)}</div></a>`;
  const srt=[...old].sort((a,b)=>b.rel-a.rel);
- $('res').innerHTML=`<div class="chart"><div class="base" style="bottom:${H/mx}px"><span>norma 1×</span></div>${C.map(r=>`<a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc((r.title||'').slice(0,60))} · ${r.rel}× · ${r.views.toLocaleString('pl-PL')} wyśw." style="height:${Math.max(4,Math.min(r.rel,mx)/mx*H)}px;background:${col(r)};opacity:${r.fresh?.5:1}">${r.rel>mx?`<span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#5fe39b">${Math.round(r.rel)}×</span>`:''}</a>`).join('')}</div>
+ $('res').innerHTML=`<div class="chart"><div class="base" style="bottom:${H/mx}px"><span>norma 1×</span></div><div class="ctip" id="ctip"></div>${C.map((r,i)=>`<a href="${esc(r.url)}" target="_blank" rel="noopener" data-ci="${i}" style="height:${Math.max(4,Math.min(r.rel,mx)/mx*H)}px;background:${col(r)};opacity:${r.fresh?.5:1}">${r.rel>mx?`<span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#5fe39b">${Math.round(r.rel)}×</span>`:''}</a>`).join('')}</div>
   <div class="cx"><span>starsze</span><span>${C.length} ostatnich postów</span><span>nowsze</span></div>
   <div class="lst"><h4>🔥 Najlepsze</h4>${srt.slice(0,3).map(row).join('')}${srt.length>4?`<h4>Najsłabsze</h4>${srt.slice(-2).reverse().map(row).join('')}`:''}</div>`;
+ chartTip(C);
 }
 
 // ---------- przeciąganie (mysz + dotyk: przytrzymaj) ----------
