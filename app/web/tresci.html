@@ -200,7 +200,11 @@ async function api(u,b){try{const r=await fetch(u,b===undefined?{}:{method:'POST
 const relC=r=>r==null?'':r>=1.5?'hi':r<0.7?'lo':'mid';
 const relB=(r,f)=>r==null?'':`<span class="rel ${relC(r)}" title="${f?'Świeży post – liczby jeszcze rosną':'Wyświetlenia względem mediany konta'}">${r.toFixed(1)}×${f?'…':''}</span>`;
 
-async function load(){const r=await api('/api/tresci?month='+(V==='w'?W.slice(0,7):M));if(!r||!r.ideas){$('grid').innerHTML='<p style="padding:30px;color:var(--soft)">Nie udało się wczytać.</p>';return}D=r;draw()}
+let SIG='';
+async function load(bg){const r=await api('/api/tresci?month='+(V==='w'?W.slice(0,7):M));
+ if(!r||!r.ideas){if(!bg)$('grid').innerHTML='<p style="padding:30px;color:var(--soft)">Nie udało się wczytać.</p>';return}
+ // odświeżanie w tle: rysujemy od nowa tylko, gdy coś się zmieniło (inaczej miniatury przeładowywały się i ekran migał)
+ const sig=JSON.stringify([V,W,M,r.ideas,r.posts,r.results]);if(bg&&sig===SIG)return;SIG=sig;D=r;draw()}
 const STP={draft:['Do zatwierdzenia','#ffc24b'],approved:['Zaplanowany','#8b7cc7'],publishing:['Publikuje się…','#c9c2e3'],published:['Opublikowany','#3ddc84'],error:['Błąd publikacji','#ff6b7a']};
 let pillInit=false;function pill(){const on=document.querySelector('#vw button.on'),p=document.querySelector('#vw .pill');if(!on||!p)return;if(!pillInit)p.style.transition='none';p.style.width=on.offsetWidth+'px';p.style.transform=`translateX(${on.offsetLeft-3}px)`;if(!pillInit){void p.offsetWidth;p.style.transition='';pillInit=true}}
 addEventListener('resize',()=>{pillInit=false;pill()});document.fonts&&document.fonts.ready.then(()=>{pillInit=false;pill()});
@@ -390,7 +394,7 @@ function openIdea(i){i=i||{};const isNew=!i.id;
  if($('dl'))$('dl').onclick=async()=>{if(!confirm('Usunąć ten pomysł?'))return;await api('/api/tresci/idea/'+i.id+'/delete',{});closeM();load()};
 }
 load();
-setInterval(()=>{if(!document.hidden&&!$('mb').classList.contains('on')&&!drag)load()},60000);
+setInterval(()=>{if(!document.hidden&&!$('mb').classList.contains('on')&&!drag)load(true)},60000);
 </script>
 </body>
 </html>
