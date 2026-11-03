@@ -479,9 +479,9 @@ async def hook_redakcja(req: Request, key: str = ""):
             "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
             "messages": [{"role": "user", "content": prompt}]}
     r, err = None, ""
-    for _ in range(2):
+    for _ in range(3):      # długi dzień = długa odpowiedź; 300 s potrafiło nie wystarczyć → zapasowy model psuł cięcia
         try:
-            async with httpx.AsyncClient(timeout=300, trust_env=False, http2=False) as c:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(600, connect=30), trust_env=False, http2=False) as c:
                 r = await c.post(os.environ.get("ANTHROPIC_URL", "https://api.anthropic.com/v1/messages"),
                                  content=json.dumps(body, ensure_ascii=False).encode("utf-8"),
                                  headers={"x-api-key": API_KEY.strip(), "anthropic-version": "2023-06-01",
@@ -493,6 +493,7 @@ async def hook_redakcja(req: Request, key: str = ""):
             break
         await asyncio.sleep(5)
     if r is None or r.status_code != 200:
+        print("redakcja: Claude nie odpowiedział –", (f"{r.status_code}: {r.text[:300]}" if r is not None else err[:300]), flush=True)
         # zapas: Groq (ten sam klucz co do transkrypcji w montażu daily)
         gk = _mz_env().get("GROQ_API_KEY")
         if gk:
