@@ -335,13 +335,15 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
   if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;
   var st=document.createElement('style');
   st.textContent='.krip{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,.35);transform:scale(0);opacity:1;animation:krip .55s ease-out forwards}@keyframes krip{to{transform:scale(1);opacity:0}}'+
-  '.t>h3 .hi,.qa button .hi{transition:transform .35s cubic-bezier(.2,.9,.3,1.2),box-shadow .35s}'+
-  '.t:hover>h3 .hi,.qa button:hover .hi{transform:translateY(-1px) scale(1.06);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#8b7cc7) 16%,transparent),0 8px 20px -8px var(--c,#8b7cc7)}'+
+  ':is(h1,h2,h3) :is(.hi,.hx),.qa button .hi{transition:transform .35s cubic-bezier(.2,.9,.3,1.2),box-shadow .35s}'+
+  ':is(.t,.glass,.card,.pn,.sec,.box,section,.gj):hover>:is(h2,h3) :is(.hi,.hx),h1:hover :is(.hi,.hx),.qa button:hover .hi{transform:translateY(-1px) scale(1.06);box-shadow:0 0 0 4px color-mix(in srgb,var(--c,#8b7cc7) 16%,transparent),0 8px 20px -8px var(--c,#8b7cc7)}'+
   '@keyframes kre{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}'+
-  '.t:hover>h3 .hi svg .kpl,.qa button:hover .hi svg .kpl,#snav button:hover i svg .kpl{stroke-dasharray:1;animation:kre .6s cubic-bezier(.4,0,.2,1)}';
-  var mark=function(){document.querySelectorAll('.t>h3 .hi svg,.qa .hi svg,#snav i svg').forEach(function(v){if(v.dataset.kpl)return;v.dataset.kpl=1;
+  ':is(.t,.glass,.card,.pn,.sec,.box,section,.gj):hover>:is(h2,h3) :is(.hi,.hx) svg .kpl,h1:hover :is(.hi,.hx) svg .kpl,.qa button:hover .hi svg .kpl,#snav button:hover i svg .kpl{stroke-dasharray:1;animation:kre .6s cubic-bezier(.4,0,.2,1)}';
+  var mark=function(root){(root||document).querySelectorAll(':is(h1,h2,h3) :is(.hi,.hx) svg,.qa .hi svg,#snav i svg').forEach(function(v){if(v.dataset.kpl)return;v.dataset.kpl=1;
     v.querySelectorAll('path,line,polyline,polygon,rect,circle').forEach(function(e){if(e.getAttribute('fill')&&e.getAttribute('fill')!=='none')return;e.setAttribute('pathLength','1');e.classList.add('kpl')})})};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){mark();setTimeout(mark,1500)});else{mark();setTimeout(mark,1500)}
+  // ikonki dorysowane później (np. po wczytaniu danych) – oznaczamy przy pierwszym najechaniu na kartę
+  var lastC=null;document.addEventListener('pointerover',function(e){var c=e.target.closest&&e.target.closest('.t,.glass,.card,.pn,.sec,.box,section,.gj,h1');if(c&&c!==lastC){lastC=c;mark(c)}},{passive:true});
   (document.head||document.documentElement).appendChild(st);
   document.addEventListener('pointerdown',function(e){var b=e.target.closest&&e.target.closest('.btn,.qa button,.kbtn');if(!b)return;
     var r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2,s=document.createElement('span');s.className='krip';
