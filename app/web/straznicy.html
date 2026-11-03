@@ -37,11 +37,11 @@ body{background:transparent}
 .dot:hover{transform:translateY(-3px)}
 .orb{--c:var(--idle);width:64px;height:64px;border-radius:50%;position:relative;display:grid;place-items:center;font-size:26px;
  background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.55),transparent 38%),radial-gradient(circle at 50% 60%,var(--c),color-mix(in oklab,var(--c) 40%,#000) 75%);
- box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 8px 26px -6px var(--c),0 0 32px -6px var(--c);animation:breathe 4s ease-in-out infinite}
-.orb:after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--c);opacity:0;animation:wave 4s ease-out infinite}
+ box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 8px 26px -6px var(--c),0 0 32px -6px var(--c);animation:breathe 4s ease-in-out infinite;animation-delay:var(--ad,0s);will-change:transform}
+.orb:after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--c);opacity:0;animation:wave 4s ease-out infinite;animation-delay:var(--ad,0s)}
 .orb span{filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
-.ok .orb{--c:var(--ok)}.warn .orb{--c:var(--warn);animation-duration:2.2s}.fail .orb{--c:var(--fail);animation-duration:1.1s}.idle .orb{--c:var(--idle);animation:none;opacity:.75}
-.warn .orb:after{animation-duration:2.2s}.fail .orb:after{animation-duration:1.1s}.idle .orb:after{display:none}
+.ok .orb{--c:var(--ok)}.warn .orb{--c:var(--warn);animation-duration:2.2s;animation-delay:var(--ad,0s)}.fail .orb{--c:var(--fail);animation-duration:1.1s;animation-delay:var(--ad,0s)}.idle .orb{--c:var(--idle);animation:none;opacity:.75}
+.warn .orb:after{animation-duration:2.2s;animation-delay:var(--ad,0s)}.fail .orb:after{animation-duration:1.1s;animation-delay:var(--ad,0s)}.idle .orb:after{display:none}
 @keyframes breathe{50%{transform:scale(1.06);box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 10px 30px -4px var(--c),0 0 46px -4px var(--c)}}
 @keyframes wave{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
 .dot b{font-size:14px}.dot small{font-size:11.5px;color:var(--soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.9em}
@@ -107,13 +107,21 @@ function ring(c){const tot=Object.values(c).reduce((a,b)=>a+b,0)||1,r=42,C=2*Mat
  const css=getComputedStyle(document.documentElement);
  $('ring').innerHTML=`<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="rgba(127,127,140,.18)" stroke-width="9"/>${seg(c.ok,css.getPropertyValue('--ok'))}${seg(c.warn,css.getPropertyValue('--warn'))}${seg(c.fail,css.getPropertyValue('--fail'))}${seg(c.idle,css.getPropertyValue('--idle'))}</svg><b>${c.ok}/${tot}</b>`}
 const hist=h=>`<div class="hist">${(h||[]).slice(-24).map(s=>`<i class="${s}"></i>`).join('')}</div>`;
-function render(){const G=D.guardians,c=D.count;ring(c);
+let _sig='';
+function render(){const G=D.guardians,c=D.count;
+ // przebudowa tylko, gdy coś się zmieniło – inaczej animacje kółek startowały od nowa co 30 s (skok)
+ const sig=JSON.stringify([c,G.map(g=>[g.id,g.status])]);
+ if(sig===_sig){G.forEach(g=>{const d=document.querySelector(`.dot[data-id="${g.id}"]`);if(!d)return;const sm=d.querySelector('small'),t=g.msg||'czeka na pierwsze sprawdzenie';if(sm.textContent!==t)sm.textContent=t;
+   const h=d.querySelector('.hist'),nh=hist(g.hist);if(h&&h.outerHTML!==nh)h.outerHTML=nh});return}
+ _sig=sig;ring(c);
  $('hd').textContent=c.fail?`${c.fail} ${pl(c.fail,'problem','problemy','problemów')} do sprawdzenia`:c.warn?'Prawie wszystko gra':'Wszystko gra';
  $('chips').innerHTML=['ok','warn','fail','idle'].filter(k=>c[k]).map(k=>`<span class="chip glass"><i style="background:var(--${k})"></i>${c[k]} ${CH[k](c[k])}</span>`).join('');
  const areas=[...new Set(G.map(g=>g.area))];
  $('areas').innerHTML=areas.map(a=>{const gs=G.filter(g=>g.area===a);return`<section class="area"><h2>${esc(gs[0].areaName)}</h2><div class="dots">${gs.map(g=>
   `<div class="dot glass ${g.status||'idle'}" data-id="${g.id}"><div class="orb"><span>${g.icon}</span></div><b>${esc(g.name)}</b><small>${esc(g.msg||'czeka na pierwsze sprawdzenie')}</small>${hist(g.hist)}</div>`).join('')}</div></section>`}).join('');
- document.querySelectorAll('.dot').forEach(d=>d.onclick=()=>open_(d.dataset.id))}
+ document.querySelectorAll('.dot').forEach(d=>d.onclick=()=>open_(d.dataset.id));phase()}
+// faza animacji liczona od wspólnego zegara: nowe kółka „oddychają” równo ze starymi, bez skoku
+function phase(){const now=Date.now();document.querySelectorAll('.orb').forEach(o=>{const d=parseFloat(getComputedStyle(o).animationDuration)*1000||4000;o.style.setProperty('--ad',`-${now%d}ms`)})}
 function open_(id){const g=D.guardians.find(x=>x.id===id);
  $('sh').innerHTML=`<button class="x" onclick="$('sheet').classList.remove('open')">×</button><div class="hd ${g.status||'idle'}"><div class="orb"><span>${g.icon}</span></div><div><h3>${esc(g.name)}</h3><div class="st">${LBL[g.status||'idle']} · od ${ago(g.since)} · sprawdzono ${ago(g.at)}</div></div></div>
   <p class="mut">Zadanie: ${esc(g.task)}</p><div class="msg">${esc(g.msg||'–')}</div>
