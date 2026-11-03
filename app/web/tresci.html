@@ -48,7 +48,16 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .bank{min-height:60px;border-radius:14px;border:1px dashed var(--line);padding:6px;display:flex;flex-direction:column;gap:4px;transition:background .15s}
 .bank .e{color:var(--soft);font-size:12px;text-align:center;padding:14px 6px}
 .res{display:flex;flex-direction:column;gap:2px;max-height:520px;overflow:auto}
+
+.nrm{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.nrm span{font-size:12px;background:var(--v3-s1);border:1px solid var(--line);border-radius:10px;padding:5px 9px;color:var(--soft)}.nrm b{color:var(--ink)}
+.big{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px}.big b{font-size:28px;font-weight:750;letter-spacing:-.02em}.big small{color:var(--soft);font-size:12.5px}
+.chart{position:relative;height:110px;display:flex;align-items:flex-end;gap:4px;padding:6px 0 0;margin:6px 0 4px}
+.chart .base{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in srgb,var(--soft) 55%,transparent)}.chart .base span{position:absolute;right:0;top:-15px;font-size:10px;color:var(--soft)}
+.chart a{flex:1;min-width:0;border-radius:5px 5px 2px 2px;position:relative;transition:filter .15s;display:block}.chart a:hover{filter:brightness(1.3)}
+.cx{display:flex;justify-content:space-between;font-size:10.5px;color:var(--soft);margin-bottom:12px}
+.lst h4{margin:12px 0 4px;font-size:11px;font-weight:650;color:var(--soft);text-transform:uppercase;letter-spacing:.06em}
 .ro{display:flex;gap:9px;align-items:center;padding:6px;border-radius:11px;text-decoration:none;color:inherit}
+
 .ro:hover{background:rgba(127,127,160,.08)}
 .ro img{width:30px;height:42px;border-radius:6px;object-fit:cover;flex:none;background:#000}
 .ro .m{flex:1;min-width:0}.ro b{display:block;font-size:12.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -98,15 +107,15 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .cal.wkv .c{min-height:280px;gap:6px;padding:8px}
 .cal.wkv .c .n b{visibility:hidden}.c .n .tdl{display:none;font-size:10px;font-weight:750;letter-spacing:.06em;background:#6e8bff;color:#fff;border-radius:6px;padding:1px 6px}
 .c.today .n .tdl{display:inline-block}
-.cd{border-radius:12px;padding:8px;cursor:pointer;background:var(--v3-s3);border:1px solid transparent;display:flex;gap:8px;user-select:none;-webkit-user-select:none;touch-action:pan-y;position:relative;min-width:0}
+.cd{border-radius:12px;cursor:pointer;background:var(--v3-s3);border:1px solid transparent;display:flex;flex-direction:column;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y;position:relative;min-width:0;flex:none}
 .cd:hover{border-color:var(--line)}
-.cd .th{width:40px;height:56px;border-radius:7px;object-fit:cover;flex:none;background:#000}
-.cd .m{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
-.cd .tt{font-size:12.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
-.cd .st{font-size:11px;font-weight:650;color:var(--sc);line-height:1.3}
-.cd .st:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sc);margin-right:5px;vertical-align:1px}
-.cd .mt{font-size:11px;color:var(--soft);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.cd .pf{color:var(--soft);font-weight:500}
+.cd .th{width:100%;height:92px;object-fit:cover;display:block;background:#000;flex:none}
+.cd .m{min-width:0;display:flex;flex-direction:column;gap:5px;padding:8px 9px 9px}
+.cd .tm2{font-size:15px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.cd .tt{font-size:12.5px;font-weight:550;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.cd .st{display:block;align-self:flex-start;font-size:10px;font-weight:650;color:var(--sc);background:color-mix(in srgb,var(--sc) 14%,transparent);padding:2px 6px;border-radius:20px;max-width:100%;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd .mt{font-size:11px;color:var(--soft);display:flex;gap:6px;align-items:center;justify-content:space-between}
+.cd .pfs{display:inline-flex;gap:3px}.cd .pfs b{font-size:9.5px;font-weight:750;padding:2px 5px;border-radius:5px;background:var(--v3-s1);color:var(--soft)}
 .cd.idea{background:color-mix(in srgb,var(--sc) 10%,var(--v3-s2));border-style:dashed;border-color:color-mix(in srgb,var(--sc) 35%,transparent)}
 .cd.drag{opacity:.3}
 .cd.ghost{position:fixed;z-index:50;pointer-events:none;opacity:.92;transform:rotate(-2deg) scale(1.03);box-shadow:0 10px 30px rgba(0,0,0,.45)}
@@ -116,6 +125,12 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .c .add2{margin-top:auto;border:1px dashed var(--line);background:none;color:var(--soft);border-radius:10px;padding:7px;font:500 12px Geist,system-ui;cursor:pointer;opacity:0;transition:opacity .15s}
 .c:hover .add2{opacity:1}
 @media(max-width:760px){.cal.wkv .c .n b{visibility:visible}.bar .mn{min-width:0;font-size:15px}.bar .ib.pri{margin-left:auto}.cal.wkv .c{min-height:0}.cal.wkv .c.nil{display:flex}.c .add2{opacity:1}.cal.wkv .c .add2{padding:6px}.stat .nx{flex-basis:100%}}
+@media(max-width:1180px){
+ .cal.wkv .wd{display:none}.cal.wkv .wk{grid-template-columns:1fr}.cal.wkv .c{min-height:0}.cal.wkv .c.nil{display:flex}
+ .cal.wkv .c .n b{visibility:visible}.c .n .dl{display:inline}
+ .cal.wkv .c{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-items:start}.cal.wkv .c .n,.cal.wkv .c .add2{grid-column:1/-1}
+ .cal.wkv .cd{flex-direction:row}.cal.wkv .cd .th{width:56px;height:80px}.cal.wkv .c .add2{opacity:1}
+}
 @media(max-width:1100px){.gr{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){
  .wrap{padding:14px 12px calc(100px + env(safe-area-inset-bottom))}h1{font-size:22px}
@@ -143,7 +158,7 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
   </div>
   <div class="side">
    <div class="t pn"><h3>Bank pomysłów <small>bez daty</small></h3><div class="bank" id="bank" data-day=""></div></div>
-   <div class="t pn"><h3>Wyniki <small>vs Twoja norma</small></h3><div class="sum" id="sum"></div><div class="res" id="res"></div></div>
+   <div class="t pn"><h3>Twoje wyniki <small>ostatnie 30 dni</small></h3><div id="sum"></div><div id="res"></div></div>
   </div>
  </div>
 </div>
@@ -210,23 +225,33 @@ function stat(days,by){const set=new Set(days);let c={draft:0,approved:0,publish
   (nx?`<span class="k nx">Następny post: <b>${esc(nx.label)}</b> · ${when(nx.t)}${nx.status==='draft'?' · <span style="color:#ffc24b">czeka na Twoje zatwierdzenie</span>':''}</span>`:`<span class="k nx">Brak zaplanowanych postów – dodaj coś do planera.</span>`);
  $('stat').title='Liczby '+per}
 function postCd(p){const s=STP[p.status]||STP.approved,th=p.thumb?`<img class="th" src="${esc(p.thumb)}" loading="lazy" alt="">`:p.video?`<video class="th" src="${esc(p.video)}#t=1" preload="metadata" muted playsinline></video>`:'';
- const pl=(p.platforms||[]).map(x=>PL[x]||x).join(' + '),lab=p.ext?'Zaplanowany w YT':s[0];
- return `<div class="cd post" data-k="${p.movable?'post':''}" data-id="${p.id}" style="--sc:${s[1]}">${th}<div class="m"><div class="tt">${esc(p.label)}</div><div class="st">${lab}</div><div class="mt">${p.status!=='published'?'<b style="color:var(--ink)">'+hm(p.t)+'</b>':''}<span>${pl}</span>${relB(p.rel,p.fresh)}</div></div></div>`}
-function ideaCd(i){const s=STG[i.stage]||STG.pomysl;return `<div class="cd idea" data-k="idea" data-id="${i.id}" style="--sc:${s[1]}"><div class="m"><div class="tt">💡 ${esc(i.title)}</div><div class="st">${s[0]}</div>${i.hook?'<div class="mt">hook gotowy ✓</div>':''}</div></div>`}
+ const pfs=(p.platforms||[]).map(x=>`<b>${PL[x]||x}</b>`).join(''),lab=p.ext?'Zaplanowany w YT':s[0];
+ return `<div class="cd post" data-k="${mk(p)}" data-id="${p.id}" style="--sc:${s[1]}">${th}<div class="m">${p.status!=='published'?`<div class="tm2">${hm(p.t)}</div>`:''}<div class="tt">${esc(p.label)}</div><span class="st">${lab}</span><div class="mt"><span class="pfs">${pfs}</span>${relB(p.rel,p.fresh)}</div></div></div>`}
+const mk=p=>p.movable?(p.src==='pub'?'yt':'post'):'';
+function ideaCd(i){const s=STG[i.stage]||STG.pomysl;return `<div class="cd idea" data-k="idea" data-id="${i.id}" style="--sc:${s[1]}"><div class="m"><div class="tt">💡 ${esc(i.title)}</div><span class="st">${s[0]}</span>${i.hook?'<div class="mt">hook gotowy ✓</div>':''}</div></div>`}
 function ideaCh(i){const s=STG[i.stage]||STG.pomysl;return `<div class="ch idea" draggable="false" data-k="idea" data-id="${i.id}" style="--sc:${s[1]}" title="${esc(i.title)} · ${s[0]}"><span class="dot"></span><span class="tx">${esc(i.title)}</span></div>`}
 function postCh(p){const th=p.thumb?`<img class="th" src="${esc(p.thumb)}" loading="lazy" alt="">`:p.video?`<video class="th" src="${esc(p.video)}#t=1" preload="metadata" muted playsinline></video>`:'';
  const pl=(p.platforms||[]).map(x=>PL[x]||x).join('+');
- return `<div class="ch post ${p.status}" data-k="${p.movable?'post':''}" data-id="${p.id}" title="${esc(p.label)}">${th}<span class="tx">${esc(p.label)}</span><span class="tm">${p.status==='published'?pl:p.ext?pl+' '+hm(p.t):hm(p.t)}</span>${relB(p.rel,p.fresh)}</div>`}
-function res(){const R=(D.results||[]).filter(r=>r.rel!=null);
- if(!R.length){$('sum').innerHTML='';$('res').innerHTML='<p style="color:var(--soft);font-size:12.5px;margin:4px">Brak danych – potrzeba min. 3 postów starszych niż 2 dni na koncie prywatnym (Statystyki).</p>';return}
- const old=R.filter(r=>!r.fresh),l10=old.slice(0,10),avg=l10.length?l10.reduce((a,r)=>a+r.rel,0)/l10.length:0,hits=old.filter(r=>r.rel>=1.5).length;
- $('sum').innerHTML=`<div><span class="v">${avg?avg.toFixed(2)+"×":"–"}</span><small>średnio, 10 ostatnich</small></div><div><span class="v">${hits}</span><small>postów ≥1.5× normy</small></div>`;
- $('res').innerHTML=R.slice(0,25).map(r=>`<a class="ro" href="${esc(r.url)}" target="_blank" rel="noopener">${r.thumb?`<img src="${esc(r.thumb)}" loading="lazy" alt="">`:'<img alt="">'}<div class="m"><b>${esc(r.title||'(bez opisu)')}</b><small>${PL[r.platform]||r.platform} · ${new Date(r.t*1000).toLocaleDateString('pl-PL',{day:'numeric',month:'short'})} · ${r.views.toLocaleString('pl-PL')} wyśw.</small><div class="bar2"><i style="width:${Math.min(100,r.rel/3*100)}%;background:${r.rel>=1.5?'#3ddc84':r.rel<0.7?'#ff6b7a':'#6e8bff'}"></i></div></div><div class="bx">${relB(r.rel,r.fresh)}</div></a>`).join('');
+ return `<div class="ch post ${p.status}" data-k="${mk(p)}" data-id="${p.id}" title="${esc(p.label)}">${th}<span class="tx">${esc(p.label)}</span><span class="tm">${p.status==='published'?pl:p.ext?pl+' '+hm(p.t):hm(p.t)}</span>${relB(p.rel,p.fresh)}</div>`}
+function res(){const now_=Date.now()/1000,R=(D.results||[]).filter(r=>r.rel!=null&&now_-r.t<30*86400);
+ if(!R.length){$('sum').innerHTML='';$('res').innerHTML='<p style="color:var(--soft);font-size:12.5px;margin:4px">Brak danych – potrzeba min. 3 postów starszych niż 2 dni na koncie prywatnym.</p>';return}
+ const old=R.filter(r=>!r.fresh),avg=old.length?old.reduce((a,r)=>a+r.rel,0)/old.length:0,hits=old.filter(r=>r.rel>=1.5).length;
+ const nrm={};(D.results||[]).forEach(r=>{if(r.norm&&!nrm[r.platform])nrm[r.platform]=r.norm});
+ const k=n=>n>=1e4?(n/1e3).toFixed(0)+' tys.':n>=1e3?(n/1e3).toFixed(1).replace('.',',')+' tys.':String(n);
+ $('sum').innerHTML=`<div class="big"><b style="color:${avg>=1.2?'#5fe39b':avg<0.8?'#ff8f9b':'var(--ink)'}">${avg.toFixed(2)}×</b><small>średnio względem normy · ${hits} z ${old.length} postów powyżej 1,5×</small></div>
+  <div class="nrm">${Object.entries(nrm).map(([p,n])=>`<span>Norma ${PL[p]||p}: <b>${k(n)}</b> wyśw.</span>`).join('')}</div>`;
+ const C=R.slice(0,16).reverse(),mx=Math.min(3,Math.max(2,...C.map(r=>r.rel))),H=96;
+ const col=r=>r.rel>=1.5?'#3ddc84':r.rel<0.7?'#ff6b7a':'#6e8bff';
+ const row=r=>`<a class="ro" href="${esc(r.url)}" target="_blank" rel="noopener">${r.thumb?`<img src="${esc(r.thumb)}" loading="lazy" alt="">`:'<img alt="">'}<div class="m"><b>${esc(r.title||'(bez opisu)')}</b><small>${PL[r.platform]||r.platform} · ${new Date(r.t*1000).toLocaleDateString('pl-PL',{day:'numeric',month:'short'})} · ${r.views.toLocaleString('pl-PL')} wyśw.</small></div><div class="bx">${relB(r.rel,r.fresh)}</div></a>`;
+ const srt=[...old].sort((a,b)=>b.rel-a.rel);
+ $('res').innerHTML=`<div class="chart"><div class="base" style="bottom:${H/mx}px"><span>norma 1×</span></div>${C.map(r=>`<a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc((r.title||'').slice(0,60))} · ${r.rel}× · ${r.views.toLocaleString('pl-PL')} wyśw." style="height:${Math.max(4,Math.min(r.rel,mx)/mx*H)}px;background:${col(r)};opacity:${r.fresh?.5:1}">${r.rel>mx?`<span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#5fe39b">${Math.round(r.rel)}×</span>`:''}</a>`).join('')}</div>
+  <div class="cx"><span>starsze</span><span>${C.length} ostatnich postów</span><span>nowsze</span></div>
+  <div class="lst"><h4>🔥 Najlepsze</h4>${srt.slice(0,3).map(row).join('')}${srt.length>4?`<h4>Najsłabsze</h4>${srt.slice(-2).reverse().map(row).join('')}`:''}</div>`;
 }
 
 // ---------- przeciąganie (mysz + dotyk: przytrzymaj) ----------
 let drag=null,suppress=0;
-document.addEventListener('pointerdown',e=>{const ch=e.target.closest('.ch[data-k="idea"],.ch[data-k="post"],.cd[data-k="idea"],.cd[data-k="post"]');if(!ch||e.button>0)return;
+document.addEventListener('pointerdown',e=>{const ch=e.target.closest('.ch[data-k="idea"],.ch[data-k="post"],.cd[data-k="idea"],.cd[data-k="post"],.ch[data-k="yt"],.cd[data-k="yt"]');if(!ch||e.button>0)return;
  drag={ch,x:e.clientX,y:e.clientY,id:e.pointerId,on:false,touch:e.pointerType!=='mouse'};
  if(drag.touch)drag.tm=setTimeout(()=>{if(drag&&!drag.on)begin(e.clientX,e.clientY)},320)});
 function begin(x,y){drag.on=true;const g=drag.ch.cloneNode(true);g.classList.add('ghost');g.style.width=drag.ch.offsetWidth+'px';document.body.appendChild(g);drag.g=g;drag.ch.classList.add('drag');
@@ -241,12 +266,12 @@ document.addEventListener('touchmove',e=>{if(drag&&drag.on)e.preventDefault()},{
 async function end(e){if(!drag||(e&&e.pointerId!==drag.id))return;clearTimeout(drag.tm);const d=drag;drag=null;if(!d.on)return;suppress=Date.now();
  d.g.remove();d.ch.classList.remove('drag');document.querySelectorAll('.hov').forEach(n=>n.classList.remove('hov'));
  const c=d.tg;if(!c)return;const day=c.dataset.day||null,kind=d.ch.dataset.k,id=d.ch.dataset.id;
- if(kind==='post'&&!day)return;
+ if(kind!=='idea'&&!day)return;
  const cur=kind==='idea'?(D.ideas.find(i=>i.id===id)||{}).day||null:dayOf((D.posts.find(p=>p.id===id)||{}).t);if(cur===day)return;
  // od razu w UI, potem serwer
  if(kind==='idea'){const i=D.ideas.find(i=>i.id===id);if(i)i.day=day}else{const p=D.posts.find(p=>p.id===id);if(p){const o=new Date(p.t*1000),[Y,Mo,Dd]=day.split('-').map(Number);o.setFullYear(Y,Mo-1,Dd);p.t=o.getTime()/1000}}
  c.animate&&c.animate([{transform:'scale(1.03)'},{transform:'scale(1)'}],{duration:220,easing:'ease-out'});draw();
- const r=await api('/api/tresci/move',{kind,id,day});if(!r.ok)toast(r.error||'Nie udało się');else if(kind==='post')toast('Publikacja przesunięta na '+new Date(day).toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'short'}));load()}
+ const r=await api('/api/tresci/move',{kind,id,day});if(!r.ok)toast(r.error||'Nie udało się');else if(kind!=='idea')toast('Publikacja przesunięta na '+new Date(day).toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'short'}));load()}
 document.addEventListener('pointerup',end);document.addEventListener('pointercancel',e=>{if(drag&&drag.on)end(e);else if(drag){clearTimeout(drag.tm);drag=null}});
 
 // ---------- kliknięcia ----------
@@ -272,7 +297,7 @@ function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie',appro
  <div class="ac">${p.url?`<a class="ib" href="${esc(p.url)}" target="_blank" rel="noopener">Otwórz post ↗</a>`:''}${p.src==='plan'?`<button class="ib" id="toh">Edytuj w planerze</button>`:''}<span class="sp"></span>${p.movable?`<button class="ib pri" id="pds">Zapisz datę</button>`:''}</div>`;
  $('mb').classList.add('on');
  if($('toh'))$('toh').onclick=()=>{try{parent.postMessage({go:'home'},location.origin)}catch(e){};closeM()};
- if($('pds'))$('pds').onclick=async()=>{const r=await api('/api/tresci/move',{kind:'post',id:p.id,day:$('pd').value});if(!r.ok)return toast(r.error||'Nie udało się');closeM();toast('Zapisane');load()};
+ if($('pds'))$('pds').onclick=async()=>{const r=await api('/api/tresci/move',{kind:p.src==='pub'?'yt':'post',id:p.id,day:$('pd').value});if(!r.ok)return toast(r.error||'Nie udało się');closeM();toast('Zapisane');load()};
 }
 
 function openIdea(i){i=i||{};const isNew=!i.id;

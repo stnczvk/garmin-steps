@@ -2,6 +2,7 @@
 karty pomysłów z AI (hook, plan ujęć, CTA) i wyniki postów względem Twojej normy (mediana wyświetleń konta)."""
 import secrets, statistics, threading, time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Request
 
@@ -42,7 +43,7 @@ def results():
         for p in posts:
             t = _ts(p)
             v = p.get("views") or 0
-            out.append({"id": p["id"], "platform": a.get("platform"), "acc": a.get("name"), "title": p.get("title") or "",
+            out.append({"id": p["id"], "key": k, "platform": a.get("platform"), "acc": a.get("name"), "title": p.get("title") or "",
                         "t": t, "views": v, "likes": p.get("likes") or 0, "comments": p.get("comments") or 0,
                         "thumb": p.get("thumb") or "", "url": p.get("url") or "", "norm": int(med),
                         "scheduled": bool(p.get("scheduled")) or t > now,
@@ -84,8 +85,10 @@ def api_get(month: str = ""):
             continue
         posts.append({"id": r["id"], "src": "pub", "t": r["t"], "label": r["title"] or "(bez opisu)",
                       "status": "approved" if r["scheduled"] else "published", "ext": r["scheduled"],
+                      "key": r["key"],
                       "platforms": [r["platform"]], "thumb": r["thumb"], "url": r["url"], "rel": r["rel"],
-                      "views": r["views"], "fresh": r["fresh"], "movable": False})
+                      "views": r["views"], "fresh": r["fresh"],
+                      "movable": r["scheduled"] and r["platform"] == "youtube"})
     I = _ideas()
     for i in I:
         if i.get("pid") in P:
@@ -139,6 +142,8 @@ async def api_move(req: Request):
         return {"ok": True}
     if not day:
         return {"ok": False, "error": "Post musi mieć dzień."}
+    if b.get("kind") == "yt":
+        return _move_yt(b.get("id"), day)
     with plan_lock:
         P = plan()
         it = next((x for x in P if x["id"] == b.get("id")), None)
@@ -195,3 +200,46 @@ def api_ai(iid: str):
                   hooks_alt=alt[:3], why=r.get("why", ""))
         _write(F, I)
     return {"ok": True, "idea": it}
+
+
+def _move_yt(vid, day):
+    """Film zaplanowany w YT Studio: zmiana status.publishAt (ta sama godzina, inny dzień)."""
+    import httpx
+    from social import _accounts, _google_access
+    C = _read("cache.json", {})
+    for k, a in (C.get("accounts") or {}).items():
+        p = next((x for x in (a.get("posts") or []) if x.get("id") == vid), None)
+        if p:
+            break
+    else:
+        return {"ok": False, "error": "Nie znalazłem filmu – odśwież statystyki."}
+    acc = _accounts().get(k)
+    if not acc:
+        return {"ok": False, "error": "Kanał YouTube nie jest połączony."}
+    old = datetime.fromtimestamp(_ts(p), TZ)
+    y, mo, d = map(int, day.split("-"))
+    new = old.replace(year=y, month=mo, day=d)
+    if new.timestamp() < time.time() + 900:
+        return {"ok": False, "error": "To już minęło – wybierz późniejszy dzień."}
+    iso = new.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    try:
+        h = {"Authorization": f"Bearer {_google_access(acc)}"}
+        api = "https://www.googleapis.com/youtube/v3/videos"
+        cur = httpx.get(api, params={"part": "status", "id": vid}, headers=h, timeout=30).json().get("items", [])
+        if not cur:
+            return {"ok": False, "error": "YouTube nie widzi tego filmu."}
+        st = cur[0]["status"]
+        if st.get("privacyStatus") != "private" or not st.get("publishAt"):
+            return {"ok": False, "error": "Ten film już jest opublikowany."}
+        body = {"id": vid, "status": {"privacyStatus": "private", "publishAt": iso,
+                                      "selfDeclaredMadeForKids": st.get("selfDeclaredMadeForKids", False),
+                                      "embeddable": st.get("embeddable", True), "license": st.get("license", "youtube"),
+                                      "publicStatsViewable": st.get("publicStatsViewable", True)}}
+        r = httpx.put(api, params={"part": "status"}, json=body, headers=h, timeout=30)
+        if r.status_code >= 300:
+            return {"ok": False, "error": "YouTube: " + r.text[:160]}
+    except Exception as e:
+        return {"ok": False, "error": f"YouTube: {str(e)[:140]}"}
+    p["ts"], p["date"] = iso, iso[:10]
+    _write("cache.json", C)
+    return {"ok": True}
