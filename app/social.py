@@ -18,8 +18,8 @@ router = APIRouter()
 _lock = threading.Lock()
 _states = {}          # state OAuth -> (dostawca, grupa, czas)
 
-CFG_KEYS = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "IG_APP_ID", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_PROFILES"]
-SECRET_KEYS = {"GOOGLE_CLIENT_SECRET", "IG_APP_SECRET", "APIFY_TOKEN"}
+CFG_KEYS = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "IG_APP_ID", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_PROFILES", "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"]
+SECRET_KEYS = {"GOOGLE_CLIENT_SECRET", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_CLIENT_SECRET"}
 GROUPS = {"pozaskala": "PozaSkala", "prywatne": "Prywatne"}
 
 
@@ -75,7 +75,8 @@ async def set_config(req: Request):
 @router.get("/api/social/redirects")
 def redirects(req: Request):
     b = base_url(req)
-    return {"google": f"{b}/api/social/google/callback", "instagram": f"{b}/api/social/instagram/callback"}
+    return {"google": f"{b}/api/social/google/callback", "instagram": f"{b}/api/social/instagram/callback",
+            "tiktok": f"{b}/api/tiktok/callback"}
 
 
 # ---------------------------------------------------------------- konta

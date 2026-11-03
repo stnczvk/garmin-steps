@@ -35,6 +35,17 @@ def save(P):
     _write(PLAN, P[-150:])
 
 
+def _film_pl():
+    L = list(cfg()["platforms"]["film"])
+    try:
+        import tiktok_pub
+        if tiktok_pub.connected() and "tiktok" not in L:
+            L.append("tiktok")
+    except Exception:
+        pass
+    return L
+
+
 def _when(kind, after=None):
     hh, mm = map(int, cfg()["hours"].get(kind, "18:00").split(":"))
     base = after or datetime.now(TZ)
@@ -102,7 +113,7 @@ def scan():
                 o = _opis("jedzenie", jid)
                 w = _when("jedzenie")
                 _add({"src": f"food:{jid}", "kind": "film", "series": "jedzenie", "label": "Daily jedzenie " + " ".join((st.get("title") or [])[:1]),
-                      "file": str(f), "when": w, "platforms": cfg()["platforms"]["film"],
+                      "file": str(f), "when": w, "platforms": _film_pl(),
                       "caption": (o.get("instagram") or "") if o.get("ok") else "", "tiktok": o.get("tiktok", ""), "yt_title": ""})
             k = d / "gotowe" / "karuzela"
             if k.is_dir() and any(k.glob("*.jpg")) and f"karu:{jid}" not in have and not _dropped(f"karu:{jid}", max(k.glob("*.jpg"), key=lambda q: q.stat().st_mtime)):
@@ -124,7 +135,7 @@ def scan():
         job = next((j for j in reversed(V) if (j.get("kind") or "vlog") == kind and ep and str(j.get("ep")) == ep.group(1) and j.get("state") == "done"), None)
         o = _opis(kind, job["id"]) if job else {"ok": False}
         _add({"src": f"vf:{nm}", "kind": "film", "series": kind, "label": nm, "file": str(f), "when": _when(kind),
-              "platforms": cfg()["platforms"]["film"], "caption": (o.get("instagram") or "") if o.get("ok") else "", "tiktok": o.get("tiktok", ""), "yt_title": ""})
+              "platforms": _film_pl(), "caption": (o.get("instagram") or "") if o.get("ok") else "", "tiktok": o.get("tiktok", ""), "yt_title": ""})
 
 
 DROP = "posts_dropped.json"
@@ -286,6 +297,17 @@ def publish(pid):
         if res.get(p, {}).get("ok"):
             continue
         try:
+            if p == "tiktok":
+                import tiktok_pub
+                mid, note = tiktok_pub.publish(it["file"], (it.get("tiktok") or it.get("caption") or "").strip())
+                res[p] = {"ok": True, "id": mid, "at": time.time(), "note": note}
+                if "skrzynce" in note:
+                    try:
+                        from extra import push_all
+                        push_all("🎵 TikTok: film czeka w skrzynce", f"„{it['label']}” – otwórz TikToka → skrzynka i opublikuj", "/#home")
+                    except Exception:
+                        pass
+                continue
             mid = pub_instagram(it) if p == "instagram" else pub_youtube(it) if p == "youtube" else None
             res[p] = {"ok": True, "id": mid, "at": time.time()}
         except Exception as e:
@@ -337,7 +359,12 @@ def api_plan():
     d0 = datetime.now(TZ).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()   # dzisiejsza północ (PL)
     P = [x for x in P if x["status"] != "skipped"
          and not (x["status"] in ("published", "error") and (x.get("done_at") or x.get("when") or 0) < d0)]
-    return {"items": P[-40:], "d0": d0, "cfg": cfg(),
+    try:
+        import tiktok_pub
+        tt = tiktok_pub.connected()
+    except Exception:
+        tt = False
+    return {"items": P[-40:], "d0": d0, "cfg": cfg(), "tiktok": tt,
             "public": bool(_public())}
 
 
@@ -360,7 +387,7 @@ async def api_act(pid: str, action: str, req: Request):
                 except ValueError:
                     return {"ok": False, "error": "zła data"}
             if isinstance(b.get("platforms"), list):
-                it["platforms"] = [p for p in b["platforms"] if p in ("instagram", "youtube")]
+                it["platforms"] = [p for p in b["platforms"] if p in ("instagram", "youtube") or (p == "tiktok" and it["kind"] == "film")]
         if action == "approve":
             if not it["platforms"]:
                 return {"ok": False, "error": "wybierz platformę"}

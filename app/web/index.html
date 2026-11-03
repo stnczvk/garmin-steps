@@ -948,6 +948,9 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
         <button id="add-yt">Dodaj kanał YouTube</button>
         <button id="add-ig">Dodaj konto Instagram</button>
       </div>
+      <div class="line" id="ttpub" style="flex-wrap:wrap;gap:8px"><b style="margin-right:auto">🎵 Publikacja na TikToka</b><span class="when" id="tt-st">…</span>
+        <select id="tt-mode" title="Jak wysyłać"><option value="szkic">Do skrzynki TikToka (publikujesz 1 kliknięciem)</option><option value="bezposrednio">Bezpośrednio (do audytu TikToka – tylko prywatnie)</option></select>
+        <button id="tt-con">Połącz TikToka</button></div>
       <h3>Klucze</h3>
       <p class="when" style="margin:-4px 0 12px">Wspólne dla wszystkich kont – wpisujesz je raz.</p>
       <div class="grid2">
@@ -957,10 +960,12 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
         <div><label for="IG_APP_SECRET">Instagram App Secret</label><input id="IG_APP_SECRET" autocomplete="off"></div>
         <div><label for="APIFY_TOKEN">Token Apify (opcjonalnie – bez niego TikTok liczy się za darmo)</label><input id="APIFY_TOKEN" autocomplete="off"></div>
         <div><label for="TIKTOK_PROFILES">Profile TikTok, po przecinku</label><input id="TIKTOK_PROFILES" autocomplete="off" placeholder="np. st4nczuk_"></div>
+        <div><label for="TIKTOK_CLIENT_KEY">TikTok Client key (publikacja)</label><input id="TIKTOK_CLIENT_KEY" autocomplete="off"></div>
+        <div><label for="TIKTOK_CLIENT_SECRET">TikTok Client secret</label><input id="TIKTOK_CLIENT_SECRET" autocomplete="off"></div>
       </div>
       <div class="line" style="border:0;padding-bottom:0"><button class="main" id="save">Zapisz klucze</button><span id="saved" class="when"></span></div>
       <div class="hint">Adresy przekierowania do wklejenia w Google Cloud i w aplikacji Meta:<br>
-        Google: <code id="r-g"></code><br>Instagram: <code id="r-i"></code></div>
+        Google: <code id="r-g"></code><br>Instagram: <code id="r-i"></code><br>TikTok: <code id="r-t"></code></div>
     </div>
   </details>
 </main>
@@ -1277,11 +1282,20 @@ async function load() {
   if (data.refreshing) setTimeout(load, 4000);
 }
 
+async function ttStatus() {
+  const t = await api('/api/tiktok/status').catch(() => null); if (!t || !$('#tt-st')) return;
+  $('#tt-st').textContent = !t.ready ? 'wpisz niżej Client key i secret' : t.connected ? `połączony${t.name ? ': ' + t.name : ''}` : 'nie połączony';
+  $('#tt-con').textContent = t.connected ? 'Odłącz' : 'Połącz TikToka'; $('#tt-con').disabled = !t.ready && !t.connected;
+  $('#tt-mode').value = t.mode; $('#tt-mode').hidden = !t.connected;
+  $('#tt-con').onclick = async () => { if (t.connected) { if (!confirm('Odłączyć TikToka?')) return; await fetch('/api/tiktok/mode', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({disconnect: true})}); ttStatus(); } else location.href = '/api/tiktok/connect'; };
+  $('#tt-mode').onchange = () => fetch('/api/tiktok/mode', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({mode: $('#tt-mode').value})});
+}
 async function loadSettings() {
   const c = await api('/api/social/config');
   for (const key of Object.keys(c.set)) $('#' + key).value = c[key] || '';
   const r = await api('/api/social/redirects');
-  $('#r-g').textContent = r.google; $('#r-i').textContent = r.instagram;
+  $('#r-g').textContent = r.google; $('#r-i').textContent = r.instagram; if ($('#r-t')) $('#r-t').textContent = r.tiktok || '';
+  ttStatus();
   const accAll = await api('/api/social/accounts');
   const accs = group ? accAll.filter(a => a.group === group) : accAll;
   if (group && $('#grp')) $('#grp').value = group;
@@ -1632,7 +1646,7 @@ try{document.querySelector('#app .intro-r').appendChild($('#refresh'))}catch(e){
 $('#refresh').onclick = async () => { await api('/api/social/refresh', {method: 'POST'}); setTimeout(load, 600); };
 $('#save').onclick = async () => {
   const body = {};
-  for (const key of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'IG_APP_ID', 'IG_APP_SECRET', 'APIFY_TOKEN', 'TIKTOK_PROFILES']) body[key] = $('#' + key).value;
+  for (const key of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'IG_APP_ID', 'IG_APP_SECRET', 'APIFY_TOKEN', 'TIKTOK_PROFILES', 'TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET']) body[key] = $('#' + key).value;
   await api('/api/social/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   $('#saved').textContent = 'Klucze zapisane'; setTimeout(() => $('#saved').textContent = '', 2500); loadSettings();
 };

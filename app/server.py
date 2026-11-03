@@ -162,6 +162,8 @@ from mail import router as mail_router  # noqa: E402
 app.include_router(mail_router)
 from tresci import router as tresci_router  # noqa: E402
 app.include_router(tresci_router)
+from tiktok_pub import router as tiktok_router  # noqa: E402
+app.include_router(tiktok_router)
 
 
 @app.get("/")

@@ -1,0 +1,168 @@
+"""Publikacja na TikToka z planera (TikTok Content Posting API).
+Dwa tryby:
+  • „szkic” (domyślny) – film trafia do skrzynki w aplikacji TikTok, Ty jednym kliknięciem publikujesz (działa bez audytu TikToka),
+  • „bezpośrednio” – publikuje sam; dopóki TikTok nie zatwierdzi aplikacji (audyt), wychodzi tylko jako prywatny.
+Klucze aplikacji (Client key / secret) wpisuje się w ustawieniach kont – nigdy w czacie."""
+import math, os, secrets, time, urllib.parse
+
+import httpx
+from fastapi import APIRouter, Request
+from fastapi.responses import RedirectResponse
+
+from social import _read, _write, cfg, base_url
+
+router = APIRouter()
+F = "tiktok_pub.json"
+API = "https://open.tiktokapis.com/v2"
+SCOPES = "user.info.basic,video.upload,video.publish"
+_states = {}
+
+
+def _acc():
+    return _read(F, {})
+
+
+def connected():
+    return bool(_acc().get("refresh_token"))
+
+
+def mode():
+    return _acc().get("mode") or "szkic"
+
+
+@router.get("/api/tiktok/status")
+def status(req: Request):
+    a = _acc()
+    return {"ready": bool(cfg("TIKTOK_CLIENT_KEY") and cfg("TIKTOK_CLIENT_SECRET")), "connected": connected(),
+            "name": a.get("name", ""), "mode": mode(), "redirect": f"{base_url(req)}/api/tiktok/callback",
+            "refresh_days": round((a.get("refresh_exp", 0) - time.time()) / 86400) if a.get("refresh_exp") else None}
+
+
+@router.post("/api/tiktok/mode")
+async def set_mode(req: Request):
+    b = await req.json()
+    a = _acc()
+    if b.get("mode") in ("szkic", "bezposrednio"):
+        a["mode"] = b["mode"]
+        _write(F, a)
+    if b.get("disconnect"):
+        _write(F, {"mode": a.get("mode", "szkic")})
+    return {"ok": True}
+
+
+@router.get("/api/tiktok/connect")
+def connect(req: Request):
+    if not cfg("TIKTOK_CLIENT_KEY"):
+        return RedirectResponse("/?blad=" + urllib.parse.quote("Najpierw wklej TikTok Client key i secret w ustawieniach kont."))
+    s = secrets.token_urlsafe(20)
+    _states[s] = time.time()
+    q = {"client_key": cfg("TIKTOK_CLIENT_KEY"), "scope": SCOPES, "response_type": "code",
+         "redirect_uri": f"{base_url(req)}/api/tiktok/callback", "state": s}
+    return RedirectResponse("https://www.tiktok.com/v2/auth/authorize/?" + urllib.parse.urlencode(q))
+
+
+def _save_tok(t, extra=None):
+    a = _acc()
+    a.update(access_token=t["access_token"], refresh_token=t.get("refresh_token", a.get("refresh_token")),
+             open_id=t.get("open_id", a.get("open_id")), exp=time.time() + int(t.get("expires_in", 86400)) - 120,
+             refresh_exp=time.time() + int(t.get("refresh_expires_in", 365 * 86400)), **(extra or {}))
+    _write(F, a)
+    return a
+
+
+@router.get("/api/tiktok/callback")
+def callback(req: Request, code: str = "", state: str = "", error: str = "", error_description: str = ""):
+    if error or not code or _states.pop(state, None) is None:
+        return RedirectResponse("/?blad=" + urllib.parse.quote("TikTok: " + (error_description or error or "logowanie przerwane")))
+    t = httpx.post(f"{API}/oauth/token/", timeout=30, headers={"Content-Type": "application/x-www-form-urlencoded"}, data={
+        "client_key": cfg("TIKTOK_CLIENT_KEY"), "client_secret": cfg("TIKTOK_CLIENT_SECRET"), "code": code,
+        "grant_type": "authorization_code", "redirect_uri": f"{base_url(req)}/api/tiktok/callback"}).json()
+    if "access_token" not in t:
+        return RedirectResponse("/?blad=" + urllib.parse.quote("TikTok nie oddał tokenu: " + str(t)[:180]))
+    name = ""
+    try:
+        u = httpx.get(f"{API}/user/info/", params={"fields": "open_id,display_name"}, timeout=20,
+                      headers={"Authorization": "Bearer " + t["access_token"]}).json()
+        name = ((u.get("data") or {}).get("user") or {}).get("display_name", "")
+    except Exception:
+        pass
+    _save_tok(t, {"name": name})
+    return RedirectResponse("/?ok=tiktok")
+
+
+def token():
+    a = _acc()
+    if not a.get("refresh_token"):
+        raise RuntimeError("TikTok nie jest połączony (Statystyki → Konta → Połącz TikToka)")
+    if time.time() < a.get("exp", 0):
+        return a["access_token"]
+    t = httpx.post(f"{API}/oauth/token/", timeout=30, headers={"Content-Type": "application/x-www-form-urlencoded"}, data={
+        "client_key": cfg("TIKTOK_CLIENT_KEY"), "client_secret": cfg("TIKTOK_CLIENT_SECRET"),
+        "grant_type": "refresh_token", "refresh_token": a["refresh_token"]}).json()
+    if "access_token" not in t:
+        raise RuntimeError("TikTok: połącz konto ponownie (" + str(t.get("error_description") or t.get("error") or t)[:120] + ")")
+    return _save_tok(t)["access_token"]
+
+
+def _err(r):
+    try:
+        e = r.json().get("error") or {}
+        return f"{e.get('code')}: {e.get('message')}"[:200]
+    except Exception:
+        return r.text[:200]
+
+
+def _chunks(n):
+    """Zasady TikToka: do 64 MB jednym kawałkiem; większe po 10 MB (ostatni bierze resztę)."""
+    if n <= 64 * 1024 * 1024:
+        return n, 1
+    cs = 10 * 1024 * 1024
+    return cs, n // cs
+
+
+def publish(path, caption="", direct=None):
+    """Wysyła film. Zwraca (publish_id, opis_wyniku)."""
+    direct = (mode() == "bezposrednio") if direct is None else direct
+    tok = token()
+    h = {"Authorization": "Bearer " + tok, "Content-Type": "application/json; charset=UTF-8"}
+    size = os.path.getsize(path)
+    cs, cnt = _chunks(size)
+    src = {"source": "FILE_UPLOAD", "video_size": size, "chunk_size": cs, "total_chunk_count": cnt}
+    if direct:
+        ci = httpx.post(f"{API}/post/publish/creator_info/query/", headers=h, timeout=30)
+        if ci.status_code >= 300:
+            raise RuntimeError("TikTok (konto): " + _err(ci))
+        opts = (ci.json().get("data") or {}).get("privacy_level_options") or ["SELF_ONLY"]
+        priv = "PUBLIC_TO_EVERYONE" if "PUBLIC_TO_EVERYONE" in opts else opts[0]
+        body = {"post_info": {"title": caption[:2200], "privacy_level": priv, "disable_duet": False, "disable_comment": False,
+                              "disable_stitch": False, "video_cover_timestamp_ms": 1000}, "source_info": src}
+        r = httpx.post(f"{API}/post/publish/video/init/", headers=h, json=body, timeout=60)
+    else:
+        priv = None
+        r = httpx.post(f"{API}/post/publish/inbox/video/init/", headers=h, json={"source_info": src}, timeout=60)
+    if r.status_code >= 300:
+        raise RuntimeError("TikTok (start wysyłki): " + _err(r))
+    d = r.json().get("data") or {}
+    pid, url = d.get("publish_id"), d.get("upload_url")
+    with open(path, "rb") as f:
+        for i in range(cnt):
+            start = i * cs
+            ln = (size - start) if i == cnt - 1 else cs
+            chunk = f.read(ln)
+            u = httpx.put(url, content=chunk, timeout=600, headers={
+                "Content-Type": "video/mp4", "Content-Length": str(ln), "Content-Range": f"bytes {start}-{start + ln - 1}/{size}"})
+            if u.status_code >= 300:
+                raise RuntimeError(f"TikTok (wysyłka pliku): {u.status_code} {u.text[:150]}")
+    t0 = time.time()
+    while time.time() - t0 < 600:
+        s = httpx.post(f"{API}/post/publish/status/fetch/", headers=h, json={"publish_id": pid}, timeout=30)
+        st = (s.json().get("data") or {}) if s.status_code < 300 else {}
+        v = st.get("status")
+        if v == "SEND_TO_USER_INBOX":
+            return pid, "w skrzynce TikToka – otwórz aplikację i opublikuj"
+        if v == "PUBLISH_COMPLETE":
+            return pid, "opublikowany" + (" (prywatnie – TikTok jeszcze nie zatwierdził aplikacji)" if priv == "SELF_ONLY" else "")
+        if v == "FAILED":
+            raise RuntimeError("TikTok odrzucił film: " + str(st.get("fail_reason") or "?"))
+        time.sleep(8)
+    return pid, "TikTok jeszcze przetwarza film"
