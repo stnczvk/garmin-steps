@@ -79,7 +79,9 @@ def api_get(month: str = ""):
                       "thumb": f"/api/planer/{x['id']}/preview" if x.get("kind") == "karuzela" else "",
                       "video": f"/api/planer/{x['id']}/preview" if x.get("kind") == "film" else "",
                       "rel": max((s["rel"] for s in st if s["rel"]), default=None), "views": sum(s["views"] for s in st) or None,
-                      "movable": x["status"] in ("draft", "approved", "error")})
+                      "movable": x["status"] in ("draft", "approved", "error"),
+                      "caption": x.get("caption") or "", "yt_title": x.get("yt_title") or "", "tiktok": x.get("tiktok") or "",
+                      "step": x.get("step") or "", "n_files": len(x.get("files") or [])})
     for r in R:
         if r["id"] in used or not (a <= r["t"] <= b):
             continue

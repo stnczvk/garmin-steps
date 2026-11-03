@@ -81,7 +81,7 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .md h2{margin:0 0 14px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
 .md .x{border:0;background:var(--v3-s3);color:var(--ink);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px}
 .fg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
-.fl{display:flex;flex-direction:column;gap:5px;min-width:0}.fl.w{grid-column:1/-1}
+.fl{display:flex;flex-direction:column;gap:5px;min-width:0}.fl[hidden]{display:none}.fl.w{grid-column:1/-1}
 .fl label{font-size:11px;font-weight:650;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;display:flex;justify-content:space-between}
 .fl input,.fl textarea,.fl select{background:var(--v3-s1);border:1px solid var(--line);border-radius:11px;padding:9px 11px;color:var(--ink);font:inherit;font-size:13.5px;outline:none;min-width:0;box-sizing:border-box;width:100%}
 .fl textarea{resize:vertical;min-height:64px;line-height:1.5}
@@ -349,18 +349,41 @@ function xhrUp(f,name,onp){return new Promise(res=>{const x=new XMLHttpRequest()
 async function toJpg(f){const u=URL.createObjectURL(f);try{const im=await new Promise((ok,er)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=er;i.src=u});
  const s=Math.min(1,2160/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*s);c.height=Math.round(im.naturalHeight*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
  return await new Promise(r=>c.toBlob(r,'image/jpeg',.92))}finally{URL.revokeObjectURL(u)}}
-function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie',approved:p.ext?'zaplanowany w YT Studio':'zaplanowany',publishing:'publikuje się…',published:'opublikowany',error:'błąd publikacji'}[p.status]||p.status;
- const dt=new Date(p.t*1000);
- $('md').innerHTML=`<h2><span>${esc(p.label)}</span><button class="x" onclick="closeM()">✕</button></h2>
- ${p.video?`<video class="pvid" src="${esc(p.video)}" controls playsinline preload="metadata"></video>`:p.thumb?`<img class="pvid" style="object-fit:contain" src="${esc(p.thumb)}" alt="">`:''}
- <div class="kv"><span>Status</span><b>${st}</b><span>Platformy</span><b>${(p.platforms||[]).map(x=>PL[x]||x).join(', ')||'–'}</b><span>${p.status==='published'?'Opublikowano':'Publikacja'}</span><b>${dt.toLocaleString('pl-PL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</b>
- ${p.views!=null?`<span>Wyświetlenia</span><b>${(p.views||0).toLocaleString('pl-PL')} ${relB(p.rel,p.fresh)}</b>`:''}</div>
- ${p.movable?`<div class="fl"><label>Przesuń na dzień</label><input type="date" id="pd" value="${ds(dt)}" min="${ds(now)}"></div>`:''}
- <div class="ac">${p.url?`<a class="ib" href="${esc(p.url)}" target="_blank" rel="noopener">Otwórz post ↗</a>`:''}${p.src==='plan'?`<button class="ib" id="toh">Edytuj w planerze</button>`:''}<span class="sp"></span>${p.movable?`<button class="ib pri" id="pds">Zapisz datę</button>`:''}</div>`;
+let TTOK=null;async function ttOk(){if(TTOK===null){try{TTOK=(await (await fetch('/api/tiktok/status')).json()).connected}catch(e){TTOK=false}}return TTOK}
+const dtl=t=>{const d=new Date(t*1000);return `${ds(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+async function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie',approved:'zaplanowany',publishing:'publikuje się…',published:'opublikowany',error:'błąd publikacji'}[p.status]||p.status;
+ const dt=new Date(p.t*1000),ed=p.src==='plan'&&['draft','approved','error'].includes(p.status);
+ const media=p.video?`<video class="pvid" src="${esc(p.video)}" controls playsinline preload="metadata"></video>`:p.thumb?`<img class="pvid" style="object-fit:contain" src="${esc(p.thumb)}" alt="">`:'';
+ if(!ed){
+  $('md').innerHTML=`<h2><span>${esc(p.label)}</span><button class="x" onclick="closeM()">✕</button></h2>${media}
+  <div class="kv"><span>Status</span><b>${p.ext?'zaplanowany w YT Studio':st}</b><span>Platformy</span><b>${(p.platforms||[]).map(x=>PL[x]||x).join(', ')||'–'}</b><span>${p.status==='published'?'Opublikowano':'Publikacja'}</span><b>${dt.toLocaleString('pl-PL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</b>
+  ${p.views!=null?`<span>Wyświetlenia</span><b>${(p.views||0).toLocaleString('pl-PL')} ${relB(p.rel,p.fresh)}</b>`:''}</div>
+  ${p.movable?`<div class="fl"><label>Przesuń na dzień</label><input type="date" id="pd" value="${ds(dt)}" min="${ds(now)}"></div>`:''}
+  <div class="ac">${p.url?`<a class="ib" href="${esc(p.url)}" target="_blank" rel="noopener">Otwórz post ↗</a>`:''}<span class="sp"></span>${p.movable?`<button class="ib pri" id="pds">Zapisz datę</button>`:''}</div>`;
+  $('mb').classList.add('on');
+  if($('pds'))$('pds').onclick=async()=>{const r=await api('/api/tresci/move',{kind:p.src==='pub'?'yt':'post',id:p.id,day:$('pd').value});if(!r.ok)return toast(r.error||'Nie udało się');closeM();toast('Zapisane');load()};
+  return}
+ const tt=await ttOk(),film=p.kind==='film',all=film?['instagram','youtube'].concat(tt||(p.platforms||[]).includes('tiktok')?['tiktok']:[]):['instagram'];
+ $('md').innerHTML=`<h2><span>${esc(p.label)}</span><button class="x" onclick="closeM()">✕</button></h2>${media}
+ <div class="kv" style="margin-bottom:10px"><span>Status</span><b style="color:${(STP[p.status]||[])[1]||'inherit'}">${st}</b>${p.status==='error'&&p.step?`<span>Błąd</span><b style="color:#ff8f9b;font-weight:500">${esc(p.step)}</b>`:''}</div>
+ <div class="fg"><div class="fl w"><label>Opis</label><textarea id="ec" rows="5">${esc(p.caption)}</textarea></div>
+  <div class="fl"><label>Kiedy</label><input type="datetime-local" id="ew" value="${dtl(p.t)}"></div>
+  <div class="fl" style="grid-column:span 2"><label>Gdzie</label><div class="pls" id="epl">${all.map(x=>`<label><input type="checkbox" value="${x}" ${(p.platforms||[]).includes(x)?'checked':''}>${{instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok'}[x]}</label>`).join('')}</div></div>
+  ${film?`<div class="fl w" data-pf="youtube"><label>Tytuł na YouTube</label><input id="ey" value="${esc(p.yt_title)}" placeholder="puste = pierwsze zdanie opisu"></div>`:''}
+  ${film&&all.includes('tiktok')?`<div class="fl w" data-pf="tiktok"><label>Opis na TikToka</label><textarea id="et" rows="3">${esc(p.tiktok)}</textarea></div>`:''}</div>
+ <div class="ac"><button class="ib del" data-a="skip">Usuń z planu</button><span class="sp"></span><button class="ib" data-a="now">Opublikuj teraz</button>
+  ${p.status==='approved'?'<button class="ib" data-a="unapprove">Cofnij zatwierdzenie</button><button class="ib pri" data-a="save">Zapisz</button>':p.status==='error'?'<button class="ib" data-a="save">Zapisz</button><button class="ib pri" data-a="retry">Ponów</button>':'<button class="ib" data-a="save">Zapisz</button><button class="ib pri" data-a="approve">Zatwierdź</button>'}</div>`;
  $('mb').classList.add('on');
- if($('toh'))$('toh').onclick=()=>{try{parent.postMessage({go:'home'},location.origin)}catch(e){};closeM()};
- if($('pds'))$('pds').onclick=async()=>{const r=await api('/api/tresci/move',{kind:p.src==='pub'?'yt':'post',id:p.id,day:$('pd').value});if(!r.ok)return toast(r.error||'Nie udało się');closeM();toast('Zapisane');load()};
-}
+ const vis=()=>{const on=[...document.querySelectorAll('#epl input:checked')].map(i=>i.value);document.querySelectorAll('#md [data-pf]').forEach(e=>e.hidden=!on.includes(e.dataset.pf))};vis();$('epl').onchange=vis;
+ $('md').querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{const a=b.dataset.a;
+  if(a==='now'&&!confirm('Opublikować teraz?'))return;if(a==='skip'&&!confirm('Usunąć ten post z planu? (plik zostaje)'))return;
+  const body={caption:$('ec').value,when:$('ew').value,platforms:[...document.querySelectorAll('#epl input:checked')].map(i=>i.value)};
+  if($('ey'))body.yt_title=$('ey').value;if($('et'))body.tiktok=$('et').value;
+  if(['approve','save','now','retry'].includes(a)){await api(`/api/planer/${p.id}/save`,body)}
+  b.disabled=true;const r=await api(`/api/planer/${p.id}/${a}`,body);b.disabled=false;
+  if(r.ok===false)return toast(r.error||'Nie udało się');
+  toast({approve:'Zatwierdzone – wyjdzie o czasie',now:'Publikuję…',skip:'Usunięte z planu',save:'Zapisane',unapprove:'Cofnięte',retry:'Ponawiam publikację'}[a]||'Gotowe');
+  if(a==='approve'&&window.confettiAt)confettiAt(b,40);closeM();load()})}
 
 function openIdea(i){i=i||{};const isNew=!i.id;
  const stg=Object.entries(STG).map(([k,v])=>`<button data-s="${k}" style="--sc:${v[1]}" class="${(i.stage||'pomysl')===k?'on':''}"><i></i>${v[0]}</button>`).join('');
