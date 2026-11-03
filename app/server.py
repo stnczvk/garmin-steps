@@ -38,9 +38,27 @@ COOKIE = "sm"
 _fails = {}
 
 
+import threading as _th
+_db_lock = _th.Lock()
+_ok_tokens = set()     # pamięć podręczna – po powrocie apki z tła wiele zakładek pyta naraz
+
+
+def _db(sql, args=()):
+    # jedno połączenie SQLite używane z wielu wątków naraz rzucało „InterfaceError” – teraz po kolei
+    with _db_lock:
+        return _con.execute(sql, args).fetchone()
+
+
 def authed(req: Request):
     t = req.cookies.get(COOKIE)
-    return bool(t) and _con.execute("SELECT 1 FROM sessions WHERE token=?", (t,)).fetchone() is not None
+    if not t:
+        return False
+    if t in _ok_tokens:
+        return True
+    ok = _db("SELECT 1 FROM sessions WHERE token=?", (t,)) is not None
+    if ok:
+        _ok_tokens.add(t)
+    return ok
 
 
 def check_pass(pw):
@@ -87,7 +105,7 @@ async def login(req: Request):
         return JSONResponse({"error": "Złe hasło."}, status_code=401)
     _fails.pop(ip, None)
     tok = secrets.token_urlsafe(32)
-    _con.execute("INSERT INTO sessions VALUES(?,?)", (tok, time.time()))
+    _db("INSERT INTO sessions VALUES(?,?)", (tok, time.time()))
     r = JSONResponse({"ok": True})
     r.set_cookie(COOKIE, tok, max_age=400 * 86400, httponly=True, secure=True, samesite="lax")
     return r
@@ -103,7 +121,8 @@ def version():
 
 @app.post("/api/logout")
 def logout(req: Request):
-    _con.execute("DELETE FROM sessions WHERE token=?", (req.cookies.get(COOKIE, ""),))
+    _ok_tokens.discard(req.cookies.get(COOKIE, ""))
+    _db("DELETE FROM sessions WHERE token=?", (req.cookies.get(COOKIE, ""),))
     r = JSONResponse({"ok": True})
     r.delete_cookie(COOKIE)
     return r
