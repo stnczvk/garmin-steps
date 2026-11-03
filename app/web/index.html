@@ -816,7 +816,7 @@ addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('snow'
 </script>
 <style id="hubs">
 #snav button[data-sub]{display:none!important}
-.intro-r:has(#tabs){display:none}
+#app #tabs,#app .intro-r .intro-lbl{display:none!important}
 .subt{display:none;flex:none;position:relative;z-index:16;padding:10px max(20px,env(safe-area-inset-right)) 4px max(20px,env(safe-area-inset-left))}
 body.has-subt .subt{display:block}
 .subt-in{max-width:1240px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
