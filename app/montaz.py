@@ -940,11 +940,7 @@ async def vlog_new(req: Request):
              "state": "uploading" if b.get("upload") else "queued", "step": "Wysyłanie klipów…" if b.get("upload") else "Czekam na Maca…",
              "files": [], "lines": [], "at": time.time()}
         if j["kind"] == "cheat" and b.get("style") == "zamowienie":
-            c = b.get("comment") or {}
-            if not str(c.get("text") or "").strip():
-                return {"ok": False, "error": "Wybierz komentarz widza."}
-            j["style"] = "zamowienie"
-            j["comment"] = {"user": str(c.get("user") or "widz")[:40].lstrip("@"), "text": str(c["text"])[:300], "platform": str(c.get("platform") or "")[:20]}
+            j["style"] = "zamowienie"     # dymek z komentarzem dodaje TikTok („odpowiedz filmem”)
         if j["kind"] in ("przepis", "cheat") and not j["date"]:
             j["date"] = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
         if j["ep"] <= 0 or not re.match(r"^\d{4}-\d{2}-\d{2}$", j["date"]):

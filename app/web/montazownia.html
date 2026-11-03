@@ -208,9 +208,8 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
     <label class="drop vonly" id="pdrop"><input type="file" id="pf" accept="video/*,.mov,.mp4,.m4v" multiple hidden><b>💪 Pozowanie – update formy (opcjonalnie)</b><span id="pfl">klipy z pozowania – wejdą jako blok „UPDATE FORMY” przed podsumowaniem (na Macu: nazwij je poz_…)</span></label>
     <label class="drop vonly"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="vvo" style="accent-color:#8b7cc7;width:18px;height:18px"><b>Dogrywam dziś głos do klipów bez mowy</b></span><span>Tak – klipy bez mowy w normalnej prędkości, do 8 s, każdy na cały ekran. Nie – jak zwykle (przyspieszone, w parach).</span></label></div>
    <div class="conly" hidden style="margin:4px 0 12px"><div class="cst" id="cst"><button data-st="" class="on">🍔 Klasyczny</button><button data-st="zamowienie">💬 Zamówienie od widza</button></div>
-    <div id="czam" hidden><p class="mut" style="margin:8px 0">Nagraj po kolei: <b>1</b> odpowiedź na komentarz do kamery · <b>2</b> zapakowane produkty · <b>3</b> gotowe do jedzenia · <b>4</b> jedzenie · <b>5</b> (opcjonalnie) pytanie, co zjeść następne. Komentarz pojawi się w dymku na początku, na gotowym jedzeniu makro z Dziennika. Wynik to projekt w CapCucie (otworzy się sam) – możesz go poprawić przed publikacją.</p>
-     <div class="kbar"><input id="kq" placeholder="Szukaj w komentarzach…"><button class="btn" id="kr" title="Odśwież">↻</button></div><div class="kl" id="kl"><p class="mut">Ładuję komentarze…</p></div>
-     <details class="kown"><summary>Wpisz komentarz ręcznie</summary><div class="nf" style="grid-template-columns:180px minmax(0,1fr)"><label>Nick<input id="kmu" placeholder="np. kasia_fit"></label><label>Treść<input id="kmt" placeholder="np. zjedz 2 big maki i duże frytki"></label></div></details></div></div>
+    <div id="czam" hidden><p class="mut" style="margin:8px 0">Nagraj po kolei: <b>1</b> odpowiedź na komentarz do kamery · <b>2</b> zapakowane produkty · <b>3</b> gotowe do jedzenia · <b>4</b> jedzenie · <b>5</b> (opcjonalnie) pytanie, co zjeść następne. Na gotowym jedzeniu wejdzie makro z Dziennika. Dymek z komentarzem doda TikTok, gdy opublikujesz film jako „Odpowiedz filmem”. Wynik to projekt w CapCucie (otworzy się sam) – możesz go poprawić przed publikacją.</p>
+</div></div>
    <div class="row"><button class="btn pri" id="vgo">🎥 Zmontuj odcinek</button><button class="btn" id="vcancel">Anuluj</button><span class="mut" id="vup"></span></div>
   </div>
  </section>
@@ -458,9 +457,8 @@ function setKind(k){KIND=k;const c=kc(k);document.querySelectorAll('.vonly').for
 $('cheatb').onclick=$('cheatb2').onclick=()=>{setMode('dash');setSec('cheat');setKind('cheat');$('newp').hidden=true;$('vnew').hidden=false;scrollTo({top:0,behavior:'smooth'})};
 $('vgo').onclick=async()=>{const P=KIND==='przepis',c=kc(KIND),ep=+$('vep').value,date=P?new Date().toISOString().slice(0,10):$('vd').value;if(!ep||!date)return toast(P?'Podaj numer przepisu.':'Podaj numer i datę.');
  if(KIND==='vlog'&&PF.length){VF=[...VF.filter(f=>!/^poz_/i.test(f.name)),...PF.map(f=>new File([f],'poz_'+f.name,{type:f.type}))]}
- if(KIND==='cheat'&&window.CSTYLE&&!window.cheatComment())return toast('Wybierz komentarz widza (albo wpisz go ręcznie).');
  if(!VF.length&&!V?.[c.loose]&&!confirm(`Na Macu w _SUROWE/${c.dir} nie widzę nowych klipów. Montować mimo to?`))return;
- window.BUSY=true;$('vgo').disabled=true;try{const r=await (await fetch('/api/mont-vlog/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ep,date,kind:KIND,title:$('vt2').value.trim(),voiceover:$('vvo').checked&&KIND==='vlog',upload:VF.length>0,style:KIND==='cheat'?window.CSTYLE:'',comment:KIND==='cheat'&&window.CSTYLE?window.cheatComment():null})})).json();if(!r.ok)throw new Error(r.error);
+ window.BUSY=true;$('vgo').disabled=true;try{const r=await (await fetch('/api/mont-vlog/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ep,date,kind:KIND,title:$('vt2').value.trim(),voiceover:$('vvo').checked&&KIND==='vlog',upload:VF.length>0,style:KIND==='cheat'?window.CSTYLE:''})})).json();if(!r.ok)throw new Error(r.error);
   if(VF.length){const tot=VF.reduce((s,f)=>s+f.size,0),t0=Date.now();let done=0,wl=null;
    try{wl=await navigator.wakeLock?.request('screen')}catch(x){}   // ekran nie gaśnie w trakcie wysyłania
    $('vup').innerHTML='Wysyłam…<div class="bar"><i id="vpb"></i></div><small class="mut" id="vsp"></small><small class="mut" style="display:block">Nie zamykaj tej karty i nie wygaszaj ekranu, dopóki się nie wyśle.</small>';
@@ -586,18 +584,7 @@ load();setInterval(load,15000);
 </script>
 
 <script>
-// cheat meal: styl „Zamówienie od widza” – wybór prawdziwego komentarza
-(()=>{const $k=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- let K=[],SEL=null,loaded=false;window.CSTYLE='';
- $k('cst').onclick=e=>{const b=e.target.closest('[data-st]');if(!b)return;$k('cst').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));window.CSTYLE=b.dataset.st;$k('czam').hidden=!window.CSTYLE;if(window.CSTYLE&&!loaded)load()};
- async function load(f){loaded=true;$k('kl').innerHTML='<p class="mut">Ładuję komentarze…</p>';let r;try{r=await (await fetch('/api/komentarze'+(f?'?force=1':''))).json()}catch(e){}
-  K=(r&&r.items)||[];draw();if(r&&r.errors&&r.errors.length&&!K.length)$k('kl').innerHTML='<p class="mut">Nie udało się pobrać: '+esc(r.errors.join('; '))+'</p>'}
- function draw(){const q=$k('kq').value.trim().toLowerCase(),L=K.filter(c=>!q||(c.text+' '+c.user).toLowerCase().includes(q)).slice(0,60);
-  $k('kl').innerHTML=L.length?L.map(c=>{const i=K.indexOf(c);return `<button class="ki${SEL===c?' on':''}" data-i="${i}"><i>${esc((c.user||'?')[0].toUpperCase())}</i><div><b>@${esc(c.user)} · ${c.platform==='youtube'?'YT':'IG'}${c.likes?' · ♥ '+c.likes:''}</b><span>${esc(c.text)}</span>${c.post?`<small>pod: ${esc(c.post.slice(0,60))}</small>`:''}</div></button>`}).join(''):'<p class="mut">Brak komentarzy'+(q?' dla tego wyszukiwania':'')+'.</p>'}
- $k('kq').oninput=draw;$k('kr').onclick=()=>load(1);
- $k('kl').onclick=e=>{const b=e.target.closest('[data-i]');if(!b)return;SEL=K[+b.dataset.i];$k('kmu').value='';$k('kmt').value='';draw()};
- window.cheatComment=()=>{const t=$k('kmt').value.trim();return t?{user:$k('kmu').value.trim()||'widz',text:t,platform:'reczny'}:SEL?{user:SEL.user,text:SEL.text,platform:SEL.platform}:null};
-})();
+(()=>{const c=document.getElementById('cst');window.CSTYLE='';c.onclick=e=>{const b=e.target.closest('[data-st]');if(!b)return;c.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));window.CSTYLE=b.dataset.st;document.getElementById('czam').hidden=!window.CSTYLE}})();
 </script>
 </body>
 </html>
