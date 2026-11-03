@@ -35,9 +35,9 @@ def results():
     for k, a in (_read("cache.json", {}).get("accounts") or {}).items():
         if a.get("group") != "prywatne":
             continue
-        posts = [p for p in (a.get("posts") or []) if _ts(p)]
+        posts = [p for p in (a.get("posts") or []) if _ts(p) and not p.get("private")]
         now = time.time()
-        old = [p.get("views") or 0 for p in posts if now - _ts(p) > 2 * 86400 and p.get("views")]
+        old = [p.get("views") or 0 for p in posts if now - _ts(p) > 2 * 86400 and p.get("views") and not p.get("scheduled")]
         med = statistics.median(old) if len(old) >= 3 else 0
         for p in posts:
             t = _ts(p)
@@ -45,7 +45,8 @@ def results():
             out.append({"id": p["id"], "platform": a.get("platform"), "acc": a.get("name"), "title": p.get("title") or "",
                         "t": t, "views": v, "likes": p.get("likes") or 0, "comments": p.get("comments") or 0,
                         "thumb": p.get("thumb") or "", "url": p.get("url") or "", "norm": int(med),
-                        "rel": round(v / med, 2) if med else None, "fresh": now - t < 2 * 86400})
+                        "scheduled": bool(p.get("scheduled")) or t > now,
+                        "rel": round(v / med, 2) if med and t <= now else None, "fresh": now - t < 2 * 86400})
     return sorted(out, key=lambda x: -x["t"])
 
 
@@ -81,7 +82,8 @@ def api_get(month: str = ""):
     for r in R:
         if r["id"] in used or not (a <= r["t"] <= b):
             continue
-        posts.append({"id": r["id"], "src": "pub", "t": r["t"], "label": r["title"] or "(bez opisu)", "status": "published",
+        posts.append({"id": r["id"], "src": "pub", "t": r["t"], "label": r["title"] or "(bez opisu)",
+                      "status": "approved" if r["scheduled"] else "published", "ext": r["scheduled"],
                       "platforms": [r["platform"]], "thumb": r["thumb"], "url": r["url"], "rel": r["rel"],
                       "views": r["views"], "fresh": r["fresh"], "movable": False})
     I = _ideas()
@@ -91,7 +93,8 @@ def api_get(month: str = ""):
             i["pwhen"] = P[i["pid"]]["when"]
     free = [{"id": x["id"], "label": x.get("label"), "when": x["when"]} for x in P.values()
             if x["status"] in ("draft", "approved") and not any(i.get("pid") == x["id"] for i in I)]
-    return {"month": m0.strftime("%Y-%m"), "ideas": I, "posts": posts, "free": free, "results": R[:40]}
+    return {"month": m0.strftime("%Y-%m"), "ideas": I, "posts": posts, "free": free,
+            "results": [r for r in R if not r["scheduled"]][:40]}
 
 
 @router.post("/api/tresci/idea")

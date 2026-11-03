@@ -214,12 +214,16 @@ def fetch_youtube(acc):
     ids = [i["contentDetails"]["videoId"] for i in pl.get("items", [])]
     posts = []
     if ids:
-        vids = httpx.get(f"{api}/videos", params={"part": "snippet,statistics,contentDetails", "id": ",".join(ids)},
+        vids = httpx.get(f"{api}/videos", params={"part": "snippet,statistics,contentDetails,status", "id": ",".join(ids)},
                          headers=h, timeout=30).json().get("items", [])
         for v in vids:
             s = v.get("statistics", {})
-            posts.append({"id": v["id"], "title": v["snippet"]["title"], "date": v["snippet"]["publishedAt"][:10],
-                          "ts": v["snippet"]["publishedAt"], "dur": _iso_dur(v.get("contentDetails", {}).get("duration", "")),
+            st = v.get("status") or {}
+            # film zaplanowany w YT Studio: publishedAt = moment wgrania, prawdziwa data publikacji jest w status.publishAt
+            sched = st.get("privacyStatus") == "private" and bool(st.get("publishAt"))
+            ts = st["publishAt"] if sched else v["snippet"]["publishedAt"]
+            posts.append({"id": v["id"], "title": v["snippet"]["title"], "date": ts[:10],
+                          "ts": ts, "scheduled": sched, "private": st.get("privacyStatus") == "private" and not sched, "dur": _iso_dur(v.get("contentDetails", {}).get("duration", "")),
                           "url": f"https://youtu.be/{v['id']}",
                           "thumb": (v["snippet"].get("thumbnails", {}).get("medium") or {}).get("url", ""),
                           "views": int(s.get("viewCount", 0)), "likes": int(s.get("likeCount", 0)),

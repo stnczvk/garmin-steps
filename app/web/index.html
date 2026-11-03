@@ -772,27 +772,57 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
   <div class="s-brand"><img src="/ikona-192.png" alt=""><b>Centrum</b><button class="s-col" id="s-col" title="Zwiń / rozwiń menu" aria-label="Zwiń menu">‹</button></div>
   <nav id="snav">
     <button data-v="home"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></i><span>Ekran główny</span></button>
-    <button data-v="straznicy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></i><span>Strażnicy</span><em class="s-badge" id="gbadge"></em></button>
-    <button data-v="powiadomienia"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></i><span>Powiadomienia</span><em class="s-badge" id="nbadge"></em></button>
     <button data-v="poczta"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/></svg></i><span>Poczta</span><em class="s-badge" id="mbadge"></em></button>
-    <button data-v="hasla"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></i><span>Hasła</span></button>
-    <button data-v="notatki"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></i><span>Notatki</span></button>
-    <div class="s-grp">Biznes</div>
-    <button data-v="etsy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
-    <div class="s-grp">Social media</div>
-    <button data-v="stats"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
-    <button data-v="agencja"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
-    <button data-v="pozaskala"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Pipeline PozaSkala</span></button>
-    <button data-v="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span></button>
-    <button data-v="montazownia"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.4L20 18M8.6 16.6L20 6"/></svg></i><span>Montażownia</span></button>
-    <div class="s-grp">Skaner giełdowy</div>
-    <button data-v="skaner"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Biuro skanera</span></button>
-    <button data-v="skaner-sygnaly"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></i><span>Sygnały</span></button>
-    <button data-v="skaner-stats"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i><span>Statystyki skanera</span></button>
-    <button data-v="skaner-boty"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></svg></i><span>Boty (Strategy Lab)</span></button>
+    <button data-v="powiadomienia"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></i><span>Powiadomienia</span><em class="s-badge" id="nbadge"></em></button>
+    <div class="s-grp" data-g="social" role="button" tabindex="0" aria-expanded="true">Social media<b class="s-cv">›</b></div>
+    <button data-v="tresci" data-g="social"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span></button>
+    <button data-v="montazownia" data-g="social"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.4L20 18M8.6 16.6L20 6"/></svg></i><span>Montażownia</span></button>
+    <button data-v="stats" data-g="social"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
+    <div class="s-grp" data-g="ps" role="button" tabindex="0" aria-expanded="true">PozaSkala AI<b class="s-cv">›</b></div>
+    <button data-v="agencja" data-g="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
+    <button data-v="pozaskala" data-g="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Pipeline PozaSkala</span></button>
+    <div class="s-grp" data-g="biz" role="button" tabindex="0" aria-expanded="true">Biznes<b class="s-cv">›</b></div>
+    <button data-v="etsy" data-g="biz"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
+    <div class="s-grp" data-g="skan" role="button" tabindex="0" aria-expanded="true">Skaner giełdowy<b class="s-cv">›</b></div>
+    <button data-v="skaner" data-g="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Biuro skanera</span></button>
+    <button data-v="skaner-sygnaly" data-g="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></i><span>Sygnały</span></button>
+    <button data-v="skaner-stats" data-g="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i><span>Statystyki skanera</span></button>
+    <button data-v="skaner-boty" data-g="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></svg></i><span>Boty (Strategy Lab)</span></button>
+    <div class="s-grp" data-g="tools" role="button" tabindex="0" aria-expanded="true">Narzędzia<b class="s-cv">›</b></div>
+    <button data-v="straznicy" data-g="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></i><span>Strażnicy</span><em class="s-badge" id="gbadge"></em></button>
+    <button data-v="hasla" data-g="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></i><span>Hasła</span></button>
+    <button data-v="notatki" data-g="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></i><span>Notatki</span></button>
   </nav>
   <div class="s-tools" id="stools"></div><div class="s-foot">Centrum v3</div>
 </aside>
+<style id="sgrp">
+.s-grp[data-g]{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:6px;user-select:none;border-radius:8px;transition:color .15s}
+.s-grp[data-g]:hover{color:var(--soft)}
+.s-cv{font-weight:600;font-size:13px;line-height:1;transform:rotate(90deg);transition:transform .25s cubic-bezier(.32,.72,0,1);opacity:.7}
+.s-grp.shut .s-cv{transform:rotate(0)}
+.s-grp.hasb:after{content:"";width:6px;height:6px;border-radius:50%;background:#ff6b7a;box-shadow:0 0 8px #ff6b7a;margin-left:auto}
+.s-grp.hasb .s-cv{margin-left:6px}
+#snav button.g-in{animation:gin .26s cubic-bezier(.32,.72,0,1) both}
+@keyframes gin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media(max-width:900px){#snav button.g-hid{display:none}}
+@media(min-width:901px){body.s-wide #snav button.g-hid{display:none}body:not(.s-wide) .s-cv,body:not(.s-wide) .s-grp.hasb:after{display:none}body:not(.s-wide) .s-grp[data-g]{cursor:default;pointer-events:none}}
+</style>
+<script>
+(()=>{const nav=document.getElementById('snav');if(!nav)return;let shut;try{shut=JSON.parse(localStorage.getItem('menu-shut')||'null')}catch(e){}
+ if(!Array.isArray(shut))shut=['skan','tools'];
+ const hs=[...nav.querySelectorAll('.s-grp[data-g]')];
+ function apply(anim){hs.forEach(h=>{const g=h.dataset.g,c=shut.includes(g);h.classList.toggle('shut',c);h.setAttribute('aria-expanded',!c);
+  nav.querySelectorAll(`button[data-g="${g}"]`).forEach(b=>{const was=b.classList.contains('g-hid');b.classList.toggle('g-hid',c);if(anim&&was&&!c){b.classList.remove('g-in');void b.offsetWidth;b.classList.add('g-in')}})});
+  setTimeout(()=>dispatchEvent(new Event('resize')),30);badges()}
+ function tog(g){shut=shut.includes(g)?shut.filter(x=>x!==g):[...shut,g];try{localStorage.setItem('menu-shut',JSON.stringify(shut))}catch(e){}apply(true)}
+ hs.forEach(h=>{h.onclick=()=>tog(h.dataset.g);h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog(h.dataset.g)}}});
+ function badges(){hs.forEach(h=>{const hid=h.classList.contains('shut')&&[...nav.querySelectorAll(`button[data-g="${h.dataset.g}"] .s-badge`)].some(e=>e.textContent.trim());h.classList.toggle('hasb',hid)})}
+ // aktywna zakładka w zwiniętej grupie → grupa się rozwija
+ new MutationObserver(()=>{const b=nav.querySelector('button[aria-current=page][data-g]');if(b&&shut.includes(b.dataset.g)){shut=shut.filter(x=>x!==b.dataset.g);apply(true)}}).observe(nav,{attributes:true,subtree:true,attributeFilter:['aria-current']});
+ new MutationObserver(badges).observe(nav,{childList:true,characterData:true,subtree:true});
+ apply(false)})();
+</script>
+
 <div class="s-dim" id="sdim"></div>
 <header class="head" id="head">
   <div class="head-in">

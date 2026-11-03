@@ -155,7 +155,7 @@ function draw(){
 function ideaCh(i){const s=STG[i.stage]||STG.pomysl;return `<div class="ch idea" draggable="false" data-k="idea" data-id="${i.id}" style="--sc:${s[1]}" title="${esc(i.title)} · ${s[0]}"><span class="dot"></span><span class="tx">${esc(i.title)}</span></div>`}
 function postCh(p){const th=p.thumb?`<img class="th" src="${esc(p.thumb)}" loading="lazy" alt="">`:p.video?`<video class="th" src="${esc(p.video)}#t=1" preload="metadata" muted playsinline></video>`:'';
  const pl=(p.platforms||[]).map(x=>PL[x]||x).join('+');
- return `<div class="ch post ${p.status}" data-k="${p.movable?'post':''}" data-id="${p.id}" title="${esc(p.label)}">${th}<span class="tx">${esc(p.label)}</span><span class="tm">${p.status==='published'?pl:hm(p.t)}</span>${relB(p.rel,p.fresh)}</div>`}
+ return `<div class="ch post ${p.status}" data-k="${p.movable?'post':''}" data-id="${p.id}" title="${esc(p.label)}">${th}<span class="tx">${esc(p.label)}</span><span class="tm">${p.status==='published'?pl:p.ext?pl+' '+hm(p.t):hm(p.t)}</span>${relB(p.rel,p.fresh)}</div>`}
 function res(){const R=(D.results||[]).filter(r=>r.rel!=null);
  if(!R.length){$('sum').innerHTML='';$('res').innerHTML='<p style="color:var(--soft);font-size:12.5px;margin:4px">Brak danych – potrzeba min. 3 postów starszych niż 2 dni na koncie prywatnym (Statystyki).</p>';return}
  const old=R.filter(r=>!r.fresh),l10=old.slice(0,10),avg=l10.length?l10.reduce((a,r)=>a+r.rel,0)/l10.length:0,hits=old.filter(r=>r.rel>=1.5).length;
@@ -199,7 +199,7 @@ function save(){try{localStorage.setItem('tresci-m',M)}catch(e){}}
 const closeM=()=>$('mb').classList.remove('on');$('mb').onclick=e=>{if(e.target===$("mb"))closeM()};
 document.addEventListener('keydown',e=>{if(e.key==="Escape")closeM()});
 
-function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie',approved:'zaplanowany',publishing:'publikuje się…',published:'opublikowany',error:'błąd publikacji'}[p.status]||p.status;
+function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie',approved:p.ext?'zaplanowany w YT Studio':'zaplanowany',publishing:'publikuje się…',published:'opublikowany',error:'błąd publikacji'}[p.status]||p.status;
  const dt=new Date(p.t*1000);
  $('md').innerHTML=`<h2><span>${esc(p.label)}</span><button class="x" onclick="closeM()">✕</button></h2>
  ${p.video?`<video class="pvid" src="${esc(p.video)}" controls playsinline preload="metadata"></video>`:p.thumb?`<img class="pvid" style="object-fit:contain" src="${esc(p.thumb)}" alt="">`:''}
