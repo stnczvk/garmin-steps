@@ -829,8 +829,8 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
    bar.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go,true));badges();
    bar.querySelectorAll('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===v));requestAnimationFrame(()=>pill(false));return}
   bar.querySelectorAll('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===v));pill(true)}
- function badges(){H().forEach(h=>{let n=0;subs(h.dataset.hub).forEach(b=>{const e=b.querySelector('.s-badge');n+=e?(parseInt(e.textContent)||0):0});h.querySelector('.hubb').textContent=n?String(n):''});
-  bar.querySelectorAll('[data-bdof]').forEach(e=>{const s=document.getElementById(e.dataset.bdof);e.textContent=s?s.textContent.trim():''})}
+ function badges(){H().forEach(h=>{let n=0;subs(h.dataset.hub).forEach(b=>{const e=b.querySelector('.s-badge');n+=e?(parseInt(e.textContent)||0):0});const e=h.querySelector('.hubb'),t=n?String(n):'';if(e.textContent!==t)e.textContent=t});
+  bar.querySelectorAll('[data-bdof]').forEach(e=>{const s=document.getElementById(e.dataset.bdof),t=s?s.textContent.trim():'';if(e.textContent!==t)e.textContent=t})}
  new MutationObserver(m=>{if(m.some(x=>x.target.dataset&&x.target.dataset.v))sync()}).observe(nav,{attributes:true,subtree:true,attributeFilter:['aria-current']});
  new MutationObserver(badges).observe(nav,{childList:true,characterData:true,subtree:true});
  addEventListener('resize',()=>pill(false));sync()});
