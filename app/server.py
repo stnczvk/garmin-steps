@@ -160,6 +160,8 @@ from weekly import router as weekly_router  # noqa: E402
 app.include_router(weekly_router)
 from mail import router as mail_router  # noqa: E402
 app.include_router(mail_router)
+from tresci import router as tresci_router  # noqa: E402
+app.include_router(tresci_router)
 
 
 @app.get("/")
@@ -167,7 +169,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "poczta": "poczta.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html"}
+PAGES = {"home": "home.html", "poczta": "poczta.html", "tresci": "tresci.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html"}
 
 
 def _page(req: Request, name: str):
@@ -219,6 +221,11 @@ def notatki(req: Request):
 @app.get("/poczta")
 def poczta(req: Request):
     return _page(req, "poczta")
+
+
+@app.get("/tresci")
+def tresci(req: Request):
+    return _page(req, "tresci")
 
 
 @app.get("/hasla")
