@@ -24,7 +24,7 @@ DEF = {"enabled": True, "days": [1, 4], "hour": 9, "img_quality": "low", "voice"
 US = ZoneInfo("America/New_York")
 _busy = {}
 
-STYLE = ("2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, two dot eyes, small red scarf), "
+STYLE = ("2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, two dot eyes, red baseball cap always on), "
          "thick clean black outlines, simple flat pastel background, bold readable shapes, correct relative proportions, "
          "horizontal 16:9, no text, no watermark")
 
@@ -62,7 +62,7 @@ def _key():
 # ---------------------------------------------------------------- 1. scenariusz
 def script(used):
     p = f"""Write ONE long-form YouTube episode (EN, 6-8 minutes) for the channel "Poza Skala", series "What If?" starring Stick
-(a simple stick figure with a round white head and a small red scarf). Real science and real scale are the payoff; numbers conservative and correct.
+(a simple stick figure with a round white head and his signature red baseball cap). Real science and real scale are the payoff; numbers conservative and correct.
 Pick a fresh hypothetical scenario that a 13-year-old instantly understands and wants answered (e.g. What if you fell into a black hole,
 What if the Moon disappeared, What if you lived on Jupiter for a day). Do NOT repeat these titles: {"; ".join(used[-40:]) or "none"}.
 

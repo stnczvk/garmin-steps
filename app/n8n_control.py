@@ -500,7 +500,12 @@ STICK = """## SERIES OVERRIDE – "What If?" starring Stick (this section overri
 
 """
 STICK_V2 = STICK
-BOLT = "his sidekick BOLT (a tiny round white robot with one big glowing blue eye and two short antennae, floating at Stick's shoulder)"
+BOLT_V1 = "his sidekick BOLT (a tiny round white robot with one big glowing blue eye and two short antennae, floating at Stick's shoulder)"
+# v4: Bolt wyglądał w każdej scenie inaczej – bardzo dokładny, „sztywny” opis + czego mu NIE dorysowywać
+BOLT = ("his sidekick BOLT (ALWAYS IDENTICAL DESIGN: a perfect white sphere exactly the size of Stick's head, thick black outline, flat white fill; "
+        "ONE big round glowing cyan eye in the middle of the sphere; exactly TWO short straight black antennae on top, each ending in a small cyan ball; "
+        "NO mouth, NO arms, NO legs, NO body, NO wings, NO screen, NO extra details; floats at Stick's shoulder with a tiny grey shadow below; "
+        "only his eye shape changes to show emotion)")
 STICK = (STICK_V2
          .replace("- Story beats across the 5 scenes:",
                   "- RECURRING OPENING (every episode, same way): scene 1 opens with Stick adjusting his red cap while looking at the viewer, and the narration starts with the words \"What if\" (the episode question).\n"
@@ -510,13 +515,14 @@ STICK = (STICK_V2
          .replace("the stick figure character Stick (black stick body, round white head, dot eyes, red baseball cap),",
                   "the stick figure character Stick (black stick body, round white head, dot eyes, red baseball cap) and " + BOLT + " when present,")
          .replace("thumbnail_prompt: Stick (red cap) with a shocked face", "thumbnail_prompt: Stick (red cap) and Bolt with shocked faces"))
+STICK_V3 = STICK.replace(BOLT, BOLT_V1)
 JUDGE_NOTE = "\n\n## Note\nThe channel is now a 2D stick-figure story series (\"What If?\" starring Stick). Do not penalize the cartoon style; reward clear story beats and a scenario a 13-year-old instantly understands."
 
 
 def apply_stickman(force=False):
     from agency import _read, _write
     st = _read("agency_settings.json", {})
-    if st.get("stickman_applied") and st.get("stickman_v3") and not force:
+    if st.get("stickman_applied") and st.get("stickman_v4") and not force:
         return {"ok": True, "already": True}
     try:
         wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
@@ -536,6 +542,9 @@ def apply_stickman(force=False):
         if n["name"] in ("Message a model", "Regenerate Script") and STICK_MARK not in c:
             v["content"] = ("=" + STICK + c[1:]) if c.startswith("=") else STICK + c
             done.append(n["name"])
+        elif n["name"] in ("Message a model", "Regenerate Script") and BOLT_V1 in c:
+            v["content"] = c.replace(BOLT_V1, BOLT)            # stały, dokładny wygląd Bolta
+            done.append(n["name"] + " (Bolt – stały wygląd)")
         elif n["name"] in ("Message a model", "Regenerate Script") and STICK_V2 in c and STICK not in c:
             v["content"] = c.replace(STICK_V2, STICK)          # stałe otwarcie + pomocnik Bolt
             done.append(n["name"] + " (otwarcie, Bolt)")
@@ -556,7 +565,7 @@ def apply_stickman(force=False):
         if g.get("active"):
             n8n("POST", f"/api/v1/workflows/{g['id']}/activate")
     st = _read("agency_settings.json", {})
-    st.update(stickman=True, stickman_v2=st.get("stickman_v2") or time.time(), stickman_v3=time.time())
+    st.update(stickman=True, stickman_v2=st.get("stickman_v2") or time.time(), stickman_v3=st.get("stickman_v3") or time.time(), stickman_v4=time.time())
     st.setdefault("stickman_applied", time.time())
     _write("agency_settings.json", st)
     log("op", "PozaSkala → seria „What If?” ze stickmanem (" + (", ".join(done) or "już ustawione") + ")", "ok")
