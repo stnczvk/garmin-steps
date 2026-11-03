@@ -22,7 +22,7 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .wd div{font-size:11px;font-weight:650;color:var(--soft);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px}
 .wk{margin-top:6px}
 .c{min-height:118px;border-radius:14px;background:var(--v3-s1);border:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:4px;min-width:0;transition:background .15s,border-color .15s}
-.c.out{opacity:.45}.c.past .n{opacity:.6}
+.c.out{opacity:.45}.c.blank{background:none;border:0;box-shadow:none;pointer-events:none}@media(max-width:760px){.c.blank{display:none}}.c.past .n{opacity:.6}
 .c.today{border-color:color-mix(in srgb,#6e8bff 60%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,#6e8bff 40%,transparent)}
 .c.today .n b{background:#6e8bff;color:#fff;border-radius:20px;padding:0 7px}
 .c.hov,.bank.hov{background:color-mix(in srgb,#6e8bff 16%,var(--v3-s1));border-color:#6e8bff}
@@ -218,7 +218,7 @@ function draw(){
  $('bank').innerHTML=bank.length?bank.map(ideaCh).join(''):'<div class="e">Tu lądują pomysły bez daty. Przeciągnij je na dzień w kalendarzu.</div>';
  res();
 }
-function cell(d,by,today,out){const k=ds(d),L=by[k]||[],big=V==='w';
+function cell(d,by,today,out){if(out)return '<div class="c blank" aria-hidden="true"></div>';const k=ds(d),L=by[k]||[],big=V==='w';
  const cls=['c',out?'out':'',k===today?'today':'',k<today?'past':'',L.length?'':'nil'].join(' ');
  return `<div class="${cls}" data-day="${k}"><div class="n"><b>${d.getDate()}<span class="dl"> · ${d.toLocaleDateString('pl-PL',{weekday:'long'})}</span></b><span class="tdl">DZIŚ</span><button class="add" data-add="${k}" title="Dodaj pomysł">+</button></div>`+
   L.map(x=>x.t==='i'?(big?ideaCd(x.o):ideaCh(x.o)):(big?postCd(x.o):postCh(x.o))).join('')+
