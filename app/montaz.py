@@ -939,6 +939,12 @@ async def vlog_new(req: Request):
              "ep": int(b.get("ep") or 0), "date": str(b.get("date") or "")[:10], "voiceover": bool(b.get("voiceover")),
              "state": "uploading" if b.get("upload") else "queued", "step": "Wysyłanie klipów…" if b.get("upload") else "Czekam na Maca…",
              "files": [], "lines": [], "at": time.time()}
+        if j["kind"] == "cheat" and b.get("style") == "zamowienie":
+            c = b.get("comment") or {}
+            if not str(c.get("text") or "").strip():
+                return {"ok": False, "error": "Wybierz komentarz widza."}
+            j["style"] = "zamowienie"
+            j["comment"] = {"user": str(c.get("user") or "widz")[:40].lstrip("@"), "text": str(c["text"])[:300], "platform": str(c.get("platform") or "")[:20]}
         if j["kind"] in ("przepis", "cheat") and not j["date"]:
             j["date"] = datetime.now(ZoneInfo("Europe/Warsaw")).strftime("%Y-%m-%d")
         if j["ep"] <= 0 or not re.match(r"^\d{4}-\d{2}-\d{2}$", j["date"]):
@@ -1050,7 +1056,7 @@ def hook_job(jid: str, req: Request):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     j = _vjob(_V(), jid)
-    return j and {k: j.get(k) for k in ("id", "kind", "title", "ep", "date", "voiceover", "files", "fix")}
+    return j and {k: j.get(k) for k in ("id", "kind", "title", "ep", "date", "voiceover", "files", "fix", "style", "comment")}
 
 
 @router.get("/api/mont-hook/{jid}/file")
@@ -1361,3 +1367,47 @@ async def hook_straznik(req: Request):
     G.append({"t": time.time(), "kind": kind, "ep": b.get("ep"), "fixes": fixes, "notes": notes})
     _wr("mont_guard.json", G[-40:])
     return {"ok": True, "fixes": fixes, "notes": notes}
+
+
+
+# ---------- komentarze widzów (styl cheat meala „Zamówienie od widza”) ----------
+_kom_cache = {"t": 0, "items": []}
+
+
+@router.get("/api/komentarze")
+def komentarze(force: int = 0):
+    """Ostatnie komentarze pod filmami z kont prywatnych (Instagram + YouTube), najnowsze pierwsze."""
+    if not force and time.time() - _kom_cache["t"] < 600:
+        return {"items": _kom_cache["items"]}
+    import httpx
+    from social import _accounts, _ig_token, _google_access
+    out, errs = [], []
+    C = _rd("cache.json", {}).get("accounts", {})
+    for k, a in _accounts().items():
+        if a.get("group") != "prywatne":
+            continue
+        posts = (C.get(k) or {}).get("posts") or []
+        try:
+            if a.get("platform") == "instagram":
+                tok = _ig_token(k, a)
+                for p in posts[:12]:
+                    if not p.get("comments"):
+                        continue
+                    r = httpx.get(f"https://graph.instagram.com/{p['id']}/comments", params={"fields": "id,text,username,timestamp,like_count", "limit": 50, "access_token": tok}, timeout=20).json()
+                    for c in r.get("data") or []:
+                        out.append({"platform": "instagram", "user": c.get("username") or "widz", "text": c.get("text") or "", "t": c.get("timestamp") or "",
+                                    "likes": c.get("like_count") or 0, "post": p.get("title") or "", "url": p.get("url") or ""})
+            elif a.get("platform") == "youtube":
+                h = {"Authorization": f"Bearer {_google_access(a)}"}
+                r = httpx.get("https://www.googleapis.com/youtube/v3/commentThreads", params={"part": "snippet", "allThreadsRelatedToChannelId": a.get("channel_id"), "maxResults": 50, "order": "time"}, headers=h, timeout=20).json()
+                for it in r.get("items") or []:
+                    sn = ((it.get("snippet") or {}).get("topLevelComment") or {}).get("snippet") or {}
+                    out.append({"platform": "youtube", "user": (sn.get("authorDisplayName") or "widz").lstrip("@"), "text": sn.get("textOriginal") or "", "t": sn.get("publishedAt") or "",
+                                "likes": sn.get("likeCount") or 0, "post": "", "url": f"https://youtu.be/{sn.get('videoId', '')}"})
+        except Exception as e:
+            errs.append(f"{a.get('platform')}: {str(e)[:80]}")
+    me = {(a.get("name") or "").lstrip("@").lower() for a in _accounts().values()}
+    out = [c for c in out if c["text"].strip() and c["user"].lower() not in me]
+    out.sort(key=lambda c: c["t"], reverse=True)
+    _kom_cache.update(t=time.time(), items=out[:150])
+    return {"items": out[:150], "errors": errs}
