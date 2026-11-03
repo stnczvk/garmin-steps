@@ -185,7 +185,7 @@
   function isCard(e,cs){var r=parseFloat(cs.borderTopLeftRadius);if(r<14)return false;
     if(cs.backgroundImage==='none'&&(/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor)))return false;
     if(cs.position==='fixed'||cs.position==='absolute')return false;return e.offsetWidth>=140&&e.offsetHeight>=56}
-  function skip(e){return e.closest('#side,.side,.tbar,nav,dialog,.modal,.mod,#hm,#panel,.panel,header,.head,button,a,input,textarea,select,.vframe')}
+  function skip(e){return e.closest('#side,.side,.tbar,nav,dialog,.modal,.mod,.mb,.md,#sheet,[data-nogc],#hm,#panel,.panel,header,.head,button,a,input,textarea,select,.vframe')}
   function scan(){
     if(document.body.hasAttribute('data-intro'))first=false;
     var all=document.querySelectorAll('main *,.wrap *,body>section,body>div *');
