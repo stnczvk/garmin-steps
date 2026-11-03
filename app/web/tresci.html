@@ -93,9 +93,14 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .toast.on{opacity:1;transform:translateX(-50%)}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 
-.sg{display:inline-flex;background:var(--v3-s1);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
-.sg button{border:0;background:none;color:var(--soft);font:600 12.5px Geist,system-ui;padding:7px 12px;border-radius:9px;cursor:pointer}
-.sg button.on{background:var(--v3-s3);color:var(--ink);box-shadow:inset 0 1px 0 var(--v3-hi)}
+.sg{display:inline-flex;background:var(--v3-s1);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;position:relative}
+.sg button{position:relative;z-index:1;border:0;background:none;color:var(--soft);font:600 12.5px Geist,system-ui;padding:7px 13px;border-radius:9px;cursor:pointer;transition:color .25s}
+.sg button:hover{color:var(--ink)}.sg button.on{color:#fff}
+.sg .pill{position:absolute;z-index:0;top:3px;bottom:3px;left:0;width:0;border-radius:9px;background:linear-gradient(180deg,rgba(110,139,255,.32),rgba(110,139,255,.15));box-shadow:inset 0 1px 0 rgba(255,255,255,.12);transition:transform .34s cubic-bezier(.32,.72,0,1),width .34s cubic-bezier(.32,.72,0,1)}
+#grid.sw-out{opacity:0;transform:translateY(6px) scale(.985);transition:opacity .16s ease,transform .16s ease}
+#grid.sw-in{animation:swin .32s cubic-bezier(.32,.72,0,1) both}
+@keyframes swin{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#grid.sw-out,#grid.sw-in{transition:none;animation:none}.sg .pill{transition:none}}
 #td.hide{visibility:hidden}
 .stat{display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 12px}
 .stat .k{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--v3-s1);border:1px solid var(--line);font-size:13px}
@@ -146,7 +151,7 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
  <h1>Treści</h1>
  <div class="sub">Co wychodzi kiedy: pomysły, posty do zatwierdzenia, zaplanowane i opublikowane. Przeciągnij kartę na inny dzień, żeby ją przesunąć.</div>
  <div class="bar">
-  <div class="sg" id="vw"><button data-v="w">Tydzień</button><button data-v="m">Miesiąc</button></div>
+  <div class="sg" id="vw"><span class="pill"></span><button data-v="w">Tydzień</button><button data-v="m">Miesiąc</button></div>
   <button class="ib sq" id="pv" aria-label="Wcześniej">‹</button><div class="mn" id="mn">…</div><button class="ib sq" id="nx" aria-label="Później">›</button>
   <button class="ib" id="td" title="Wróć do bieżącego tygodnia/miesiąca">↺ Dziś</button><span style="flex:1"></span>
   <button class="ib pri" id="nw">+ Pomysł</button>
@@ -185,12 +190,14 @@ const relB=(r,f)=>r==null?'':`<span class="rel ${relC(r)}" title="${f?'Świeży 
 
 async function load(){const r=await api('/api/tresci?month='+(V==='w'?W.slice(0,7):M));if(!r||!r.ideas){$('grid').innerHTML='<p style="padding:30px;color:var(--soft)">Nie udało się wczytać.</p>';return}D=r;draw()}
 const STP={draft:['Do zatwierdzenia','#ffc24b'],approved:['Zaplanowany','#6e8bff'],publishing:['Publikuje się…','#b59cff'],published:['Opublikowany','#3ddc84'],error:['Błąd publikacji','#ff6b7a']};
+let pillInit=false;function pill(){const on=document.querySelector('#vw button.on'),p=document.querySelector('#vw .pill');if(!on||!p)return;if(!pillInit)p.style.transition='none';p.style.width=on.offsetWidth+'px';p.style.transform=`translateX(${on.offsetLeft-3}px)`;if(!pillInit){void p.offsetWidth;p.style.transition='';pillInit=true}}
+addEventListener('resize',()=>{pillInit=false;pill()});document.fonts&&document.fonts.ready.then(()=>{pillInit=false;pill()});
 function buckets(){const by={};const put=(k,x)=>(by[k]=by[k]||[]).push(x);
  D.ideas.forEach(i=>{if(i.day&&i.stage!=='opublikowane')put(i.day,{t:'i',o:i,s:i.pwhen||9e9})});
  D.posts.forEach(p=>put(dayOf(p.t),{t:'p',o:p,s:p.t}));
  Object.values(by).forEach(L=>L.sort((a,b)=>(a.t==='i')-(b.t==='i')||a.s-b.s));return by}
 function draw(){
- document.querySelectorAll('#vw button').forEach(b=>b.classList.toggle('on',b.dataset.v===V));
+ document.querySelectorAll('#vw button').forEach(b=>b.classList.toggle('on',b.dataset.v===V));pill();
  const today=ds(now),by=buckets(),cal=document.querySelector('.cal');cal.classList.toggle('wkv',V==='w');
  let h='',days=[];
  if(V==='w'){const s0=pd(W),e0=new Date(s0);e0.setDate(s0.getDate()+6);
@@ -281,7 +288,7 @@ document.addEventListener('click',e=>{if(Date.now()-suppress<300)return;
  if(ch.classList.contains('idea'))openIdea(D.ideas.find(i=>i.id===ch.dataset.id));else openPost(D.posts.find(p=>p.id===ch.dataset.id))});
 $('pv').onclick=()=>shift(-1);$('nx').onclick=()=>shift(1);$('nw').onclick=()=>openIdea({});
 $('td').onclick=()=>{W=ds(wkStart(now));M=ym(now);save();load().then(()=>{const c=document.querySelector('.c.today');if(c){c.scrollIntoView({block:'nearest',behavior:'smooth'});c.animate&&c.animate([{boxShadow:'0 0 0 3px #6e8bff'},{boxShadow:'0 0 0 0 transparent'}],{duration:1200})}})};
-$('vw').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.v===V)return;V=b.dataset.v;if(V==='m')M=pd(W).getDate()>24?ym(new Date(pd(W).getTime()+6*864e5)):W.slice(0,7);else{const t=ds(now);W=t.slice(0,7)===M?ds(wkStart(now)):ds(wkStart(pd(M+'-01')))}save();load()};
+$('vw').onclick=async e=>{const b=e.target.closest('button');if(!b||b.dataset.v===V)return;V=b.dataset.v;document.querySelectorAll('#vw button').forEach(x=>x.classList.toggle('on',x===b));pill();const g=$('grid');g.classList.remove('sw-in');g.classList.add('sw-out');await new Promise(r=>setTimeout(r,160));if(V==='m')M=pd(W).getDate()>24?ym(new Date(pd(W).getTime()+6*864e5)):W.slice(0,7);else{const t=ds(now);W=t.slice(0,7)===M?ds(wkStart(now)):ds(wkStart(pd(M+'-01')))}save();await load();g.classList.remove('sw-out');void g.offsetWidth;g.classList.add('sw-in');setTimeout(()=>g.classList.remove('sw-in'),400)};
 function shift(n){if(V==='w'){const d=pd(W);d.setDate(d.getDate()+7*n);W=ds(d)}else{const[y,m]=M.split('-').map(Number);M=ym(new Date(y,m-1+n,1))}save();load()}
 function save(){try{localStorage.setItem('tresci-m',M);localStorage.setItem('tresci-v',V);localStorage.setItem('tresci-w',W)}catch(e){}}
 const closeM=()=>$('mb').classList.remove('on');$('mb').onclick=e=>{if(e.target===$("mb"))closeM()};

@@ -944,8 +944,7 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
       <h3>Połączone konta</h3>
       <div id="list"></div>
       <div class="line">
-        <label for="grp" style="margin:0">Nowe konto dodaj do grupy:</label>
-        <select id="grp"><option value="pozaskala">PozaSkala</option><option value="prywatne">Prywatne</option></select>
+        <input type="hidden" id="grp" value="pozaskala"><span class="when" id="grp-l" style="margin:0"></span>
         <button id="add-yt">Dodaj kanał YouTube</button>
         <button id="add-ig">Dodaj konto Instagram</button>
       </div>
@@ -1286,11 +1285,10 @@ async function loadSettings() {
   const accAll = await api('/api/social/accounts');
   const accs = group ? accAll.filter(a => a.group === group) : accAll;
   if (group && $('#grp')) $('#grp').value = group;
+  if ($('#grp-l')) $('#grp-l').textContent = 'Nowe konto trafi do: ' + ($('#grp').value === 'prywatne' ? 'Prywatne' : 'PozaSkala');
   $('#list').innerHTML = accs.length ? accs.map(a => `
     <div class="line" style="--pc:var(--${VAR[a.platform]})">
       <span class="logo">${ICON[a.platform]}</span><b>${esc(a.name)}</b>
-      <label class="sr" for="g-${esc(a.key)}">Grupa konta ${esc(a.name)}</label>
-      <select id="g-${esc(a.key)}" data-k="${esc(a.key)}" class="g"><option value="pozaskala" ${a.group === 'pozaskala' ? 'selected' : ''}>PozaSkala</option><option value="prywatne" ${a.group === 'prywatne' ? 'selected' : ''}>Prywatne</option></select>
       ${a.platform !== 'tiktok' ? `<button data-k="${esc(a.key)}" class="rm">Odłącz</button>` : ''}</div>`).join('')
     : `<div class="when" style="padding:6px 0 10px">${group ? 'Brak kont w tej grupie.' : 'Nic jeszcze nie połączono.'}</div>`;
   document.querySelectorAll('select.g').forEach(s => s.onchange = async () => {
