@@ -774,27 +774,46 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
     <button data-v="home"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></i><span>Ekran główny</span></button>
     <button data-v="poczta"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/></svg></i><span>Poczta</span><em class="s-badge" id="mbadge"></em></button>
     <button data-v="powiadomienia"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></i><span>Powiadomienia</span><em class="s-badge" id="nbadge"></em></button>
-    <button data-hub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span><em class="s-badge hubb"></em></button>
+    <div class="s-sep"></div>
+    <button data-hub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span><em class="hubb"></em></button>
     <button data-v="tresci" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span></button>
     <button data-v="montazownia" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.4L20 18M8.6 16.6L20 6"/></svg></i><span>Montażownia</span></button>
     <button data-v="stats" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki prywatne</span></button>
-    <button data-hub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>PozaSkala AI</span><em class="s-badge hubb"></em></button>
+    <button data-hub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>PozaSkala AI</span><em class="hubb"></em></button>
     <button data-v="agencja" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
     <button data-v="pozaskala" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Pipeline PozaSkala</span></button>
     <button data-v="stats-ps" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki PozaSkala</span></button>
     <button data-v="etsy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
-    <button data-hub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Skaner giełdowy</span><em class="s-badge hubb"></em></button>
+    <div class="s-sep"></div>
+    <button data-hub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Skaner giełdowy</span><em class="hubb"></em></button>
     <button data-v="skaner" data-sub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Biuro skanera</span></button>
     <button data-v="skaner-sygnaly" data-sub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></i><span>Sygnały</span></button>
     <button data-v="skaner-stats" data-sub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i><span>Statystyki skanera</span></button>
     <button data-v="skaner-boty" data-sub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></svg></i><span>Boty (Strategy Lab)</span></button>
-    <button data-hub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8V21h3.2l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></i><span>Narzędzia</span><em class="s-badge hubb"></em></button>
+    <button data-hub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8V21h3.2l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></i><span>Narzędzia</span><em class="hubb"></em></button>
     <button data-v="straznicy" data-sub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></i><span>Strażnicy</span><em class="s-badge" id="gbadge"></em></button>
     <button data-v="hasla" data-sub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></i><span>Hasła</span></button>
     <button data-v="notatki" data-sub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></i><span>Notatki</span></button>
   </nav>
-  <div class="s-tools" id="stools"></div><div class="s-foot">Centrum v3</div>
+  <div class="s-now" id="snow" role="button" tabindex="0" title="Otwórz kalendarz treści" hidden></div><div class="s-tools" id="stools"></div><div class="s-foot">Centrum v3</div>
 </aside>
+
+<script>
+// karta „Dziś” na dole paska bocznego: następny post, do zatwierdzenia, Mac
+addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('snow');if(!el)return;
+ const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ async function j(u){try{const r=await fetch(u);return r.ok?await r.json():null}catch(x){return null}}
+ async function upd(){if(document.hidden)return;const [p,g]=await Promise.all([j('/api/planer'),j('/api/grafiki')]);if(!p||!p.items)return;
+  const now=Date.now()/1000,it=p.items.filter(x=>['draft','approved'].includes(x.status)&&x.when>now).sort((a,b)=>a.when-b.when),nx=it[0],dr=p.items.filter(x=>x.status==='draft').length;
+  const d=nx&&new Date(nx.when*1000),td=new Date(),tm=new Date();tm.setDate(tm.getDate()+1);
+  const dl=d?(d.toDateString()===td.toDateString()?'dziś':d.toDateString()===tm.toDateString()?'jutro':d.toLocaleDateString('pl-PL',{weekday:'short',day:'numeric'}))+' '+d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}):'';
+  el.innerHTML='<h5>Dziś w skrócie</h5>'+(nx?`<div class="r"><i></i><b>${e(nx.label)}</b><span class="v">${dl}</span></div>`:'<div class="r"><i style="--c:var(--soft)"></i>Brak zaplanowanych postów</div>')+
+   `<div class="r"><i style="--c:#ffc24b"></i>Do zatwierdzenia<span class="v">${dr}</span></div>`+
+   (g?`<div class="r"><i style="--c:${g.mac_online?'#3ddc84':'#ff6b7a'}"></i>Mac (montaż)<span class="v" style="color:${g.mac_online?'#5fe39b':'#ff8f9b'}">${g.mac_online?'online':'offline'}</span></div>`:'');
+  el.hidden=false}
+ el.onclick=()=>setView('tresci',true);el.onkeydown=x=>{if(x.key==='Enter')setView('tresci',true)};
+ upd();setInterval(upd,60000);document.addEventListener('visibilitychange',upd)});
+</script>
 <style id="hubs">
 #snav button[data-sub]{display:none!important}
 .intro-r:has(#tabs){display:none}
@@ -807,7 +826,20 @@ body.has-subt .subt{display:block}
 .subt button svg{width:15px;height:15px}
 .subt button:hover{color:var(--ink)}.subt button.on{color:#fff}
 .subt .pill{position:absolute;z-index:0;top:4px;bottom:4px;left:0;width:0;border-radius:10px;background:linear-gradient(180deg,rgba(110,139,255,.30),rgba(110,139,255,.14));box-shadow:inset 0 1px 0 rgba(255,255,255,.12);transition:transform .32s cubic-bezier(.32,.72,0,1),width .32s cubic-bezier(.32,.72,0,1)}
-.subt .bd{min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ff6b7a;color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center}
+.subt .bd{font-style:normal;min-width:18px;height:18px;padding:0 6px;box-sizing:border-box;border-radius:9px;background:rgba(255,107,122,.16);color:#ff9aa5;border:1px solid rgba(255,107,122,.35);font:700 10.5px/1 Geist,system-ui;display:inline-flex;align-items:center;justify-content:center;margin-left:2px}
+#snav .hubb{font-style:normal;margin-left:auto;min-width:18px;height:18px;padding:0 6px;box-sizing:border-box;border-radius:9px;background:rgba(255,107,122,.16);color:#ff9aa5;border:1px solid rgba(255,107,122,.35);font:700 10.5px/1 Geist,system-ui;display:inline-flex;align-items:center;justify-content:center}
+@media(min-width:901px){body:not(.s-wide) #snav .hubb{position:absolute;top:6px;right:6px;min-width:8px;width:8px;height:8px;padding:0;font-size:0;background:#ff6b7a;border:0;box-shadow:0 0 8px #ff6b7a}}
+#snav .s-sep{height:1px;background:var(--line);margin:8px 12px;flex:none;opacity:.7}
+@media(min-width:901px){body:not(.s-wide) #snav .s-sep{margin:8px auto;width:28px}}
+.s-now{margin:auto 10px 10px;padding:12px;border-radius:16px;background:linear-gradient(180deg,rgba(110,139,255,.10),rgba(110,139,255,.03));border:1px solid rgba(110,139,255,.18);display:flex;flex-direction:column;gap:9px;font-size:12px;cursor:pointer;transition:border-color .2s}
+.s-now:hover{border-color:rgba(110,139,255,.4)}
+.s-now h5{margin:0;font-size:10.5px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.s-now .r{display:flex;align-items:center;gap:8px;min-width:0;color:var(--soft)}
+.s-now .r b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.s-now .r i{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c,#6e8bff)}
+.s-now:not([hidden])+.s-tools{margin-top:0!important}.s-now .r .v{white-space:nowrap;flex:none;margin-left:auto;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+@media(min-width:901px){body:not(.s-wide) .s-now{display:none}}
+@media(max-height:700px){.s-now{display:none}}
 .subt .bd:empty{display:none}
 #snav .hubb:empty{display:none}
 @media(max-width:900px){.subt{padding-top:8px}.subt button{padding:7px 12px}}
