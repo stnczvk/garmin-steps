@@ -14,7 +14,7 @@ from social import _read, _write, cfg, base_url
 router = APIRouter()
 F = "tiktok_pub.json"
 API = "https://open.tiktokapis.com/v2"
-SCOPES = "user.info.basic,video.upload,video.publish"
+SCOPES = "user.info.basic,user.info.profile,user.info.stats,video.list,video.upload,video.publish"
 _states = {}
 
 
@@ -81,9 +81,12 @@ def callback(req: Request, code: str = "", state: str = "", error: str = "", err
         return RedirectResponse("/?blad=" + urllib.parse.quote("TikTok nie oddał tokenu: " + str(t)[:180]))
     name = ""
     try:
-        u = httpx.get(f"{API}/user/info/", params={"fields": "open_id,display_name"}, timeout=20,
+        u = httpx.get(f"{API}/user/info/", params={"fields": "open_id,display_name,username"}, timeout=20,
                       headers={"Authorization": "Bearer " + t["access_token"]}).json()
-        name = ((u.get("data") or {}).get("user") or {}).get("display_name", "")
+        uu = (u.get("data") or {}).get("user") or {}
+        name = uu.get("display_name", "")
+        if uu.get("username"):
+            _write(F, {**_acc(), "username": uu["username"]})
     except Exception:
         pass
     _save_tok(t, {"name": name})
@@ -189,3 +192,43 @@ def publish(path, caption="", direct=None, opts=None):
             raise RuntimeError("TikTok odrzucił film: " + str(st.get("fail_reason") or "?"))
         time.sleep(8)
     return pid, "TikTok jeszcze przetwarza film"
+
+
+def stats(handle):
+    """Oficjalne statystyki konta (user.info.stats + video.list). None, gdy to nie jest połączone konto albo brak uprawnień."""
+    a = _acc()
+    if not a.get("refresh_token"):
+        return None
+    if a.get("username") and a["username"].lower() != handle.lower():
+        return None
+    from datetime import date, datetime, timedelta, timezone
+    h = {"Authorization": "Bearer " + token()}
+    u = httpx.get(f"{API}/user/info/", params={"fields": "display_name,username,follower_count,likes_count,video_count"}, headers=h, timeout=30)
+    if u.status_code >= 300:
+        return None                                   # brak user.info.stats – zostaje stara metoda
+    us = (u.json().get("data") or {}).get("user") or {}
+    if us.get("username") and us["username"].lower() != handle.lower():
+        return None
+    if not us.get("username") and len([x for x in cfg("TIKTOK_PROFILES").split(",") if x.strip()]) > 1:
+        return None                                   # nie wiemy, który profil jest połączony
+    posts, cursor = [], None
+    for _ in range(2):                                # do 40 ostatnich filmów
+        body = {"max_count": 20, **({"cursor": cursor} if cursor else {})}
+        r = httpx.post(f"{API}/video/list/", params={"fields": "id,title,video_description,create_time,cover_image_url,share_url,view_count,like_count,comment_count,share_count,duration"},
+                       headers={**h, "Content-Type": "application/json"}, json=body, timeout=30)
+        if r.status_code >= 300:
+            return None
+        d = r.json().get("data") or {}
+        for v in d.get("videos") or []:
+            ts = datetime.fromtimestamp(v["create_time"], timezone.utc).isoformat() if v.get("create_time") else ""
+            posts.append({"id": str(v["id"]), "title": (v.get("title") or v.get("video_description") or "")[:90], "date": ts[:10], "ts": ts,
+                          "dur": v.get("duration"), "url": v.get("share_url") or f"https://www.tiktok.com/@{handle}/video/{v['id']}",
+                          "thumb": v.get("cover_image_url") or "", "views": v.get("view_count") or 0, "likes": v.get("like_count") or 0,
+                          "comments": v.get("comment_count") or 0, "shares": v.get("share_count") or 0, "saved": None})
+        if not d.get("has_more"):
+            break
+        cursor = d.get("cursor")
+    cut = (date.today() - timedelta(days=28)).isoformat()
+    return {"followers": int(us.get("follower_count") or 0), "followers_label": "obserwujący",
+            "media_count": int(us.get("video_count") or len(posts)), "likes_total": us.get("likes_count"),
+            "views_28d": sum(p["views"] for p in posts if p["date"] >= cut), "daily": [], "posts": posts[:30], "source": "api"}

@@ -332,6 +332,13 @@ def fetch_instagram(key, acc):
 
 # ---- TikTok: Apify (jeśli jest token i kredyty), a bez niego darmowo – strona profilu + yt-dlp
 def fetch_tiktok(handle):
+    try:                       # połączone konto TikTok (oficjalne API) – najdokładniejsze
+        import tiktok_pub
+        r = tiktok_pub.stats(handle)
+        if r:
+            return r
+    except Exception as e:
+        print("tiktok api stats", e, flush=True)
     if cfg("APIFY_TOKEN"):
         try:
             return fetch_tiktok_apify(handle)
