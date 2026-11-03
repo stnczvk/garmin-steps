@@ -692,6 +692,18 @@ def inbox():
             log("inbox", f"Nowe komentarze: {n}, odpowiedział na {sent}" + (f", {drafts} czeka na Ciebie" if drafts else ""), "ok")
             if drafts:
                 push_all("💬 Odpowiedzi do zatwierdzenia", f"{drafts} komentarzy czeka w Agencji (autopilot nie mógł wysłać).", "/#agencja")
+        if not errs and not I.get("bad"):
+            last = next((x for x in reversed(_read("agency_log.json", [])) if x.get("agent") == "inbox"), None)
+            I["bad"] = bool(last and last.get("kind") == "error")
+        if not errs and I.get("bad"):
+            # poprzednio był błąd w logu – zaznacz, że już działa (karta na ekranie głównym czyta ostatni wpis)
+            I["bad"] = False
+            _write("agency_inbox.json", I)
+            if not n:
+                log("inbox", "Działa – sprawdził komentarze, nic nowego", "ok")
+        elif errs and not all(_transient(e) for e in errs):
+            I["bad"] = True
+            _write("agency_inbox.json", I)
         for e in errs:
             if "nie oddaje" in e:   # znany problem (tryb aplikacji Meta) – przypomnienie raz na dobę, nie co 30 min
                 if time.time() - I.get("warned", 0) < 86400:
@@ -703,6 +715,11 @@ def inbox():
     except Exception as e:
         log("inbox", "Chwilowy problem z siecią – spróbuję za 30 min" if _transient(e) else f"Inbox nie zadziałał: {e}",
             "warn" if _transient(e) else "error")
+        try:
+            if not _transient(e):
+                I2 = _read("agency_inbox.json", {}); I2["bad"] = True; _write("agency_inbox.json", I2)
+        except Exception:
+            pass
         return 0
     finally:
         _busy.pop("inbox", None)
