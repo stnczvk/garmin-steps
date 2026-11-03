@@ -139,12 +139,11 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .fl input[type=checkbox]{width:auto;flex:none;margin:0}.fl .pls label,.fl label.chk{text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink);justify-content:flex-start}
 .pls{display:flex;gap:8px;flex-wrap:wrap}.pls label{display:flex;gap:6px;align-items:center;background:var(--v3-s1);border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13px;cursor:pointer}
 .prog{height:6px;border-radius:3px;background:var(--v3-s1);overflow:hidden;margin-top:6px}.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8b7cc7,#c9c2e3);transition:width .2s}
-@media(max-width:1180px){
+/* tydzień zawsze jako lista dni */
  .cal.wkv .wd{display:none}.cal.wkv .wk{grid-template-columns:1fr}.cal.wkv .c{min-height:0}.cal.wkv .c.nil{display:flex}
- .cal.wkv .c .n b{visibility:visible}.c .n .dl{display:inline}
+ .cal.wkv .c .n b{visibility:visible}.cal.wkv .c .n .dl{display:inline}
  .cal.wkv .c{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-items:start}.cal.wkv .c .n,.cal.wkv .c .add2{grid-column:1/-1}
  .cal.wkv .cd{flex-direction:row}.cal.wkv .cd .th{width:56px;height:80px}.cal.wkv .c .add2{opacity:1}
-}
 @media(max-width:1100px){.gr{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){
  .wrap{padding:14px 12px calc(100px + env(safe-area-inset-bottom))}h1{font-size:22px}
