@@ -120,8 +120,26 @@ def _chunks(n):
     return cs, n // cs
 
 
-def publish(path, caption="", direct=None):
-    """Wysyła film. Zwraca (publish_id, opis_wyniku)."""
+@router.get("/api/tiktok/creator")
+def creator():
+    """Dane do ekranu publikacji (wymóg TikToka): konto, dozwolone poziomy prywatności, co twórca ma wyłączone, max długość."""
+    try:
+        h = {"Authorization": "Bearer " + token(), "Content-Type": "application/json; charset=UTF-8"}
+        r = httpx.post(f"{API}/post/publish/creator_info/query/", headers=h, timeout=30)
+        if r.status_code >= 300:
+            return {"ok": False, "error": _err(r)}
+        d = r.json().get("data") or {}
+        return {"ok": True, "name": d.get("creator_nickname") or d.get("creator_username"), "user": d.get("creator_username"),
+                "avatar": d.get("creator_avatar_url"), "privacy": d.get("privacy_level_options") or [],
+                "comment_off": d.get("comment_disabled"), "duet_off": d.get("duet_disabled"), "stitch_off": d.get("stitch_disabled"),
+                "max_sec": d.get("max_video_post_duration_sec"), "mode": mode()}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
+def publish(path, caption="", direct=None, opts=None):
+    """Wysyła film. Zwraca (publish_id, opis_wyniku). opts = ustawienia z ekranu publikacji (prywatność, komentarze…)."""
+    opts = opts or {}
     direct = (mode() == "bezposrednio") if direct is None else direct
     tok = token()
     h = {"Authorization": "Bearer " + tok, "Content-Type": "application/json; charset=UTF-8"}
@@ -132,10 +150,15 @@ def publish(path, caption="", direct=None):
         ci = httpx.post(f"{API}/post/publish/creator_info/query/", headers=h, timeout=30)
         if ci.status_code >= 300:
             raise RuntimeError("TikTok (konto): " + _err(ci))
-        opts = (ci.json().get("data") or {}).get("privacy_level_options") or ["SELF_ONLY"]
-        priv = "PUBLIC_TO_EVERYONE" if "PUBLIC_TO_EVERYONE" in opts else opts[0]
-        body = {"post_info": {"title": caption[:2200], "privacy_level": priv, "disable_duet": False, "disable_comment": False,
-                              "disable_stitch": False, "video_cover_timestamp_ms": 1000}, "source_info": src}
+        allowed = (ci.json().get("data") or {}).get("privacy_level_options") or ["SELF_ONLY"]
+        priv = opts.get("privacy")
+        if priv not in allowed:
+            raise RuntimeError("TikTok: wybierz w planerze, kto ma widzieć film (prywatność)")
+        body = {"post_info": {"title": caption[:2200], "privacy_level": priv,
+                              "disable_comment": not opts.get("comment", False), "disable_duet": not opts.get("duet", False),
+                              "disable_stitch": not opts.get("stitch", False), "video_cover_timestamp_ms": 1000,
+                              "brand_content_toggle": bool(opts.get("branded")), "brand_organic_toggle": bool(opts.get("own_brand"))},
+                "source_info": src}
         r = httpx.post(f"{API}/post/publish/video/init/", headers=h, json=body, timeout=60)
     else:
         priv = None

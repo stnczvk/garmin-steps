@@ -148,6 +148,11 @@ svg.ch{width:100%;height:120px;margin-top:10px;display:block}
 .pi .er{color:var(--bad);font-size:12.5px;padding:0 12px 10px}
 .pi textarea{width:100%;min-height:84px;resize:vertical;background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:8px 10px;color:var(--tx);font-size:13px;line-height:1.45;font-family:inherit}
 .pi input[type=datetime-local],.pi input[type=text]{background:var(--s3);border:1px solid var(--ln);border-radius:10px;padding:7px 9px;color:var(--tx);font:inherit;font-size:13px;min-width:0}
+.ttp{margin-top:8px;padding:10px 12px;border-radius:12px;background:var(--s3);display:grid;gap:8px;font-size:12.5px}.ttp[hidden]{display:none}
+.tth{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tth small{color:var(--soft)}.tta{display:inline-flex;align-items:center;gap:7px}.tta img{width:26px;height:26px;border-radius:50%;object-fit:cover}
+.ttl{display:grid;gap:4px;color:var(--soft)}.ttl select{background:var(--s2,rgba(255,255,255,.06));border:1px solid var(--line);border-radius:9px;padding:7px 9px;color:var(--ink);font:inherit}
+.ttg{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.ttg[hidden]{display:none}.ttg span,.ttg small{color:var(--soft)}.ttg label,.ttsw{display:flex;gap:5px;align-items:center}
+.ttc{margin:0;color:var(--soft);font-size:11.5px}.ttc a{color:#a9b8ff}.tte{margin:0;color:#ff8f9b;font-size:12px}
 .pi .pf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pi .pf label{display:flex;gap:5px;align-items:center;font-size:12.5px;background:var(--s3);border-radius:9px;padding:5px 9px;cursor:pointer}
 @media(max-width:600px){.pi .pvw{width:36px;height:62px}.pi .pr{gap:9px;padding:8px}.pi .tm{width:40px;font-size:14px}.pi .pr .chip{display:none}.pi.s-draft .pr .chip,.pi.s-error .pr .chip{display:inline-block}.pi.s-draft .pr .chip{display:none}}
 .pi .ac{display:flex;gap:6px;flex-wrap:wrap}
@@ -599,7 +604,7 @@ let PLO=null;async function planer(){const r=await get('/api/planer');PLD=r;if(!
  if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#pl .ed'))return L;   // nie przerywaj edycji
  const dk=t=>{const d=new Date(t*1000);d.setHours(0,0,0,0);return d.getTime()},T0=new Date().setHours(0,0,0,0);
  const dn=k=>{const n=Math.round((k-T0)/864e5),d=new Date(k);const w=d.toLocaleDateString('pl',{weekday:'long',day:'numeric',month:'long'});return n===0?'Dziś · '+w:n===1?'Jutro · '+w:n===-1?'Wczoraj · '+w:w};
- const ic={instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>',youtube:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg>'};
+ const ic={tiktok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/></svg>',instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>',youtube:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg>'};
  NX=L.find(x=>['approved','draft'].includes(x.status)&&x.when*1000>Date.now());
  let g='',last=null;
  for(const x of L){const k=dk(x.when||0);if(k!==last){g+=`<div class="pdh">${dn(k)}</div>`;last=k}
@@ -611,14 +616,46 @@ let PLO=null;async function planer(){const r=await get('/api/planer');PLD=r;if(!
    ${x.status==='error'?`<div class="er">${esc(x.step||'')}</div>`:''}
    ${ed?`<div class="ed"><textarea data-f="caption" placeholder="Opis posta">${esc(x.caption||'')}</textarea>
    ${x.kind==='film'?`<input type="text" data-f="yt_title" placeholder="Tytuł na YouTube (puste = pierwsze zdanie opisu)" value="${esc(x.yt_title||'')}">`:''}
-   <div class="pf"><input type="datetime-local" data-f="when" value="${dtl(x.when)}">${(x.kind==='film'?['instagram','youtube'].concat(r.tiktok||x.platforms.includes('tiktok')?['tiktok']:[]):['instagram']).map(p=>`<label><input type="checkbox" data-p="${p}" ${x.platforms.includes(p)?'checked':''}>${{instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok'}[p]}</label>`).join('')}</div>
+   <div class="pf"><input type="datetime-local" data-f="when" value="${dtl(x.when)}">${(x.kind==='film'?['instagram','youtube'].concat(r.tiktok||x.platforms.includes('tiktok')?['tiktok']:[]):['instagram']).map(p=>`<label><input type="checkbox" data-p="${p}" ${x.platforms.includes(p)?'checked':''}>${{instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok'}[p]}</label>`).join('')}</div>${x.kind==='film'&&r.tiktok?ttPanel(x,r.tt_mode):''}
    <div class="ac">${x.status==='approved'?`<button class="btn g" data-a="unapprove">Cofnij</button><button class="btn g" data-a="save">Zapisz zmiany</button>`:x.status==='error'?`<button class="btn" data-a="retry">Ponów</button>`:`<button class="btn" data-a="approve">Zatwierdź</button><button class="btn g" data-a="save">Zapisz</button>`}<button class="btn g" data-a="now">Opublikuj teraz</button><button class="btn g" data-a="skip">Pomiń</button></div></div>`:''}</div>`}
- $('pl').innerHTML=(r.public?'':'<p class="dn" style="font-size:12.5px;margin-top:8px">Brak SOCIAL_DOMAIN w .env – Instagram nie pobierze plików.</p>')+'<div class="pl">'+g+'</div>';
+ $('pl').innerHTML=(r.public?'':'<p class="dn" style="font-size:12.5px;margin-top:8px">Brak SOCIAL_DOMAIN w .env – Instagram nie pobierze plików.</p>')+'<div class="pl">'+g+'</div>';setTimeout(ttFill,0);
  return L}
+// ---------- TikTok: ekran publikacji zgodny z wytycznymi TikToka (konto, prywatność bez domyślnej, zgody) ----------
+let TTC=null;async function ttCreator(){if(TTC&&Date.now()-TTC.t<300000)return TTC.d;const d=await get('/api/tiktok/creator');TTC={t:Date.now(),d};return d}
+const TTPL={PUBLIC_TO_EVERYONE:'Wszyscy',MUTUAL_FOLLOW_FRIENDS:'Znajomi',FOLLOWER_OF_CREATOR:'Obserwujący',SELF_ONLY:'Tylko ja'};
+function ttPanel(x,mode){const t=x.tt||{},on=x.platforms.includes('tiktok');
+ if(mode!=='bezposrednio')return `<div class="ttp" data-ttp ${on?'':'hidden'}><div class="tth"><b>🎵 TikTok</b><small>film trafi do skrzynki w aplikacji TikTok – tam wybierasz prywatność i publikujesz</small></div><textarea data-f="tiktok" placeholder="Opis na TikToka">${esc(x.tiktok||'')}</textarea></div>`;
+ return `<div class="ttp" data-ttp data-pid="${x.id}" ${on?'':'hidden'}><div class="tth"><span class="tta" data-tta>…</span><small>publikacja na TikToku</small></div>
+ <textarea data-f="tiktok" placeholder="Opis na TikToka">${esc(x.tiktok||'')}</textarea>
+ <label class="ttl">Kto może oglądać ten film<select data-tt="privacy"><option value="" ${t.privacy?'':'selected'} disabled>— wybierz —</option></select></label>
+ <div class="ttg"><span>Zezwól na:</span><label><input type="checkbox" data-tt="comment" ${t.comment?'checked':''}>Komentarze</label><label><input type="checkbox" data-tt="duet" ${t.duet?'checked':''}>Duet</label><label><input type="checkbox" data-tt="stitch" ${t.stitch?'checked':''}>Stitch</label></div>
+ <label class="ttsw"><input type="checkbox" data-tt="disclose" ${t.disclose?'checked':''}>Oznacz treść promocyjną (reklama, współpraca, Twój produkt)</label>
+ <div class="ttg" data-ttd ${t.disclose?'':'hidden'}><label><input type="checkbox" data-tt="own_brand" ${t.own_brand?'checked':''}>Twoja marka</label><label><input type="checkbox" data-tt="branded" ${t.branded?'checked':''}>Treść sponsorowana</label><small data-ttlab></small></div>
+ <p class="ttc" data-ttc></p><p class="tte" data-tte hidden></p></div>`}
+function ttConsent(p){const br=p.querySelector('[data-tt=branded]')?.checked,dis=p.querySelector('[data-tt=disclose]')?.checked,ob=p.querySelector('[data-tt=own_brand]')?.checked;
+ const mu='<a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Music Usage Confirmation</a>',bc='<a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener">Branded Content Policy</a>';
+ const c=p.querySelector('[data-ttc]');if(c)c.innerHTML=`Publikując, akceptujesz ${br?bc+' i ':''}${mu} TikToka.`;
+ const l=p.querySelector('[data-ttlab]');if(l)l.textContent=dis?(br?'Film zostanie oznaczony jako „Paid partnership”.':ob?'Film zostanie oznaczony jako „Promotional content”.':'Zaznacz jedną z opcji.'):'';
+ const sel=p.querySelector('[data-tt=privacy]');if(sel){const so=sel.querySelector('option[value=SELF_ONLY]');if(so){so.disabled=!!br;so.textContent=br?'Tylko ja (niedostępne dla treści sponsorowanej)':'Tylko ja';if(br&&sel.value==='SELF_ONLY')sel.value=''}}}
+async function ttFill(){const ps=[...document.querySelectorAll('#pl [data-ttp][data-pid]')];if(!ps.length)return;const d=await ttCreator();
+ ps.forEach(p=>{const x=(PLD?.items||[]).find(i=>i.id===p.dataset.pid)||{},t=x.tt||{};
+  if(!d||!d.ok){const e=p.querySelector('[data-tte]');e.hidden=false;e.textContent='TikTok: '+(d?.error||'brak połączenia');return}
+  p.querySelector('[data-tta]').innerHTML=`${d.avatar?`<img src="${esc(d.avatar)}" alt="">`:''}<b>${esc(d.name||'')}</b>${d.user?` <small>@${esc(d.user)}</small>`:''}`;
+  const sel=p.querySelector('[data-tt=privacy]');if(sel.options.length<2)d.privacy.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=TTPL[v]||v;if(t.privacy===v)o.selected=true;sel.appendChild(o)});
+  [['comment','comment_off','Komentarze'],['duet','duet_off','Duet'],['stitch','stitch_off','Stitch']].forEach(([k,off])=>{const i=p.querySelector(`[data-tt=${k}]`);if(d[off]){i.checked=false;i.disabled=true;i.parentElement.title='Wyłączone w ustawieniach Twojego konta TikTok'}});
+  if(d.max_sec){const v=p.closest('.pi')?.querySelector('video.pv');const chk=()=>{if(v&&v.duration>d.max_sec){const e=p.querySelector('[data-tte]');e.hidden=false;e.textContent=`Film ma ${Math.round(v.duration)} s, a TikTok pozwala Ci na max ${d.max_sec} s.`}};if(v){v.readyState>0?chk():v.addEventListener('loadedmetadata',chk,{once:true})}}
+  ttConsent(p)})}
+document.addEventListener('change',e=>{const p=e.target.closest('#pl .pi');if(!p)return;
+ if(e.target.matches('[data-p=tiktok]')){const tp=p.querySelector('[data-ttp]');if(tp)tp.hidden=!e.target.checked}
+ const tp=e.target.closest('[data-ttp]');if(!tp)return;
+ if(e.target.matches('[data-tt=disclose]')){tp.querySelector('[data-ttd]').hidden=!e.target.checked;if(!e.target.checked)tp.querySelectorAll('[data-ttd] input').forEach(i=>i.checked=false)}
+ ttConsent(tp)});
 document.addEventListener('click',e=>{if(e.target.closest('#pl [data-a]')||e.target.closest('#pl .ed'))return;const r=e.target.closest('#pl .pr');if(!r)return;const c=r.closest('.pi');if(!c.querySelector('.ed'))return;const o=c.classList.toggle('op');PLO=o?c.dataset.id:null;if(o)c.parentElement.querySelectorAll('.pi.op').forEach(z=>z!==c&&z.classList.remove('op'))});
 document.addEventListener('click',async e=>{const b=e.target.closest('#pl [data-a]');if(!b)return;const c=b.closest('.pi'),a=b.dataset.a;
  if(a==='now'&&!confirm('Opublikować teraz?'))return;
  const body={};c.querySelectorAll('[data-f]').forEach(i=>body[i.dataset.f]=i.value);body.platforms=[...c.querySelectorAll('[data-p]:checked')].map(i=>i.dataset.p);
+ const tp=c.querySelector('[data-ttp][data-pid]');if(tp&&body.platforms.includes('tiktok')){body.tt={};tp.querySelectorAll('[data-tt]').forEach(i=>body.tt[i.dataset.tt]=i.type==='checkbox'?i.checked:i.value);
+  if((a==='approve'||a==='now')&&!body.tt.privacy){toast('TikTok: wybierz, kto może oglądać film',1);return}}
  b.disabled=true;const r=await (await fetch(`/api/planer/${c.dataset.id}/${a}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json().catch(()=>({ok:false,error:'brak połączenia'}));
  if(r.ok===false){toast(r.error||'Nie udało się',1);b.disabled=false;return}
  const M={approve:'Zatwierdzono – opublikuje się o czasie',now:'Publikuję teraz…',skip:'Pominięto',save:'Zapisano zmiany',unapprove:'Cofnięto zatwierdzenie',retry:'Ponawiam publikację'};toast(M[a]||'Gotowe');

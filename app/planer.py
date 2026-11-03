@@ -299,7 +299,7 @@ def publish(pid):
         try:
             if p == "tiktok":
                 import tiktok_pub
-                mid, note = tiktok_pub.publish(it["file"], (it.get("tiktok") or it.get("caption") or "").strip())
+                mid, note = tiktok_pub.publish(it["file"], (it.get("tiktok") or it.get("caption") or "").strip(), opts=it.get("tt") or {})
                 res[p] = {"ok": True, "id": mid, "at": time.time(), "note": note}
                 if "skrzynce" in note:
                     try:
@@ -364,7 +364,7 @@ def api_plan():
         tt = tiktok_pub.connected()
     except Exception:
         tt = False
-    return {"items": P[-40:], "d0": d0, "cfg": cfg(), "tiktok": tt,
+    return {"items": P[-40:], "d0": d0, "cfg": cfg(), "tiktok": tt, "tt_mode": tiktok_pub.mode() if tt else "",
             "public": bool(_public())}
 
 
@@ -386,11 +386,27 @@ async def api_act(pid: str, action: str, req: Request):
                     it["when"] = datetime.fromisoformat(b["when"]).replace(tzinfo=TZ).timestamp()
                 except ValueError:
                     return {"ok": False, "error": "zła data"}
+            if isinstance(b.get("tt"), dict):
+                t = b["tt"]
+                it["tt"] = {"privacy": str(t.get("privacy") or "")[:40], **{k: bool(t.get(k)) for k in ("comment", "duet", "stitch", "disclose", "own_brand", "branded")}}
+            if b.get("tiktok") is not None:
+                it["tiktok"] = str(b["tiktok"])[:2200]
             if isinstance(b.get("platforms"), list):
                 it["platforms"] = [p for p in b["platforms"] if p in ("instagram", "youtube") or (p == "tiktok" and it["kind"] == "film")]
         if action == "approve":
             if not it["platforms"]:
                 return {"ok": False, "error": "wybierz platformę"}
+            if "tiktok" in it["platforms"]:
+                try:
+                    import tiktok_pub
+                    direct = tiktok_pub.mode() == "bezposrednio"
+                except Exception:
+                    direct = False
+                t = it.get("tt") or {}
+                if direct and not t.get("privacy"):
+                    return {"ok": False, "error": "TikTok: wybierz, kto ma widzieć film"}
+                if direct and t.get("disclose") and not (t.get("own_brand") or t.get("branded")):
+                    return {"ok": False, "error": "TikTok: zaznacz, czy promujesz swoją markę czy cudzą (albo wyłącz oznaczenie)"}
             it["status"] = "approved"
         elif action == "unapprove" and it["status"] == "approved":
             it["status"] = "draft"
