@@ -202,39 +202,74 @@ def produce(why="harmonogram"):
                 j.result()
         _upd(vid, step="montaż (FFmpeg)")
         cds = [dur(d / f"a{ci}.mp3") for ci in range(len(sc["chapters"]))]
-        f = render(d, sc["chapters"])
-        length, probs = check(f)
-        if not probs:
-            _upd(vid, step="zwiastuny (shorty)")
-            try:
-                trailers(d, sc, cds)
-            except Exception as e:
-                log("dlugi", f"Zwiastuny nie wyszły: {str(e)[:120]}", "warn")
-        for p in d.glob("*.png"):
-            if p.name != "thumb.png":
-                p.unlink(missing_ok=True)
-        for p in list(d.glob("a*.mp3")) + list(d.glob("p*.mp4")) + list(d.glob("*.txt")):
-            p.unlink(missing_ok=True)
-        st = "error" if probs else "review"
-        _upd(vid, status=st, step="; ".join(probs) if probs else "gotowy do zatwierdzenia", length=round(length),
-             chapters=[ch["title"] for ch in sc["chapters"]], images=n_img)
-        log("dlugi", f"Długi film {'zatrzymany: ' + '; '.join(probs) if probs else 'gotowy'}: {sc['title']} ({length / 60:.1f} min, {n_img} kadrów)",
-            "error" if probs else "ok")
-        if not probs:
-            try:
-                from extra import push_all
-                push_all("🎬 Długi film do zatwierdzenia", sc["title"], "/#pozaskala")
-            except Exception:
-                pass
-            if c.get("auto_publish"):
-                publish(vid)
-        return {"ok": not probs, "id": vid}
+        render(d, sc["chapters"])
+        return finish(vid, d, sc, cds, c)
     except Exception as e:
         _upd(vid, status="error", step=str(e)[:200])
         log("dlugi", f"Długi film nie wyszedł: {str(e)[:150]}", "error")
         return {"ok": False, "error": str(e)[:200]}
     finally:
         _busy.pop("run", None)
+
+
+def finish(vid, d, sc, cds, c):
+    """Od gotowego final.mp4: kontrola, zwiastuny, sprzątanie, status (też przy wznawianiu po restarcie serwera)."""
+    f = d / "final.mp4"
+    length, probs = check(f)
+    n_img = sum(len(ch["scenes"]) for ch in sc["chapters"])
+    if not probs:
+        _upd(vid, step="zwiastuny (shorty)")
+        try:
+            trailers(d, sc, cds)
+        except Exception as e:
+            log("dlugi", f"Zwiastuny nie wyszły: {str(e)[:120]}", "warn")
+    for p in d.glob("*.png"):
+        if p.name != "thumb.png":
+            p.unlink(missing_ok=True)
+    for p in list(d.glob("a*.mp3")) + list(d.glob("p*.mp4")) + list(d.glob("*.txt")):
+        p.unlink(missing_ok=True)
+    st = "error" if probs else "review"
+    _upd(vid, status=st, step="; ".join(probs) if probs else "gotowy do zatwierdzenia", length=round(length),
+         chapters=[ch["title"] for ch in sc["chapters"]], images=n_img)
+    log("dlugi", f"Długi film {'zatrzymany: ' + '; '.join(probs) if probs else 'gotowy'}: {sc['title']} ({length / 60:.1f} min, {n_img} kadrów)",
+        "error" if probs else "ok")
+    if not probs:
+        try:
+            from extra import push_all
+            push_all("🎬 Długi film do zatwierdzenia", sc["title"], "/#pozaskala")
+        except Exception:
+            pass
+        if c.get("auto_publish"):
+            publish(vid)
+    return {"ok": not probs, "id": vid}
+
+
+def recover():
+    """Po restarcie serwera (np. aktualizacja apki) film „w trakcie” nie ma już wątku, który go robi.
+    Gotowy final.mp4 → dokończ (zwiastuny, publikacja); bez niego → usuń wpis, harmonogram zrobi film od nowa."""
+    S = _state()
+    for it in [x for x in S["items"] if x.get("status") == "working"]:
+        d = WORK / it["id"]
+        try:
+            sc = json.loads((d / "script.json").read_text()) if (d / "script.json").exists() else None
+            if sc and (d / "final.mp4").exists() and (d / "final.mp4").stat().st_size > 100_000:
+                log("dlugi", f"Wznawiam po restarcie serwera: {it.get('title', it['id'])} (był na etapie: {it.get('step', '?')})", "info")
+                cds = [dur(d / f"a{ci}.mp3") if (d / f"a{ci}.mp3").exists() else 0 for ci in range(len(sc["chapters"]))]
+                if not all(cds):
+                    cds = [cds[0] or 50.0]
+                _busy["run"] = True
+                try:
+                    finish(it["id"], d, sc, cds, cfg())
+                finally:
+                    _busy.pop("run", None)
+            else:
+                S2 = _state()
+                S2["items"] = [x for x in S2["items"] if x["id"] != it["id"]]
+                _save(S2)
+                shutil.rmtree(d, ignore_errors=True)
+                log("dlugi", f"Film przerwany restartem serwera na etapie „{it.get('step', '?')}” – zrobię go od nowa", "warn")
+        except Exception as e:
+            _upd(it["id"], status="error", step=f"przerwany restartem serwera: {str(e)[:120]}")
 
 
 FONTS = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
@@ -378,6 +413,10 @@ def publish(vid):
 def _loop():
     def run():
         time.sleep(120)
+        try:
+            recover()
+        except Exception as e:
+            print("dlugi recover", e, flush=True)
         while True:
             try:
                 c, now = cfg(), datetime.now(TZ)
