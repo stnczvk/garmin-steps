@@ -774,54 +774,68 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
     <button data-v="home"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></i><span>Ekran główny</span></button>
     <button data-v="poczta"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/></svg></i><span>Poczta</span><em class="s-badge" id="mbadge"></em></button>
     <button data-v="powiadomienia"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></i><span>Powiadomienia</span><em class="s-badge" id="nbadge"></em></button>
-    <div class="s-grp" data-g="social" role="button" tabindex="0" aria-expanded="true">Social media<b class="s-cv">›</b></div>
-    <button data-v="tresci" data-g="social"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span></button>
-    <button data-v="montazownia" data-g="social"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.4L20 18M8.6 16.6L20 6"/></svg></i><span>Montażownia</span></button>
-    <button data-v="stats" data-g="social"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
-    <div class="s-grp" data-g="ps" role="button" tabindex="0" aria-expanded="true">PozaSkala AI<b class="s-cv">›</b></div>
-    <button data-v="agencja" data-g="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
-    <button data-v="pozaskala" data-g="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Pipeline PozaSkala</span></button>
-    <div class="s-grp" data-g="biz" role="button" tabindex="0" aria-expanded="true">Biznes<b class="s-cv">›</b></div>
-    <button data-v="etsy" data-g="biz"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
-    <div class="s-grp" data-g="skan" role="button" tabindex="0" aria-expanded="true">Skaner giełdowy<b class="s-cv">›</b></div>
-    <button data-v="skaner" data-g="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Biuro skanera</span></button>
-    <button data-v="skaner-sygnaly" data-g="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></i><span>Sygnały</span></button>
-    <button data-v="skaner-stats" data-g="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i><span>Statystyki skanera</span></button>
-    <button data-v="skaner-boty" data-g="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></svg></i><span>Boty (Strategy Lab)</span></button>
-    <div class="s-grp" data-g="tools" role="button" tabindex="0" aria-expanded="true">Narzędzia<b class="s-cv">›</b></div>
-    <button data-v="straznicy" data-g="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></i><span>Strażnicy</span><em class="s-badge" id="gbadge"></em></button>
-    <button data-v="hasla" data-g="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></i><span>Hasła</span></button>
-    <button data-v="notatki" data-g="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></i><span>Notatki</span></button>
+    <button data-hub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span><em class="s-badge hubb"></em></button>
+    <button data-v="tresci" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span></button>
+    <button data-v="montazownia" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.4L20 18M8.6 16.6L20 6"/></svg></i><span>Montażownia</span></button>
+    <button data-v="stats" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
+    <button data-hub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>PozaSkala AI</span><em class="s-badge hubb"></em></button>
+    <button data-v="agencja" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
+    <button data-v="pozaskala" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Pipeline PozaSkala</span></button>
+    <button data-v="etsy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
+    <button data-hub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Skaner giełdowy</span><em class="s-badge hubb"></em></button>
+    <button data-v="skaner" data-sub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Biuro skanera</span></button>
+    <button data-v="skaner-sygnaly" data-sub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></i><span>Sygnały</span></button>
+    <button data-v="skaner-stats" data-sub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i><span>Statystyki skanera</span></button>
+    <button data-v="skaner-boty" data-sub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6"/></svg></i><span>Boty (Strategy Lab)</span></button>
+    <button data-hub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8V21h3.2l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></i><span>Narzędzia</span><em class="s-badge hubb"></em></button>
+    <button data-v="straznicy" data-sub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></i><span>Strażnicy</span><em class="s-badge" id="gbadge"></em></button>
+    <button data-v="hasla" data-sub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></i><span>Hasła</span></button>
+    <button data-v="notatki" data-sub="tools"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></i><span>Notatki</span></button>
   </nav>
   <div class="s-tools" id="stools"></div><div class="s-foot">Centrum v3</div>
 </aside>
-<style id="sgrp">
-.s-grp[data-g]{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:6px;user-select:none;border-radius:8px;transition:color .15s}
-.s-grp[data-g]:hover{color:var(--soft)}
-.s-cv{font-weight:600;font-size:13px;line-height:1;transform:rotate(90deg);transition:transform .25s cubic-bezier(.32,.72,0,1);opacity:.7}
-.s-grp.shut .s-cv{transform:rotate(0)}
-.s-grp.hasb:after{content:"";width:6px;height:6px;border-radius:50%;background:#ff6b7a;box-shadow:0 0 8px #ff6b7a;margin-left:auto}
-.s-grp.hasb .s-cv{margin-left:6px}
-#snav button.g-in{animation:gin .26s cubic-bezier(.32,.72,0,1) both}
-@keyframes gin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-@media(max-width:900px){#snav button.g-hid{display:none}}
-@media(min-width:901px){body.s-wide #snav button.g-hid{display:none}body:not(.s-wide) .s-cv,body:not(.s-wide) .s-grp.hasb:after{display:none}body:not(.s-wide) .s-grp[data-g]{cursor:default;pointer-events:none}}
+<style id="hubs">
+#snav button[data-sub]{display:none!important}
+.subt{display:none;flex:none;position:relative;z-index:16;padding:10px max(20px,env(safe-area-inset-right)) 4px max(20px,env(safe-area-inset-left))}
+body.has-subt .subt{display:block}
+.subt-in{max-width:1240px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.subt-in::-webkit-scrollbar{display:none}
+.subt-sg{display:inline-flex;gap:3px;padding:4px;border-radius:14px;background:var(--v3-s1,rgba(255,255,255,.04));border:1px solid var(--line);position:relative}
+.subt button{position:relative;z-index:1;border:0;background:none;color:var(--soft);font:600 13px Geist,system-ui;padding:7px 14px;border-radius:10px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;transition:color .2s}
+.subt button svg{width:15px;height:15px}
+.subt button:hover{color:var(--ink)}.subt button.on{color:#fff}
+.subt .pill{position:absolute;z-index:0;top:4px;bottom:4px;left:0;width:0;border-radius:10px;background:linear-gradient(180deg,rgba(110,139,255,.30),rgba(110,139,255,.14));box-shadow:inset 0 1px 0 rgba(255,255,255,.12);transition:transform .32s cubic-bezier(.32,.72,0,1),width .32s cubic-bezier(.32,.72,0,1)}
+.subt .bd{min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ff6b7a;color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center}
+.subt .bd:empty{display:none}
+#snav .hubb:empty{display:none}
+@media(max-width:900px){.subt{padding-top:8px}.subt button{padding:7px 12px}}
 </style>
 <script>
-(()=>{const nav=document.getElementById('snav');if(!nav)return;let shut;try{shut=JSON.parse(localStorage.getItem('menu-shut')||'null')}catch(e){}
- if(!Array.isArray(shut))shut=['skan','tools'];
- const hs=[...nav.querySelectorAll('.s-grp[data-g]')];
- function apply(anim){hs.forEach(h=>{const g=h.dataset.g,c=shut.includes(g);h.classList.toggle('shut',c);h.setAttribute('aria-expanded',!c);
-  nav.querySelectorAll(`button[data-g="${g}"]`).forEach(b=>{const was=b.classList.contains('g-hid');b.classList.toggle('g-hid',c);if(anim&&was&&!c){b.classList.remove('g-in');void b.offsetWidth;b.classList.add('g-in')}})});
-  setTimeout(()=>dispatchEvent(new Event('resize')),30);badges()}
- function tog(g){shut=shut.includes(g)?shut.filter(x=>x!==g):[...shut,g];try{localStorage.setItem('menu-shut',JSON.stringify(shut))}catch(e){}apply(true)}
- hs.forEach(h=>{h.onclick=()=>tog(h.dataset.g);h.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog(h.dataset.g)}}});
- function badges(){hs.forEach(h=>{const hid=h.classList.contains('shut')&&[...nav.querySelectorAll(`button[data-g="${h.dataset.g}"] .s-badge`)].some(e=>e.textContent.trim());h.classList.toggle('hasb',hid)})}
- // aktywna zakładka w zwiniętej grupie → grupa się rozwija
- new MutationObserver(()=>{const b=nav.querySelector('button[aria-current=page][data-g]');if(b&&shut.includes(b.dataset.g)){shut=shut.filter(x=>x!==b.dataset.g);apply(true)}}).observe(nav,{attributes:true,subtree:true,attributeFilter:['aria-current']});
+addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav'),bar=document.getElementById('subt');if(!nav||!bar)return;
+ const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "stats": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Pipeline", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
+ const H=()=>[...nav.querySelectorAll('button[data-hub]')];
+ let last={};try{last=JSON.parse(localStorage.getItem('hub-last')||'{}')}catch(e){}
+ const subs=g=>[...nav.querySelectorAll(`button[data-sub="${g}"]`)];
+ nav.addEventListener('click',e=>{const h=e.target.closest('button[data-hub]');if(!h)return;const g=h.dataset.hub,L=subs(g).map(b=>b.dataset.v);setView(L.includes(last[g])?last[g]:L[0],true);document.body.classList.remove('s-open')});
+ let curG=null;
+ function pill(anim){const on=bar.querySelector('button.on'),p=bar.querySelector('.pill');if(!on||!p)return;p.style.transition=anim?'':'none';p.style.width=on.offsetWidth+'px';p.style.transform=`translateX(${on.offsetLeft-4}px)`;
+  try{on.scrollIntoView({block:'nearest',inline:'nearest'})}catch(e){}}
+ function sync(){const cur=nav.querySelector('button[data-v][aria-current=page]'),v=cur&&cur.dataset.v,g=cur&&cur.dataset.sub;
+  H().forEach(h=>h.dataset.hub===g?h.setAttribute('aria-current','page'):h.removeAttribute('aria-current'));
+  document.body.classList.toggle('has-subt',!!g);
+  if(!g){curG=null;return}
+  last[g]=v;try{localStorage.setItem('hub-last',JSON.stringify(last))}catch(e){}
+  if(curG!==g){curG=g;bar.innerHTML='<div class="subt-in"><div class="subt-sg"><span class="pill"></span>'+subs(g).map(b=>{const i=b.querySelector('i svg'),bd=b.querySelector('.s-badge');return `<button data-go="${b.dataset.v}">${i?i.outerHTML:''}${LAB[b.dataset.v]||b.textContent.trim()}${bd?'<em class="bd" data-bdof="'+bd.id+'"></em>':''}</button>`}).join('')+'</div></div>';
+   bar.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go,true));badges();
+   bar.querySelectorAll('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===v));requestAnimationFrame(()=>pill(false));return}
+  bar.querySelectorAll('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===v));pill(true)}
+ function badges(){H().forEach(h=>{let n=0;subs(h.dataset.hub).forEach(b=>{const e=b.querySelector('.s-badge');n+=e?(parseInt(e.textContent)||0):0});h.querySelector('.hubb').textContent=n?String(n):''});
+  bar.querySelectorAll('[data-bdof]').forEach(e=>{const s=document.getElementById(e.dataset.bdof);e.textContent=s?s.textContent.trim():''})}
+ new MutationObserver(m=>{if(m.some(x=>x.target.dataset&&x.target.dataset.v))sync()}).observe(nav,{attributes:true,subtree:true,attributeFilter:['aria-current']});
  new MutationObserver(badges).observe(nav,{childList:true,characterData:true,subtree:true});
- apply(false)})();
+ addEventListener('resize',()=>pill(false));sync()});
 </script>
+
 
 <div class="s-dim" id="sdim"></div>
 <header class="head" id="head">
@@ -841,6 +855,7 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
 </header>
 
 <nav class="tbar" id="tbar" aria-label="Menu dolne"><button data-tv="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Start</button><button data-tv="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Social</button><button data-tv="montazownia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 9h20M7 5v4M12 5v4M17 5v4"/></svg>Montaż</button><button data-tv="skaner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Skaner</button><button data-tv="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Więcej</button></nav>
+<nav class="subt" id="subt" aria-label="Podzakładki"></nav>
 <div class="vframe" id="vframe"></div>
 <main class="wrap" id="app">
   <div class="intro in" style="--d:0ms">
@@ -1824,7 +1839,7 @@ load().then(async () => {
  const mark=v=>tb.querySelectorAll('[data-tv]').forEach(b=>b.classList.toggle('on',b.dataset.tv===v||(b.dataset.tv==='more'&&!['home','stats','montazownia','skaner'].includes(v))));
  tb.querySelectorAll('[data-tv]').forEach(b=>b.onclick=()=>{const v=b.dataset.tv;if(v==='more'){document.body.classList.toggle('s-open');return}document.body.classList.remove('s-open');setView(v,true)});
  const sv0=window.setView;window.setView=function(v,push){sv0(v,push);mark(VIEWS.includes(v)?v:'home')};
- const cur=document.querySelector('#snav [aria-current=page]');mark(cur?cur.dataset.v:'home');
+ const cur=document.querySelector('#snav [data-v][aria-current=page]');mark(cur?cur.dataset.v:'home');
  // pasek boczny: wąski domyślnie, „‹” rozwija
  document.body.classList.remove('s-mini');
  try{if(localStorage.getItem('menu-wide')==='1')document.body.classList.add('s-wide')}catch(e){}
@@ -1832,7 +1847,7 @@ load().then(async () => {
  if(document.body.classList.contains('s-wide'))document.body.classList.add('s-wide-c');
  // zwijanie/rozwijanie: treść wjeżdża razem z paskiem (przesunięcie robi karta graficzna)
  let swBusy=false;const col=document.getElementById('s-col');if(col)col.onclick=()=>{if(swBusy)return;swBusy=true;const B=document.body;
-  const els=[...document.querySelectorAll('#vframe,#app,#head')].filter(e=>getComputedStyle(e).display!=='none');
+  const els=[...document.querySelectorAll('#vframe,#app,#head,#subt')].filter(e=>getComputedStyle(e).display!=='none');
   const rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
   const go=()=>{const r0=els.map(e=>e.getBoundingClientRect());const w=B.classList.toggle('s-wide');B.classList.toggle('s-wide-c',w);
    // FLIP: treść od razu ma nowy układ, ale startuje „rozciągnięta” do starej pozycji i szerokości, i płynnie wraca do właściwej
