@@ -1251,14 +1251,16 @@ async function loadSettings() {
   for (const key of Object.keys(c.set)) $('#' + key).value = c[key] || '';
   const r = await api('/api/social/redirects');
   $('#r-g').textContent = r.google; $('#r-i').textContent = r.instagram;
-  const accs = await api('/api/social/accounts');
+  const accAll = await api('/api/social/accounts');
+  const accs = group ? accAll.filter(a => a.group === group) : accAll;
+  if (group && $('#grp')) $('#grp').value = group;
   $('#list').innerHTML = accs.length ? accs.map(a => `
     <div class="line" style="--pc:var(--${VAR[a.platform]})">
       <span class="logo">${ICON[a.platform]}</span><b>${esc(a.name)}</b>
       <label class="sr" for="g-${esc(a.key)}">Grupa konta ${esc(a.name)}</label>
       <select id="g-${esc(a.key)}" data-k="${esc(a.key)}" class="g"><option value="pozaskala" ${a.group === 'pozaskala' ? 'selected' : ''}>PozaSkala</option><option value="prywatne" ${a.group === 'prywatne' ? 'selected' : ''}>Prywatne</option></select>
       ${a.platform !== 'tiktok' ? `<button data-k="${esc(a.key)}" class="rm">Odłącz</button>` : ''}</div>`).join('')
-    : '<div class="when" style="padding:6px 0 10px">Nic jeszcze nie połączono.</div>';
+    : `<div class="when" style="padding:6px 0 10px">${group ? 'Brak kont w tej grupie.' : 'Nic jeszcze nie połączono.'}</div>`;
   document.querySelectorAll('select.g').forEach(s => s.onchange = async () => {
     await api('/api/social/accounts/' + encodeURIComponent(s.dataset.k), {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({group: s.value})});
     data = await api('/api/social/summary'); render(true);
@@ -1478,7 +1480,7 @@ function setView(v, push) {
   document.querySelectorAll('#snav button').forEach(x => x.dataset.v === v ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
   const isS = v === 'stats' || v === 'stats-ps';
   document.body.classList.toggle('v-ext', !isS); document.body.dataset.view = v;
-  if (isS) { const gb = $('#tabs').querySelector(`[data-g="${v === 'stats' ? 'prywatne' : 'pozaskala'}"]`); if (gb && gb.getAttribute('aria-pressed') !== 'true') gb.click(); }
+  if (isS) { const gb = $('#tabs').querySelector(`[data-g="${v === 'stats' ? 'prywatne' : 'pozaskala'}"]`); if (gb && gb.getAttribute('aria-pressed') !== 'true') { gb.click(); try { loadSettings(); } catch (e) {} } }
   document.body.classList.remove('s-open');
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');
   const box = $('#vframe');
