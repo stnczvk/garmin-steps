@@ -12,7 +12,7 @@ body{margin:0;color:var(--ink);background:var(--lg-base);font:14px/1.45 Geist,sy
 h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 16px;font-size:13.5px}
 .t{background:linear-gradient(180deg,var(--v3-s2),var(--v3-s1));border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--v3-hi),var(--v3-sh);border-radius:22px;min-width:0}
 .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.bar .mn{font-size:17px;font-weight:650;min-width:150px;text-align:center;text-transform:capitalize}
+.bar .mn{font-size:17px;font-weight:650;min-width:150px;text-align:center}.bar .mn.cap{text-transform:capitalize}
 .ib{height:36px;border-radius:11px;border:1px solid var(--line);background:var(--v3-s2);color:var(--ink);font:600 13px Geist,system-ui;padding:0 13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
 .ib.pri{background:linear-gradient(135deg,#6e8bff,#b59cff);color:#fff;border-color:transparent}.ib:disabled{opacity:.5;cursor:default}
 .ib.sq{width:36px;padding:0;justify-content:center;font-size:17px}.ib.del{color:#ff7b8a}
@@ -83,6 +83,39 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--v3-s3);border:1px solid var(--line);padding:9px 16px;border-radius:12px;font-size:13px;opacity:0;transition:.25s;z-index:60;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%)}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+
+.sg{display:inline-flex;background:var(--v3-s1);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+.sg button{border:0;background:none;color:var(--soft);font:600 12.5px Geist,system-ui;padding:7px 12px;border-radius:9px;cursor:pointer}
+.sg button.on{background:var(--v3-s3);color:var(--ink);box-shadow:inset 0 1px 0 var(--v3-hi)}
+#td.hide{visibility:hidden}
+.stat{display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 12px}
+.stat .k{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--v3-s1);border:1px solid var(--line);font-size:13px}
+.stat .k b{font-size:15px}.stat .k i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.stat .nx{flex:1 1 260px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--soft)}.stat .nx b{color:var(--ink);font-size:13px}
+.wd div.td{color:#a9b8ff}
+/* tydzień */
+.cal.wkv .wk{margin-top:6px}
+.cal.wkv .c{min-height:280px;gap:6px;padding:8px}
+.cal.wkv .c .n b{visibility:hidden}.c .n .tdl{display:none;font-size:10px;font-weight:750;letter-spacing:.06em;background:#6e8bff;color:#fff;border-radius:6px;padding:1px 6px}
+.c.today .n .tdl{display:inline-block}
+.cd{border-radius:12px;padding:8px;cursor:pointer;background:var(--v3-s3);border:1px solid transparent;display:flex;gap:8px;user-select:none;-webkit-user-select:none;touch-action:pan-y;position:relative;min-width:0}
+.cd:hover{border-color:var(--line)}
+.cd .th{width:40px;height:56px;border-radius:7px;object-fit:cover;flex:none;background:#000}
+.cd .m{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.cd .tt{font-size:12.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.cd .st{font-size:11px;font-weight:650;color:var(--sc);line-height:1.3}
+.cd .st:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sc);margin-right:5px;vertical-align:1px}
+.cd .mt{font-size:11px;color:var(--soft);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cd .pf{color:var(--soft);font-weight:500}
+.cd.idea{background:color-mix(in srgb,var(--sc) 10%,var(--v3-s2));border-style:dashed;border-color:color-mix(in srgb,var(--sc) 35%,transparent)}
+.cd.drag{opacity:.3}
+.cd.ghost{position:fixed;z-index:50;pointer-events:none;opacity:.92;transform:rotate(-2deg) scale(1.03);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.cal.wkv .c .add{opacity:.6;margin-top:auto;align-self:stretch;border:1px dashed var(--line);border-radius:10px;padding:7px;font-size:12px}
+.cal.wkv .c .n .add{display:none}
+.c .add2{display:none}.cal.wkv .c .add2{display:block}
+.c .add2{margin-top:auto;border:1px dashed var(--line);background:none;color:var(--soft);border-radius:10px;padding:7px;font:500 12px Geist,system-ui;cursor:pointer;opacity:0;transition:opacity .15s}
+.c:hover .add2{opacity:1}
+@media(max-width:760px){.cal.wkv .c .n b{visibility:visible}.bar .mn{min-width:0;font-size:15px}.bar .ib.pri{margin-left:auto}.cal.wkv .c{min-height:0}.cal.wkv .c.nil{display:flex}.c .add2{opacity:1}.cal.wkv .c .add2{padding:6px}.stat .nx{flex-basis:100%}}
 @media(max-width:1100px){.gr{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){
  .wrap{padding:14px 12px calc(100px + env(safe-area-inset-bottom))}h1{font-size:22px}
@@ -96,15 +129,17 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 <body>
 <div class="wrap">
  <h1>Treści</h1>
- <div class="sub">Pomysły, zaplanowane i opublikowane posty w jednym kalendarzu. Przeciągnij kartę na inny dzień, żeby ją przesunąć.</div>
+ <div class="sub">Co wychodzi kiedy: pomysły, posty do zatwierdzenia, zaplanowane i opublikowane. Przeciągnij kartę na inny dzień, żeby ją przesunąć.</div>
  <div class="bar">
-  <button class="ib sq" id="pv" aria-label="Poprzedni miesiąc">‹</button><div class="mn" id="mn">…</div><button class="ib sq" id="nx" aria-label="Następny miesiąc">›</button>
-  <button class="ib" id="td">Dziś</button><span style="flex:1"></span>
+  <div class="sg" id="vw"><button data-v="w">Tydzień</button><button data-v="m">Miesiąc</button></div>
+  <button class="ib sq" id="pv" aria-label="Wcześniej">‹</button><div class="mn" id="mn">…</div><button class="ib sq" id="nx" aria-label="Później">›</button>
+  <button class="ib" id="td" title="Wróć do bieżącego tygodnia/miesiąca">↺ Dziś</button><span style="flex:1"></span>
   <button class="ib pri" id="nw">+ Pomysł</button>
  </div>
+ <div class="stat" id="stat"></div>
  <div class="gr" data-noicon>
-  <div class="t cal"><div class="wd"><div>pon</div><div>wt</div><div>śr</div><div>czw</div><div>pt</div><div>sob</div><div>nd</div></div><div id="grid"></div>
-   <div class="leg"><span><i style="background:#ffc24b"></i>do zatwierdzenia</span><span><i style="background:#6e8bff"></i>zaplanowany</span><span><i style="background:#3ddc84"></i>opublikowany</span><span><i style="background:rgba(255,194,75,.35)"></i>pomysł</span><span><b class="rel hi">1.8×</b> wyświetlenia względem Twojej normy</span></div>
+  <div class="t cal"><div class="wd" id="wd"><div>pon</div><div>wt</div><div>śr</div><div>czw</div><div>pt</div><div>sob</div><div>nd</div></div><div id="grid"></div>
+   <div class="leg"><span><b class="rel hi">1.8×</b> = post ma 1,8 raza więcej wyświetleń niż zwykle u Ciebie (zielone dobrze, czerwone słabo)</span></div>
   </div>
   <div class="side">
    <div class="t pn"><h3>Bank pomysłów <small>bez daty</small></h3><div class="bank" id="bank" data-day=""></div></div>
@@ -119,8 +154,11 @@ const $=id=>document.getElementById(id);
 const STG={pomysl:['Pomysł','#ffc24b'],nagrane:['Nagrane','#5ad1ff'],zmontowane:['Zmontowane','#b59cff'],zaplanowane:['Zaplanowane','#6e8bff'],opublikowane:['Opublikowane','#3ddc84']};
 const PL={instagram:'IG',youtube:'YT',tiktok:'TT'};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let D=null,M=null;try{M=localStorage.getItem('tresci-m')}catch(e){}
-const now=new Date();if(!M)M=ym(now);
+let D=null,M=null,V='w',W=null;try{V=localStorage.getItem('tresci-v')||'w';W=localStorage.getItem('tresci-w')}catch(e){}
+const now=new Date();
+function wkStart(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function pd(k){const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
+if(!W)W=ds(wkStart(now));try{M=localStorage.getItem('tresci-m')}catch(e){}if(!M)M=ym(now);
 function ym(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function ds(d){return ym(d)+'-'+String(d.getDate()).padStart(2,'0')}
 const dayOf=t=>ds(new Date(t*1000));
@@ -130,28 +168,51 @@ async function api(u,b){try{const r=await fetch(u,b===undefined?{}:{method:'POST
 const relC=r=>r==null?'':r>=1.5?'hi':r<0.7?'lo':'mid';
 const relB=(r,f)=>r==null?'':`<span class="rel ${relC(r)}" title="${f?'Świeży post – liczby jeszcze rosną':'Wyświetlenia względem mediany konta'}">${r.toFixed(1)}×${f?'…':''}</span>`;
 
-async function load(){const r=await api('/api/tresci?month='+M);if(!r||!r.ideas){$('grid').innerHTML='<p style="padding:30px;color:var(--soft)">Nie udało się wczytać.</p>';return}D=r;draw()}
-function draw(){
- const [y,m]=M.split('-').map(Number),first=new Date(y,m-1,1);
- $('mn').textContent=first.toLocaleDateString('pl-PL',{month:'long',year:'numeric'});
- const start=new Date(first);start.setDate(1-((first.getDay()+6)%7));
- const by={};const put=(k,x)=>(by[k]=by[k]||[]).push(x);
- D.ideas.forEach(i=>{if(i.day&&i.stage!=='opublikowane')put(i.day,{t:'i',o:i,s:i.pwhen||0})});
+async function load(){const r=await api('/api/tresci?month='+(V==='w'?W.slice(0,7):M));if(!r||!r.ideas){$('grid').innerHTML='<p style="padding:30px;color:var(--soft)">Nie udało się wczytać.</p>';return}D=r;draw()}
+const STP={draft:['Do zatwierdzenia','#ffc24b'],approved:['Zaplanowany','#6e8bff'],publishing:['Publikuje się…','#b59cff'],published:['Opublikowany','#3ddc84'],error:['Błąd publikacji','#ff6b7a']};
+function buckets(){const by={};const put=(k,x)=>(by[k]=by[k]||[]).push(x);
+ D.ideas.forEach(i=>{if(i.day&&i.stage!=='opublikowane')put(i.day,{t:'i',o:i,s:i.pwhen||9e9})});
  D.posts.forEach(p=>put(dayOf(p.t),{t:'p',o:p,s:p.t}));
- const today=ds(now);let h='';
- for(let w=0;w<6;w++){const d0=new Date(start);d0.setDate(start.getDate()+w*7);if(w>=4&&d0.getMonth()!==m-1&&d0>first)break;
-  h+='<div class="wk">';
-  for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+w*7+i);const k=ds(d),L=(by[k]||[]).sort((a,b)=>(a.t==='i')-(b.t==='i')||a.s-b.s);
-   const cls=['c',d.getMonth()!==m-1?'out':'',k===today?'today':'',k<today?'past':'',L.length?'':'nil'].join(' ');
-   h+=`<div class="${cls}" data-day="${k}"><div class="n"><b>${d.getDate()}<span class="dl"> · ${d.toLocaleDateString('pl-PL',{weekday:'long'})}</span></b><button class="add" data-add="${k}" title="Dodaj pomysł">+</button></div>`;
-   L.forEach(x=>h+=x.t==='i'?ideaCh(x.o):postCh(x.o));
-   h+='</div>'}
-  h+='</div>'}
+ Object.values(by).forEach(L=>L.sort((a,b)=>(a.t==='i')-(b.t==='i')||a.s-b.s));return by}
+function draw(){
+ document.querySelectorAll('#vw button').forEach(b=>b.classList.toggle('on',b.dataset.v===V));
+ const today=ds(now),by=buckets(),cal=document.querySelector('.cal');cal.classList.toggle('wkv',V==='w');
+ let h='',days=[];
+ if(V==='w'){const s0=pd(W),e0=new Date(s0);e0.setDate(s0.getDate()+6);
+  const f=(d,o)=>d.toLocaleDateString('pl-PL',o);$('mn').classList.remove('cap');
+  $('mn').textContent=s0.getMonth()===e0.getMonth()?`${s0.getDate()}–${f(e0,{day:'numeric',month:'long'})}`:`${f(s0,{day:'numeric',month:'short'})} – ${f(e0,{day:'numeric',month:'short'})}`;
+  $('td').classList.toggle('hide',W===ds(wkStart(now)));
+  h='<div class="wk">';for(let i=0;i<7;i++){const d=new Date(s0);d.setDate(s0.getDate()+i);days.push(ds(d));h+=cell(d,by,today,false)}h+='</div>';
+ }else{const [y,m]=M.split('-').map(Number),first=new Date(y,m-1,1);
+  $('mn').classList.add('cap');$('mn').textContent=first.toLocaleDateString('pl-PL',{month:'long',year:'numeric'});$('td').classList.toggle('hide',M===ym(now));
+  const start=wkStart(first);
+  for(let w=0;w<6;w++){const d0=new Date(start);d0.setDate(start.getDate()+w*7);if(w>=4&&d0.getMonth()!==m-1&&d0>first)break;
+   h+='<div class="wk">';for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+w*7+i);if(d.getMonth()===m-1)days.push(ds(d));h+=cell(d,by,today,d.getMonth()!==m-1)}h+='</div>'}}
  $('grid').innerHTML=h;
+ const dn=['pon','wt','śr','czw','pt','sob','nd'],tdi=(now.getDay()+6)%7,showT=V==='w'?W===ds(wkStart(now)):M===ym(now);
+ $('wd').innerHTML=dn.map((n,i)=>{if(V!=='w')return `<div>${n}</div>`;const d=pd(W);d.setDate(d.getDate()+i);return `<div class="${ds(d)===today?'td':''}">${n} ${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</div>`}).join('');
+ stat(days,by);
  const bank=D.ideas.filter(i=>!i.day&&i.stage!=='opublikowane');
  $('bank').innerHTML=bank.length?bank.map(ideaCh).join(''):'<div class="e">Tu lądują pomysły bez daty. Przeciągnij je na dzień w kalendarzu.</div>';
  res();
 }
+function cell(d,by,today,out){const k=ds(d),L=by[k]||[],big=V==='w';
+ const cls=['c',out?'out':'',k===today?'today':'',k<today?'past':'',L.length?'':'nil'].join(' ');
+ return `<div class="${cls}" data-day="${k}"><div class="n"><b>${d.getDate()}<span class="dl"> · ${d.toLocaleDateString('pl-PL',{weekday:'long'})}</span></b><span class="tdl">DZIŚ</span><button class="add" data-add="${k}" title="Dodaj pomysł">+</button></div>`+
+  L.map(x=>x.t==='i'?(big?ideaCd(x.o):ideaCh(x.o)):(big?postCd(x.o):postCh(x.o))).join('')+
+  (k>=today?`<button class="add2" data-add="${k}">+ pomysł na ten dzień</button>`:'')+'</div>'}
+function stat(days,by){const set=new Set(days);let c={draft:0,approved:0,published:0,idea:0};
+ days.forEach(k=>(by[k]||[]).forEach(x=>{if(x.t==='i')c.idea++;else if(x.o.status==='draft')c.draft++;else if(x.o.status==='published')c.published++;else c.approved++}));
+ const nx=D.posts.filter(p=>p.status!=='published'&&p.t>Date.now()/1000).sort((a,b)=>a.t-b.t)[0];
+ const when=t=>{const d=new Date(t*1000),k=ds(d),tm=new Date(now);tm.setDate(tm.getDate()+1);return (k===ds(now)?'dziś':k===ds(tm)?'jutro':d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'short'}))+' o '+hm(t)};
+ const per=V==='w'?'w tym tygodniu':'w tym miesiącu';
+ $('stat').innerHTML=`<span class="k"><i style="background:#ffc24b"></i><b>${c.draft}</b> do zatwierdzenia</span><span class="k"><i style="background:#6e8bff"></i><b>${c.approved}</b> zaplanowane</span><span class="k"><i style="background:#3ddc84"></i><b>${c.published}</b> opublikowane</span><span class="k"><i style="background:#ffc24b55;border:1px dashed #ffc24b"></i><b>${c.idea}</b> pomysły</span>`+
+  (nx?`<span class="k nx">Następny post: <b>${esc(nx.label)}</b> · ${when(nx.t)}${nx.status==='draft'?' · <span style="color:#ffc24b">czeka na Twoje zatwierdzenie</span>':''}</span>`:`<span class="k nx">Brak zaplanowanych postów – dodaj coś do planera.</span>`);
+ $('stat').title='Liczby '+per}
+function postCd(p){const s=STP[p.status]||STP.approved,th=p.thumb?`<img class="th" src="${esc(p.thumb)}" loading="lazy" alt="">`:p.video?`<video class="th" src="${esc(p.video)}#t=1" preload="metadata" muted playsinline></video>`:'';
+ const pl=(p.platforms||[]).map(x=>PL[x]||x).join(' + '),lab=p.ext?'Zaplanowany w YT':s[0];
+ return `<div class="cd post" data-k="${p.movable?'post':''}" data-id="${p.id}" style="--sc:${s[1]}">${th}<div class="m"><div class="tt">${esc(p.label)}</div><div class="st">${lab}</div><div class="mt">${p.status!=='published'?'<b style="color:var(--ink)">'+hm(p.t)+'</b>':''}<span>${pl}</span>${relB(p.rel,p.fresh)}</div></div></div>`}
+function ideaCd(i){const s=STG[i.stage]||STG.pomysl;return `<div class="cd idea" data-k="idea" data-id="${i.id}" style="--sc:${s[1]}"><div class="m"><div class="tt">💡 ${esc(i.title)}</div><div class="st">${s[0]}</div>${i.hook?'<div class="mt">hook gotowy ✓</div>':''}</div></div>`}
 function ideaCh(i){const s=STG[i.stage]||STG.pomysl;return `<div class="ch idea" draggable="false" data-k="idea" data-id="${i.id}" style="--sc:${s[1]}" title="${esc(i.title)} · ${s[0]}"><span class="dot"></span><span class="tx">${esc(i.title)}</span></div>`}
 function postCh(p){const th=p.thumb?`<img class="th" src="${esc(p.thumb)}" loading="lazy" alt="">`:p.video?`<video class="th" src="${esc(p.video)}#t=1" preload="metadata" muted playsinline></video>`:'';
  const pl=(p.platforms||[]).map(x=>PL[x]||x).join('+');
@@ -165,7 +226,7 @@ function res(){const R=(D.results||[]).filter(r=>r.rel!=null);
 
 // ---------- przeciąganie (mysz + dotyk: przytrzymaj) ----------
 let drag=null,suppress=0;
-document.addEventListener('pointerdown',e=>{const ch=e.target.closest('.ch[data-k="idea"],.ch[data-k="post"]');if(!ch||e.button>0)return;
+document.addEventListener('pointerdown',e=>{const ch=e.target.closest('.ch[data-k="idea"],.ch[data-k="post"],.cd[data-k="idea"],.cd[data-k="post"]');if(!ch||e.button>0)return;
  drag={ch,x:e.clientX,y:e.clientY,id:e.pointerId,on:false,touch:e.pointerType!=='mouse'};
  if(drag.touch)drag.tm=setTimeout(()=>{if(drag&&!drag.on)begin(e.clientX,e.clientY)},320)});
 function begin(x,y){drag.on=true;const g=drag.ch.cloneNode(true);g.classList.add('ghost');g.style.width=drag.ch.offsetWidth+'px';document.body.appendChild(g);drag.g=g;drag.ch.classList.add('drag');
@@ -191,11 +252,13 @@ document.addEventListener('pointerup',end);document.addEventListener('pointercan
 // ---------- kliknięcia ----------
 document.addEventListener('click',e=>{if(Date.now()-suppress<300)return;
  const a=e.target.closest('[data-add]');if(a){openIdea({day:a.dataset.add});return}
- const ch=e.target.closest('.ch');if(!ch)return;
+ const ch=e.target.closest('.ch,.cd');if(!ch)return;
  if(ch.classList.contains('idea'))openIdea(D.ideas.find(i=>i.id===ch.dataset.id));else openPost(D.posts.find(p=>p.id===ch.dataset.id))});
-$('pv').onclick=()=>shift(-1);$('nx').onclick=()=>shift(1);$('td').onclick=()=>{M=ym(now);save();load()};$('nw').onclick=()=>openIdea({});
-function shift(n){const[y,m]=M.split('-').map(Number);M=ym(new Date(y,m-1+n,1));save();load()}
-function save(){try{localStorage.setItem('tresci-m',M)}catch(e){}}
+$('pv').onclick=()=>shift(-1);$('nx').onclick=()=>shift(1);$('nw').onclick=()=>openIdea({});
+$('td').onclick=()=>{W=ds(wkStart(now));M=ym(now);save();load().then(()=>{const c=document.querySelector('.c.today');if(c){c.scrollIntoView({block:'nearest',behavior:'smooth'});c.animate&&c.animate([{boxShadow:'0 0 0 3px #6e8bff'},{boxShadow:'0 0 0 0 transparent'}],{duration:1200})}})};
+$('vw').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.v===V)return;V=b.dataset.v;if(V==='m')M=pd(W).getDate()>24?ym(new Date(pd(W).getTime()+6*864e5)):W.slice(0,7);else{const t=ds(now);W=t.slice(0,7)===M?ds(wkStart(now)):ds(wkStart(pd(M+'-01')))}save();load()};
+function shift(n){if(V==='w'){const d=pd(W);d.setDate(d.getDate()+7*n);W=ds(d)}else{const[y,m]=M.split('-').map(Number);M=ym(new Date(y,m-1+n,1))}save();load()}
+function save(){try{localStorage.setItem('tresci-m',M);localStorage.setItem('tresci-v',V);localStorage.setItem('tresci-w',W)}catch(e){}}
 const closeM=()=>$('mb').classList.remove('on');$('mb').onclick=e=>{if(e.target===$("mb"))closeM()};
 document.addEventListener('keydown',e=>{if(e.key==="Escape")closeM()});
 
