@@ -334,8 +334,30 @@ def publish(pid):
         pass
 
 
+def _clean_once():
+    """Jednorazowo: opisy zaplanowanych postów bez „AI-owych” myślników (nowe opisy są już czyszczone przy tworzeniu)."""
+    c = _read(CFG, {})
+    if c.get("human_v1"):
+        return
+    from montaz import human
+    with _lock:
+        P = plan()
+        for it in P:
+            if it.get("status") in ("draft", "approved"):
+                for k in ("caption", "tiktok"):
+                    if it.get(k):
+                        it[k] = human(it[k])
+        save(P)
+    c["human_v1"] = time.time()
+    _write(CFG, c)
+
+
 def _loop():
     time.sleep(45)
+    try:
+        _clean_once()
+    except Exception as e:
+        print("planer clean", e, flush=True)
     while True:
         try:
             scan()

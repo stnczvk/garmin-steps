@@ -181,7 +181,8 @@ def api_ai(iid: str):
          f"POMYSŁ: {it.get('title')}\nNOTATKI: {it.get('notes') or '-'}\nFORMAT (jeśli podany): {it.get('format') or '-'}\n\n"
          f"Jego posty, które poszły NAJLEPIEJ względem normy:\n{ctx}\nNajsłabsze:\n{ctx_low}\n\n"
          "Wyciągnij wnioski z tych danych (jakie tematy/hooki działają) i rozpisz pomysł. Zasady hooka: pierwsze 1-2 s, "
-         "konkret, ciekawość albo wynik, bez „hej, dzisiaj…”. Wszystko po polsku, naturalnym językiem, bez emotek w hooku.\n"
+         "konkret, ciekawość albo wynik, bez „hej, dzisiaj…”. Wszystko po polsku, naturalnym językiem, bez emotek w hooku. "
+         "Opis pisz jak człowiek: bez myślników (– —) jako przerywników, krótkie proste zdania.\n"
          "Zwróć TYLKO JSON: {\"hook\": \"co mówi/pokazuje w pierwszych 2 s + napis na ekranie\", "
          "\"hooks_alt\": [\"2 inne warianty hooka\"], \"script\": \"plan ujęć w punktach (5-8 linijek, każda od '- ')\", "
          "\"cta\": \"jedno zdanie CTA na koniec\", \"format\": \"np. vlog z napisami / talking head / przepis POV\", "
@@ -197,7 +198,8 @@ def api_ai(iid: str):
     with _lk:
         I = _ideas()
         it = next((i for i in I if i["id"] == iid), None)
-        it.update(hook=r["hook"], script=r.get("script", ""), cta=r.get("cta", ""), caption=r.get("caption", ""),
+        from montaz import human
+        it.update(hook=r["hook"], script=r.get("script", ""), cta=r.get("cta", ""), caption=human(r.get("caption", "")),
                   format=it.get("format") or r.get("format", ""), length=it.get("length") or str(r.get("length", "")),
                   hooks_alt=alt[:3], why=r.get("why", ""))
         _write(F, I)

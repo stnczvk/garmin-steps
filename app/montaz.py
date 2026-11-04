@@ -1229,9 +1229,23 @@ NIE dawaj hashtagów z nazwy konta ani skrótów, których widz nie szuka i któ
 INSTAGRAM: pierwsza linijka to hook (do 125 znaków – tyle widać przed „…więcej”), potem 2–3 krótkie linijki konkretu (liczby z filmu),
 potem PYTANIE do widzów, na które łatwo odpowiedzieć w komentarzu (nie „co myślicie?”), na końcu 3–5 hashtagów.
 Głos: Bartłomiej, luźno, po polsku, jak do kumpla, bez korpo i bez wykrzykników co zdanie. Nie wymyślaj liczb, których nie ma w danych.
+PISZ JAK CZŁOWIEK, NIE JAK AI: żadnych myślników (– — -) jako przerywników w zdaniach; zamiast nich przecinek, kropka albo nowe zdanie.
+Bez dwukropków typu „Efekt:”, „Wynik:”, bez wyliczanek ze strzałkami, bez „Oto…”, „Sprawdź…”, „Gotowi?”. Krótkie, proste zdania, jak w zwykłym poście.
 STAŁE HASZTAGI dla jedzenia i redukcji: zawsze #redukcja #cojemwciągudnia #dietaredukcyjna #odchudzanie + max 1 pasujący do filmu
 (np. #cheatmeal, #siłownia). Nigdy #dc, #fyp, #gym ani oznaczeń marek/kont.
 Zwróć TYLKO JSON: {"tiktok": "...", "instagram": "..."} (w instagramie nowe linie jako \\n)."""
+
+
+def human(t):
+    """Opis bez „AI-owych” myślników: „dzień na redukcji – 1800 kcal” -> „dzień na redukcji, 1800 kcal”."""
+    t = re.sub(r"\s*[–—]\s*$", "", t.strip(), flags=re.M)                 # myślnik na końcu linii
+    t = re.sub(r"^\s*[–—-]\s+", "", t, flags=re.M)                        # myślnik na początku linii (wypunktowanie)
+    t = re.sub(r"\s+[–—]\s+(?=\S)", ", ", t)                              # myślnik jako przerywnik
+    t = re.sub(r"(?<=\w)\s-\s(?=\w)", ", ", t)                           # „ - ” udający myślnik
+    t = re.sub(r"[–—]", "-", t)                                             # zostałe (np. zakres 3–4) jako zwykły łącznik
+    t = re.sub(r",\s*,", ",", t)
+    t = re.sub(r",\s*([.!?])", r"\1", t)
+    return t.strip()
 
 
 @router.post("/api/mont-opis")
@@ -1241,7 +1255,7 @@ async def mont_opis(req: Request):
     cache = _rd("mont_opis.json", {})
     key = ("k:" + jid) if kind == "karuzela" else jid  # karuzela ma własny opis, niezależny od filmu
     if key in cache and not force:
-        return {"ok": True, **cache[key]}
+        return {"ok": True, **{k: (human(v) if k in ("tiktok", "instagram") else v) for k, v in cache[key].items()}}
     from agency import ai_ready, claude, as_json
     if not ai_ready():
         return {"ok": False, "error": "AI niedostępne"}
@@ -1284,7 +1298,7 @@ async def mont_opis(req: Request):
                              max_tokens=700, system=__import__("skills").sk("caption", "seo", "slop"))) or {}
     except Exception as e:
         return {"ok": False, "error": str(e)[:120]}
-    out = {"tiktok": str(res.get("tiktok") or "").strip(), "instagram": str(res.get("instagram") or "").replace("\\n", "\n").strip(), "at": time.time()}
+    out = {"tiktok": human(str(res.get("tiktok") or "")), "instagram": human(str(res.get("instagram") or "").replace("\\n", "\n")), "at": time.time()}
     if not out["tiktok"]:
         return {"ok": False, "error": "AI nie zwróciło opisu"}
     cache[key] = out
