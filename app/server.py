@@ -1055,6 +1055,9 @@ Odpowiedz wyłącznie JSON:
 """
 
 
+_MZ_TASKS = set()
+
+
 @app.post("/api/montaz/{jid}/fix")
 async def montaz_fix(jid: str, req: Request):
     import shlex
@@ -1080,6 +1083,33 @@ async def montaz_fix(jid: str, req: Request):
                      f"Fragmenty mowy: " + " | ".join(f"[{c['start']:.2f}-{c['end']:.2f}] {c['text']}" for c in t.get("chunks", []) if not c.get("szum")) +
                      f"\nSłowa: {words or '(brak mowy)'}")
     prompt = MZ_FIX_PROMPT + "\n\n" + "\n\n".join(parts) + f"\n\nUWAGA UŻYTKOWNIKA: {comment}"
+    # AI przy długich klipach myśli nawet kilka minut – robimy to w tle, a status pokazuje postęp (wcześniej centrum czekało w nieskończoność)
+    st = _mz_status(d)
+    if st.get("state") in ("working", "queued"):
+        return st
+    prev = {k: v for k, v in st.items() if k in ("date", "src")}
+    (d / "status.json").write_text(json.dumps({**prev, "state": "working", "step": "AI czyta uwagi i poprawia cięcia…", "at": time.time()}, ensure_ascii=False))
+
+    async def bg():
+        try:
+            res = await _mz_fix_ai(d, day, rows, tr, comment, prompt)
+        except Exception as e:
+            res = JSONResponse({"error": f"Błąd poprawki: {str(e)[:200]}"}, status_code=500)
+        if isinstance(res, JSONResponse):
+            try:
+                err = json.loads(res.body).get("error", "Błąd poprawki")
+            except Exception:
+                err = "Błąd poprawki"
+            (d / "status.json").write_text(json.dumps({**prev, "state": "error", "error": err, "at": time.time()}, ensure_ascii=False))
+    t = asyncio.create_task(bg())
+    _MZ_TASKS.add(t)
+    t.add_done_callback(_MZ_TASKS.discard)
+    return _mz_status(d)
+
+
+async def _mz_fix_ai(d, day, rows, tr, comment, prompt):
+    import shlex
+    jid = d.name
     model = MODELS["default"]
     # 2000 tokenów nie starczało przy dłuższych klipach – odpowiedź urywała się w pół JSON-a („Nie udało się odczytać odpowiedzi AI”)
     body = {"model": model, "max_tokens": 8000, "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
@@ -1160,6 +1190,8 @@ async def montaz_fix(jid: str, req: Request):
         pass
     hist.append({"at": datetime.now(TZ).isoformat(timespec="seconds"), "uwaga": comment, "opis": str(ans.get("opis", ""))[:300]})
     (d / "uwagi.json").write_text(json.dumps(hist, ensure_ascii=False))
+    cur = _mz_status(d)
+    (d / "status.json").write_text(json.dumps({k: v for k, v in cur.items() if k in ("date", "src")} | {"state": "idle"}, ensure_ascii=False))
     st = montaz_start(jid)
     if isinstance(st, dict):
         st["fix"] = hist[-1]["opis"]
