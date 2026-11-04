@@ -1081,11 +1081,16 @@ async def montaz_fix(jid: str, req: Request):
                      f"\nSłowa: {words or '(brak mowy)'}")
     prompt = MZ_FIX_PROMPT + "\n\n" + "\n\n".join(parts) + f"\n\nUWAGA UŻYTKOWNIKA: {comment}"
     model = MODELS["default"]
-    body = {"model": model, "max_tokens": 2000, "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
+    # 2000 tokenów nie starczało przy dłuższych klipach – odpowiedź urywała się w pół JSON-a („Nie udało się odczytać odpowiedzi AI”)
+    body = {"model": model, "max_tokens": 8000, "system": "Odpowiadasz wyłącznie poprawnym JSON, bez żadnego tekstu przed ani po.",
             "messages": [{"role": "user", "content": prompt[:60000]}]}
-    async with httpx.AsyncClient(timeout=120) as c:
+    async with httpx.AsyncClient(timeout=300) as c:
         r = await c.post(os.environ.get("ANTHROPIC_URL", "https://api.anthropic.com/v1/messages"), json=body,
                          headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
+        if r.status_code == 200 and r.json().get("stop_reason") == "max_tokens":
+            body["max_tokens"] = 20000
+            r = await c.post(os.environ.get("ANTHROPIC_URL", "https://api.anthropic.com/v1/messages"), json=body,
+                             headers={"x-api-key": API_KEY, "anthropic-version": "2023-06-01"})
     if r.status_code != 200:
         try:
             msg = r.json().get("error", {}).get("message", "")
@@ -1103,7 +1108,8 @@ async def montaz_fix(jid: str, req: Request):
     try:
         ans = _json_from("".join(b.get("text", "") for b in res.get("content", []) if b.get("type") == "text"))
     except Exception:
-        return JSONResponse({"error": "Nie udało się odczytać odpowiedzi AI."}, status_code=502)
+        print("montaż fix: zła odpowiedź AI –", res.get("stop_reason"), str(res.get("content"))[:500], flush=True)
+        return JSONResponse({"error": "Nie udało się odczytać odpowiedzi AI – spróbuj jeszcze raz (szczegóły w logu serwera)."}, status_code=502)
     changes = {x.get("klip"): x for x in (ans.get("klipy") or []) if isinstance(x, dict)}
     # poprawki słów w napisach – zapamiętane dla tego dnia, montaż podmienia je w napisach
     subs = [{"z": str(x.get("z", "")).strip(), "na": str(x.get("na", "")).strip()} for x in (ans.get("napisy") or [])
