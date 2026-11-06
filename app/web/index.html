@@ -1519,6 +1519,8 @@ setTheme(document.documentElement.dataset.theme || 'auto');
 
 // widoki z menu bocznego: Ekran główny / Statystyki / Agencja AI / Pipeline / Skaner (osobne strony w iframe, ładowane raz)
 const VIEWS = ['home', 'straznicy', 'powiadomienia', 'poczta', 'tresci', 'montazownia', 'notatki', 'hasla', 'etsy', 'stats', 'stats-ps', 'agencja', 'pozaskala', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
+function vRepaint() { const box = document.getElementById('vframe'); if (!box || !document.body.classList.contains('v-ext')) return;
+  box.style.display = 'none'; void box.offsetHeight; box.style.display = ''; }
 function setView(v, push) {
   v = VIEWS.includes(v) ? v : 'home';
   document.querySelectorAll('#snav button').forEach(x => x.dataset.v === v ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
@@ -1529,7 +1531,10 @@ function setView(v, push) {
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');
   const box = $('#vframe');
   box.querySelectorAll('iframe').forEach(f => { const on = f.dataset.v === v; f.classList.toggle('on', on); f.style.display = on ? 'block' : 'none'; f.style.visibility = on ? 'visible' : 'hidden'; f.style.zIndex = on ? '2' : '0'; if (on) { f.style.transform = 'translateZ(0)'; void f.offsetHeight; requestAnimationFrame(() => { f.style.transform = ''; }); }
+    if (on) { f.removeAttribute('inert'); f.style.position = ''; f.style.left = ''; } else { f.setAttribute('inert', ''); f.style.position = 'absolute'; f.style.left = '-300vw'; }
     try { f.contentWindow.postMessage({active: on}, location.origin); } catch (e) {} });
+  // iPhone potrafi zostawić na ekranie „zamrożony” obraz poprzedniej zakładki – wymuszamy pełne przerysowanie kontenera
+  vRepaint();
   if (!isS && !box.querySelector(`iframe[data-v="${v}"]`)) {
     const f = document.createElement('iframe'); f.dataset.v = v; f.className = 'on'; f.src = '/' + v; f.setAttribute('aria-label', v); f.style.display = 'block';
     f.addEventListener('load', () => setTimeout(() => window.hideSplash && hideSplash(), 250), {once: true}); box.appendChild(f);
@@ -1584,7 +1589,9 @@ if (window.visualViewport) {
 // strażnik zakładek: to, co widać, zawsze zgadza się z zaznaczeniem w menu
 setInterval(() => { const v = document.body.dataset.view; if (!v || v === 'stats' || v === 'stats-ps') return;
   const fs = [...document.querySelectorAll('#vframe iframe')], bad = fs.some(f => f.classList.contains('on') !== (f.dataset.v === v));
-  if (bad || !fs.some(f => f.dataset.v === v)) setView(v); }, 2500);
+  if (bad || !fs.some(f => f.dataset.v === v) || fs.some(f => f.dataset.v !== v && f.style.display !== 'none')) setView(v); }, 2500);
+addEventListener('pageshow', () => setTimeout(vRepaint, 50));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(vRepaint, 50); });
 function deepActive() { let a = document.activeElement; try { while (a && a.tagName === 'IFRAME' && a.contentDocument) a = a.contentDocument.activeElement; } catch (e) {} return a; }
 function kbFix() {
   if (!document.body.classList.contains('kb')) return;
