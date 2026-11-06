@@ -439,7 +439,7 @@ def start(jid):
     keep.update(state="working", step="Start…", at=time.time())
     (d / "status.json").write_text(json.dumps(keep, ensure_ascii=False))
     py = DZ / "venv" / "bin" / "python"
-    subprocess.Popen(["nice", "-n", "15", str(py if py.exists() else sys.executable), str(DZ_APP / "montaz_job.py"), str(d)], env=env,
+    subprocess.Popen(["nice", "-n", "5", str(py if py.exists() else sys.executable), str(DZ_APP / "montaz_job.py"), str(d)], env=env,
                      cwd=str(DZ_APP), stdout=subprocess.DEVNULL, stderr=open(d / "job_err.txt", "w"), start_new_session=True)
     return {"ok": True}
 

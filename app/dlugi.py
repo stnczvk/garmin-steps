@@ -131,13 +131,13 @@ def render(d, chapters):
             z = f"z='min(zoom+{0.12 / fr:.6f},1.12)'" if (si % 2 == 0) else f"z='if(eq(on,0),1.12,max(zoom-{0.12 / fr:.6f},1.0))'"
             vf = (f"scale=2880:1620:force_original_aspect_ratio=increase,crop=2880:1620,"
                   f"zoompan={z}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={fr}:s=1920x1080:fps={fps},format=yuv420p")
-            subprocess.run(["ffmpeg", "-y", "-loop", "1", "-i", str(img), "-vf", vf, "-t", f"{per:.3f}", "-r", str(fps),
+            subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-loop", "1", "-i", str(img), "-vf", vf, "-t", f"{per:.3f}", "-r", str(fps),
                             "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(clip)], check=True, capture_output=True)
             clips.append(clip)
         lst = d / f"l{ci}.txt"
         lst.write_text("".join(f"file '{c.name}'\n" for c in clips))
         part = d / f"p{ci}.mp4"
-        subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-i", str(a), "-c:v", "copy",
+        subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-i", str(a), "-c:v", "copy",
                         "-c:a", "aac", "-b:a", "192k", "-shortest", str(part)], check=True, capture_output=True, cwd=d)
         parts.append(part)
         for c in clips:
@@ -145,7 +145,7 @@ def render(d, chapters):
     lst = d / "all.txt"
     lst.write_text("".join(f"file '{p.name}'\n" for p in parts))
     out = d / "final.mp4"
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
+    subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
                     "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(out)], check=True, capture_output=True, cwd=d)
     return out
 
@@ -163,7 +163,7 @@ def check(f):
         probs.append("brak dźwięku")
     if d < 240 or d > 900:
         probs.append(f"długość {d / 60:.1f} min (powinno 4–15)")
-    out = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-vf", "blackdetect=d=1:pix_th=0.10",
+    out = subprocess.run(["nice", "-n", "15", "ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-vf", "blackdetect=d=1:pix_th=0.10",
                           "-af", "silencedetect=noise=-45dB:d=2.5", "-f", "null", "-"], capture_output=True, text=True).stderr
     if re.search(r"black_start:([\d.]+)", out):
         probs.append("czarny ekran")
@@ -306,7 +306,7 @@ def trailers(d, sc, cds):
             for li, tx in enumerate(lines):
                 vf += f",drawtext=fontfile={font}:text='{_esc(tx)}':fontcolor=white:fontsize=66:x=(w-text_w)/2:y={250 + li * 92}:box=1:boxcolor=black@0.5:boxborderw=18"
             vf += f",drawtext=fontfile={font}:text='Full episode on the channel':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h-420:box=1:boxcolor=0x5FA987@0.9:boxborderw=20"
-        subprocess.run(["ffmpeg", "-y", "-ss", f"{ss:.2f}", "-t", f"{ln:.2f}", "-i", str(f), "-filter_complex", vf, "-r", "30",
+        subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-ss", f"{ss:.2f}", "-t", f"{ln:.2f}", "-i", str(f), "-filter_complex", vf, "-r", "30",
                         "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)],
                        check=True, capture_output=True)
         made.append(out.name)
