@@ -146,6 +146,17 @@ def publish(path, caption="", direct=None, opts=None):
     direct = (mode() == "bezposrednio") if direct is None else direct
     tok = token()
     h = {"Authorization": "Bearer " + tok, "Content-Type": "application/json; charset=UTF-8"}
+    for _ in range(30):   # plik jeszcze się zapisuje → czekamy, aż przestanie rosnąć
+        if time.time() - os.path.getmtime(path) > 90:
+            break
+        time.sleep(10)
+    try:
+        import subprocess
+        dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path],
+                                   capture_output=True, text=True, timeout=30).stdout.strip() or 0)
+    except Exception:
+        dur = 0
+    print(f"tiktok publish {path} {os.path.getsize(path)} B {dur:.1f} s", flush=True)
     size = os.path.getsize(path)
     cs, cnt = _chunks(size)
     src = {"source": "FILE_UPLOAD", "video_size": size, "chunk_size": cs, "total_chunk_count": cnt}
@@ -185,7 +196,7 @@ def publish(path, caption="", direct=None, opts=None):
         st = (s.json().get("data") or {}) if s.status_code < 300 else {}
         v = st.get("status")
         if v == "SEND_TO_USER_INBOX":
-            return pid, "w skrzynce TikToka – otwórz aplikację i opublikuj"
+            return pid, f"w skrzynce TikToka ({dur:.0f} s) – otwórz aplikację i opublikuj"
         if v == "PUBLISH_COMPLETE":
             return pid, "opublikowany" + (" (prywatnie – TikTok jeszcze nie zatwierdził aplikacji)" if priv == "SELF_ONLY" else "")
         if v == "FAILED":
