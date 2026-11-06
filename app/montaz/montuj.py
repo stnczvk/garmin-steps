@@ -487,12 +487,13 @@ def clean_words(trans):
 
 def user_subs(trans, day):
     """Zamiany słów w napisach wpisane w aplikacji (uwagi do montażu) – napisy_zamiany.json."""
-    subs = [{"z": "taki o", "na": "takiego"}]   # stałe: rozpoznawanie mowy pisze „taki o” zamiast „takiego”
+    subs = [{"z": "taki o", "na": "takiego"}, {"z": "na górę", "na": "na górze"}]   # stałe: rozpoznawanie mowy pisze „taki o” zamiast „takiego”
     for f in [os.environ.get("MONTAZ_SLOWNIK"), day / "napisy_zamiany.json"]:   # stały słownik + poprawki z tego dnia
         try:
             subs += json.loads(Path(f).read_text(encoding="utf-8")) if f else []
         except Exception:
             pass
+    subs = [x for x in subs if not (str(x.get("na", "")).lower().strip() == "dzik" and "dzik" not in str(x.get("z", "")).lower())]
     nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", w.lower())
     n = 0
     for s in subs:

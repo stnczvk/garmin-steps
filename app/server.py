@@ -557,7 +557,7 @@ async def hook_redakcja(req: Request, key: str = ""):
 
 KEYTERMS_BAZA = ["kcal", "białko", "makro", "węglowodany", "tłuszcze", "redukcja", "siłownia", "odcinek",
                  "WNBF", "Daily WNBF Vlog", "Lublin", "owsianka", "płatki owsiane", "skyr", "twaróg", "sos z Dzika",
-                 "Dzik", "kurczak", "ryż", "omlet", "serek kanapkowy", "dżem z Łowicza", "kasza manna", "orkisz",
+                 "kawa", "kurczak", "ryż", "omlet", "serek kanapkowy", "dżem z Łowicza", "kasza manna", "orkisz",
                  "borówki", "gyros"]
 
 
@@ -769,8 +769,9 @@ SLOWNIK = MZ_DIR / "slownik.json"      # poprawki słów zapamiętane na stałe 
 
 
 def _slownik():
-    try:
-        return json.loads(SLOWNIK.read_text(encoding="utf-8"))
+    try:   # bez złych wpisów zamieniających zwykłe słowa (kawa…) na „Dzik” – psuły napisy i podpowiedzi dla rozpoznawania mowy
+        return [x for x in json.loads(SLOWNIK.read_text(encoding="utf-8"))
+                if not (x.get("na", "").lower().strip() == "dzik" and "dzik" not in x.get("z", "").lower())]
     except Exception:
         return []
 
