@@ -146,7 +146,7 @@ def publish(path, caption="", direct=None, opts=None):
     direct = (mode() == "bezposrednio") if direct is None else direct
     tok = token()
     h = {"Authorization": "Bearer " + tok, "Content-Type": "application/json; charset=UTF-8"}
-    for _ in range(30):   # plik jeszcze się zapisuje → czekamy, aż przestanie rosnąć
+    for _ in range(0 if os.path.basename(path).startswith("tt_") else 30):   # plik jeszcze się zapisuje → czekamy, aż przestanie rosnąć
         if time.time() - os.path.getmtime(path) > 90:
             break
         time.sleep(10)
