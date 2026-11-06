@@ -157,6 +157,22 @@ def publish(path, caption="", direct=None, opts=None):
     except Exception:
         dur = 0
     print(f"tiktok publish {path} {os.path.getsize(path)} B {dur:.1f} s", flush=True)
+    # wysyłka w kawałkach kończyła się filmem, który po ~10 s (pierwszy kawałek) stawał w miejscu –
+    # większe pliki przekodowujemy do < 60 MB i wysyłamy jednym kawałkiem (TikTok i tak kompresuje)
+    if os.path.getsize(path) > 60 * 1024 * 1024 and dur > 0:
+        import subprocess, tempfile
+        out = os.path.join(tempfile.gettempdir(), f"tt_{secrets.token_hex(4)}.mp4")
+        vb = max(1500, int(55 * 8 * 1024 / dur) - 160)   # kb/s, zapas na dźwięk
+        subprocess.run(["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-i", path, "-c:v", "libx264", "-preset", "veryfast",
+                        "-b:v", f"{vb}k", "-maxrate", f"{vb * 2}k", "-bufsize", f"{vb * 2}k", "-pix_fmt", "yuv420p",
+                        "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", out], check=True, timeout=1800)
+        try:
+            return publish(out, caption, direct, opts)
+        finally:
+            try:
+                os.unlink(out)
+            except Exception:
+                pass
     size = os.path.getsize(path)
     cs, cnt = _chunks(size)
     src = {"source": "FILE_UPLOAD", "video_size": size, "chunk_size": cs, "total_chunk_count": cnt}
