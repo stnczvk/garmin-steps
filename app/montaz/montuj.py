@@ -335,7 +335,13 @@ def ai_fix_words(trans, day):
     clips = {n: [w["word"] for w in v.get("words", [])] for n, v in trans.items() if v.get("words")}
     if not key or not clips:
         return trans
-    h = hashlib.sha1(json.dumps(clips, ensure_ascii=False).encode()).hexdigest()[:12]
+    try:
+        known = json.loads(Path(os.environ.get("MONTAZ_SLOWNIK", "")).read_text(encoding="utf-8"))
+        known = [k for k in known if not (str(k.get("na", "")).lower().strip() == "dzik" and "dzik" not in str(k.get("z", "")).lower())]
+    except Exception:
+        known = []
+    # słownik i wersja polecenia w hashu – po nowej poprawce napisy liczą się od nowa, a nie z pamięci
+    h = hashlib.sha1(json.dumps([clips, known[-80:], "v2"], ensure_ascii=False).encode()).hexdigest()[:12]
     cf = day / "napisy_poprawki.json"
     fixes = None
     try:
@@ -343,17 +349,16 @@ def ai_fix_words(trans, day):
         fixes = c["fixes"] if c.get("hash") == h else None
     except Exception:
         pass
-    try:
-        known = json.loads(Path(os.environ.get("MONTAZ_SLOWNIK", "")).read_text(encoding="utf-8"))
-    except Exception:
-        known = []
     znane = ("Znane, wcześniej poprawione błędy (stosuj tak samo): "
              + "; ".join(f"„{k['z']}” → „{k['na']}”" for k in known[-80:]) + "\n") if known else ""
     if fixes is None:
         prompt = znane + ("Napisy do polskiego filmu o jedzeniu na redukcji (posiłki, kalorie, makro). Automatyczne rozpoznawanie mowy "
                   "przekręca słowa. Popraw TYLKO słowa źle rozpoznane (np. „owszanymi” → „owsianymi”, „rozdzika” → „z dzika”, "
                   "„kaszę mannow” → „kasza manna”, „orki” → „orkisz”), "
-                  "biorąc pod uwagę sens zdania. Nie zmieniaj poprawnych słów, liczb ani stylu mówienia. Jedno słowo może "
+                  "biorąc pod uwagę sens zdania. Poprawiaj też złe końcówki (przypadek), które rozpoznawanie myli z podobnie brzmiącymi, "
+                  "patrząc na sens: miejsce → „na górze”, „na dole”, „w środku” (np. „na górze są borówki”), kierunek → „na górę” "
+                  "(np. „idę na górę”); tak samo „w lodówce/do lodówki”, „na talerzu/na talerz”. "
+                  "Nie zmieniaj poprawnych słów, liczb ani stylu mówienia. Jedno słowo może "
                   "zostać zastąpione krótką frazą, jeśli rozpoznawanie skleiło słowa.\n"
                   'Odpowiedz wyłącznie JSON-em: {"NAZWA_KLIPU": {"NUMER_SŁOWA": "poprawione"}} – tylko zmienione słowa.\n\n'
                   + "\n".join(f"### {n}\n" + " ".join(f"{i}:{w}" for i, w in enumerate(ws)) for n, ws in clips.items()))
@@ -487,7 +492,7 @@ def clean_words(trans):
 
 def user_subs(trans, day):
     """Zamiany słów w napisach wpisane w aplikacji (uwagi do montażu) – napisy_zamiany.json."""
-    subs = [{"z": "taki o", "na": "takiego"}, {"z": "na górę", "na": "na górze"}]   # stałe: rozpoznawanie mowy pisze „taki o” zamiast „takiego”
+    subs = [{"z": "taki o", "na": "takiego"}]   # stałe: rozpoznawanie mowy pisze „taki o” zamiast „takiego”
     for f in [os.environ.get("MONTAZ_SLOWNIK"), day / "napisy_zamiany.json"]:   # stały słownik + poprawki z tego dnia
         try:
             subs += json.loads(Path(f).read_text(encoding="utf-8")) if f else []
