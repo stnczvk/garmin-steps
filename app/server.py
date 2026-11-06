@@ -972,7 +972,7 @@ def montaz_start(jid: str):
         return _mz_status(d)
     st.update(state="working", step="Start…", at=time.time())
     (d / "status.json").write_text(json.dumps(st, ensure_ascii=False))
-    subprocess.Popen(["nice", "-n", "15", sys.executable, str(HERE / "montaz_job.py"), str(d)], env=env,
+    subprocess.Popen(["nice", "-n", "5", sys.executable, str(HERE / "montaz_job.py"), str(d)], env=env,
                      stdout=subprocess.DEVNULL, stderr=open(d / "job_err.txt", "w"), start_new_session=True)
     return _mz_status(d)
 

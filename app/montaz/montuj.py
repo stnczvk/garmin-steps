@@ -946,7 +946,7 @@ def finalize(segments, total, workdir, music, out_path, captions=None, summary_p
 
     run(["ffmpeg", "-y", "-threads", "0", *inputs, "-filter_complex", ";".join(fc),
          "-map", "[v]", "-map", amap, "-t", f"{total:.3f}",
-         "-c:v", "libx264", "-preset", "medium", "-crf", str(FINAL_CRF), "-profile:v", "high",
+         "-c:v", "libx264", "-preset", "fast", "-crf", str(FINAL_CRF), "-profile:v", "high",
          "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
          "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", str(out_path)])
 
