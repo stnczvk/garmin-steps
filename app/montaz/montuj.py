@@ -1147,7 +1147,8 @@ def main():
         if sfx_at:
             wh, pop = make_sfx(work)
             sfx = [(t, wh) for t, _ in sfx_at] + [(t, pop) for t, _ in adds if t < total - end_extra]
-        finalize(segments, total, work, None if args.bez_muzyki else args.muzyka, out_path,
+        # daily jedzenie bez muzyki w tle (na życzenie) – zostaje sam głos i efekty dźwiękowe
+        finalize(segments, total, work, None, out_path,
                  captions, summary_png, counter, koniec_png, sfx)
         print(f"\nGOTOWE ({total:.0f} s): {out_path}")
     finally:
