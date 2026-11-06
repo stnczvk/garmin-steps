@@ -287,6 +287,10 @@ def pub_youtube(it):
 
 
 def publish(pid):
+    for _ in range(120):   # trwa wcześniejsza wysyłka do TikToka – czekamy, żeby nie wysłać dwa razy
+        if pid not in _pre:
+            break
+        time.sleep(5)
     with _lock:
         P = plan()
         it = next((x for x in P if x["id"] == pid), None)
@@ -295,6 +299,13 @@ def publish(pid):
         it["status"], it["step"] = "publishing", "publikuję…"
         save(P)
     res, errs = dict(it.get("results") or {}), []
+    if res.get("tiktok", {}).get("pre") and not res["tiktok"].get("told"):
+        res["tiktok"]["told"] = True
+        try:
+            from extra import push_all
+            push_all("🎵 TikTok: czas publikacji", f"„{it['label']}” czeka w skrzynce TikToka – opublikuj teraz", "/#home")
+        except Exception:
+            pass
     for p in it["platforms"]:
         if res.get(p, {}).get("ok"):
             continue
@@ -334,6 +345,36 @@ def publish(pid):
         pass
 
 
+TT_LEAD = 30 * 60   # TikTok przetwarza film w skrzynce nawet ~40 min, więc wysyłamy go wcześniej
+_pre = set()
+
+
+def pre_tiktok(pid):
+    """Wysyła film do skrzynki TikToka przed czasem publikacji – o czasie przychodzi już tylko przypomnienie."""
+    if pid in _pre:
+        return
+    _pre.add(pid)
+    try:
+        it = next((x for x in plan() if x["id"] == pid), None)
+        if not it or it["status"] != "approved" or (it.get("results") or {}).get("tiktok", {}).get("ok"):
+            return
+        import tiktok_pub
+        try:
+            mid, note = tiktok_pub.publish(it["file"], (it.get("tiktok") or it.get("caption") or "").strip(), opts=it.get("tt") or {})
+            r = {"ok": True, "id": mid, "at": time.time(), "note": note, "pre": True}
+        except Exception as e:
+            print("planer pre tiktok", e, flush=True)
+            return   # spróbuje normalnie o czasie publikacji
+        with _lock:
+            P = plan()
+            x = next((y for y in P if y["id"] == pid), None)
+            if x:
+                x.setdefault("results", {})["tiktok"] = r
+                save(P)
+    finally:
+        _pre.discard(pid)
+
+
 def _clean_once():
     """Jednorazowo: opisy zaplanowanych postów bez „AI-owych” myślników (nowe opisy są już czyszczone przy tworzeniu)."""
     c = _read(CFG, {})
@@ -367,7 +408,10 @@ def _loop():
             now = time.time()
             for it in plan():
                 if it["status"] == "approved" and it["when"] <= now:
-                    publish(it["id"])
+                    threading.Thread(target=publish, args=(it["id"],), daemon=True).start()
+                elif (it["status"] == "approved" and "tiktok" in it["platforms"] and it["when"] - TT_LEAD <= now
+                      and not (it.get("results") or {}).get("tiktok", {}).get("ok") and it.get("file")):
+                    threading.Thread(target=pre_tiktok, args=(it["id"],), daemon=True).start()
         except Exception as e:
             print("planer pub", e, flush=True)
         time.sleep(60)

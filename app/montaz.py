@@ -828,7 +828,8 @@ def check(jid):
     prev = C.get(jid) or {}
     res["auto_fixed"] = prev.get("auto_fixed", 0)
     # błąd z oceny AI → strażnik sam zleca poprawkę (raz na film, żeby nie kręcić się w kółko)
-    if res["fix"] and not res["ok"] and not probs and res["auto_fixed"] < 1 and not st.get("fix"):
+    # samo zlecanie poprawki wyłączone – film znikał i montował się drugi raz; sugestia zostaje w ocenie do ręcznego kliknięcia
+    if False and res["fix"] and not res["ok"] and not probs and res["auto_fixed"] < 1 and not st.get("fix"):
         try:
             r = _dz_call("POST", f"/api/montaz/{jid}/fix", json={"comment": "[strażnik] " + res["fix"]})
             if r.status_code < 300:
