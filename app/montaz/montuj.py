@@ -756,8 +756,10 @@ def base_filter(transfer):
     if transfer in ("arib-std-b67", "smpte2084"):
         hdr = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
                "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,")
-    return (f"{hdr}scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,"
-            f"crop={W}:{H},setsar=1,fps={FPS},unsharp=5:5:{SHARPEN}:5:5:0"
+    # najpierw 30 kl./s i 1080x1920, dopiero potem HDR→SDR – iPhone nagrywa 4K/60, a przeliczanie HDR na pełnych 4K/60
+    # (liczby zmiennoprzecinkowe) było główną przyczyną ~40-minutowego montażu; obraz praktycznie bez różnicy
+    return (f"fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,"
+            f"crop={W}:{H},setsar=1,{hdr}unsharp=5:5:{SHARPEN}:5:5:0"
             + (",eq=contrast=1.05:saturation=1.16,colorbalance=rm=0.025:bm=-0.025:rh=0.015:bh=-0.02" if KOLORY else ""))
 
 
