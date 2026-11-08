@@ -108,13 +108,15 @@ function jobs(){const J=S.jobs||[];
   ${j.clips.length?`<div class="clips">${j.clips.map(c=>`<div class="cl" style="${c.dur>90?'--ar:16/9;grid-column:span 2':''}"><video src="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}" preload="none" controls playsinline></video>
    <div class="in"><b>${esc(c.hook||c.name)}</b><span class="mut">${c.dur?(c.dur>90?Math.floor(c.dur/60)+' min '+Math.round(c.dur%60)+' s':c.dur+' s'):''}</span>
    <div class="row"><a class="btn" href="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}?dl=1">⬇ Pobierz</a>
-   <button class="btn" data-cp="${esc(c.yt_title)}">Tytuł YT</button>${c.yt_desc?`<button class="btn" data-cp="${esc(c.yt_desc)}">Opis YT</button>`:''}${c.thumb?`<span class="tag">Miniatura: ${esc(c.thumb)}</span>`:''}<button class="btn" data-cp="${esc(c.tiktok)}">Opis TT</button><button class="btn" data-cp="${esc(c.instagram)}">Opis IG</button></div></div></div>`).join('')}</div>`:''}</div>`).join(''):'';
+   <button class="btn" data-cp="${esc(c.yt_title)}">Tytuł YT</button>${c.yt_desc?`<button class="btn" data-cp="${esc(c.yt_desc)}">Opis YT</button>`:''}${c.thumb?`<span class="tag">Miniatura: ${esc(c.thumb)}</span>`:''}<button class="btn" data-cp="${esc(c.tiktok)}">Opis TT</button><button class="btn" data-oc="dobry" data-j="${j.id}" data-c="${esc(c.name)}" title="Dobry – AI będzie robić więcej takich"${c.ocena==='dobry'?' style="background:#2e7d4f"':''}>👍</button><button class="btn" data-oc="slaby" data-j="${j.id}" data-c="${esc(c.name)}" title="Słaby – napisz krótko dlaczego"${c.ocena==='slaby'?' style="background:#8a2f3c"':''}>👎</button><button class="btn" data-cp="${esc(c.instagram)}">Opis IG</button></div></div></div>`).join('')}</div>`:''}</div>`).join(''):'';
 }
 async function load(){try{S=await (await fetch('/api/klipping')).json()}catch(e){return}
  const s=JSON.stringify([S.scanned,(S.campaigns||[]).length,(S.jobs||[]).map(j=>[j.id,j.state,j.step,j.clips.length])]);if(s===sig)return;sig=s;camps();jobs()}
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.pick){$('camp').value=b.dataset.pick;$('url').focus();scrollTo({top:0,behavior:'smooth'})}
  if(b.dataset.cp!==undefined){try{await navigator.clipboard.writeText(b.dataset.cp);b.textContent='Skopiowane ✓'}catch(x){}}
+ if(b.dataset.oc){let u='';if(b.dataset.oc==='slaby'){u=prompt('Co było nie tak? (np. zły moment, za długi, słaby tytuł)')||''}
+  await fetch('/api/klipping/ocena',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job:b.dataset.j,clip:b.dataset.c,ocena:b.dataset.oc,uwaga:u})});sig='';load();zas()}
  if(b.dataset.mdel){await fetch(`/api/klipping/manual/${b.dataset.mdel}/delete`,{method:'POST'});sig='';load()}
  if(b.id==='m_add'){b.disabled=true;b.textContent='Agent czyta zasady…';
   const r=await fetch('/api/klipping/manual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('m_name').value,rate:$('m_rate').value,left:$('m_left').value,url:$('m_url').value,source:$('m_src').value,rules:$('m_rules').value})});
@@ -139,6 +141,7 @@ async function accs(){let A=[];try{A=await (await fetch('/api/social/accounts'))
 accs().then(async()=>{try{const k=await (await fetch('/api/klipping/kanal')).json();$('k_mail').value=k.mail||''}catch(e){}
  $('k_save').onclick=async()=>{await fetch('/api/klipping/kanal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mail:$('k_mail').value})});$('k_save').textContent='Zapisane ✓'}});
 // ---- streamerzy: profil = nick, link na start filmu, kamerka, format, styl tytułów
+let ZAS={};async function zas(){try{ZAS=await (await fetch('/api/klipping/zasady')).json()}catch(e){}}
 let STR=[],ST='';try{ST=localStorage.getItem('kl-str')||''}catch(e){}
 const CAMS={auto:'bez kamerki (środek kadru)',dzinold:'jak u MrDzinolda (lewy górny, pod nickiem)',l:'lewa strona (środek)',r:'prawa strona (środek)',bl:'lewy dół',br:'prawy dół',tl:'lewy góra',tr:'prawy góra',custom:'własna pozycja (%)'};
 async function strs(){try{STR=await (await fetch('/api/klipping/streamers')).json()}catch(e){return}if(!STR.find(x=>x.id===ST))ST=(STR[0]||{}).id||'';drawStr()}
@@ -150,7 +153,8 @@ function drawStr(){const x=STR.find(y=>y.id===ST)||{};
    <span id="s_cc" ${cust?'':'hidden'}>${['x','y','szer.','wys.'].map((l,i)=>`<input id="s_c${i}" type="number" step="0.5" value="${cv[i]}" title="${l} w % kadru" placeholder="${l}" style="width:74px">`).join('')}<span class="mut"> % kadru</span></span>
    <select id="s_fmt"><option value="oba">filmy + shorty</option><option value="yt">tylko filmy YT</option><option value="short">tylko shorty</option></select></div>
   <input id="s_hint" value="${esc(x.title_hint||'')}" placeholder="Styl tytułów (opcjonalnie), np. „krótko, z humorem, zawsze nick na początku”" style="width:100%;margin-top:8px">
-  <div class="row" style="margin-top:8px"><button class="btn" id="s_save">Zapisz ustawienia</button><span class="mut" id="s_msg"></span></div>`;
+  <div class="row" style="margin-top:8px"><button class="btn" id="s_save">Zapisz ustawienia</button><span class="mut" id="s_msg"></span></div>
+  <details style="margin-top:10px"><summary class="mut" style="cursor:pointer">🧠 Czego AI nauczyło się z Twoich ocen i poprawek</summary><p id="s_zas" class="mut" style="white-space:pre-wrap;margin:6px 0 0">${esc((ZAS||{})[x.id]||'Jeszcze nic – oceniaj filmy 👍/👎 i poprawiaj tytuły w kalendarzu, a po 3 ocenach AI wyciągnie zasady.')}</p></details>`;
  $('s_fmt').value=x.fmt||'oba';$('fmt').value=x.fmt||'oba';
  $('s_cam').onchange=()=>{$('s_cc').hidden=$('s_cam').value!=='custom'};
  $('s_save').onclick=async()=>{const c=$('s_cam').value,cam=c==='custom'?[0,1,2,3].map(i=>(+$('s_c'+i).value||0)/100):c;
@@ -159,7 +163,7 @@ function drawStr(){const x=STR.find(y=>y.id===ST)||{};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-st]');if(!b)return;
  if(b.dataset.st==='__new'){STR.push({id:'',name:'',link:'',cam:'auto',fmt:'oba'});ST=''}else ST=b.dataset.st;
  try{localStorage.setItem('kl-str',ST)}catch(x){}drawStr()});
-strs();
+zas().then(strs);
 // ---- osobny kalendarz kanału Strimy w Pigułce
 async function kal(){let P=[];try{P=await (await fetch('/api/planer?group=strimy')).json()}catch(e){return}P=Array.isArray(P)?P:(P.items||P.posts||[]);
  const by={};P.forEach(p=>{const d=new Date(p.when*1000).toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});(by[d]=by[d]||[]).push(p)});

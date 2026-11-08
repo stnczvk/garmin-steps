@@ -254,6 +254,78 @@ def api_manual_del(cid: str):
     return {"ok": True}
 
 
+# ---------- nauka: Twoje oceny i poprawki → zasady dla AI (osobno dla każdego streamera) ----------
+def _zasady(sid):
+    return (_rd().get("zasady") or {}).get(sid or "_", "")
+
+
+def _learn(sid):
+    """Z ostatnich ocen i poprawek AI wyciąga max 10 krótkich zasad, które trafiają do kolejnych wyborów fragmentów i tytułów."""
+    from agency import claude
+    d = _rd()
+    F = [f for f in d.get("feedback", []) if f.get("sid") == sid][-60:]
+    if len(F) < 3:
+        return
+    txt = "\n".join(f"- {f['kind']}: {f.get('what', '')}" + (f" | przed: {f['before']}" if f.get("before") else "") +
+                     (f" | po: {f['after']}" if f.get("after") else "") + (f" | uwaga: {f['note']}" if f.get("note") else "") for f in F)
+    old = (d.get("zasady") or {}).get(sid, "")
+    res = claude("Prowadzę kanał z fragmentami streamów. Poniżej moje oceny i poprawki filmów, które zrobiło AI "
+                 f"(streamer: {sid}). Na ich podstawie napisz max 10 krótkich, konkretnych zasad dla AI na przyszłość: "
+                 "jakie momenty wybierać, a jakich unikać, jak długie, jak pisać tytuły, opisy i napisy na miniaturę. "
+                 "Zasady mają wynikać z danych, bez ogólników. Bez myślników jako przerw w zdaniach.\n\n"
+                 + (f"Dotychczasowe zasady (popraw/uzupełnij):\n{old}\n\n" if old else "") + "Oceny i poprawki:\n" + txt +
+                 "\n\nOdpowiedz samą listą zasad, każda w nowej linii zaczynającej się od „• ”.", max_tokens=900)
+    with _lock:
+        d = _rd()
+        d.setdefault("zasady", {})[sid] = (res or "").strip()[:2500]
+        d["learned_at"] = {**d.get("learned_at", {}), sid: time.time()}
+        _wr(d)
+
+
+def feedback(sid, kind, **kw):
+    """Zapisuje ocenę/poprawkę; co 3 nowe – AI odświeża zasady w tle."""
+    with _lock:
+        d = _rd()
+        d["feedback"] = (d.get("feedback", []) + [{"sid": sid or "_", "kind": kind, "at": time.time(),
+                                                    **{k: str(v)[:400] for k, v in kw.items() if v}}])[-400:]
+        n = sum(1 for f in d["feedback"] if f["sid"] == (sid or "_") and f["at"] > (d.get("learned_at") or {}).get(sid or "_", 0))
+        _wr(d)
+    if n >= 3:
+        threading.Thread(target=lambda: _safe_learn(sid or "_"), daemon=True).start()
+
+
+def _safe_learn(sid):
+    try:
+        _learn(sid)
+    except Exception as e:
+        print("klipping nauka:", e, flush=True)
+
+
+@router.post("/api/klipping/ocena")
+async def api_ocena(req: Request):
+    b = await req.json()
+    d = _rd()
+    j = next((j for j in d["jobs"] if j["id"] == b.get("job")), {})
+    c = next((c for c in j.get("clips", []) if c["name"] == b.get("clip")), {})
+    good = b.get("ocena") == "dobry"
+    feedback(j.get("streamer"), "dobry film" if good else "słaby film",
+             what=f"{c.get('yt_title') or c.get('hook')} ({c.get('dur')} s)", note=b.get("uwaga"))
+    with _lock:
+        d = _rd()
+        for jj in d["jobs"]:
+            if jj["id"] == b.get("job"):
+                for cc in jj["clips"]:
+                    if cc["name"] == b.get("clip"):
+                        cc["ocena"] = "dobry" if good else "slaby"
+        _wr(d)
+    return {"ok": True}
+
+
+@router.get("/api/klipping/zasady")
+def api_zasady():
+    return _rd().get("zasady", {})
+
+
 @router.post("/api/klipping/job/{jid}/delete")
 def api_job_del(jid: str):
     with _lock:
@@ -355,6 +427,7 @@ async def _wybor_yt(b, n, dur_min):
     import asyncio
     who = b.get("who") or "streamer"
     hint = (b.get("title_hint") or "").strip()
+    zas = _zasady(b.get("streamer"))
     how = (f"Wybierz {n} segmentów" if n else "Sam oceń, ile pełnych segmentów warto wyciąć (od 1 do 8, tylko naprawdę ciekawe)")
     prompt = (f"Transkrypcja streama ({dur_min:.0f} min), prowadzący: {who}. Każda linia: [sekunda] tekst.\n\n" + (b.get("transkrypcja") or "")[:90000] +
               f"\n\n{how} na osobne POZIOME filmy na YouTube. Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip "
@@ -364,6 +437,7 @@ async def _wybor_yt(b, n, dur_min):
               "Bez nakładania się, pomiń przerwy, czytanie donejtów i nudne fragmenty. Do każdego: tytuł YouTube po polsku "
               f"(max 70 znaków, ciekawość, w stylu „{who} ogląda …” / „{who} reaguje na …”, bez clickbaitu i bez myślników), "
               + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
+              (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
               "opis YouTube (2–4 zdania + 3–5 hashtagów), krótki napis na miniaturę (2–4 słowa, WERSALIKI) i hook na pierwsze 4 s filmu (max 7 słów).\n"
               'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}]}')
     try:
@@ -388,6 +462,7 @@ async def _wybor_reakcje(b, n, dur_min):
     from agency import claude, as_json
     import asyncio
     who = b.get("who") or "streamer"
+    zas = _zasady(b.get("streamer"))
     how = (f"Wybierz {n} najlepszych momentów" if n else
            f"Sam oceń, ile dobrych klipów da ten materiał ({dur_min:.0f} min): tylko momenty, które obronią się same, bez zapychaczy, "
            "mniej więcej 1 klip na 5–10 min dobrego materiału, od 1 do 15. Wybierz najlepsze momenty")
@@ -397,6 +472,7 @@ async def _wybor_reakcje(b, n, dur_min):
               "koniec na puencie. Bez nakładania się. Do każdego: krótki napis na górę ekranu po polsku w stylu "
               f"„{who} ogląda …” / „{who} reaguje na …” (max 7 słów, bez clickbaitu, bez myślników), opis TikTok (1 zdanie + 3–5 hashtagów), "
               "opis Instagram (1–2 zdania + hashtagi), tytuł YouTube Shorts (max 70 znaków). Naturalnie, bez myślników jako przerw w zdaniu.\n"
+              + (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
               'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
     try:
         txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=4000, system=__import__("skills").sk("hook", "caption", "trend", "slop")))
@@ -499,7 +575,7 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
             mail = _rd().get("mail")
             if mail:   # kontakt do współpracy na końcu każdego opisu
                 c = {**c, **{k: (c.get(k) or "").rstrip() + f"\n\n📩 Współpraca: {mail}" for k in ("yt_desc", "instagram") if c.get(k) is not None}}
-            planer.add_strimy(jid, {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=c["dur"] > 90)
+            planer.add_strimy(jid, {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=c["dur"] > 90, streamer=j.get("streamer", ""))
         except Exception as e:
             print("klipping → planer:", e, flush=True)
     return {"ok": True}

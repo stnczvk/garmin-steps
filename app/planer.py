@@ -57,7 +57,7 @@ def _when(kind, after=None):
     return t.timestamp()
 
 
-def add_strimy(jid, clip, path, long, auto=True):
+def add_strimy(jid, clip, path, long, auto=True, streamer=""):
     """Klipping „Strimy w Pigułce”: długie filmy → YouTube codziennie 17:00, shorty → YouTube Shorts + Reels 2× dziennie (12:30, 20:30)."""
     P = plan()
     if long:
@@ -72,7 +72,7 @@ def add_strimy(jid, clip, path, long, auto=True):
                "group": "strimy", "label": clip.get("yt_title") or clip.get("hook") or clip["name"], "file": str(path), "when": when,
                "platforms": plats, "caption": clip.get("instagram") or clip.get("yt_desc") or "", "tiktok": clip.get("tiktok", ""),
                "yt_title": clip.get("yt_title", ""), "yt_desc": clip.get("yt_desc", ""), "long": bool(long), "yt_cat": "24",
-               "thumb_file": clip.get("thumb_file") or ""})
+               "thumb_file": clip.get("thumb_file") or "", "streamer": streamer})
     if it and auto:
         with _lock:
             P = plan()
@@ -490,6 +490,17 @@ async def api_act(pid: str, action: str, req: Request):
         it = next((x for x in P if x["id"] == pid), None)
         if not it:
             return {"ok": False, "error": "nie ma"}
+        if it.get("group") == "strimy":   # nauka AI: Twoje poprawki i usunięcia z kanału Strimy w Pigułce
+            try:
+                import klipping
+                if b.get("yt_title") is not None and b["yt_title"] != it.get("yt_title"):
+                    klipping.feedback(it.get("streamer"), "poprawiony tytuł", before=it.get("yt_title"), after=b["yt_title"])
+                if b.get("caption") is not None and b["caption"] != it.get("caption"):
+                    klipping.feedback(it.get("streamer"), "poprawiony opis", before=it.get("caption"), after=b["caption"])
+                if action == "skip":
+                    klipping.feedback(it.get("streamer"), "usunięty przed publikacją", what=it.get("label"))
+            except Exception:
+                pass
         if action in ("save", "approve"):
             if "caption" in b:
                 it["caption"] = str(b["caption"])[:2200]
