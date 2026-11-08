@@ -148,8 +148,10 @@ async def api_job(req: Request):
     with _lock:
         d = _rd()
         camp = next((c for c in d.get("manual", []) + d.get("external", []) + d["campaigns"] if c["id"] == str(b.get("campaign") or "")), None)
-        j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": camp,   # 0 = AI decyduje
-             "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}
+        mode = "reakcje" if b.get("mode") == "reakcje" else "kampania"
+        j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": None if mode == "reakcje" else camp,
+             "mode": mode, "lang": "pl" if mode == "reakcje" else "en", "cam": (b.get("cam") or "auto")[:12], "who": (b.get("who") or "")[:40],
+             "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}   # n=0 → AI decyduje
         d["jobs"] = (d["jobs"] + [j])[-60:]
         _wr(d)
     return j
@@ -283,6 +285,37 @@ async def hook_import(req: Request):
     return {"ok": True, "n": len(out), "new": len(new)}
 
 
+async def _wybor_reakcje(b, n, dur_min):
+    """Polskie streamy (np. Bungee): momenty, w których streamer ogląda film / gra i reaguje – na klipy „X ogląda…”."""
+    from agency import claude, as_json
+    import asyncio
+    who = b.get("who") or "streamer"
+    how = (f"Wybierz {n} najlepszych momentów" if n else
+           f"Sam oceń, ile dobrych klipów da ten materiał ({dur_min:.0f} min): tylko momenty, które obronią się same, bez zapychaczy, "
+           "mniej więcej 1 klip na 5–10 min dobrego materiału, od 1 do 15. Wybierz najlepsze momenty")
+    prompt = (f"Transkrypcja streama ({dur_min:.0f} min), prowadzący: {who}. Każda linia: [sekunda] tekst.\n\n" + (b.get("transkrypcja") or "")[:70000] +
+              f"\n\n{how}, w których {who} OGLĄDA coś (film z YouTube, klip, tiktoka) albo GRA i na to reaguje: śmiech, zaskoczenie, ostry komentarz, "
+              "kłótnia, puenta. Klip 20–60 s, zrozumiały bez reszty streama, mocny początek (reakcja albo zapowiedź w pierwszych 2 s), "
+              "koniec na puencie. Bez nakładania się. Do każdego: krótki napis na górę ekranu po polsku w stylu "
+              f"„{who} ogląda …” / „{who} reaguje na …” (max 7 słów, bez clickbaitu, bez myślników), opis TikTok (1 zdanie + 3–5 hashtagów), "
+              "opis Instagram (1–2 zdania + hashtagi), tytuł YouTube Shorts (max 70 znaków). Naturalnie, bez myślników jako przerw w zdaniu.\n"
+              'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
+    try:
+        txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=4000, system=__import__("skills").sk("hook", "caption", "trend", "slop")))
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=502)
+    from montaz import human
+    out = []
+    for k in (as_json(txt) or {}).get("klipy") or []:
+        try:
+            a, e = float(k["start"]), float(k["end"])
+        except Exception:
+            continue
+        if 6 <= e - a <= 90:
+            out.append({"start": a, "end": e, **{x: human(str(k.get(x) or "")) for x in ("hook", "tiktok", "instagram", "yt_title")}})
+    return {"klipy": out[:n or 15]}
+
+
 @router.post("/api/mont-hook/klipping/wybor")
 async def hook_wybor(req: Request):
     """Transkrypcja filmu (angielski) → AI wybiera N fragmentów pod kampanię i pisze hooki, opisy, tytuły."""
@@ -293,6 +326,8 @@ async def hook_wybor(req: Request):
     b = await req.json()
     n, camp = max(0, min(15, int(b.get("n") or 0))), b.get("campaign") or {}
     dur_min = float(b.get("dur") or 0) / 60
+    if b.get("mode") == "reakcje":
+        return await _wybor_reakcje(b, n, dur_min)
     how = (f"Pick the {n} best moments" if n else
            f"Decide yourself how many clips this material really supports ({dur_min:.0f} min of content): pick ONLY moments strong enough "
            "to perform on their own, never filler. Roughly 1 clip per 4–8 min of good content, minimum 1, maximum 15. Pick the best moments")
