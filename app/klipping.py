@@ -119,7 +119,7 @@ async def api_job(req: Request):
     with _lock:
         d = _rd()
         camp = next((c for c in d["campaigns"] if c["id"] == str(b.get("campaign") or "")), None)
-        j = {"id": secrets.token_hex(4), "url": url, "n": max(1, min(15, int(b.get("n") or 6))), "campaign": camp,
+        j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": camp,   # 0 = AI decyduje
              "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}
         d["jobs"] = (d["jobs"] + [j])[-60:]
         _wr(d)
@@ -187,11 +187,15 @@ async def hook_wybor(req: Request):
     from agency import claude, as_json
     import asyncio
     b = await req.json()
-    n, camp = max(1, min(15, int(b.get("n") or 6))), b.get("campaign") or {}
+    n, camp = max(0, min(15, int(b.get("n") or 0))), b.get("campaign") or {}
+    dur_min = float(b.get("dur") or 0) / 60
+    how = (f"Pick the {n} best moments" if n else
+           f"Decide yourself how many clips this material really supports ({dur_min:.0f} min of content): pick ONLY moments strong enough "
+           "to perform on their own, never filler. Roughly 1 clip per 4–8 min of good content, minimum 1, maximum 15. Pick the best moments")
     rules = (camp.get("rules") or "")[:1200]
     prompt = (f"Transcript of a video/stream „{b.get('name', '')}” ({float(b.get('dur') or 0) / 60:.0f} min). Each line: [second] text.\n\n"
               + (b.get("transkrypcja") or "")[:70000] +
-              f"\n\nPick the {n} best moments for separate vertical short clips (TikTok, Reels, YouTube Shorts) for a paid clipping campaign"
+              f"\n\n{how} for separate vertical short clips (TikTok, Reels, YouTube Shorts) for a paid clipping campaign"
               + (f" „{camp.get('name')}”. Campaign rules (follow them):\n{rules}\n" if camp else ".\n") +
               "Each clip 15–60 s, understandable on its own, strong hook in the first 2 seconds, ends on a complete thought, "
               "no overlaps, prefer funny/surprising/emotional/controversial moments. For each: on-screen hook text (max 7 words, English), "
@@ -210,7 +214,7 @@ async def hook_wybor(req: Request):
             continue
         if 6 <= e - a <= 90:
             out.append({"start": a, "end": e, **{x: str(k.get(x) or "").replace("—", ",") for x in ("hook", "tiktok", "instagram", "yt_title")}})
-    return {"klipy": out[:n]}
+    return {"klipy": out[:n or 15]}
 
 
 def _dir(jid):
