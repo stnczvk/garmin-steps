@@ -155,7 +155,7 @@ function drawStr(){const x=STR.find(y=>y.id===ST)||{};
  $('chips').innerHTML=STR.map(y=>`<button class="chip${y.id===ST?' on':''}" data-st="${esc(y.id)}">${esc(y.name)}</button>`).join('')+`<button class="chip" data-st="__new">+ dodaj</button>`;
  const cust=Array.isArray(x.cam),cv=cust?x.cam.map(v=>Math.round(v*1000)/10):[0,0,26,30];
  $('stset').innerHTML=`<div class="row"><input id="s_name" value="${esc(x.name||'')}" placeholder="Nick (do tytułów)" style="flex:1 1 140px"><input id="s_link" value="${esc(x.link||'')}" placeholder="Link na start filmu, np. twitch.tv/mrdzinold" style="flex:2 1 240px"></div>
-  <div class="row" style="margin-top:8px"><span class="mut">Kamerka:</span><select id="s_cam">${Object.entries(CAMS).map(([k,v])=>`<option value="${k}"${(cust?'custom':x.cam)===k?' selected':''}>${v}</option>`).join('')}</select>
+  <div class="row" style="margin-top:8px" hidden><span class="mut">Kamerka:</span><select id="s_cam">${Object.entries(CAMS).map(([k,v])=>`<option value="${k}"${(cust?'custom':x.cam)===k?' selected':''}>${v}</option>`).join('')}</select>
    <span id="s_cc" ${cust?'':'hidden'}>${['x','y','szer.','wys.'].map((l,i)=>`<input id="s_c${i}" type="number" step="0.5" value="${cv[i]}" title="${l} w % kadru" placeholder="${l}" style="width:74px">`).join('')}<span class="mut"> % kadru</span></span>
    <select id="s_fmt"><option value="oba">filmy + shorty</option><option value="yt">tylko filmy YT</option><option value="short">tylko shorty</option></select></div>
   <input id="s_hint" value="${esc(x.title_hint||'')}" placeholder="Styl tytułów (opcjonalnie), np. „krótko, z humorem, zawsze nick na początku”" style="width:100%;margin-top:8px">
