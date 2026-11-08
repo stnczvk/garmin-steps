@@ -56,6 +56,7 @@ input#url{flex:1 1 320px}
 .ki img{width:96px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:#000}
 .ki .t{flex:1;min-width:0}.ki .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:600px){.wrap{padding:16px 14px 50px}}
+.j.zw .clips{display:none}
 </style>
 </head>
 <body>
@@ -99,8 +100,12 @@ function camps(){const C=S.campaigns||[];
   ${c.rules?`<details><summary>Zasady (oryginał)</summary><p>${esc(c.rules)}</p></details>`:''}
   <div class="row">${c.url?`<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Otwórz</a>`:''}${c.manual?`<button class="btn" data-mdel="${esc(c.id)}">Usuń</button>`:''}<button class="btn" data-pick="${esc(c.id)}">Użyj do klipów</button></div></div>`).join(''):'<div class="box empty mut">Brak kampanii – kliknij „Szukaj teraz” (potrzebny token Apify w Ustawieniach).</div>';
 }
+let ZW={};try{ZW=JSON.parse(localStorage.kzw||'{}')}catch(e){}
+function zw(j,i){return j.id in ZW?ZW[j.id]:i>0}   // domyślnie rozwinięty tylko najnowszy stream
+document.addEventListener('click',e=>{const t=e.target.closest('[data-zw]');if(!t)return;const id=t.dataset.zw,J=S.jobs||[],i=J.findIndex(j=>j.id===id);
+ ZW[id]=!zw(J[i],i);try{localStorage.kzw=JSON.stringify(ZW)}catch(e){}jobs()});
 function jobs(){const J=S.jobs||[];
- $('jobs').innerHTML=J.length?'<h2>W trakcie i gotowe</h2>'+J.map(j=>`<div class="j"><div class="row" style="justify-content:space-between"><div><b>${esc(j.title||j.url)}</b>
+ $('jobs').innerHTML=J.length?'<h2>W trakcie i gotowe</h2>'+J.map((j,i)=>`<div class="j${zw(j,i)?' zw':''}"><div class="row" style="justify-content:space-between"><div data-zw="${j.id}" style="cursor:pointer;flex:1"><b>${zw(j,i)?'▸':'▾'} ${esc(j.title||j.url)}</b>
   <div class="st ${j.state==='error'?'err':j.state==='done'?'ok':''}">${j.state==='done'?'✅ Gotowe – '+j.clips.length+' klipów':j.state==='error'?'❌ '+esc(j.error||'błąd'):'⏳ '+esc(j.step||'')}${j.campaign?' · '+esc(j.campaign.name):''}</div></div>
   <button class="btn" data-del="${j.id}">Usuń</button></div>
   ${j.clips.length?`<div class="clips">${j.clips.map(c=>`<div class="cl" style="${c.dur>90?'--ar:16/9;grid-column:span 2':''}"><video src="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}" preload="none" controls playsinline></video>
