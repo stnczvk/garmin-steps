@@ -57,12 +57,13 @@ def _when(kind, after=None):
     return t.timestamp()
 
 
-def _film_slot(P, streamer):
+def _film_slot(P, streamer, long=True):
     """Filmy YT na Strimach: 3 okienka dziennie (13:00, 17:00, 20:00). Film wskakuje w pierwsze wolne okienko,
     a kolejność streamerów potem przeplata _przeplot (żeby nie szło 3× Dzinold z rzędu, gdy czeka też Bandura)."""
-    H = ["13:00", "17:00", "20:00"]
+    H = ["13:00", "17:00", "20:00"] if long else ["12:30", "16:30", "20:30"]   # shorty: też 3 okienka
+    hk = ("strimy_film",) if long else ("strimy_short", "strimy_short2")
     used = {datetime.fromtimestamp(x["when"], TZ).strftime("%Y-%m-%d %H:%M") for x in P if x.get("group") == "strimy"
-            and x.get("hkind") == "strimy_film" and x.get("status") not in ("published", "skipped", "error")}
+            and x.get("hkind") in hk and x.get("status") not in ("published", "skipped", "error")}
     now = datetime.now(TZ)
     for dd in range(0, 400):
         day = (now + timedelta(days=dd)).date()
@@ -80,14 +81,8 @@ def add_strimy(jid, clip, path, long, auto=True, streamer=""):
     if long:
         kind, plats = "strimy_film", ["youtube"]
     else:
-        n = sum(1 for x in P if x.get("series") == "strimy_short")
-        kind, plats = ("strimy_short" if n % 2 == 0 else "strimy_short2"), ["youtube", "instagram"]
-    if long:
-        when = _film_slot(P, streamer)
-    else:
-        same = [x["when"] for x in P if x.get("hkind") == kind and x.get("status") not in ("published", "skipped")]
-        last = max(same + [0])
-        when = _when(kind, datetime.fromtimestamp(last, TZ) + timedelta(hours=2)) if last > time.time() else _when(kind)
+        kind, plats = "strimy_short", ["youtube", "instagram"]
+    when = _film_slot(P, streamer, long)
     it = _add({"src": f"kl:{jid}:{clip['name']}", "kind": "film", "series": "strimy_film" if long else "strimy_short", "hkind": kind,
                "group": "strimy", "label": clip.get("yt_title") or clip.get("hook") or clip["name"], "file": str(path), "when": when,
                "platforms": plats, "caption": clip.get("instagram") or clip.get("yt_desc") or "", "tiktok": clip.get("tiktok", ""),
@@ -113,7 +108,7 @@ def _przeplot(kind):
     Te same terminy, tylko inna kolejność; nie rusza wpisów na najbliższe 3 h i tych z ręcznie ustawioną godziną."""
     with _lock:
         P = plan()
-        Q = sorted([x for x in P if x.get("group") == "strimy" and x.get("hkind") == kind and not x.get("pin")
+        Q = sorted([x for x in P if x.get("group") == "strimy" and (x.get("hkind") == kind or (kind == "strimy_short" and x.get("hkind") == "strimy_short2")) and not x.get("pin")
                     and x.get("status") in ("approved", "draft") and x["when"] > time.time() + 3 * 3600], key=lambda x: x["when"])
         if len({x.get("streamer") for x in Q}) < 2:
             return
