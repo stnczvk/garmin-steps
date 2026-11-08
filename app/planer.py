@@ -515,7 +515,10 @@ def api_prev(pid: str, i: int = 0):
     f = it.get("file") if it["kind"] == "film" else (it.get("files") or [None])[min(i, len(it.get("files") or [1]) - 1)]
     if not f or not os.path.isfile(f):
         return JSONResponse({"error": "plik zniknął"}, status_code=404)
-    return FileResponse(f, media_type="video/mp4" if it["kind"] == "film" else "image/jpeg")
+    if it["kind"] == "film":
+        from lite import lite
+        return FileResponse(lite(f), media_type="video/mp4")
+    return FileResponse(f, media_type="image/jpeg")
 
 # ---------- własne posty (wgrane z telefonu/komputera w Treściach) ----------
 UPD = SOCIAL_ROOT / "posty_wlasne"

@@ -166,7 +166,36 @@ def karuzela(jid: str):
         info = [l.strip() for l in (d / "log.txt").read_text(encoding="utf-8", errors="ignore").splitlines() if l.startswith("karuzela:")][-8:]
     except Exception:
         pass
-    return {"slides": sorted(f.name for f in k.glob("*.jpg")) if k and k.is_dir() else [], "info": info}
+    fs = sorted(k.glob("*.jpg")) if k and k.is_dir() else []
+    busy = jid in _karu_busy
+    if not fs and d and not busy and _karu_try.get(jid, 0) < time.time() - 900:
+        try:
+            _st = json.loads((d / "status.json").read_text(encoding="utf-8"))
+            # po filmie karuzelę robi sam montaż (do 10 min) – wchodzimy dopiero, gdy jej po tym czasie nadal nie ma
+            done = _st.get("state") == "done" and time.time() - float(_st.get("finished") or 0) > 720
+        except Exception:
+            done = False
+        if done and next(d.glob("dzien_*"), None):   # karuzeli brak (np. restart serwera w trakcie) → robimy ją sami w tle
+            _karu_try[jid] = time.time()
+            busy = True
+            threading.Thread(target=_karu_bg, args=(jid, d), daemon=True).start()
+    return {"slides": [f.name for f in fs], "v": [int(f.stat().st_mtime) for f in fs], "info": info, "busy": busy}
+
+
+_karu_busy, _karu_try = set(), {}
+
+
+def _karu_bg(jid, d):
+    _karu_busy.add(jid)
+    try:
+        out = _karu_run(d)
+        with (d / "log.txt").open("a", encoding="utf-8") as lf:
+            lf.write(out[-1500:] + "\n")
+    except Exception as e:
+        with (d / "log.txt").open("a", encoding="utf-8") as lf:
+            lf.write(f"karuzela: {str(e)[:300]}\n")
+    finally:
+        _karu_busy.discard(jid)
 
 
 def _karu_run(d, *extra):
@@ -247,7 +276,10 @@ def film(jid: str, dl: int = 0):
     f = d and _film(d, _status(d))
     if not f:
         return JSONResponse({"error": "Film nie jest gotowy."}, status_code=404)
-    return FileResponse(f, media_type="video/mp4", filename=f.name if dl else None)
+    if dl:
+        return FileResponse(f, media_type="video/mp4", filename=f.name)
+    from lite import lite
+    return FileResponse(lite(str(f)), media_type="video/mp4")
 
 
 # ---------- akcje w Dzienniku (przez jego API, z hasłem z .env) ----------
@@ -697,7 +729,8 @@ async def hook_podglad(jid: str, req: Request):
 @router.get("/api/mont-vlog/{jid}/podglad")
 def vlog_podglad(jid: str):
     f = VPOD / (os.path.basename(jid) + ".mp4")
-    return FileResponse(f, media_type="video/mp4") if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
+    from lite import lite
+    return FileResponse(lite(str(f)), media_type="video/mp4") if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
 
 
 def vlog_check(jid):
