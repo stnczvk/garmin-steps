@@ -558,6 +558,17 @@ def _uklad(t, j, mail):
     return body + ("\n" + tags if tags else "")
 
 
+def STYL(who):
+    """Tytuły i opisy jak od człowieka, który prowadzi kanał z klipami, a nie od AI."""
+    return (f"(max 60 znaków). Tytuł ma przyciągnąć kliknięcie jak na polskich kanałach z klipami ze streamów: konkretna sytuacja, "
+            f"emocja albo cytat, imię {who} na początku albo naturalnie w środku, potoczny język widzów (np. „{who} NIE WYTRZYMAŁ po tym meczu”, "
+            f"„{who} o Doncicu: to jest kosmita”, „{who} przegrał wszystko w ostatniej sekundzie”). Możesz dać 1–2 słowa WERSALIKAMI dla emocji. "
+            "Ciekawość ma wynikać z sytuacji, ale nie kłam i nie obiecuj czegoś, czego nie ma w filmie. "
+            "Opisy piszesz jak fan na luzie, krótko i konkretnie, co się dzieje. ZAKAZANE (brzmią jak AI): „Sprawdź”, „Zobacz, jak”, „imponujący”, "
+            "„unikalny”, „niesamowity”, „prawdziwy król”, „analiza”, „nie uwierzysz”, „w tym filmie”, „przekonaj się”, myślniki jako przerwy w zdaniu, "
+            "wykrzykniki co zdanie, pytania retoryczne na koniec.")
+
+
 async def _wybor_yt(b, n, dur_min):
     """Poziome filmy na YouTube: CAŁE segmenty (np. od początku do końca oglądania jednego filmu / ogłoszenia), 3–60 min."""
     who = b.get("who") or "streamer"
@@ -570,11 +581,10 @@ async def _wybor_yt(b, n, dur_min):
            "ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję. W środku musi być kilka mocnych momentów, a nie spokojne gadanie. "
            + DOBRE + " Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość 3–60 min. "
            "Oceń każdy segment szczerze 1–10 (10 = ludzie obejrzą do końca i udostępnią, 5 = przeciętny fragment streama). "
-           "Do każdego: tytuł YouTube po polsku "
-           f"(max 70 znaków, ciekawość, w stylu „{who} ogląda …” / „{who} reaguje na …”, bez clickbaitu i bez myślników), "
+           "Do każdego: tytuł YouTube po polsku " + STYL(who) + " "
            + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
            (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
-           "opis YouTube (2–4 zdania + 3–5 hashtagów), krótki napis na miniaturę (2–4 słowa, WERSALIKI), hook na pierwsze 4 s filmu (max 7 słów) "
+           "opis YouTube (2–3 krótkie zdania + 3–5 hashtagów, styl opisu jak wyżej), krótki napis na miniaturę (2–4 słowa, WERSALIKI), hook na pierwsze 4 s filmu (max 7 słów) "
            "i jednym zdaniem, co konkretnie się dzieje (pole dlaczego).\n"
            'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "ocena": 1-10, "dlaczego": "...", "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}]}')
     try:
@@ -604,7 +614,7 @@ async def _wybor_reakcje(b, n, dur_min):
            "Oceń każdy szczerze 1–10 (10 = viral, 7 = dobry short, 5 = przeciętny fragment streama). "
            "Do każdego: krótki napis na górę ekranu po polsku w stylu "
            f"„{who} ogląda …” / „{who} reaguje na …” albo sedno sytuacji (max 7 słów, bez clickbaitu, bez myślników), opis TikTok (1 zdanie + 3–5 hashtagów), "
-           "opis Instagram (1–2 zdania + hashtagi), tytuł YouTube Shorts (max 70 znaków) i jednym zdaniem, co się dzieje (pole dlaczego). "
+           "opis Instagram (1–2 zdania + hashtagi), tytuł YouTube Shorts " + STYL(who) + " i jednym zdaniem, co się dzieje (pole dlaczego). "
            "Naturalnie, bez myślników jako przerw w zdaniu.\n"
            + (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
            'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "ocena": 1-10, "dlaczego": "...", "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
