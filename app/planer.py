@@ -80,7 +80,36 @@ def add_strimy(jid, clip, path, long, auto=True, streamer=""):
             if x:
                 x["status"] = "approved"
                 save(P)
+    if it:
+        try:
+            _przeplot(kind)
+        except Exception as e:
+            print("strimy przeplot:", e, flush=True)
     return it
+
+
+def _przeplot(kind):
+    """Kolejka kanału Strimy: streamerzy na zmianę (Dzinold, Bandura, Dzinold, Tuszol…), a nie najpierw wszystko od jednego.
+    Te same terminy, tylko inna kolejność; nie rusza wpisów na najbliższe 3 h i tych z ręcznie ustawioną godziną."""
+    with _lock:
+        P = plan()
+        Q = sorted([x for x in P if x.get("group") == "strimy" and x.get("hkind") == kind and not x.get("pin")
+                    and x.get("status") in ("approved", "draft") and x["when"] > time.time() + 3 * 3600], key=lambda x: x["when"])
+        if len({x.get("streamer") for x in Q}) < 2:
+            return
+        slots = [x["when"] for x in Q]
+        G = {}
+        for x in Q:
+            G.setdefault(x.get("streamer") or "", []).append(x)
+        order, last = [], None
+        while any(G.values()):
+            # następny: streamer z najdłuższą kolejką, ale nie ten sam co przed chwilą (jeśli się da)
+            c = sorted([k for k in G if G[k]], key=lambda k: (k == last, -len(G[k])))
+            last = c[0]
+            order.append(G[last].pop(0))
+        for x, w in zip(order, slots):
+            x["when"] = w
+        save(P)
 
 
 def _public():
@@ -509,6 +538,7 @@ async def api_act(pid: str, action: str, req: Request):
             if b.get("when"):
                 try:
                     it["when"] = datetime.fromisoformat(b["when"]).replace(tzinfo=TZ).timestamp()
+                    it["pin"] = True   # ręcznie ustawiona godzina – przeplatanie streamerów jej nie rusza
                 except ValueError:
                     return {"ok": False, "error": "zła data"}
             if isinstance(b.get("tt"), dict):
