@@ -58,7 +58,7 @@ def main():
             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "numpy"], capture_output=True, timeout=300)
         try:
             r = subprocess.run([sys.executable, str(TOOLS / "karuzela.py"), str(day), str(job / "gotowe" / "karuzela")],
-                               capture_output=True, text=True, timeout=600)
+                               capture_output=True, text=True, timeout=1500)   # zdjęcia HDR liczą się długo – 10 min czasem nie starczało
             with (job / "log.txt").open("a", encoding="utf-8") as lf:
                 lf.write(r.stdout + r.stderr[-1500:])
         except Exception as e:
