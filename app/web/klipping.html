@@ -59,7 +59,7 @@ input#url{flex:1 1 320px}
    <select id="n" title="Ile klipów"><option value="0" selected>Ile się da (AI ocenia)</option><option>4</option><option>6</option><option>8</option><option>10</option><option>15</option></select>
    <button class="btn pri" id="go">✂️ Zrób klipy</button></div>
   <div class="row" style="margin-top:8px" hidden><span class="mut">Rodzaj:</span><select id="mode"><option value="reakcje" selected>Reakcje ze streama (po polsku)</option><option value="kampania">Kampania (po angielsku)</option></select></div>
-  <div class="row" id="rowCamp" style="margin-top:8px"><span class="mut">Kampania:</span><select id="camp" style="flex:1 1 260px"><option value="">bez kampanii</option></select></div>
+  <div class="row" id="rowCamp" style="margin-top:8px;display:none!important"><span class="mut">Kampania:</span><select id="camp" style="flex:1 1 260px"><option value="">bez kampanii</option></select></div>
   <div id="rowStr" style="margin-top:10px" hidden><div class="row" id="chips"></div>
    <div class="box" id="stset" style="margin:10px 0 0;padding:12px"></div></div>
   <div class="row" id="rowReak" style="margin-top:8px" hidden><select id="fmt"><option value="oba">Filmy na YouTube + shorty</option><option value="yt">Filmy na YouTube (poziome, całe segmenty)</option><option value="short">Shorty (pionowe, 20–60 s)</option></select><input id="who" placeholder="Kto prowadzi (np. Bandura)" style="flex:1 1 180px">
@@ -72,21 +72,8 @@ input#url{flex:1 1 320px}
  <div class="box" id="kal"></div>
  <div id="jobs"></div>
 
- <details class="box" style="margin-top:26px"><summary style="cursor:pointer;font-weight:600">Kampanie Whop / clipping.net (wstrzymane)</summary>
- <div class="row" style="justify-content:space-between;margin-top:26px"><h2 style="margin:0">Najlepsze kampanie</h2>
-  <div class="row"><span class="mut" id="when"></span><button class="btn" id="scan">↻ Szukaj teraz</button></div></div>
- <p class="mut" style="margin:4px 0 10px">Ranking: stawka za 1000 wyświetleń × pozostały budżet, mniej chętnych = wyżej. Przed startem przeczytaj zasady kampanii.</p>
- <div class="cg" id="camps"></div>
-
- <details class="box" style="margin-top:16px"><summary style="cursor:pointer;font-weight:600">➕ Dodaj kampanię ręcznie (np. z clipping.net)</summary>
-  <p class="mut" style="margin:8px 0">Panel clipping.net jest za logowaniem, więc centrum nie pobierze go samo. Przepisz kampanię, a agent przetłumaczy i oceni zasady.</p>
-  <div class="row"><input id="m_name" placeholder="Nazwa (np. IShowSpeed)" style="flex:1 1 200px"><input id="m_rate" type="number" step="0.01" placeholder="$ za 1000 wyśw." style="width:150px">
-   <input id="m_left" type="number" placeholder="Budżet $ (opcjonalnie)" style="width:170px"></div>
-  <div class="row" style="margin-top:8px"><input id="m_url" placeholder="Link do kampanii (opcjonalnie)" style="flex:1 1 300px"><select id="m_src"><option>clipping.net</option><option>Vyro</option><option>inne</option></select></div>
-  <textarea id="m_rules" placeholder="Wklej zasady kampanii (po angielsku też może być)" style="width:100%;min-height:110px;margin-top:8px;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:10px;font-size:13.5px"></textarea>
-  <button class="btn pri" id="m_add" style="margin-top:8px">Dodaj kampanię</button>
- </details>
- </details>
+ <div hidden><span id="when"></span><button id="scan"></button><div id="camps"></div>
+  <input id="m_name"><input id="m_rate"><input id="m_left"><input id="m_url"><select id="m_src"></select><textarea id="m_rules"></textarea><button id="m_add"></button></div>
 </div>
 <script>
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
