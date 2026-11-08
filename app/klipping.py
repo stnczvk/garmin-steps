@@ -139,6 +139,48 @@ async def api_scan():
     return {"ok": True, "n": len(C)}
 
 
+STREAMERS = [   # domyślne profile – wszystko można zmienić w zakładce
+    {"id": "dzinold", "name": "Dzinold", "link": "twitch.tv/mrdzinold", "cam": "dzinold", "fmt": "oba"},
+    {"id": "bandura", "name": "Bandura", "link": "", "cam": "auto", "fmt": "oba"},
+    {"id": "tuszol", "name": "Tuszol", "link": "kick.com/tuszol", "cam": "auto", "fmt": "oba"},
+    {"id": "merghani", "name": "Merghani", "link": "kick.com/xmerghani", "cam": "auto", "fmt": "oba"},
+    {"id": "neex", "name": "Neex", "link": "", "cam": "auto", "fmt": "oba"},
+]
+
+
+def _streamers(d=None):
+    d = d or _rd()
+    have = {x["id"]: x for x in d.get("streamers", [])}
+    return [have.get(x["id"], x) for x in STREAMERS] + [x for x in d.get("streamers", []) if x["id"] not in {y["id"] for y in STREAMERS}]
+
+
+@router.get("/api/klipping/streamers")
+def api_streamers():
+    return _streamers()
+
+
+@router.post("/api/klipping/streamers")
+async def api_streamer_save(req: Request):
+    import re
+    b = await req.json()
+    sid = re.sub(r"[^a-z0-9_]", "", (b.get("id") or b.get("name") or "").lower())[:30]
+    if not sid:
+        return JSONResponse({"error": "Podaj nazwę"}, status_code=400)
+    cam = b.get("cam")
+    if isinstance(cam, list) and len(cam) == 4:
+        cam = [max(0.0, min(1.0, _num(v))) for v in cam]
+    elif not isinstance(cam, str):
+        cam = "auto"
+    x = {"id": sid, "name": (b.get("name") or sid)[:40], "link": (b.get("link") or "").strip().replace("https://", "").replace("www.", "")[:80],
+         "cam": cam, "fmt": b.get("fmt") if b.get("fmt") in ("yt", "short", "oba") else "oba",
+         "title_hint": (b.get("title_hint") or "")[:300]}
+    with _lock:
+        d = _rd()
+        d["streamers"] = [y for y in d.get("streamers", []) if y["id"] != sid] + [x]
+        _wr(d)
+    return x
+
+
 @router.post("/api/klipping/job")
 async def api_job(req: Request):
     b = await req.json()
@@ -149,10 +191,14 @@ async def api_job(req: Request):
         d = _rd()
         camp = next((c for c in d.get("manual", []) + d.get("external", []) + d["campaigns"] if c["id"] == str(b.get("campaign") or "")), None)
         mode = "reakcje" if b.get("mode") == "reakcje" else "kampania"
+        st = next((x for x in _streamers(d) if x["id"] == b.get("streamer")), None) if mode == "reakcje" else None
+        if st:   # profil streamera: nick, kamerka, link na start filmu, styl tytułów
+            b = {**b, "who": st["name"], "cam": st["cam"], "format": b.get("format") or st.get("fmt")}
         j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": None if mode == "reakcje" else camp,
-             "mode": mode, "lang": "pl" if mode == "reakcje" else "en", "cam": (b.get("cam") or "auto")[:12], "who": (b.get("who") or "")[:40],
+             "mode": mode, "lang": "pl" if mode == "reakcje" else "en", "cam": b.get("cam") if isinstance(b.get("cam"), list) else (b.get("cam") or "auto")[:12], "who": (b.get("who") or "")[:40],
              "format": b.get("format") if b.get("format") in ("yt", "short", "oba") else "short",
              "auto": bool(b.get("auto")) and mode == "reakcje",   # sama publikacja na kanale Strimy w Pigułce
+             "streamer": st["id"] if st else "", "link": st.get("link", "") if st else "", "title_hint": st.get("title_hint", "") if st else "",
              "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}   # n=0 → AI decyduje
         d["jobs"] = (d["jobs"] + [j])[-60:]
         _wr(d)
@@ -292,6 +338,7 @@ async def _wybor_yt(b, n, dur_min):
     from agency import claude, as_json
     import asyncio
     who = b.get("who") or "streamer"
+    hint = (b.get("title_hint") or "").strip()
     how = (f"Wybierz {n} segmentów" if n else "Sam oceń, ile pełnych segmentów warto wyciąć (od 1 do 8, tylko naprawdę ciekawe)")
     prompt = (f"Transkrypcja streama ({dur_min:.0f} min), prowadzący: {who}. Każda linia: [sekunda] tekst.\n\n" + (b.get("transkrypcja") or "")[:90000] +
               f"\n\n{how} na osobne POZIOME filmy na YouTube. Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip "
@@ -300,6 +347,7 @@ async def _wybor_yt(b, n, dur_min):
               "(cały mecz / cała rozgrywka może trwać do 60 min, oglądanie i rozmowy zwykle krócej). "
               "Bez nakładania się, pomiń przerwy, czytanie donejtów i nudne fragmenty. Do każdego: tytuł YouTube po polsku "
               f"(max 70 znaków, ciekawość, w stylu „{who} ogląda …” / „{who} reaguje na …”, bez clickbaitu i bez myślników), "
+              + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
               "opis YouTube (2–4 zdania + 3–5 hashtagów), krótki napis na miniaturę (2–4 słowa, WERSALIKI) i hook na pierwsze 4 s filmu (max 7 słów).\n"
               'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}]}')
     try:
@@ -424,17 +472,38 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
         d = _rd()
         j = next((j for j in d["jobs"] if j["id"] == jid), None)
         if j:
-            j["clips"] = [c for c in j["clips"] if c.get("name") != nm] + [{"name": nm, **{k: o.get(k, "") for k in ("hook", "tiktok", "instagram", "yt_title", "yt_desc", "thumb")},
+            j["clips"] = [c for c in j["clips"] if c.get("name") != nm] + [{"name": nm, "has_thumb": (_dir(jid) / (nm + ".jpg")).is_file(), **{k: o.get(k, "") for k in ("hook", "tiktok", "instagram", "yt_title", "yt_desc", "thumb")},
                                                                             "dur": round(_num(o.get("end")) - _num(o.get("start")), 1)}]
             _wr(d)
     if j and j.get("auto"):
         try:
             import planer
             c = next(c for c in j["clips"] if c["name"] == nm)
-            planer.add_strimy(jid, c, f, long=c["dur"] > 90)
+            th = _dir(jid) / (nm + ".jpg")
+            planer.add_strimy(jid, {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=c["dur"] > 90)
         except Exception as e:
             print("klipping → planer:", e, flush=True)
     return {"ok": True}
+
+
+@router.put("/api/mont-hook/klipping/{jid}/thumb")
+async def hook_thumb(jid: str, req: Request, name: str = ""):
+    """Miniatura (JPG) do długiego filmu – Mac wysyła ją przed samym filmem, planer ustawia ją po publikacji na YouTube."""
+    import re
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    nm = re.sub(r"[^\w .()#-]+", "_", name)[:80]
+    f = _dir(jid) / (nm + ".jpg")
+    f.write_bytes(await req.body())
+    return {"ok": True}
+
+
+@router.get("/api/klipping/{jid}/thumb/{name}")
+def api_thumb(jid: str, name: str):
+    from fastapi.responses import FileResponse
+    import os
+    f = _dir(jid) / (os.path.basename(name) + ".jpg")
+    return FileResponse(f, media_type="image/jpeg") if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
 
 
 @router.get("/api/klipping/{jid}/clip/{name}")

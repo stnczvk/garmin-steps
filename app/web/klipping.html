@@ -40,6 +40,12 @@ input#url{flex:1 1 320px}
 .cl .in{padding:9px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
 .cl .in b{font-size:13px}
 .empty{padding:20px;text-align:center}
+.chip{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);border-radius:999px;padding:7px 13px;font:600 13px Geist,system-ui;cursor:pointer}
+.chip.on{background:linear-gradient(145deg,#8b7cc7,#5b8cff);border-color:transparent;color:#fff}
+.kd{font-weight:700;margin:12px 0 6px;font-size:13px;color:var(--soft)}
+.ki{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:6px;font-size:13px}
+.ki img{width:96px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:#000}
+.ki .t{flex:1;min-width:0}.ki .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:600px){.wrap{padding:16px 14px 50px}}
 </style>
 </head>
@@ -54,6 +60,8 @@ input#url{flex:1 1 320px}
    <button class="btn pri" id="go">✂️ Zrób klipy</button></div>
   <div class="row" style="margin-top:8px"><span class="mut">Rodzaj:</span><select id="mode"><option value="kampania">Kampania (po angielsku)</option><option value="reakcje">Reakcje ze streama (po polsku)</option></select></div>
   <div class="row" id="rowCamp" style="margin-top:8px"><span class="mut">Kampania:</span><select id="camp" style="flex:1 1 260px"><option value="">bez kampanii</option></select></div>
+  <div id="rowStr" style="margin-top:10px" hidden><div class="row" id="chips"></div>
+   <div class="box" id="stset" style="margin:10px 0 0;padding:12px"></div></div>
   <div class="row" id="rowReak" style="margin-top:8px" hidden><select id="fmt"><option value="oba">Filmy na YouTube + shorty</option><option value="yt">Filmy na YouTube (poziome, całe segmenty)</option><option value="short">Shorty (pionowe, 20–60 s)</option></select><input id="who" placeholder="Kto prowadzi (np. Bandura)" style="flex:1 1 180px">
    <label class="mut" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="auto" checked style="min-width:0"> sama publikacja na kanale Strimy w Pigułce</label>
    <span class="mut">Kamerka na streamie:</span><select id="cam"><option value="auto">bez kamerki (środek kadru)</option><option value="dzinold">MrDzinold (lewy górny, pod nickiem)</option><option value="l">lewa strona (środek)</option><option value="r">prawa strona (środek)</option><option value="bl">lewy dół</option><option value="br">prawy dół</option><option value="tl">lewy góra</option><option value="tr">prawy góra</option></select></div>
@@ -61,6 +69,7 @@ input#url{flex:1 1 320px}
  </div>
 
  <div class="box" id="acc"></div>
+ <div class="box" id="kal"></div>
  <div id="jobs"></div>
 
  <div class="row" style="justify-content:space-between;margin-top:26px"><h2 style="margin:0">Najlepsze kampanie</h2>
@@ -112,11 +121,11 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   const j=await r.json();b.disabled=false;b.textContent='Dodaj kampanię';if(j.error){alert(j.error);return}['m_name','m_rate','m_left','m_url','m_rules'].forEach(i=>$(i).value='');sig='';load()}
  if(b.dataset.del){await fetch(`/api/klipping/job/${b.dataset.del}/delete`,{method:'POST'});sig='';load()}});
 $('go').onclick=async()=>{const url=$('url').value.trim();if(!url)return;$('go').disabled=true;
- const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value,mode:$('mode').value,who:$('who').value,cam:$('cam').value,format:$('mode').value==='reakcje'?$('fmt').value:'short',auto:$('mode').value==='reakcje'&&$('auto').checked})});
+ const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value,mode:$('mode').value,who:$('who').value,cam:$('cam').value,format:$('mode').value==='reakcje'?$('fmt').value:'short',auto:$('mode').value==='reakcje'&&$('auto').checked,streamer:$('mode').value==='reakcje'?ST:''})});
  const j=await r.json();$('go').disabled=false;if(j.error){alert(j.error);return}$('url').value='';sig='';load()};
 $('scan').onclick=async()=>{const b=$('scan');b.disabled=true;b.textContent='Szukam… (do 5 min)';
  const r=await fetch('/api/klipping/scan',{method:'POST'});const j=await r.json();b.disabled=false;b.textContent='↻ Szukaj teraz';if(j.error)alert(j.error);sig='';load()};
-$('mode').onchange=()=>{const r=$('mode').value==='reakcje';$('rowCamp').hidden=r;$('rowReak').hidden=!r;try{localStorage.setItem('kl-mode',$('mode').value)}catch(e){}};
+$('mode').onchange=()=>{const r=$('mode').value==='reakcje';$('rowCamp').hidden=r;$('rowReak').hidden=!r;$('rowStr').hidden=!r;try{localStorage.setItem('kl-mode',$('mode').value)}catch(e){}};
 try{const m=localStorage.getItem('kl-mode'),w=localStorage.getItem('kl-who'),c=localStorage.getItem('kl-cam');if(m){$('mode').value=m;$('mode').onchange()}if(w)$('who').value=w;if(c)$('cam').value=c}catch(e){}
 $('fmt').onchange=()=>{try{localStorage.setItem('kl-fmt',$('fmt').value)}catch(e){}};try{const f=localStorage.getItem('kl-fmt');if(f)$('fmt').value=f}catch(e){}
 $('who').onchange=()=>{try{localStorage.setItem('kl-who',$('who').value)}catch(e){}};$('cam').onchange=()=>{try{localStorage.setItem('kl-cam',$('cam').value)}catch(e){}};
@@ -127,6 +136,40 @@ async function accs(){let A=[];try{A=await (await fetch('/api/social/accounts'))
   ${has('instagram')?`<span class="tag" style="color:var(--ink)">✅ Instagram: ${esc(has('instagram').name)}</span>`:`<a class="btn" href="/api/social/instagram/connect?group=strimy" target="_top">Połącz Instagram</a>`}</div>
   <p class="mut" style="margin:8px 0 0">Długie filmy wychodzą na YouTube codziennie o 17:00, shorty na YouTube Shorts i Reels dwa razy dziennie (12:30 i 20:30). Wszystko widać w Kalendarzu.</p>`}
 accs();
+// ---- streamerzy: profil = nick, link na start filmu, kamerka, format, styl tytułów
+let STR=[],ST='';try{ST=localStorage.getItem('kl-str')||''}catch(e){}
+const CAMS={auto:'bez kamerki (środek kadru)',dzinold:'jak u MrDzinolda (lewy górny, pod nickiem)',l:'lewa strona (środek)',r:'prawa strona (środek)',bl:'lewy dół',br:'prawy dół',tl:'lewy góra',tr:'prawy góra',custom:'własna pozycja (%)'};
+async function strs(){try{STR=await (await fetch('/api/klipping/streamers')).json()}catch(e){return}if(!STR.find(x=>x.id===ST))ST=(STR[0]||{}).id||'';drawStr()}
+function drawStr(){const x=STR.find(y=>y.id===ST)||{};
+ $('chips').innerHTML=STR.map(y=>`<button class="chip${y.id===ST?' on':''}" data-st="${esc(y.id)}">${esc(y.name)}</button>`).join('')+`<button class="chip" data-st="__new">+ dodaj</button>`;
+ const cust=Array.isArray(x.cam),cv=cust?x.cam.map(v=>Math.round(v*1000)/10):[0,0,26,30];
+ $('stset').innerHTML=`<div class="row"><input id="s_name" value="${esc(x.name||'')}" placeholder="Nick (do tytułów)" style="flex:1 1 140px"><input id="s_link" value="${esc(x.link||'')}" placeholder="Link na start filmu, np. twitch.tv/mrdzinold" style="flex:2 1 240px"></div>
+  <div class="row" style="margin-top:8px"><span class="mut">Kamerka:</span><select id="s_cam">${Object.entries(CAMS).map(([k,v])=>`<option value="${k}"${(cust?'custom':x.cam)===k?' selected':''}>${v}</option>`).join('')}</select>
+   <span id="s_cc" ${cust?'':'hidden'}>${['x','y','szer.','wys.'].map((l,i)=>`<input id="s_c${i}" type="number" step="0.5" value="${cv[i]}" title="${l} w % kadru" placeholder="${l}" style="width:74px">`).join('')}<span class="mut"> % kadru</span></span>
+   <select id="s_fmt"><option value="oba">filmy + shorty</option><option value="yt">tylko filmy YT</option><option value="short">tylko shorty</option></select></div>
+  <input id="s_hint" value="${esc(x.title_hint||'')}" placeholder="Styl tytułów (opcjonalnie), np. „krótko, z humorem, zawsze nick na początku”" style="width:100%;margin-top:8px">
+  <div class="row" style="margin-top:8px"><button class="btn" id="s_save">Zapisz ustawienia</button><span class="mut" id="s_msg"></span></div>`;
+ $('s_fmt').value=x.fmt||'oba';$('fmt').value=x.fmt||'oba';
+ $('s_cam').onchange=()=>{$('s_cc').hidden=$('s_cam').value!=='custom'};
+ $('s_save').onclick=async()=>{const c=$('s_cam').value,cam=c==='custom'?[0,1,2,3].map(i=>(+$('s_c'+i).value||0)/100):c;
+  const r=await fetch('/api/klipping/streamers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.id||$('s_name').value,name:$('s_name').value,link:$('s_link').value,cam,fmt:$('s_fmt').value,title_hint:$('s_hint').value})});
+  const j=await r.json();if(j.error){alert(j.error);return}ST=j.id;try{localStorage.setItem('kl-str',ST)}catch(e){}$('s_msg').textContent='Zapisane ✓';strs()}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-st]');if(!b)return;
+ if(b.dataset.st==='__new'){STR.push({id:'',name:'',link:'',cam:'auto',fmt:'oba'});ST=''}else ST=b.dataset.st;
+ try{localStorage.setItem('kl-str',ST)}catch(x){}drawStr()});
+strs();
+// ---- osobny kalendarz kanału Strimy w Pigułce
+async function kal(){let P=[];try{P=await (await fetch('/api/planer?group=strimy')).json()}catch(e){return}P=Array.isArray(P)?P:(P.items||P.posts||[]);
+ const by={};P.forEach(p=>{const d=new Date(p.when*1000).toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});(by[d]=by[d]||[]).push(p)});
+ const ST_={approved:'✅ zaplanowane',draft:'⏸ wstrzymane',published:'📤 opublikowane',error:'❌ błąd',publishing:'⏳ publikuje się'};
+ $('kal').innerHTML=`<b>Kalendarz kanału Strimy w Pigułce</b>`+(P.length?Object.entries(by).map(([d,L])=>`<div class="kd">${esc(d)}</div>`+L.map(p=>`<div class="ki">
+   ${p.thumb_file?`<img src="/api/planer/${p.id}/thumb" alt="">`:''}<div class="t"><b>${new Date(p.when*1000).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} · ${esc(p.label)}</b>
+   <span class="mut">${p.long?'film YouTube':'short: YouTube + Reels'} · ${ST_[p.status]||esc(p.status)}${p.error?' – '+esc(p.error):''}</span></div>
+   ${p.status==='approved'?`<button class="btn" data-pa="unapprove" data-pid="${p.id}">Wstrzymaj</button>`:p.status==='draft'?`<button class="btn" data-pa="approve" data-pid="${p.id}">Wznów</button>`:''}
+   ${['approved','draft'].includes(p.status)?`<button class="btn" data-pa="now" data-pid="${p.id}">Teraz</button><button class="btn" data-pa="skip" data-pid="${p.id}">Usuń</button>`:''}</div>`).join('')).join(''):'<p class="mut" style="margin:8px 0 0">Na razie pusto – filmy pojawią się tu po zrobieniu klipów z włączoną publikacją.</p>');}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-pa]');if(!b)return;b.disabled=true;
+ await fetch(`/api/planer/${b.dataset.pid}/${b.dataset.pa}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});kal()});
+kal();setInterval(kal,30000);
 load();setInterval(load,10000);
 </script>
 </body>

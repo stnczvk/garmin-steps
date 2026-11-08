@@ -71,7 +71,8 @@ def add_strimy(jid, clip, path, long, auto=True):
     it = _add({"src": f"kl:{jid}:{clip['name']}", "kind": "film", "series": "strimy_film" if long else "strimy_short", "hkind": kind,
                "group": "strimy", "label": clip.get("yt_title") or clip.get("hook") or clip["name"], "file": str(path), "when": when,
                "platforms": plats, "caption": clip.get("instagram") or clip.get("yt_desc") or "", "tiktok": clip.get("tiktok", ""),
-               "yt_title": clip.get("yt_title", ""), "yt_desc": clip.get("yt_desc", ""), "long": bool(long), "yt_cat": "24"})
+               "yt_title": clip.get("yt_title", ""), "yt_desc": clip.get("yt_desc", ""), "long": bool(long), "yt_cat": "24",
+               "thumb_file": clip.get("thumb_file") or ""})
     if it and auto:
         with _lock:
             P = plan()
@@ -316,7 +317,17 @@ def pub_youtube(it):
         u = httpx.put(r.headers["location"], content=f.read(), timeout=1800, headers={"Content-Type": "video/mp4"})
     if u.status_code >= 300:
         raise RuntimeError("YouTube (wysyłka): " + u.text[:200])
-    return u.json().get("id")
+    vid = u.json().get("id")
+    th = it.get("thumb_file")
+    if vid and th and os.path.isfile(th):   # własna miniatura (wymaga zweryfikowanego kanału – błąd nie blokuje publikacji)
+        try:
+            r = httpx.post(f"https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId={vid}", timeout=120,
+                           headers={"Authorization": "Bearer " + tok, "Content-Type": "image/jpeg"}, content=open(th, "rb").read())
+            if r.status_code >= 300:
+                print("miniatura YT:", r.text[:200], flush=True)
+        except Exception as e:
+            print("miniatura YT:", e, flush=True)
+    return vid
 
 
 def publish(pid):
@@ -455,8 +466,10 @@ threading.Thread(target=_loop, daemon=True).start()
 
 # ---------- API dla apki ----------
 @router.get("/api/planer")
-def api_plan():
-    P = sorted(plan(), key=lambda x: x["when"])
+def api_plan(group: str = ""):
+    # kanał „Strimy w Pigułce” ma własny kalendarz w Klippingu – w głównym planerze go nie pokazujemy
+    P = sorted([x for x in plan() if (x.get("group") or "prywatne") == group] if group else
+               [x for x in plan() if x.get("group") != "strimy"], key=lambda x: x["when"])
     d0 = datetime.now(TZ).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()   # dzisiejsza północ (PL)
     P = [x for x in P if x["status"] != "skipped"
          and not (x["status"] in ("published", "error") and (x.get("done_at") or x.get("when") or 0) < d0)]
@@ -630,6 +643,8 @@ def api_thumb(pid: str):
     it = next((x for x in plan() if x["id"] == pid), None)
     if not it:
         return JSONResponse({"error": "nie ma"}, status_code=404)
+    if it.get("thumb_file") and os.path.isfile(it["thumb_file"]):   # własna miniatura (klipping)
+        return FileResponse(it["thumb_file"], media_type="image/jpeg")
     src = it.get("file") if it["kind"] == "film" else (it.get("files") or [None])[0]
     if not src or not os.path.isfile(src):
         return JSONResponse({"error": "plik zniknął"}, status_code=404)

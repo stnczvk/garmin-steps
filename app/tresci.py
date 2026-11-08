@@ -64,7 +64,7 @@ def api_get(month: str = ""):
         m0 = datetime.now(TZ).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     a = (m0 - timedelta(days=7)).timestamp()
     b = (m0 + timedelta(days=45)).timestamp()
-    P = {x["id"]: x for x in plan()}
+    P = {x["id"]: x for x in plan() if x.get("group") != "strimy"}   # Strimy w Pigułce: własny kalendarz w Klippingu
     R = results()
     rid = {r["id"]: r for r in R}
     posts, used = [], set()
