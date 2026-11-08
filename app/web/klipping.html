@@ -166,11 +166,11 @@ function drawStr(){const x=STR.find(y=>y.id===ST)||{};
   const j=await r.json();if(j.error){alert(j.error);return}ST=j.id;try{localStorage.setItem('kl-str',ST)}catch(e){}$('s_msg').textContent='Zapisane ✓';strs()}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-st]');if(!b)return;
  if(b.dataset.st==='__new'){STR.push({id:'',name:'',link:'',cam:'auto',fmt:'oba'});ST=''}else ST=b.dataset.st;
- try{localStorage.setItem('kl-str',ST)}catch(x){}drawStr();if(S.jobs)jobs();kal()});
+ try{localStorage.setItem('kl-str',ST)}catch(x){}drawStr();if(S.jobs)jobs()});
 zas().then(strs);
 // ---- kalendarz kanału: 7 dni od dziś, kolumny = dni
 let KW=0;
-async function kal(){let P=[];try{const r=await (await fetch('/api/planer?group=strimy')).json();P=(Array.isArray(r)?r:(r.items||[])).filter(p=>!ST||p.streamer===ST)}catch(e){return}
+async function kal(){let P=[];try{const r=await (await fetch('/api/planer?group=strimy')).json();P=Array.isArray(r)?r:(r.items||[])}catch(e){return}
  const d0=new Date();d0.setHours(0,0,0,0);d0.setDate(d0.getDate()+KW*7);const days=[...Array(7)].map((_,i)=>{const d=new Date(d0);d.setDate(d0.getDate()+i);return d});
  const ST_={approved:'✅',draft:'⏸',published:'📤',error:'❌',publishing:'⏳'};
  const cell=d=>{const L=P.filter(p=>{const t=new Date(p.when*1000);return t.toDateString()===d.toDateString()}).sort((a,b)=>a.when-b.when);
