@@ -146,6 +146,8 @@ app.include_router(n8n_router)
 from grafiki import router as grafiki_router  # noqa: E402
 app.include_router(grafiki_router)
 from montaz import router as montaz_router  # noqa: E402
+from klipping import router as klipping_router  # noqa: E402
+app.include_router(klipping_router)   # przed montażem – jego /api/mont-hook/{jid}/{what} łapał /klipping/import i /klipping/wybor
 app.include_router(montaz_router)
 from agency_extra import router as agency_extra_router  # noqa: E402
 app.include_router(agency_extra_router)
@@ -181,8 +183,6 @@ from mail import router as mail_router  # noqa: E402
 app.include_router(mail_router)
 from tresci import router as tresci_router  # noqa: E402
 app.include_router(tresci_router)
-from klipping import router as klipping_router  # noqa: E402
-app.include_router(klipping_router)
 from tiktok_pub import router as tiktok_router  # noqa: E402
 app.include_router(tiktok_router)
 
