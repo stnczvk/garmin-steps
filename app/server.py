@@ -571,11 +571,11 @@ def _keyterms():
     return out[:1000]
 
 
-async def _scribe(audio: bytes, key: str, fname="a.mp3", mime="audio/mpeg"):
+async def _scribe(audio: bytes, key: str, fname="a.mp3", mime="audio/mpeg", lang="pl"):
     """ElevenLabs Scribe – rozpoznawanie mowy (najdokładniejsze dla polskiego). Zwraca JSON odpowiedzi albo None.
     scribe_v2 dostaje listę słów kluczowych; gdy ich nie przyjmie – ponowna próba bez nich."""
-    base = {"language_code": "pol", "tag_audio_events": "false", "timestamps_granularity": "word"}
-    kt = _keyterms()
+    base = {"language_code": "eng" if lang == "en" else "pol", "tag_audio_events": "false", "timestamps_granularity": "word"}
+    kt = _keyterms() if lang != "en" else []
     tries = ([("scribe_v2", kt)] if kt else []) + [("scribe_v2", None), ("scribe_v1", None)]
     async with httpx.AsyncClient(timeout=300, trust_env=False) as c:
         for model, terms in tries:
@@ -635,9 +635,10 @@ async def hook_asr(req: Request, key: str = ""):
     if not audio or len(audio) > 24 * 1024 * 1024:
         return JSONResponse({"error": "Brak dźwięku albo plik za duży."}, status_code=400)
     prompt = req.query_params.get("prompt", "")[:800]
+    lang = "en" if req.query_params.get("lang") == "en" else "pl"   # klipping (kampanie po angielsku)
     ek = _mz_env().get("ELEVENLABS_API_KEY")
     if ek:
-        res = await _scribe(audio, ek)
+        res = await _scribe(audio, ek, lang=lang)
         if res and res.get("text"):
             # czasy słów z ElevenLabs – Mac układa napisy dokładnie pod mowę (zamiast z lokalnego rozpoznawania)
             words = [{"w": w["text"].strip(), "start": round(float(w["start"]), 3), "end": round(float(w["end"]), 3)}
@@ -645,7 +646,9 @@ async def hook_asr(req: Request, key: str = ""):
                      and w.get("start") is not None and w.get("end") is not None]
             return {"text": res["text"].strip(), "via": "scribe", "words": words}
     files = {"file": ("a.mp3", audio, "audio/mpeg")}
-    data = {"model": "whisper-large-v3", "language": "pl", "response_format": "json", "temperature": "0"}
+    data = {"model": "whisper-large-v3", "language": lang, "response_format": "verbose_json" if lang == "en" else "json", "temperature": "0"}
+    if lang == "en":
+        data["timestamp_granularities[]"] = "word"
     if prompt:
         data["prompt"] = prompt
     async with httpx.AsyncClient(timeout=180, trust_env=False) as c:
@@ -657,7 +660,11 @@ async def hook_asr(req: Request, key: str = ""):
             await asyncio.sleep(8)
     if r.status_code != 200:
         return JSONResponse({"error": f"Groq {r.status_code}: {r.text[:200]}"}, status_code=502)
-    return {"text": (r.json().get("text") or "").strip(), "via": "groq"}
+    J = r.json()
+    if lang == "en" and J.get("words"):
+        return {"text": (J.get("text") or "").strip(), "via": "scribe",
+                "words": [{"w": w["word"].strip(), "start": round(float(w["start"]), 3), "end": round(float(w["end"]), 3)} for w in J["words"]]}
+    return {"text": (J.get("text") or "").strip(), "via": "groq"}
 
 
 @app.get("/api/hook/slownik")
