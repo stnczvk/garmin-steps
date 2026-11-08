@@ -636,6 +636,7 @@ async def hook_asr(req: Request, key: str = ""):
         return JSONResponse({"error": "Brak dźwięku albo plik za duży."}, status_code=400)
     prompt = req.query_params.get("prompt", "")[:800]
     lang = "en" if req.query_params.get("lang") == "en" else "pl"   # klipping (kampanie po angielsku)
+    want_words = "lang" in req.query_params                          # klipping chce czasów słów także po polsku
     ek = _mz_env().get("ELEVENLABS_API_KEY")
     if ek:
         res = await _scribe(audio, ek, lang=lang)
@@ -646,8 +647,8 @@ async def hook_asr(req: Request, key: str = ""):
                      and w.get("start") is not None and w.get("end") is not None]
             return {"text": res["text"].strip(), "via": "scribe", "words": words}
     files = {"file": ("a.mp3", audio, "audio/mpeg")}
-    data = {"model": "whisper-large-v3", "language": lang, "response_format": "verbose_json" if lang == "en" else "json", "temperature": "0"}
-    if lang == "en":
+    data = {"model": "whisper-large-v3", "language": lang, "response_format": "verbose_json" if want_words else "json", "temperature": "0"}
+    if want_words:
         data["timestamp_granularities[]"] = "word"
     if prompt:
         data["prompt"] = prompt
@@ -661,7 +662,7 @@ async def hook_asr(req: Request, key: str = ""):
     if r.status_code != 200:
         return JSONResponse({"error": f"Groq {r.status_code}: {r.text[:200]}"}, status_code=502)
     J = r.json()
-    if lang == "en" and J.get("words"):
+    if want_words and J.get("words"):
         return {"text": (J.get("text") or "").strip(), "via": "scribe",
                 "words": [{"w": w["word"].strip(), "start": round(float(w["start"]), 3), "end": round(float(w["end"]), 3)} for w in J["words"]]}
     return {"text": (J.get("text") or "").strip(), "via": "groq"}
