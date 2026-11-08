@@ -1,6 +1,6 @@
 """Klipping: kampanie Content Rewards (Whop) → najlepsze na powiadomienie → link do filmu → Mac robi pionowe klipy po angielsku.
 Wyszukiwanie przez Apify (parsebird/whop-content-rewards-scraper, ok. 0,14 $ za 100 kampanii), raz dziennie albo na żądanie."""
-import json, math, secrets, threading, time
+import json, math, os, secrets, threading, time
 
 import httpx
 from fastapi import APIRouter, Request
@@ -111,7 +111,7 @@ def explain(C):
 def loop():
     while True:
         try:
-            if time.time() - _rd().get("scanned", 0) > 24 * 3600:
+            if os.environ.get("KLIPPING_WHOP") == "1" and time.time() - _rd().get("scanned", 0) > 24 * 3600:   # wstrzymane (11.2026) – tylko „Szukaj teraz”
                 scan()
         except Exception as e:
             print("klipping:", e, flush=True)
