@@ -295,7 +295,8 @@ async def _wybor_yt(b, n, dur_min):
     prompt = (f"Transkrypcja streama ({dur_min:.0f} min), prowadzący: {who}. Każda linia: [sekunda] tekst.\n\n" + (b.get("transkrypcja") or "")[:90000] +
               f"\n\n{how} na osobne POZIOME filmy na YouTube. Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip "
               "i na niego reaguje, gra jedną rundę/mecz, ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję. "
-              "Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość 3–25 min. "
+              "Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość 3–60 min "
+              "(cały mecz / cała rozgrywka może trwać do 60 min, oglądanie i rozmowy zwykle krócej). "
               "Bez nakładania się, pomiń przerwy, czytanie donejtów i nudne fragmenty. Do każdego: tytuł YouTube po polsku "
               f"(max 70 znaków, ciekawość, w stylu „{who} ogląda …” / „{who} reaguje na …”, bez clickbaitu i bez myślników), "
               "opis YouTube (2–4 zdania + 3–5 hashtagów), krótki napis na miniaturę (2–4 słowa, WERSALIKI) i hook na pierwsze 4 s filmu (max 7 słów).\n"
@@ -311,7 +312,7 @@ async def _wybor_yt(b, n, dur_min):
             a, e = float(k["start"]), float(k["end"])
         except Exception:
             continue
-        if 90 <= e - a <= 40 * 60:
+        if 90 <= e - a <= 62 * 60:
             o = {x: human(str(k.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
             out.append({"start": a, "end": e, **o, "tiktok": "", "instagram": o["yt_desc"]})
     return {"klipy": out[:n or 8]}
