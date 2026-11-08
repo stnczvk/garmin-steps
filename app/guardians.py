@@ -641,6 +641,32 @@ def g_etsy_manager():
     top = (f or w or I or [{"msg": ""}])[0]["msg"]
     return st, f"sklep {R.get('score')}/100 · {len(f)} pilne, {len(w)} do poprawy" + (f" · {top[:70]}" if top else ""), None
 
+def g_klip_scan():
+    d = _read("klipping.json", {})
+    if not d.get("scanned"):
+        return IDLE, "kampanie jeszcze nie sprawdzane – kliknij „Szukaj teraz” w Klippingu", None
+    age = time.time() - d["scanned"]
+    C = d.get("campaigns", [])
+    top = C[0] if C else None
+    msg = f"{len(C)} kampanii, sprawdzone {_ago(d['scanned'])}" + (f" · najlepsza ${top['rate']:.2f}/1000 ({top['name'][:30]})" if top else "")
+    return (WARN if age > 26 * 3600 or not C else OK), msg, None
+
+
+def g_klip_jobs():
+    J = _read("klipping.json", {}).get("jobs", [])
+    stuck = [j for j in J if j.get("state") == "working" and time.time() - j.get("at", 0) > 5400]
+    err = [j for j in J if j.get("state") == "error" and time.time() - j.get("at", 0) < 86400]
+    wait = [j for j in J if j.get("state") == "queued" and time.time() - j.get("created", 0) > 900]
+    if stuck:
+        return WARN, f"zadanie stoi od {_ago(stuck[0].get('at', 0))}: {stuck[0].get('step', '')}", None
+    if wait:
+        return WARN, f"{len(wait)} zadań czeka na Maca ponad 15 min – czy Mac jest włączony?", None
+    if err:
+        return WARN, f"błąd w ostatnich 24 h: {err[-1].get('error', '')[:90]}", None
+    done = [j for j in J if j.get("state") == "done"]
+    return OK, (f"ostatnie: {len(done[-1]['clips'])} klipów, {_ago(done[-1].get('at', 0))}" if done else "brak zadań"), None
+
+
 # ---------------------------------------------------------------- lista strażników
 G = [
     ("vps", "Serwer", "infra", "🖥️", "Dysk, pamięć i obciążenie VPS", g_vps),
@@ -675,9 +701,11 @@ G = [
     ("etsyp", "Personalizacje", "etsy", "✍️", "Czy zamówienia z personalizacją są wysłane na czas (48 h)", g_etsy_pers),
     ("etsyt", "Ruch w sklepie", "etsy", "👀", "Wyświetlenia i sprzedaż z ostatnich 7 dni", g_etsy_traffic),
     ("etsyj", "Zmiany w ofertach", "etsy", "🔧", "Czy ostatnia podmiana / wystawianie z centrum przeszło bez błędów", g_etsy_job),
+    ("kscan", "Kampanie klipowe", "klip", "🎯", "Czy lista kampanii z Whop odświeża się codziennie", g_klip_scan),
+    ("kjob", "Klipy z linków", "klip", "✂️", "Czy zadania „link → klipy” idą bez zawieszeń i błędów", g_klip_jobs),
     ("etsym", "Menedżer sklepu", "etsy", "🧭", "Codzienny audyt: tytuły, tagi, zdjęcia, film, wygasanie, konwersja, sezon (co 6 h)", g_etsy_manager),
 ]
-AREAS = {"infra": "Infrastruktura", "pozaskala": "PozaSkala", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy"}
+AREAS = {"infra": "Infrastruktura", "pozaskala": "PozaSkala", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy", "klip": "Klipping"}
 
 
 def run_all(push=True):

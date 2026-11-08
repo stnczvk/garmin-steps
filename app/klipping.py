@@ -70,6 +70,10 @@ def scan(notify=True):
         new = [c for c in C[:10] if c["id"] not in set(d["seen"])]
         d.update(campaigns=C, scanned=time.time(), seen=(d["seen"] + [c["id"] for c in C])[-500:])
         _wr(d)
+    try:
+        explain(C[:12])
+    except Exception as e:
+        print("klipping agent:", e, flush=True)
     if notify and new:
         try:
             from extra import push_all
@@ -79,6 +83,29 @@ def scan(notify=True):
         except Exception:
             pass
     return C
+
+
+def explain(C):
+    """Agent „Łowca kampanii”: zasady każdej z najlepszych kampanii po polsku – co klipować, wymagania, na co uważać, ocena."""
+    from agency import claude, as_json
+    d = _rd()
+    have = d.setdefault("pl", {})
+    todo = [c for c in C if c["id"] not in have and c.get("rules")]
+    if not todo:
+        return
+    txt = "\n\n".join(f"### {c['id']}\nNazwa: {c['name']}\nStawka: ${c['rate']}/1000, budżet zostało ${c['left']:.0f}, "
+                       f"platformy: {', '.join(c['platforms'])}\nZasady: {c['rules'][:1200]}" for c in todo[:12])
+    res = as_json(claude("Jesteś agentem, który ocenia kampanie klipowe (Whop Content Rewards) dla początkującego klipera z Polski "
+                         "(słaby angielski, automat robi pionowe klipy z napisami z dowolnego linku). Dla każdej kampanii napisz PO POLSKU, "
+                         "krótko i konkretnie: co dokładnie klipować i skąd brać materiał, najważniejsze wymagania (min. wyświetlenia, "
+                         "długość, hashtagi, oznaczenia, język), na co uważać (np. zakaz AI, ręczna akceptacja) i ocenę 1–10, czy warto "
+                         "na start. Bez myślników jako przerw w zdaniach.\n\n" + txt +
+                         '\n\nOdpowiedz tylko JSON: {"ID": {"co": "...", "wymagania": "...", "uwaga": "...", "ocena": 7}}', max_tokens=3000)) or {}
+    with _lock:
+        d = _rd()
+        d.setdefault("pl", {}).update({k: v for k, v in res.items() if isinstance(v, dict)})
+        d["pl"] = dict(list(d["pl"].items())[-200:])
+        _wr(d)
 
 
 def loop():
@@ -97,7 +124,8 @@ threading.Thread(target=loop, daemon=True).start()
 @router.get("/api/klipping")
 def api_state():
     d = _rd()
-    return {"campaigns": d["campaigns"], "scanned": d["scanned"], "jobs": list(reversed(d["jobs"][-30:]))}
+    pl = d.get("pl", {})
+    return {"campaigns": [dict(c, pl=pl.get(c["id"])) for c in d["campaigns"]], "scanned": d["scanned"], "jobs": list(reversed(d["jobs"][-30:]))}
 
 
 @router.post("/api/klipping/scan")

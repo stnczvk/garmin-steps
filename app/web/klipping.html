@@ -31,6 +31,7 @@ input#url{flex:1 1 320px}
 .c .num strong{color:var(--ink);font-size:15px}
 .tag{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--soft)}
 .c details{font-size:12.5px;color:var(--soft)}.c details p{white-space:pre-wrap;margin:6px 0 0;max-height:180px;overflow:auto}
+.pl{font-size:12.5px;color:var(--soft)}.pl p{margin:5px 0 0}.pl b{color:var(--ink);font-size:12.5px}
 .j{border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
 .st{font-size:12.5px;color:var(--soft)}.st.err{color:#ff7a8a}.st.ok{color:#7ee0a5}
 .clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px}
@@ -72,7 +73,9 @@ function camps(){const C=S.campaigns||[];
  $('camps').innerHTML=C.length?C.map((c,i)=>`<div class="c"><b>${i+1}. ${esc(c.name)}</b>
   <div class="num"><span><strong>$${c.rate.toFixed(2)}</strong> / 1000 wyśw.</span><span>zostało <strong>${money(c.left)}</strong>${c.total?' z '+money(c.total):''}</span>${c.max_payout?`<span>max <strong>$${Math.round(c.max_payout)}</strong>/klip</span>`:''}${c.days!=null?`<span>${Math.round(c.days)} dni</span>`:''}</div>
   <div class="row">${(c.platforms||[]).map(p=>`<span class="tag">${esc(p)}</span>`).join('')}${c.category?`<span class="tag">${esc(c.category)}</span>`:''}</div>
-  ${c.rules?`<details><summary>Zasady</summary><p>${esc(c.rules)}</p></details>`:''}
+  ${c.pl?`<div class="pl">${c.pl.ocena?`<span class="tag" style="border-color:#8b7cc7;color:var(--ink)">Ocena agenta: ${esc(c.pl.ocena)}/10</span>`:''}
+   ${c.pl.co?`<p><b>Co klipować:</b> ${esc(c.pl.co)}</p>`:''}${c.pl.wymagania?`<p><b>Wymagania:</b> ${esc(c.pl.wymagania)}</p>`:''}${c.pl.uwaga?`<p><b>Uwaga:</b> ${esc(c.pl.uwaga)}</p>`:''}</div>`:''}
+  ${c.rules?`<details><summary>Zasady (oryginał)</summary><p>${esc(c.rules)}</p></details>`:''}
   <div class="row">${c.url?`<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Otwórz</a>`:''}<button class="btn" data-pick="${esc(c.id)}">Użyj do klipów</button></div></div>`).join(''):'<div class="box empty mut">Brak kampanii – kliknij „Szukaj teraz” (potrzebny token Apify w Ustawieniach).</div>';
 }
 function jobs(){const J=S.jobs||[];
