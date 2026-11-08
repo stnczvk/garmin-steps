@@ -151,6 +151,7 @@ async def api_job(req: Request):
         mode = "reakcje" if b.get("mode") == "reakcje" else "kampania"
         j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": None if mode == "reakcje" else camp,
              "mode": mode, "lang": "pl" if mode == "reakcje" else "en", "cam": (b.get("cam") or "auto")[:12], "who": (b.get("who") or "")[:40],
+             "format": "yt" if b.get("format") == "yt" else "short",
              "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}   # n=0 → AI decyduje
         d["jobs"] = (d["jobs"] + [j])[-60:]
         _wr(d)
@@ -285,6 +286,37 @@ async def hook_import(req: Request):
     return {"ok": True, "n": len(out), "new": len(new)}
 
 
+async def _wybor_yt(b, n, dur_min):
+    """Poziome filmy na YouTube: CAŁE segmenty (np. od początku do końca oglądania jednego filmu / ogłoszenia), 3–25 min."""
+    from agency import claude, as_json
+    import asyncio
+    who = b.get("who") or "streamer"
+    how = (f"Wybierz {n} segmentów" if n else "Sam oceń, ile pełnych segmentów warto wyciąć (od 1 do 8, tylko naprawdę ciekawe)")
+    prompt = (f"Transkrypcja streama ({dur_min:.0f} min), prowadzący: {who}. Każda linia: [sekunda] tekst.\n\n" + (b.get("transkrypcja") or "")[:90000] +
+              f"\n\n{how} na osobne POZIOME filmy na YouTube. Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip "
+              "i na niego reaguje, gra jedną rundę/mecz, ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję. "
+              "Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość 3–25 min. "
+              "Bez nakładania się, pomiń przerwy, czytanie donejtów i nudne fragmenty. Do każdego: tytuł YouTube po polsku "
+              f"(max 70 znaków, ciekawość, w stylu „{who} ogląda …” / „{who} reaguje na …”, bez clickbaitu i bez myślników), "
+              "opis YouTube (2–4 zdania + 3–5 hashtagów), krótki napis na miniaturę (2–4 słowa, WERSALIKI) i hook na pierwsze 4 s filmu (max 7 słów).\n"
+              'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}]}')
+    try:
+        txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=4000, system=__import__("skills").sk("hook", "caption", "trend", "slop")))
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=502)
+    from montaz import human
+    out = []
+    for k in (as_json(txt) or {}).get("klipy") or []:
+        try:
+            a, e = float(k["start"]), float(k["end"])
+        except Exception:
+            continue
+        if 90 <= e - a <= 40 * 60:
+            o = {x: human(str(k.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
+            out.append({"start": a, "end": e, **o, "tiktok": "", "instagram": o["yt_desc"]})
+    return {"klipy": out[:n or 8]}
+
+
 async def _wybor_reakcje(b, n, dur_min):
     """Polskie streamy (np. Bungee): momenty, w których streamer ogląda film / gra i reaguje – na klipy „X ogląda…”."""
     from agency import claude, as_json
@@ -326,6 +358,8 @@ async def hook_wybor(req: Request):
     b = await req.json()
     n, camp = max(0, min(15, int(b.get("n") or 0))), b.get("campaign") or {}
     dur_min = float(b.get("dur") or 0) / 60
+    if b.get("mode") == "reakcje" and b.get("format") == "yt":
+        return await _wybor_yt(b, n, dur_min)
     if b.get("mode") == "reakcje":
         return await _wybor_reakcje(b, n, dur_min)
     how = (f"Pick the {n} best moments" if n else
@@ -388,7 +422,7 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
         d = _rd()
         j = next((j for j in d["jobs"] if j["id"] == jid), None)
         if j:
-            j["clips"] = [c for c in j["clips"] if c.get("name") != nm] + [{"name": nm, **{k: o.get(k, "") for k in ("hook", "tiktok", "instagram", "yt_title")},
+            j["clips"] = [c for c in j["clips"] if c.get("name") != nm] + [{"name": nm, **{k: o.get(k, "") for k in ("hook", "tiktok", "instagram", "yt_title", "yt_desc", "thumb")},
                                                                             "dur": round(_num(o.get("end")) - _num(o.get("start")), 1)}]
             _wr(d)
     return {"ok": True}

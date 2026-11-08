@@ -36,7 +36,7 @@ input#url{flex:1 1 320px}
 .st{font-size:12.5px;color:var(--soft)}.st.err{color:#ff7a8a}.st.ok{color:#7ee0a5}
 .clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px}
 .cl{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.2)}
-.cl video{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;display:block}
+.cl video{width:100%;aspect-ratio:var(--ar,9/16);object-fit:cover;background:#000;display:block}
 .cl .in{padding:9px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
 .cl .in b{font-size:13px}
 .empty{padding:20px;text-align:center}
@@ -54,7 +54,7 @@ input#url{flex:1 1 320px}
    <button class="btn pri" id="go">✂️ Zrób klipy</button></div>
   <div class="row" style="margin-top:8px"><span class="mut">Rodzaj:</span><select id="mode"><option value="kampania">Kampania (po angielsku)</option><option value="reakcje">Reakcje ze streama (po polsku)</option></select></div>
   <div class="row" id="rowCamp" style="margin-top:8px"><span class="mut">Kampania:</span><select id="camp" style="flex:1 1 260px"><option value="">bez kampanii</option></select></div>
-  <div class="row" id="rowReak" style="margin-top:8px" hidden><input id="who" placeholder="Kto prowadzi (np. Bandura)" style="flex:1 1 180px">
+  <div class="row" id="rowReak" style="margin-top:8px" hidden><select id="fmt"><option value="yt">Filmy na YouTube (poziome, całe segmenty)</option><option value="short">Shorty (pionowe, 20–60 s)</option></select><input id="who" placeholder="Kto prowadzi (np. Bandura)" style="flex:1 1 180px">
    <span class="mut">Kamerka na streamie:</span><select id="cam"><option value="auto">bez kamerki (środek kadru)</option><option value="dzinold">MrDzinold (lewy górny, pod nickiem)</option><option value="l">lewa strona (środek)</option><option value="r">prawa strona (środek)</option><option value="bl">lewy dół</option><option value="br">prawy dół</option><option value="tl">lewy góra</option><option value="tr">prawy góra</option></select></div>
   <p class="mut" style="margin:8px 0 0">Klipy robi Mac (musi być włączony). Pobranie i cięcie długiego nagrania trwa od kilku do kilkudziesięciu minut.</p>
  </div>
@@ -94,10 +94,10 @@ function jobs(){const J=S.jobs||[];
  $('jobs').innerHTML=J.length?'<h2>Zadania</h2>'+J.map(j=>`<div class="j"><div class="row" style="justify-content:space-between"><div><b>${esc(j.title||j.url)}</b>
   <div class="st ${j.state==='error'?'err':j.state==='done'?'ok':''}">${j.state==='done'?'✅ Gotowe – '+j.clips.length+' klipów':j.state==='error'?'❌ '+esc(j.error||'błąd'):'⏳ '+esc(j.step||'')}${j.campaign?' · '+esc(j.campaign.name):''}</div></div>
   <button class="btn" data-del="${j.id}">Usuń</button></div>
-  ${j.clips.length?`<div class="clips">${j.clips.map(c=>`<div class="cl"><video src="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}" preload="none" controls playsinline></video>
-   <div class="in"><b>${esc(c.hook||c.name)}</b><span class="mut">${c.dur?c.dur+' s':''}</span>
+  ${j.clips.length?`<div class="clips">${j.clips.map(c=>`<div class="cl" style="${c.dur>90?'--ar:16/9;grid-column:span 2':''}"><video src="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}" preload="none" controls playsinline></video>
+   <div class="in"><b>${esc(c.hook||c.name)}</b><span class="mut">${c.dur?(c.dur>90?Math.floor(c.dur/60)+' min '+Math.round(c.dur%60)+' s':c.dur+' s'):''}</span>
    <div class="row"><a class="btn" href="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}?dl=1">⬇ Pobierz</a>
-   <button class="btn" data-cp="${esc(c.yt_title)}">Tytuł YT</button><button class="btn" data-cp="${esc(c.tiktok)}">Opis TT</button><button class="btn" data-cp="${esc(c.instagram)}">Opis IG</button></div></div></div>`).join('')}</div>`:''}</div>`).join(''):'';
+   <button class="btn" data-cp="${esc(c.yt_title)}">Tytuł YT</button>${c.yt_desc?`<button class="btn" data-cp="${esc(c.yt_desc)}">Opis YT</button>`:''}${c.thumb?`<span class="tag">Miniatura: ${esc(c.thumb)}</span>`:''}<button class="btn" data-cp="${esc(c.tiktok)}">Opis TT</button><button class="btn" data-cp="${esc(c.instagram)}">Opis IG</button></div></div></div>`).join('')}</div>`:''}</div>`).join(''):'';
 }
 async function load(){try{S=await (await fetch('/api/klipping')).json()}catch(e){return}
  const s=JSON.stringify([S.scanned,(S.campaigns||[]).length,(S.jobs||[]).map(j=>[j.id,j.state,j.step,j.clips.length])]);if(s===sig)return;sig=s;camps();jobs()}
@@ -110,12 +110,13 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   const j=await r.json();b.disabled=false;b.textContent='Dodaj kampanię';if(j.error){alert(j.error);return}['m_name','m_rate','m_left','m_url','m_rules'].forEach(i=>$(i).value='');sig='';load()}
  if(b.dataset.del){await fetch(`/api/klipping/job/${b.dataset.del}/delete`,{method:'POST'});sig='';load()}});
 $('go').onclick=async()=>{const url=$('url').value.trim();if(!url)return;$('go').disabled=true;
- const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value,mode:$('mode').value,who:$('who').value,cam:$('cam').value})});
+ const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value,mode:$('mode').value,who:$('who').value,cam:$('cam').value,format:$('mode').value==='reakcje'?$('fmt').value:'short'})});
  const j=await r.json();$('go').disabled=false;if(j.error){alert(j.error);return}$('url').value='';sig='';load()};
 $('scan').onclick=async()=>{const b=$('scan');b.disabled=true;b.textContent='Szukam… (do 5 min)';
  const r=await fetch('/api/klipping/scan',{method:'POST'});const j=await r.json();b.disabled=false;b.textContent='↻ Szukaj teraz';if(j.error)alert(j.error);sig='';load()};
 $('mode').onchange=()=>{const r=$('mode').value==='reakcje';$('rowCamp').hidden=r;$('rowReak').hidden=!r;try{localStorage.setItem('kl-mode',$('mode').value)}catch(e){}};
 try{const m=localStorage.getItem('kl-mode'),w=localStorage.getItem('kl-who'),c=localStorage.getItem('kl-cam');if(m){$('mode').value=m;$('mode').onchange()}if(w)$('who').value=w;if(c)$('cam').value=c}catch(e){}
+$('fmt').onchange=()=>{try{localStorage.setItem('kl-fmt',$('fmt').value)}catch(e){}};try{const f=localStorage.getItem('kl-fmt');if(f)$('fmt').value=f}catch(e){}
 $('who').onchange=()=>{try{localStorage.setItem('kl-who',$('who').value)}catch(e){}};$('cam').onchange=()=>{try{localStorage.setItem('kl-cam',$('cam').value)}catch(e){}};
 load();setInterval(load,10000);
 </script>
