@@ -727,7 +727,7 @@ G = [
     ("etsyp", "Personalizacje", "etsy", "✍️", "Czy zamówienia z personalizacją są wysłane na czas (48 h)", g_etsy_pers),
     ("etsyt", "Ruch w sklepie", "etsy", "👀", "Wyświetlenia i sprzedaż z ostatnich 7 dni", g_etsy_traffic),
     ("etsyj", "Zmiany w ofertach", "etsy", "🔧", "Czy ostatnia podmiana / wystawianie z centrum przeszło bez błędów", g_etsy_job),
-    ("kscan", "Kampanie klipowe", "klip", "🎯", "Czy lista kampanii z Whop odświeża się codziennie", g_klip_scan),
+    # strażnik kampanii Whop (g_klip_scan) wyłączony – kampanie wstrzymane (11.2026)
     ("kstrim", "Kanał Strimy w Pigułce", "klip", "📺", "Czy konta są podłączone, publikacje idą bez błędów i kolejka się nie kończy", g_strimy),
     ("kjob", "Klipy z linków", "klip", "✂️", "Czy zadania „link → klipy” idą bez zawieszeń i błędów", g_klip_jobs),
     ("etsym", "Menedżer sklepu", "etsy", "🧭", "Codzienny audyt: tytuły, tagi, zdjęcia, film, wygasanie, konwersja, sezon (co 6 h)", g_etsy_manager),

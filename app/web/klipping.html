@@ -51,14 +51,14 @@ input#url{flex:1 1 320px}
 </head>
 <body>
 <div class="wrap">
- <div class="top"><h1>Klipping</h1><p>Płatne kampanie klipowe (Whop). Centrum codziennie szuka najlepszych, a z linku robi gotowe pionowe klipy po angielsku.</p></div>
+ <div class="top"><h1>Klipping</h1><p>Strimy w Pigułce: wklejasz link do streama, centrum robi filmy na YouTube i shorty, a potem samo je publikuje.</p></div>
 
- <h2>Nowe klipy z linku</h2>
+ <h2>Nowe filmy ze streama</h2>
  <div class="box">
   <div class="row"><input id="url" placeholder="Link do filmu albo nagrania live (YouTube, Twitch, Kick, Google Drive…)">
    <select id="n" title="Ile klipów"><option value="0" selected>Ile się da (AI ocenia)</option><option>4</option><option>6</option><option>8</option><option>10</option><option>15</option></select>
    <button class="btn pri" id="go">✂️ Zrób klipy</button></div>
-  <div class="row" style="margin-top:8px"><span class="mut">Rodzaj:</span><select id="mode"><option value="kampania">Kampania (po angielsku)</option><option value="reakcje">Reakcje ze streama (po polsku)</option></select></div>
+  <div class="row" style="margin-top:8px" hidden><span class="mut">Rodzaj:</span><select id="mode"><option value="reakcje" selected>Reakcje ze streama (po polsku)</option><option value="kampania">Kampania (po angielsku)</option></select></div>
   <div class="row" id="rowCamp" style="margin-top:8px"><span class="mut">Kampania:</span><select id="camp" style="flex:1 1 260px"><option value="">bez kampanii</option></select></div>
   <div id="rowStr" style="margin-top:10px" hidden><div class="row" id="chips"></div>
    <div class="box" id="stset" style="margin:10px 0 0;padding:12px"></div></div>
@@ -72,6 +72,7 @@ input#url{flex:1 1 320px}
  <div class="box" id="kal"></div>
  <div id="jobs"></div>
 
+ <details class="box" style="margin-top:26px"><summary style="cursor:pointer;font-weight:600">Kampanie Whop / clipping.net (wstrzymane)</summary>
  <div class="row" style="justify-content:space-between;margin-top:26px"><h2 style="margin:0">Najlepsze kampanie</h2>
   <div class="row"><span class="mut" id="when"></span><button class="btn" id="scan">↻ Szukaj teraz</button></div></div>
  <p class="mut" style="margin:4px 0 10px">Ranking: stawka za 1000 wyświetleń × pozostały budżet, mniej chętnych = wyżej. Przed startem przeczytaj zasady kampanii.</p>
@@ -84,6 +85,7 @@ input#url{flex:1 1 320px}
   <div class="row" style="margin-top:8px"><input id="m_url" placeholder="Link do kampanii (opcjonalnie)" style="flex:1 1 300px"><select id="m_src"><option>clipping.net</option><option>Vyro</option><option>inne</option></select></div>
   <textarea id="m_rules" placeholder="Wklej zasady kampanii (po angielsku też może być)" style="width:100%;min-height:110px;margin-top:8px;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:10px;font-size:13.5px"></textarea>
   <button class="btn pri" id="m_add" style="margin-top:8px">Dodaj kampanię</button>
+ </details>
  </details>
 </div>
 <script>
@@ -128,7 +130,7 @@ $('go').onclick=async()=>{const url=$('url').value.trim();if(!url)return;$('go')
 $('scan').onclick=async()=>{const b=$('scan');b.disabled=true;b.textContent='Szukam… (do 5 min)';
  const r=await fetch('/api/klipping/scan',{method:'POST'});const j=await r.json();b.disabled=false;b.textContent='↻ Szukaj teraz';if(j.error)alert(j.error);sig='';load()};
 $('mode').onchange=()=>{const r=$('mode').value==='reakcje';$('rowCamp').hidden=r;$('rowReak').hidden=!r;$('rowStr').hidden=!r;try{localStorage.setItem('kl-mode',$('mode').value)}catch(e){}};
-try{const m=localStorage.getItem('kl-mode'),w=localStorage.getItem('kl-who'),c=localStorage.getItem('kl-cam');if(m){$('mode').value=m;$('mode').onchange()}if(w)$('who').value=w;if(c)$('cam').value=c}catch(e){}
+$('mode').value='reakcje';$('mode').onchange();try{const m=null&&localStorage.getItem('kl-mode'),w=localStorage.getItem('kl-who'),c=localStorage.getItem('kl-cam');if(m){$('mode').value=m;$('mode').onchange()}if(w)$('who').value=w;if(c)$('cam').value=c}catch(e){}
 $('fmt').onchange=()=>{try{localStorage.setItem('kl-fmt',$('fmt').value)}catch(e){}};try{const f=localStorage.getItem('kl-fmt');if(f)$('fmt').value=f}catch(e){}
 $('who').onchange=()=>{try{localStorage.setItem('kl-who',$('who').value)}catch(e){}};$('cam').onchange=()=>{try{localStorage.setItem('kl-cam',$('cam').value)}catch(e){}};
 async function accs(){let A=[];try{A=await (await fetch('/api/social/accounts')).json()}catch(e){}
