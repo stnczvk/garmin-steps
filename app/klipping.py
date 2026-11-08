@@ -125,7 +125,7 @@ threading.Thread(target=loop, daemon=True).start()
 def api_state():
     d = _rd()
     pl = d.get("pl", {})
-    C = d.get("manual", []) + d["campaigns"]
+    C = d.get("manual", []) + sorted(d.get("external", []) + d["campaigns"], key=lambda c: -c.get("score", 0))
     return {"campaigns": [dict(c, pl=pl.get(c["id"])) for c in C], "scanned": d["scanned"], "jobs": list(reversed(d["jobs"][-30:]))}
 
 
@@ -147,7 +147,7 @@ async def api_job(req: Request):
         return JSONResponse({"error": "Wklej link do filmu albo nagrania live"}, status_code=400)
     with _lock:
         d = _rd()
-        camp = next((c for c in d.get("manual", []) + d["campaigns"] if c["id"] == str(b.get("campaign") or "")), None)
+        camp = next((c for c in d.get("manual", []) + d.get("external", []) + d["campaigns"] if c["id"] == str(b.get("campaign") or "")), None)
         j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": camp,   # 0 = AI decyduje
              "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}
         d["jobs"] = (d["jobs"] + [j])[-60:]
@@ -239,6 +239,46 @@ async def hook_status(jid: str, req: Request):
         except Exception:
             pass
     return {"ok": True}
+
+
+@router.post("/api/mont-hook/klipping/import")
+async def hook_import(req: Request):
+    """Kampanie z innych stron (clipping.net) – codzienny import przez przeglądarkę na Macu. Stawki za 100 tys. → za 1000."""
+    import asyncio
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    src = (b.get("source") or "clipping.net")[:30]
+    out = []
+    for x in b.get("campaigns") or []:
+        if not x.get("name") or x.get("status") not in (None, "Active"):
+            continue
+        rate = _num(x.get("rate_100k")) / 100
+        c = {"id": f"{src}:{x.get('slug') or x['name']}"[:120], "name": x["name"][:120], "url": x.get("url") or "", "rate": rate, "rate_min": 0,
+             "left": _num(x.get("pot")), "total": 0, "platforms": [p for p in (x.get("platforms") or PLATFORMS) if p in PLATFORMS] or PLATFORMS,
+             "max_payout": 0, "days": x.get("days") or None, "category": src, "min_views": int(_num(x.get("min_views"))),
+             "rules": (x.get("rules") or x.get("summary") or "")[:3000], "external": True}
+        # ranking: stawka, ale wysoki próg wejścia (np. 100 tys. wyśw.) mocno obniża szanse świeżego konta
+        c["score"] = round(rate * 40 / max(1.0, c["min_views"] / 50000), 2)
+        out.append(c)
+    with _lock:
+        d = _rd()
+        old = {c["id"] for c in d.get("external", [])}
+        d["external"] = [c for c in d.get("external", []) if not c["id"].startswith(src + ":")] + out
+        _wr(d)
+    new = [c for c in out if c["id"] not in old]
+    try:
+        await asyncio.to_thread(explain, sorted(out, key=lambda c: -c["score"])[:12])
+    except Exception as e:
+        print("klipping agent:", e, flush=True)
+    if new:
+        try:
+            from extra import push_all
+            top = max(new, key=lambda c: c["score"])
+            push_all("✂️ Nowe kampanie na " + src, f"{len(new)} nowych. Najlepsza: {top['name']} – ${top['rate']:.2f}/1000, próg {top['min_views'] // 1000} tys.", "/#klipping")
+        except Exception:
+            pass
+    return {"ok": True, "n": len(out), "new": len(new)}
 
 
 @router.post("/api/mont-hook/klipping/wybor")
