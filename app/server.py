@@ -181,6 +181,8 @@ from mail import router as mail_router  # noqa: E402
 app.include_router(mail_router)
 from tresci import router as tresci_router  # noqa: E402
 app.include_router(tresci_router)
+from klipping import router as klipping_router  # noqa: E402
+app.include_router(klipping_router)
 from tiktok_pub import router as tiktok_router  # noqa: E402
 app.include_router(tiktok_router)
 
@@ -190,7 +192,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "poczta": "poczta.html", "tresci": "tresci.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html"}
+PAGES = {"home": "home.html", "poczta": "poczta.html", "tresci": "tresci.html", "klipping": "klipping.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html"}
 
 
 def _page(req: Request, name: str):
@@ -242,6 +244,11 @@ def notatki(req: Request):
 @app.get("/poczta")
 def poczta(req: Request):
     return _page(req, "poczta")
+
+
+@app.get("/klipping")
+def klipping_page(req: Request):
+    return _page(req, "klipping")
 
 
 @app.get("/tresci")

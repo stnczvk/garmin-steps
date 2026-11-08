@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Klipping</title>
+<script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
+<link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
+<style>
+button,input,select,textarea{font-family:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 20px 60px}
+h1{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.02em;margin:0}
+h2{font-size:17px;margin:26px 0 10px}
+.top p{color:var(--soft);margin:4px 0 0}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.15);background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));color:var(--ink);font:600 13px Geist,system-ui;padding:8px 13px;border-radius:999px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn.pri{background:linear-gradient(145deg,#8b7cc7,#5b8cff);border-color:transparent;color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.mut{color:var(--faint);font-size:13px}
+.box{border:1px solid var(--line);border-radius:18px;padding:16px;background:rgba(255,255,255,.03);margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 12px;font-size:14px;min-width:0}
+input#url{flex:1 1 320px}
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.c{border:1px solid var(--line);border-radius:16px;padding:13px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:6px}
+.c b{font-size:14.5px;line-height:1.3}
+.c .num{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--soft)}
+.c .num strong{color:var(--ink);font-size:15px}
+.tag{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--soft)}
+.c details{font-size:12.5px;color:var(--soft)}.c details p{white-space:pre-wrap;margin:6px 0 0;max-height:180px;overflow:auto}
+.j{border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+.st{font-size:12.5px;color:var(--soft)}.st.err{color:#ff7a8a}.st.ok{color:#7ee0a5}
+.clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px}
+.cl{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.2)}
+.cl video{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;display:block}
+.cl .in{padding:9px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.cl .in b{font-size:13px}
+.empty{padding:20px;text-align:center}
+@media(max-width:600px){.wrap{padding:16px 14px 50px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="top"><h1>Klipping</h1><p>Płatne kampanie klipowe (Whop). Centrum codziennie szuka najlepszych, a z linku robi gotowe pionowe klipy po angielsku.</p></div>
+
+ <h2>Nowe klipy z linku</h2>
+ <div class="box">
+  <div class="row"><input id="url" placeholder="Link do filmu albo nagrania live (YouTube, Twitch, Kick, Google Drive…)">
+   <select id="n"><option>4</option><option selected>6</option><option>8</option><option>10</option><option>15</option></select>
+   <button class="btn pri" id="go">✂️ Zrób klipy</button></div>
+  <div class="row" style="margin-top:8px"><span class="mut">Kampania:</span><select id="camp" style="flex:1 1 260px"><option value="">bez kampanii</option></select></div>
+  <p class="mut" style="margin:8px 0 0">Klipy robi Mac (musi być włączony). Pobranie i cięcie długiego nagrania trwa od kilku do kilkudziesięciu minut.</p>
+ </div>
+
+ <div id="jobs"></div>
+
+ <div class="row" style="justify-content:space-between;margin-top:26px"><h2 style="margin:0">Najlepsze kampanie</h2>
+  <div class="row"><span class="mut" id="when"></span><button class="btn" id="scan">↻ Szukaj teraz</button></div></div>
+ <p class="mut" style="margin:4px 0 10px">Ranking: stawka za 1000 wyświetleń × pozostały budżet, mniej chętnych = wyżej. Przed startem przeczytaj zasady kampanii.</p>
+ <div class="cg" id="camps"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S=null,sig='';
+const money=v=>'$'+(v>=1000?(v/1000).toFixed(1)+'k':Math.round(v));
+function camps(){const C=S.campaigns||[];
+ $('when').textContent=S.scanned?'sprawdzone '+new Date(S.scanned*1000).toLocaleString('pl-PL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'jeszcze nie sprawdzane';
+ const sel=$('camp'),cur=sel.value;sel.innerHTML='<option value="">bez kampanii</option>'+C.map(c=>`<option value="${esc(c.id)}">${esc(c.name)} · $${c.rate.toFixed(2)}/1000</option>`).join('');sel.value=cur;
+ $('camps').innerHTML=C.length?C.map((c,i)=>`<div class="c"><b>${i+1}. ${esc(c.name)}</b>
+  <div class="num"><span><strong>$${c.rate.toFixed(2)}</strong> / 1000 wyśw.</span><span>zostało <strong>${money(c.left)}</strong>${c.total?' z '+money(c.total):''}</span>${c.max_payout?`<span>max <strong>$${Math.round(c.max_payout)}</strong>/klip</span>`:''}${c.days!=null?`<span>${Math.round(c.days)} dni</span>`:''}</div>
+  <div class="row">${(c.platforms||[]).map(p=>`<span class="tag">${esc(p)}</span>`).join('')}${c.category?`<span class="tag">${esc(c.category)}</span>`:''}</div>
+  ${c.rules?`<details><summary>Zasady</summary><p>${esc(c.rules)}</p></details>`:''}
+  <div class="row">${c.url?`<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Otwórz</a>`:''}<button class="btn" data-pick="${esc(c.id)}">Użyj do klipów</button></div></div>`).join(''):'<div class="box empty mut">Brak kampanii – kliknij „Szukaj teraz” (potrzebny token Apify w Ustawieniach).</div>';
+}
+function jobs(){const J=S.jobs||[];
+ $('jobs').innerHTML=J.length?'<h2>Zadania</h2>'+J.map(j=>`<div class="j"><div class="row" style="justify-content:space-between"><div><b>${esc(j.title||j.url)}</b>
+  <div class="st ${j.state==='error'?'err':j.state==='done'?'ok':''}">${j.state==='done'?'✅ Gotowe – '+j.clips.length+' klipów':j.state==='error'?'❌ '+esc(j.error||'błąd'):'⏳ '+esc(j.step||'')}${j.campaign?' · '+esc(j.campaign.name):''}</div></div>
+  <button class="btn" data-del="${j.id}">Usuń</button></div>
+  ${j.clips.length?`<div class="clips">${j.clips.map(c=>`<div class="cl"><video src="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}" preload="none" controls playsinline></video>
+   <div class="in"><b>${esc(c.hook||c.name)}</b><span class="mut">${c.dur?c.dur+' s':''}</span>
+   <div class="row"><a class="btn" href="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}?dl=1">⬇ Pobierz</a>
+   <button class="btn" data-cp="${esc(c.yt_title)}">Tytuł YT</button><button class="btn" data-cp="${esc(c.tiktok)}">Opis TT</button><button class="btn" data-cp="${esc(c.instagram)}">Opis IG</button></div></div></div>`).join('')}</div>`:''}</div>`).join(''):'';
+}
+async function load(){try{S=await (await fetch('/api/klipping')).json()}catch(e){return}
+ const s=JSON.stringify([S.scanned,(S.campaigns||[]).length,(S.jobs||[]).map(j=>[j.id,j.state,j.step,j.clips.length])]);if(s===sig)return;sig=s;camps();jobs()}
+document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.pick){$('camp').value=b.dataset.pick;$('url').focus();scrollTo({top:0,behavior:'smooth'})}
+ if(b.dataset.cp!==undefined){try{await navigator.clipboard.writeText(b.dataset.cp);b.textContent='Skopiowane ✓'}catch(x){}}
+ if(b.dataset.del){await fetch(`/api/klipping/job/${b.dataset.del}/delete`,{method:'POST'});sig='';load()}});
+$('go').onclick=async()=>{const url=$('url').value.trim();if(!url)return;$('go').disabled=true;
+ const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value})});
+ const j=await r.json();$('go').disabled=false;if(j.error){alert(j.error);return}$('url').value='';sig='';load()};
+$('scan').onclick=async()=>{const b=$('scan');b.disabled=true;b.textContent='Szukam… (do 5 min)';
+ const r=await fetch('/api/klipping/scan',{method:'POST'});const j=await r.json();b.disabled=false;b.textContent='↻ Szukaj teraz';if(j.error)alert(j.error);sig='';load()};
+load();setInterval(load,10000);
+</script>
+</body>
+</html>
