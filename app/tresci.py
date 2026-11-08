@@ -57,15 +57,16 @@ def _stage_from(it):
 
 
 @router.get("/api/tresci")
-def api_get(month: str = ""):
+def api_get(month: str = "", group: str = ""):
     try:
         m0 = datetime.strptime(month, "%Y-%m").replace(tzinfo=TZ)
     except ValueError:
         m0 = datetime.now(TZ).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     a = (m0 - timedelta(days=7)).timestamp()
     b = (m0 + timedelta(days=45)).timestamp()
-    P = {x["id"]: x for x in plan() if x.get("group") != "strimy"}   # Strimy w Pigułce: własny kalendarz w Klippingu
-    R = results()
+    strimy = group == "strimy"   # ten sam kalendarz miesięczny dla kanału Strimy w Pigułce (zakładka Klipping → Kalendarz)
+    P = {x["id"]: x for x in plan() if (x.get("group") == "strimy") == strimy}
+    R = [] if strimy else results()
     rid = {r["id"]: r for r in R}
     posts, used = [], set()
     for x in P.values():

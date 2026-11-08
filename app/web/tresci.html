@@ -186,6 +186,14 @@ h1{font-size:26px;font-weight:650;margin:0}.sub{color:var(--soft);margin:6px 0 1
 <div class="mb" id="mb"><div class="md" id="md" data-noicon></div></div>
 <div class="toast" id="toast"></div>
 <script>
+// ?group=strimy → ten sam kalendarz dla kanału Strimy w Pigułce (bez pomysłów, wyników i dodawania postów)
+const GRP=new URLSearchParams(location.search).get('group')||'';
+if(GRP==='strimy'){document.documentElement.classList.add('g-strimy');addEventListener('DOMContentLoaded',()=>{
+ const h=document.querySelector('h1');if(h)h.textContent='Kalendarz – Strimy w Pigułce';
+ const sb=document.querySelector('.sub');if(sb)sb.textContent='Filmy i shorty kanału ze streamów. Przeciągnij kartę na inny dzień, żeby ją przesunąć.'})}
+</script>
+<style>.g-strimy #np,.g-strimy #nw,.g-strimy .side,.g-strimy .leg{display:none!important}.g-strimy .gr{grid-template-columns:1fr!important}</style>
+<script>
 const $=id=>document.getElementById(id);
 const STG={pomysl:['Pomysł','#ffc24b'],nagrane:['Nagrane','#5ad1ff'],zmontowane:['Zmontowane','#c9c2e3'],zaplanowane:['Zaplanowane','#8b7cc7'],opublikowane:['Opublikowane','#3ddc84']};
 const PL={instagram:'IG',youtube:'YT',tiktok:'TT'};
@@ -206,7 +214,7 @@ const relC=r=>r==null?'':r>=1.5?'hi':r<0.7?'lo':'mid';
 const relB=(r,f)=>r==null?'':`<span class="rel ${relC(r)}" title="${f?'Świeży post – liczby jeszcze rosną':'Wyświetlenia względem mediany konta'}">${r.toFixed(1)}×${f?'…':''}</span>`;
 
 let SIG='';
-async function load(bg){const r=await api('/api/tresci?month='+(V==='w'?W.slice(0,7):M));
+async function load(bg){const r=await api('/api/tresci?month='+(V==='w'?W.slice(0,7):M)+(GRP?'&group='+GRP:''));
  if(!r||!r.ideas){if(!bg)$('grid').innerHTML='<p style="padding:30px;color:var(--soft)">Nie udało się wczytać.</p>';return}
  // odświeżanie w tle: rysujemy od nowa tylko, gdy coś się zmieniło (inaczej miniatury przeładowywały się i ekran migał)
  const sig=JSON.stringify([V,W,M,r.ideas,r.posts,r.results]);if(bg&&sig===SIG)return;SIG=sig;D=r;draw()}
