@@ -425,7 +425,9 @@ DOBRE = ("DOBRY moment to szczyt emocji albo akcji: głośny śmiech, wkurzenie,
          "absurdalna sytuacja, ostra opinia o czymś znanym, historia z zaskakującym końcem. Linie oznaczone 🔊 to miejsca, gdzie na streamie "
          "robi się wyraźnie głośniej niż zwykle (śmiech, krzyk, emocje), to mocna wskazówka, ale sprawdź w tekście, czy coś się tam dzieje. "
          "ZŁY moment (nigdy): czekanie, start i koniec streama, czytanie donejtów i czatu, dziękowanie za suby, sprawy techniczne, menu i "
-         "ładowanie gry, spokojne gadanie o niczym, rzeczy niezrozumiałe bez kontekstu. Lepiej mniej klipów niż słabe klipy.")
+         "ładowanie gry, spokojne gadanie o niczym, rzeczy niezrozumiałe bez kontekstu. SEGMENTY SPONSORSKIE pomijaj całkowicie: "
+         "reklamy, współprace, kody rabatowe, linki w opisie, promocje sklepów, kasyn, bukmacherów i aplikacji. Klip ani segment nie może "
+         "zawierać żadnego kawałka takiej reklamy: zacznij po niej albo skończ przed nią. Lepiej mniej klipów niż słabe klipy.")
 
 
 def _energy_lines(trans, energia):
