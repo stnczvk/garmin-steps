@@ -421,73 +421,134 @@ async def hook_import(req: Request):
     return {"ok": True, "n": len(out), "new": len(new)}
 
 
-async def _wybor_yt(b, n, dur_min):
-    """Poziome filmy na YouTube: CAŁE segmenty (np. od początku do końca oglądania jednego filmu / ogłoszenia), 3–25 min."""
+DOBRE = ("DOBRY moment to szczyt emocji albo akcji: głośny śmiech, wkurzenie, szok, kłótnia, mocna puenta, wygrana albo porażka w grze, "
+         "absurdalna sytuacja, ostra opinia o czymś znanym, historia z zaskakującym końcem. Linie oznaczone 🔊 to miejsca, gdzie na streamie "
+         "robi się wyraźnie głośniej niż zwykle (śmiech, krzyk, emocje), to mocna wskazówka, ale sprawdź w tekście, czy coś się tam dzieje. "
+         "ZŁY moment (nigdy): czekanie, start i koniec streama, czytanie donejtów i czatu, dziękowanie za suby, sprawy techniczne, menu i "
+         "ładowanie gry, spokojne gadanie o niczym, rzeczy niezrozumiałe bez kontekstu. Lepiej mniej klipów niż słabe klipy.")
+
+
+def _energy_lines(trans, energia):
+    """Dokleja 🔊 do linii transkrypcji, w których dźwięk jest wyraźnie głośniejszy niż typowo na tym streamie."""
+    import re
+    if not energia:
+        return trans
+    try:
+        vals = sorted(float(v) for _, v in energia)
+        thr = vals[int(len(vals) * 0.88)]
+        hot = {int(float(t)) // 10 for t, v in energia if float(v) >= thr}
+    except Exception:
+        return trans
+    out = []
+    for ln in trans.split("\n"):
+        m = re.match(r"\[(\d+)\]", ln)
+        out.append(ln + " 🔊" if m and int(m.group(1)) // 10 in hot else ln)
+    return "\n".join(out)
+
+
+def _parts(trans, size):
+    """Cała transkrypcja (nie tylko początek) w kawałkach po ~size znaków z małą zakładką."""
+    L, out, cur, n = trans.split("\n"), [], [], 0
+    for ln in L:
+        cur.append(ln); n += len(ln) + 1
+        if n >= size:
+            out.append("\n".join(cur)); cur = cur[-15:]; n = sum(len(x) + 1 for x in cur)
+    if len(cur) > 15 or not out:
+        out.append("\n".join(cur))
+    return out
+
+
+async def _kandydaci(b, dur_min, size, ask, lo, hi):
+    """Każdy kawałek streama oceniany osobno (równolegle) → kandydaci z oceną 1–10 → najlepsi z całego streama."""
     from agency import claude, as_json
     import asyncio
+    trans = _energy_lines(b.get("transkrypcja") or "", b.get("energia"))
+    P = _parts(trans, size)
+    sysm = __import__("skills").sk("hook", "caption", "trend", "slop")
+
+    def one(i, part):
+        return claude(f"Fragment {i + 1} z {len(P)} transkrypcji streama ({dur_min:.0f} min całość). Każda linia: [sekunda] tekst.\n\n"
+                      + part + "\n\n" + ask, max_tokens=4000, system=sysm)
+    R = await asyncio.gather(*[asyncio.to_thread(one, i, p) for i, p in enumerate(P)], return_exceptions=True)
+    if all(isinstance(r, Exception) for r in R):
+        raise R[0]
+    K = []
+    for r in R:
+        if isinstance(r, Exception):
+            continue
+        for k in (as_json(r) or {}).get("klipy") or []:
+            try:
+                k["start"], k["end"], k["ocena"] = float(k["start"]), float(k["end"]), float(k.get("ocena") or 0)
+            except Exception:
+                continue
+            if lo <= k["end"] - k["start"] <= hi:
+                K.append(k)
+    K.sort(key=lambda k: -k["ocena"])
+    out = []
+    for k in K:   # bez nakładania (zakładka kawałków może dać ten sam moment dwa razy)
+        if all(k["end"] <= o["start"] or k["start"] >= o["end"] for o in out):
+            out.append(k)
+    return out
+
+
+def _pick(K, n, auto_max):
+    if n:
+        return [k for k in K if k["ocena"] >= 6][:n] or K[:1]
+    good = [k for k in K if k["ocena"] >= 8] or K[:1]
+    return good[:auto_max]
+
+
+async def _wybor_yt(b, n, dur_min):
+    """Poziome filmy na YouTube: CAŁE segmenty (np. od początku do końca oglądania jednego filmu / ogłoszenia), 3–60 min."""
     who = b.get("who") or "streamer"
     hint = (b.get("title_hint") or "").strip()
     zas = _zasady(b.get("streamer"))
-    how = (f"Wybierz {n} segmentów" if n else "Sam oceń, ile pełnych segmentów warto wyciąć (od 1 do 8, tylko naprawdę ciekawe)")
-    prompt = (f"Transkrypcja streama ({dur_min:.0f} min), prowadzący: {who}. Każda linia: [sekunda] tekst.\n\n" + (b.get("transkrypcja") or "")[:90000] +
-              f"\n\n{how} na osobne POZIOME filmy na YouTube. Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip "
-              "i na niego reaguje, gra jedną rundę/mecz, ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję. "
-              "Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość 3–60 min "
-              "(cały mecz / cała rozgrywka może trwać do 60 min, oglądanie i rozmowy zwykle krócej). "
-              "Bez nakładania się, pomiń przerwy, czytanie donejtów i nudne fragmenty. Do każdego: tytuł YouTube po polsku "
-              f"(max 70 znaków, ciekawość, w stylu „{who} ogląda …” / „{who} reaguje na …”, bez clickbaitu i bez myślników), "
-              + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
-              (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
-              "opis YouTube (2–4 zdania + 3–5 hashtagów), krótki napis na miniaturę (2–4 słowa, WERSALIKI) i hook na pierwsze 4 s filmu (max 7 słów).\n"
-              'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}]}')
+    ask = (f"Znajdź w TYM fragmencie najlepsze segmenty (0–3, zero jeśli nic nie jest naprawdę ciekawe) na osobne POZIOME filmy na YouTube. "
+           f"Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip i na niego reaguje, gra jedną rundę/mecz, "
+           "ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję. W środku musi być kilka mocnych momentów, a nie spokojne gadanie. "
+           + DOBRE + " Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość 3–60 min. "
+           "Oceń każdy segment szczerze 1–10 (10 = ludzie obejrzą do końca i udostępnią, 5 = przeciętny fragment streama). "
+           "Do każdego: tytuł YouTube po polsku "
+           f"(max 70 znaków, ciekawość, w stylu „{who} ogląda …” / „{who} reaguje na …”, bez clickbaitu i bez myślników), "
+           + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
+           (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
+           "opis YouTube (2–4 zdania + 3–5 hashtagów), krótki napis na miniaturę (2–4 słowa, WERSALIKI), hook na pierwsze 4 s filmu (max 7 słów) "
+           "i jednym zdaniem, co konkretnie się dzieje (pole dlaczego).\n"
+           'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "ocena": 1-10, "dlaczego": "...", "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}]}')
     try:
-        txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=4000, system=__import__("skills").sk("hook", "caption", "trend", "slop")))
+        K = await _kandydaci(b, dur_min, 60000, ask, 90, 62 * 60)
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=502)
     from montaz import human
     out = []
-    for k in (as_json(txt) or {}).get("klipy") or []:
-        try:
-            a, e = float(k["start"]), float(k["end"])
-        except Exception:
-            continue
-        if 90 <= e - a <= 62 * 60:
-            o = {x: human(str(k.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
-            out.append({"start": a, "end": e, **o, "tiktok": "", "instagram": o["yt_desc"]})
-    return {"klipy": out[:n or 8]}
+    for k in _pick(K, n, 6):
+        o = {x: human(str(k.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
+        out.append({"start": k["start"], "end": k["end"], **o, "tiktok": "", "instagram": o["yt_desc"], "ocena": k["ocena"], "dlaczego": str(k.get("dlaczego") or "")[:200]})
+    return {"klipy": sorted(out, key=lambda k: k["start"])}
 
 
 async def _wybor_reakcje(b, n, dur_min):
-    """Polskie streamy (np. Bungee): momenty, w których streamer ogląda film / gra i reaguje – na klipy „X ogląda…”."""
-    from agency import claude, as_json
-    import asyncio
+    """Polskie streamy: najmocniejsze momenty na pionowe shorty – z całego streama, z oceną, z podpowiedzią głośności."""
     who = b.get("who") or "streamer"
     zas = _zasady(b.get("streamer"))
-    how = (f"Wybierz {n} najlepszych momentów" if n else
-           f"Sam oceń, ile dobrych klipów da ten materiał ({dur_min:.0f} min): tylko momenty, które obronią się same, bez zapychaczy, "
-           "mniej więcej 1 klip na 5–10 min dobrego materiału, od 1 do 15. Wybierz najlepsze momenty")
-    prompt = (f"Transkrypcja streama ({dur_min:.0f} min), prowadzący: {who}. Każda linia: [sekunda] tekst.\n\n" + (b.get("transkrypcja") or "")[:70000] +
-              f"\n\n{how}, w których {who} OGLĄDA coś (film z YouTube, klip, tiktoka) albo GRA i na to reaguje: śmiech, zaskoczenie, ostry komentarz, "
-              "kłótnia, puenta. Klip 20–60 s, zrozumiały bez reszty streama, mocny początek (reakcja albo zapowiedź w pierwszych 2 s), "
-              "koniec na puencie. Bez nakładania się. Do każdego: krótki napis na górę ekranu po polsku w stylu "
-              f"„{who} ogląda …” / „{who} reaguje na …” (max 7 słów, bez clickbaitu, bez myślników), opis TikTok (1 zdanie + 3–5 hashtagów), "
-              "opis Instagram (1–2 zdania + hashtagi), tytuł YouTube Shorts (max 70 znaków). Naturalnie, bez myślników jako przerw w zdaniu.\n"
-              + (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
-              'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
+    ask = (f"Znajdź w TYM fragmencie najlepsze momenty (0–6, zero jeśli nic nie jest naprawdę mocne) na pionowe shorty, w których {who} "
+           "ogląda coś, gra albo rozmawia i dzieje się coś mocnego. " + DOBRE +
+           " Klip 20–60 s, zrozumiały bez reszty streama, mocny początek (reakcja albo zapowiedź w pierwszych 2 s), koniec na puencie. "
+           "Oceń każdy szczerze 1–10 (10 = viral, 7 = dobry short, 5 = przeciętny fragment streama). "
+           "Do każdego: krótki napis na górę ekranu po polsku w stylu "
+           f"„{who} ogląda …” / „{who} reaguje na …” albo sedno sytuacji (max 7 słów, bez clickbaitu, bez myślników), opis TikTok (1 zdanie + 3–5 hashtagów), "
+           "opis Instagram (1–2 zdania + hashtagi), tytuł YouTube Shorts (max 70 znaków) i jednym zdaniem, co się dzieje (pole dlaczego). "
+           "Naturalnie, bez myślników jako przerw w zdaniu.\n"
+           + (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
+           'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "ocena": 1-10, "dlaczego": "...", "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
     try:
-        txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=4000, system=__import__("skills").sk("hook", "caption", "trend", "slop")))
+        K = await _kandydaci(b, dur_min, 45000, ask, 6, 90)
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=502)
     from montaz import human
-    out = []
-    for k in (as_json(txt) or {}).get("klipy") or []:
-        try:
-            a, e = float(k["start"]), float(k["end"])
-        except Exception:
-            continue
-        if 6 <= e - a <= 90:
-            out.append({"start": a, "end": e, **{x: human(str(k.get(x) or "")) for x in ("hook", "tiktok", "instagram", "yt_title")}})
-    return {"klipy": out[:n or 15]}
+    out = [{"start": k["start"], "end": k["end"], **{x: human(str(k.get(x) or "")) for x in ("hook", "tiktok", "instagram", "yt_title")},
+            "ocena": k["ocena"], "dlaczego": str(k.get("dlaczego") or "")[:200]} for k in _pick(K, n, 12)]
+    return {"klipy": sorted(out, key=lambda k: k["start"])}
 
 
 @router.post("/api/mont-hook/klipping/wybor")
