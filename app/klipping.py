@@ -540,25 +540,22 @@ async def _granice(b, who, K):
     return out
 
 
-def _with_link(b, out):
-    """Do opisów (YT, IG, TikTok) dokleja link do kanału streamera (Twitch/Kick) przed hashtagami."""
+def _uklad(t, j, mail):
+    """Układ opisu: tekst, pod nim link do streamera, odstęp, kontakt do współpracy, hashtagi na końcu."""
     import re
-    sid = b.get("streamer")
-    st = next((x for x in _streamers() if x["id"] == sid), {})
-    link = (st.get("link") or b.get("link") or "").strip()
-    if not link:
-        return out
-    url = link if link.startswith("http") else "https://" + link
-    who = st.get("name") or b.get("who") or "streamer"
-    line = f"🔴 {who} na żywo: {url}"
-    for k in out:
-        for f in ("yt_desc", "instagram", "tiktok"):
-            t = (k.get(f) or "").strip()
-            if not t or url in t:
-                continue
-            m = re.search(r"(\s*(#\w+\s*)+)$", t)
-            k[f] = (t[:m.start()].rstrip() + "\n\n" + line + "\n\n" + m.group(1).strip()) if m else (t + "\n\n" + line)
-    return out
+    t = (t or "").strip()
+    if not t:
+        return t
+    m = re.search(r"(\s*(#\w+\s*)+)$", t)
+    body, tags = (t[:m.start()].strip(), " ".join(m.group(1).split())) if m else (t, "")
+    st = next((x for x in _streamers() if x["id"] == j.get("streamer")), {})
+    link = (st.get("link") or j.get("link") or "").strip()
+    if link and link not in body:
+        url = link if link.startswith("http") else "https://" + link
+        body += f"\n🔴 {st.get('name') or j.get('who') or 'Streamer'} na żywo: {url}"
+    if mail:
+        body += f"\n\n\n📩 Współpraca: {mail}"
+    return body + ("\n" + tags if tags else "")
 
 
 async def _wybor_yt(b, n, dur_min):
@@ -594,7 +591,7 @@ async def _wybor_yt(b, n, dur_min):
     for k in P:
         o = {x: human(str(k.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
         out.append({"start": k["start"], "end": k["end"], **o, "tiktok": "", "instagram": o["yt_desc"], "ocena": k["ocena"], "dlaczego": str(k.get("dlaczego") or "")[:200]})
-    return {"klipy": _with_link(b, sorted(out, key=lambda k: k["start"]))}
+    return {"klipy": sorted(out, key=lambda k: k["start"])}
 
 
 async def _wybor_reakcje(b, n, dur_min):
@@ -618,7 +615,7 @@ async def _wybor_reakcje(b, n, dur_min):
     from montaz import human
     out = [{"start": k["start"], "end": k["end"], **{x: human(str(k.get(x) or "")) for x in ("hook", "tiktok", "instagram", "yt_title")},
             "ocena": k["ocena"], "dlaczego": str(k.get("dlaczego") or "")[:200]} for k in _pick(K, n, 12)]
-    return {"klipy": _with_link(b, sorted(out, key=lambda k: k["start"]))}
+    return {"klipy": sorted(out, key=lambda k: k["start"])}
 
 
 @router.post("/api/mont-hook/klipping/wybor")
@@ -704,8 +701,7 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
             c = next(c for c in j["clips"] if c["name"] == nm)
             th = _dir(jid) / (nm + ".jpg")
             mail = _rd().get("mail")
-            if mail:   # kontakt do współpracy na końcu każdego opisu
-                c = {**c, **{k: (c.get(k) or "").rstrip() + f"\n\n📩 Współpraca: {mail}" for k in ("yt_desc", "instagram") if c.get(k) is not None}}
+            c = {**c, **{k: _uklad(c.get(k), j, mail) for k in ("yt_desc", "instagram", "tiktok") if c.get(k)}}
             planer.add_strimy(jid, {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=c["dur"] > 90, streamer=j.get("streamer", ""))
         except Exception as e:
             print("klipping → planer:", e, flush=True)
