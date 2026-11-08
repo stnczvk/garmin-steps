@@ -858,7 +858,7 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
   try{on.scrollIntoView({block:'nearest',inline:'nearest'})}catch(e){}}
  function sync(){const cur=nav.querySelector('button[data-v][aria-current=page]'),v=cur&&cur.dataset.v,g=cur&&cur.dataset.sub;
   H().forEach(h=>h.dataset.hub===g?h.setAttribute('aria-current','page'):h.removeAttribute('aria-current'));
-  document.body.classList.toggle('has-subt',!!g);
+  document.body.classList.toggle('has-subt',!!g&&subs(g).length>1);   // jedna podzakładka (np. Klipping) – bez paska
   if(!g){curG=null;return}
   last[g]=v;try{localStorage.setItem('hub-last',JSON.stringify(last))}catch(e){}
   if(curG!==g){curG=g;bar.innerHTML='<div class="subt-in"><div class="subt-sg"><span class="pill"></span>'+subs(g).map(b=>{const i=b.querySelector('i svg'),bd=b.querySelector('.s-badge');return `<button data-go="${b.dataset.v}">${i?i.outerHTML:''}${LAB[b.dataset.v]||b.textContent.trim()}${bd?'<em class="bd" data-bdof="'+bd.id+'"></em>':''}</button>`}).join('')+'</div></div>';

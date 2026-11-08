@@ -42,6 +42,15 @@ input#url{flex:1 1 320px}
 .empty{padding:20px;text-align:center}
 .chip{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);border-radius:999px;padding:7px 13px;font:600 13px Geist,system-ui;cursor:pointer}
 .chip.on{background:linear-gradient(145deg,#8b7cc7,#5b8cff);border-color:transparent;color:#fff}
+.kg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.kc{border:1px solid var(--line);border-radius:14px;padding:8px;min-height:140px;background:rgba(255,255,255,.02);display:flex;flex-direction:column;gap:6px;min-width:0}
+.kc.today{border-color:#8b7cc7;box-shadow:0 0 0 1px #8b7cc7 inset}
+.kh{font-size:12px;color:var(--soft);text-transform:capitalize}.kh b{color:var(--ink)}
+.kp{border-radius:10px;padding:6px;background:rgba(255,255,255,.05);border-left:3px solid #5b8cff;font-size:12px;min-width:0}
+.kp.lg{border-left-color:#ffd600}.kp img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;margin-bottom:4px}
+.kt{font-size:11.5px;color:var(--soft)}.kl{font-weight:600;font-size:12px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ka{display:flex;gap:4px;margin-top:4px}.ka button{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);border-radius:8px;padding:2px 7px;cursor:pointer;font-size:12px}
+@media(max-width:900px){.kg{grid-template-columns:1fr}.kc{min-height:0}}
 .kd{font-weight:700;margin:12px 0 6px;font-size:13px;color:var(--soft)}
 .ki{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:6px;font-size:13px}
 .ki img{width:96px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:#000}
@@ -55,22 +64,22 @@ input#url{flex:1 1 320px}
 
  <h2>Nowe filmy ze streama</h2>
  <div class="box">
-  <div class="row"><input id="url" placeholder="Link do filmu albo nagrania live (YouTube, Twitch, Kick, Google Drive…)">
-   <select id="n" title="Ile klipów"><option value="0" selected>Ile się da (AI ocenia)</option><option>4</option><option>6</option><option>8</option><option>10</option><option>15</option></select>
-   <button class="btn pri" id="go">✂️ Zrób klipy</button></div>
-  <div class="row" style="margin-top:8px" hidden><span class="mut">Rodzaj:</span><select id="mode"><option value="reakcje" selected>Reakcje ze streama (po polsku)</option><option value="kampania">Kampania (po angielsku)</option></select></div>
-  <div class="row" id="rowCamp" style="margin-top:8px;display:none!important"><span class="mut">Kampania:</span><select id="camp" style="flex:1 1 260px"><option value="">bez kampanii</option></select></div>
-  <div id="rowStr" style="margin-top:10px" hidden><div class="row" id="chips"></div>
-   <div class="box" id="stset" style="margin:10px 0 0;padding:12px"></div></div>
-  <div class="row" id="rowReak" style="margin-top:8px" hidden><select id="fmt"><option value="oba">Filmy na YouTube + shorty</option><option value="yt">Filmy na YouTube (poziome, całe segmenty)</option><option value="short">Shorty (pionowe, 20–60 s)</option></select><input id="who" placeholder="Kto prowadzi (np. Bandura)" style="flex:1 1 180px">
-   <label class="mut" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="auto" checked style="min-width:0"> sama publikacja na kanale Strimy w Pigułce</label>
-   <span class="mut">Kamerka na streamie:</span><select id="cam"><option value="auto">bez kamerki (środek kadru)</option><option value="dzinold">MrDzinold (lewy górny, pod nickiem)</option><option value="l">lewa strona (środek)</option><option value="r">prawa strona (środek)</option><option value="bl">lewy dół</option><option value="br">prawy dół</option><option value="tl">lewy góra</option><option value="tr">prawy góra</option></select></div>
-  <p class="mut" style="margin:8px 0 0">Klipy robi Mac (musi być włączony). Pobranie i cięcie długiego nagrania trwa od kilku do kilkudziesięciu minut.</p>
+  <div id="rowStr"><div class="row" id="chips"></div></div>
+  <div class="row" style="margin-top:10px"><input id="url" placeholder="Link do nagrania streama (Twitch, Kick, YouTube)">
+   <select id="n" title="Ile filmów"><option value="0" selected>Ile się da (AI ocenia)</option><option>4</option><option>6</option><option>8</option><option>10</option><option>15</option></select>
+   <button class="btn pri" id="go">✂️ Zrób filmy</button></div>
+  <label class="mut" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="auto" checked style="min-width:0"> sama publikacja na kanale Strimy w Pigułce</label>
+  <details style="margin-top:10px"><summary class="mut" style="cursor:pointer">⚙️ Ustawienia streamera (nick, link, kamerka, format, styl tytułów)</summary>
+   <div class="box" id="stset" style="margin:10px 0 0;padding:12px"></div></details>
+  <p class="mut" style="margin:8px 0 0">Filmy robi Mac (musi być włączony). Długi stream to zwykle 30–60 min pracy.</p>
+  <div hidden><select id="mode"><option value="reakcje" selected>reakcje</option></select><div id="rowCamp"><select id="camp"></select></div>
+   <div id="rowReak"><select id="fmt"><option value="oba">oba</option><option value="yt">yt</option><option value="short">short</option></select><input id="who"><select id="cam"><option value="auto">auto</option></select></div></div>
  </div>
 
- <div class="box" id="acc"></div>
+ <h2>Kalendarz</h2>
  <div class="box" id="kal"></div>
  <div id="jobs"></div>
+ <div class="box" id="acc"></div>
 
  <div hidden><span id="when"></span><button id="scan"></button><div id="camps"></div>
   <input id="m_name"><input id="m_rate"><input id="m_left"><input id="m_url"><select id="m_src"></select><textarea id="m_rules"></textarea><button id="m_add"></button></div>
@@ -153,17 +162,27 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-st]');if(!
  if(b.dataset.st==='__new'){STR.push({id:'',name:'',link:'',cam:'auto',fmt:'oba'});ST=''}else ST=b.dataset.st;
  try{localStorage.setItem('kl-str',ST)}catch(x){}drawStr()});
 zas().then(strs);
-// ---- osobny kalendarz kanału Strimy w Pigułce
-async function kal(){let P=[];try{P=await (await fetch('/api/planer?group=strimy')).json()}catch(e){return}P=Array.isArray(P)?P:(P.items||P.posts||[]);
- const by={};P.forEach(p=>{const d=new Date(p.when*1000).toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});(by[d]=by[d]||[]).push(p)});
- const ST_={approved:'✅ zaplanowane',draft:'⏸ wstrzymane',published:'📤 opublikowane',error:'❌ błąd',publishing:'⏳ publikuje się'};
- $('kal').innerHTML=`<b>Kalendarz kanału Strimy w Pigułce</b>`+(P.length?Object.entries(by).map(([d,L])=>`<div class="kd">${esc(d)}</div>`+L.map(p=>`<div class="ki">
-   ${p.thumb_file?`<img src="/api/planer/${p.id}/thumb" alt="">`:''}<div class="t"><b>${new Date(p.when*1000).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} · ${esc(p.label)}</b>
-   <span class="mut">${p.long?'film YouTube':'short: YouTube + Reels'} · ${ST_[p.status]||esc(p.status)}${p.error?' – '+esc(p.error):''}${p.stats?` · 👁 ${((p.stats.yt||{}).views||0)+((p.stats.ig||{}).views||0)} · ❤️ ${((p.stats.yt||{}).likes||0)+((p.stats.ig||{}).likes||0)}`:''}</span>
-   ${p.stats&&((p.stats.yt||{}).alert||(p.stats.ig||{}).alert)?`<span style="color:#ff7a8a;font-size:12.5px">⚠️ ${esc((p.stats.yt||{}).alert||(p.stats.ig||{}).alert)}</span>`:''}</div>
-   ${p.status==='approved'?`<button class="btn" data-pa="unapprove" data-pid="${p.id}">Wstrzymaj</button>`:p.status==='draft'?`<button class="btn" data-pa="approve" data-pid="${p.id}">Wznów</button>`:''}
-   ${['approved','draft'].includes(p.status)?`<button class="btn" data-pa="now" data-pid="${p.id}">Teraz</button><button class="btn" data-pa="skip" data-pid="${p.id}">Usuń</button>`:''}</div>`).join('')).join(''):'<p class="mut" style="margin:8px 0 0">Na razie pusto – filmy pojawią się tu po zrobieniu klipów z włączoną publikacją.</p>');}
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-pa]');if(!b)return;b.disabled=true;
+// ---- kalendarz kanału: 7 dni od dziś, kolumny = dni
+let KW=0;
+async function kal(){let P=[];try{const r=await (await fetch('/api/planer?group=strimy')).json();P=Array.isArray(r)?r:(r.items||[])}catch(e){return}
+ const d0=new Date();d0.setHours(0,0,0,0);d0.setDate(d0.getDate()+KW*7);const days=[...Array(7)].map((_,i)=>{const d=new Date(d0);d.setDate(d0.getDate()+i);return d});
+ const ST_={approved:'✅',draft:'⏸',published:'📤',error:'❌',publishing:'⏳'};
+ const cell=d=>{const L=P.filter(p=>{const t=new Date(p.when*1000);return t.toDateString()===d.toDateString()}).sort((a,b)=>a.when-b.when);
+  return `<div class="kc${d.toDateString()===new Date().toDateString()?' today':''}"><div class="kh">${d.toLocaleDateString('pl-PL',{weekday:'short'})} <b>${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</b></div>`+
+   (L.length?L.map(p=>`<div class="kp ${p.long?'lg':'sh'}" title="${esc(p.label)}">
+    ${p.long&&p.thumb_file?`<img src="/api/planer/${p.id}/thumb" alt="">`:''}
+    <div class="kt">${new Date(p.when*1000).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} · ${p.long?'🎬 film':'📱 short'} ${ST_[p.status]||''}</div>
+    <div class="kl">${esc(p.label)}</div>
+    ${p.stats?`<div class="kt">👁 ${((p.stats.yt||{}).views||0)+((p.stats.ig||{}).views||0)} · ❤️ ${((p.stats.yt||{}).likes||0)+((p.stats.ig||{}).likes||0)}</div>`:''}
+    ${p.stats&&((p.stats.yt||{}).alert||(p.stats.ig||{}).alert)?`<div class="kt" style="color:#ff7a8a">⚠️ ${esc((p.stats.yt||{}).alert||(p.stats.ig||{}).alert)}</div>`:''}
+    ${p.status==='error'?`<div class="kt" style="color:#ff7a8a">${esc(p.error||'błąd')}</div>`:''}
+    <div class="ka">${p.status==='approved'?`<button data-pa="unapprove" data-pid="${p.id}" title="Wstrzymaj">⏸</button>`:p.status==='draft'?`<button data-pa="approve" data-pid="${p.id}" title="Wznów">▶</button>`:p.status==='error'?`<button data-pa="retry" data-pid="${p.id}" title="Spróbuj ponownie">↻</button>`:''}
+     ${['approved','draft'].includes(p.status)?`<button data-pa="now" data-pid="${p.id}" title="Opublikuj teraz">⚡</button><button data-pa="skip" data-pid="${p.id}" title="Usuń">✕</button>`:''}</div></div>`).join(''):'<div class="kt" style="opacity:.5">—</div>')+'</div>'};
+ $('kal').innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><button class="btn" data-kw="-1">‹</button>
+  <span class="mut">${days[0].toLocaleDateString('pl-PL',{day:'numeric',month:'long'})} – ${days[6].toLocaleDateString('pl-PL',{day:'numeric',month:'long'})} · ${P.filter(p=>p.status==='approved').length} zaplanowanych</span>
+  <button class="btn" data-kw="1">›</button></div><div class="kg">${days.map(cell).join('')}</div>`;}
+document.addEventListener('click',async e=>{const w=e.target.closest('[data-kw]');if(w){KW+=+w.dataset.kw;kal();return}
+ const b=e.target.closest('[data-pa]');if(!b)return;if(b.dataset.pa==='skip'&&!confirm('Usunąć ten film z kalendarza?'))return;b.disabled=true;
  await fetch(`/api/planer/${b.dataset.pid}/${b.dataset.pa}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});kal()});
 kal();setInterval(kal,30000);
 load();setInterval(load,10000);
