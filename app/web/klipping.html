@@ -66,7 +66,7 @@ input#url{flex:1 1 320px}
  <h2>Nowe filmy ze streama</h2>
  <div class="box">
   <div id="rowStr"><div class="row" id="chips"></div></div>
-  <div class="row" style="margin-top:10px"><input id="url" placeholder="Link do nagrania streama (Twitch, Kick, YouTube)">
+  <div class="row" style="margin-top:10px"><textarea id="url" rows="1" placeholder="Link do nagrania streama (Twitch, Kick, YouTube), możesz wkleić kilka – każdy w nowej linii" style="flex:1 1 260px;resize:vertical;font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line,#444);border-radius:10px;padding:8px 10px" oninput="this.rows=Math.min(6,Math.max(1,this.value.split('\n').length))"></textarea>
    <select id="n" title="Ile filmów"><option value="0" selected>Ile się da (AI ocenia)</option><option>4</option><option>6</option><option>8</option><option>10</option><option>15</option></select>
    <button class="btn pri" id="go">✂️ Zrób filmy</button></div>
   <label class="mut" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="auto" checked style="min-width:0"> sama publikacja na kanale Strimy w Pigułce</label>
@@ -125,10 +125,12 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   const r=await fetch('/api/klipping/manual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('m_name').value,rate:$('m_rate').value,left:$('m_left').value,url:$('m_url').value,source:$('m_src').value,rules:$('m_rules').value})});
   const j=await r.json();b.disabled=false;b.textContent='Dodaj kampanię';if(j.error){alert(j.error);return}['m_name','m_rate','m_left','m_url','m_rules'].forEach(i=>$(i).value='');sig='';load()}
  if(b.dataset.del){await fetch(`/api/klipping/job/${b.dataset.del}/delete`,{method:'POST'});sig='';load()}});
-$('go').onclick=async()=>{const url=$('url').value.trim();if(!url)return;$('go').disabled=true;
- const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value,mode:$('mode').value,who:$('who').value,cam:$('cam').value,format:$('mode').value==='reakcje'?$('fmt').value:'short',auto:$('mode').value==='reakcje'&&$('auto').checked,streamer:$('mode').value==='reakcje'?ST:''})});
- const j=await r.json();$('go').disabled=false;if(j.error){alert(j.error);return}$('url').value='';sig='';await load();
- if(window.toast)toast('Zlecone – Mac zaraz zacznie, postęp widać niżej');$('jobs').scrollIntoView({behavior:'smooth',block:'start'})};
+$('go').onclick=async()=>{const U=($('url').value.match(/(https?:\/\/)?(www\.)?(twitch\.tv|kick\.com|youtube\.com|youtu\.be|m\.youtube\.com)\/[^\s,;]+/gi)||[]).map(u=>u.startsWith('http')?u:'https://'+u);
+ if(!U.length){const one=$('url').value.trim();if(!one)return;U.push(one)}$('go').disabled=true;let j={},ok=0;
+ for(const url of [...new Set(U)]){const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value,mode:$('mode').value,who:$('who').value,cam:$('cam').value,format:$('mode').value==='reakcje'?$('fmt').value:'short',auto:$('mode').value==='reakcje'&&$('auto').checked,streamer:$('mode').value==='reakcje'?ST:''})});
+  j=await r.json();if(j.error){alert(url+': '+j.error);break}ok++}
+ $('go').disabled=false;if(!ok)return;$('url').value='';$('url').rows=1;sig='';await load();
+ if(window.toast)toast(ok>1?`Zlecone ${ok} streamy – Mac zrobi je po kolei, postęp widać niżej`:'Zlecone – Mac zaraz zacznie, postęp widać niżej');$('jobs').scrollIntoView({behavior:'smooth',block:'start'})};
 $('scan').onclick=async()=>{const b=$('scan');b.disabled=true;b.textContent='Szukam… (do 5 min)';
  const r=await fetch('/api/klipping/scan',{method:'POST'});const j=await r.json();b.disabled=false;b.textContent='↻ Szukaj teraz';if(j.error)alert(j.error);sig='';load()};
 $('mode').onchange=()=>{const r=$('mode').value==='reakcje';$('rowCamp').hidden=r;$('rowReak').hidden=!r;$('rowStr').hidden=!r;try{localStorage.setItem('kl-mode',$('mode').value)}catch(e){}};
