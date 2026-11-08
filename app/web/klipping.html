@@ -134,8 +134,10 @@ async function accs(){let A=[];try{A=await (await fetch('/api/social/accounts'))
  $('acc').innerHTML=`<b>Kanał „Strimy w Pigułce”</b><div class="row" style="margin-top:8px">
   ${has('youtube')?`<span class="tag" style="color:var(--ink)">✅ YouTube: ${esc(has('youtube').name)}</span>`:`<a class="btn" href="/api/social/google/connect?group=strimy" target="_top">Połącz YouTube</a>`}
   ${has('instagram')?`<span class="tag" style="color:var(--ink)">✅ Instagram: ${esc(has('instagram').name)}</span>`:`<a class="btn" href="/api/social/instagram/connect?group=strimy" target="_top">Połącz Instagram</a>`}</div>
+  <div class="row" style="margin-top:8px"><span class="mut">Mail do współpracy (dopisywany pod każdym opisem):</span><input id="k_mail" placeholder="np. strimywpigulce@gmail.com" style="flex:1 1 220px"><button class="btn" id="k_save">Zapisz</button></div>
   <p class="mut" style="margin:8px 0 0">Długie filmy wychodzą na YouTube codziennie o 17:00, shorty na YouTube Shorts i Reels dwa razy dziennie (12:30 i 20:30). Wszystko widać w Kalendarzu.</p>`}
-accs();
+accs().then(async()=>{try{const k=await (await fetch('/api/klipping/kanal')).json();$('k_mail').value=k.mail||''}catch(e){}
+ $('k_save').onclick=async()=>{await fetch('/api/klipping/kanal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mail:$('k_mail').value})});$('k_save').textContent='Zapisane ✓'}});
 // ---- streamerzy: profil = nick, link na start filmu, kamerka, format, styl tytułów
 let STR=[],ST='';try{ST=localStorage.getItem('kl-str')||''}catch(e){}
 const CAMS={auto:'bez kamerki (środek kadru)',dzinold:'jak u MrDzinolda (lewy górny, pod nickiem)',l:'lewa strona (środek)',r:'prawa strona (środek)',bl:'lewy dół',br:'prawy dół',tl:'lewy góra',tr:'prawy góra',custom:'własna pozycja (%)'};

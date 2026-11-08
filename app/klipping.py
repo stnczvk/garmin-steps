@@ -154,6 +154,22 @@ def _streamers(d=None):
     return [have.get(x["id"], x) for x in STREAMERS] + [x for x in d.get("streamers", []) if x["id"] not in {y["id"] for y in STREAMERS}]
 
 
+@router.get("/api/klipping/kanal")
+def api_kanal():
+    return {"mail": _rd().get("mail", "")}
+
+
+@router.post("/api/klipping/kanal")
+async def api_kanal_save(req: Request):
+    b = await req.json()
+    m = (b.get("mail") or "").strip()[:120]
+    with _lock:
+        d = _rd()
+        d["mail"] = m
+        _wr(d)
+    return {"mail": m}
+
+
 @router.get("/api/klipping/streamers")
 def api_streamers():
     return _streamers()
@@ -480,6 +496,9 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
             import planer
             c = next(c for c in j["clips"] if c["name"] == nm)
             th = _dir(jid) / (nm + ".jpg")
+            mail = _rd().get("mail")
+            if mail:   # kontakt do współpracy na końcu każdego opisu
+                c = {**c, **{k: (c.get(k) or "").rstrip() + f"\n\n📩 Współpraca: {mail}" for k in ("yt_desc", "instagram") if c.get(k) is not None}}
             planer.add_strimy(jid, {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=c["dur"] > 90)
         except Exception as e:
             print("klipping → planer:", e, flush=True)
