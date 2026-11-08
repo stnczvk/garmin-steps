@@ -253,6 +253,8 @@ async def hook_import(req: Request):
     for x in b.get("campaigns") or []:
         if not x.get("name") or x.get("status") not in (None, "Active"):
             continue
+        if __import__("re").search(r"(?i)stake|csgo ?roll|wpt|casino|gambl|igaming|bet", x["name"]):   # hazard pomijamy
+            continue
         rate = _num(x.get("rate_100k")) / 100
         c = {"id": f"{src}:{x.get('slug') or x['name']}"[:120], "name": x["name"][:120], "url": x.get("url") or "", "rate": rate, "rate_min": 0,
              "left": _num(x.get("pot")), "total": 0, "platforms": [p for p in (x.get("platforms") or PLATFORMS) if p in PLATFORMS] or PLATFORMS,
