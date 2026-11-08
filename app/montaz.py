@@ -630,7 +630,7 @@ VFILM = SOCIAL_ROOT / "vlog_films"
 
 
 @router.put("/api/mont-hook/film")
-async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: float = 0, full: int = 0):
+async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: float = 0, full: int = 0, opis: str = ""):
     """Mac wysyła lekką kopię (720p) gotowego, wyeksportowanego vloga/przepisu – do obejrzenia w Montażowni.
     full=1: kopia 1080p do publikacji (planer postów) – zapisywana obok jako <nazwa>.pub.mp4."""
     if not _tok(req):
@@ -667,13 +667,52 @@ async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: flo
         (VFILM / (x["name"] + ".pub.mp4")).unlink(missing_ok=True)
         M.pop(x["name"], None)
     M[nm] = {"name": nm, "kind": kind if kind in KINDS else "vlog", "mtime": mtime or time.time(), "at": time.time()}
-    keep = sorted(M.values(), key=lambda x: -x["mtime"])[:20]   # 20 najnowszych, starsze kasujemy
+    if opis:   # klipy z vloga YT: gotowy opis od razu z Maca
+        try:
+            M[nm]["opis"] = json.loads(opis)
+        except Exception:
+            pass
+    keep = sorted(M.values(), key=lambda x: -x["mtime"])[:40]   # 40 najnowszych (klipy z vloga YT po kilka naraz), starsze kasujemy
     for x in M.values():
         if x not in keep:
             (VFILM / (x["name"] + ".mp4")).unlink(missing_ok=True)
             (VFILM / (x["name"] + ".pub.mp4")).unlink(missing_ok=True)
     _wr("mont_vlog_films.json", {x["name"]: x for x in keep})
     return {"ok": True}
+
+
+@router.post("/api/mont-hook/klipy-wybor")
+async def hook_klipy_wybor(req: Request):
+    """Mac wysyła transkrypcję gotowego vloga z YouTube (z czasami) → AI wybiera 3–5 fragmentów na pionowe klipy."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    from agency import claude, as_json
+    import asyncio
+    b = await req.json()
+    tr, name, dur = (b.get("transkrypcja") or "")[:60000], b.get("name") or "", float(b.get("dur") or 0)
+    prompt = (f"To transkrypcja długiego vloga z YouTube „{name}” ({dur / 60:.0f} min). Autor: Bartłomiej, natural bodybuilding, "
+              "redukcja, jedzenie, trening, codzienne życie. Każda linia: [sekunda] tekst.\n\n" + tr +
+              "\n\nWybierz 3–5 fragmentów na osobne pionowe klipy (TikTok, Reels, Shorts), po jednym dziennie. Każdy fragment: "
+              "20–60 s, zrozumiały bez reszty vloga, zaczyna się od mocnego zdania (hook w pierwszych 2 s), kończy na pełnej myśli. "
+              "Bez nakładania się fragmentów. Do każdego: krótki napis na górę ekranu (max 6 słów, ciekawość, bez clickbaitu), "
+              "opis TikTok (1–2 zdania + 3–5 hashtagów), opis Instagram (2–4 zdania + CTA + hashtagi), tytuł YouTube Shorts.\n"
+              + OPIS_RULES +
+              '\nOdpowiedz wyłącznie JSON: {"klipy": [{"start": s, "end": s, "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
+    try:
+        txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=3000, system=__import__("skills").sk("hook", "caption", "trend", "slop")))
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=502)
+    K = (as_json(txt) or {}).get("klipy") or []
+    out = []
+    for k in K:
+        try:
+            a, e = float(k["start"]), float(k["end"])
+        except Exception:
+            continue
+        if 8 <= e - a <= 90:
+            out.append({"start": a, "end": e, "hook": human(str(k.get("hook") or "")), "tiktok": human(str(k.get("tiktok") or "")),
+                        "instagram": human(str(k.get("instagram") or "")), "yt_title": human(str(k.get("yt_title") or ""))})
+    return {"klipy": out[:5]}
 
 
 VPOD = SOCIAL_ROOT / "vlog_podglad"
@@ -956,7 +995,7 @@ def vlog_state():
             "jobs": [{k: x for k, x in j.items() if k not in ("log_full", "raport", "napisy")} for j in v["jobs"][-12:][::-1]]}
 
 
-KINDS = {"vlog": "Vlog", "przepis": "Przepis", "cheat": "Cheat meal"}
+KINDS = {"vlog": "Vlog", "przepis": "Przepis", "cheat": "Cheat meal", "klip": "Klip z vloga YT"}
 
 
 def _kn(j):

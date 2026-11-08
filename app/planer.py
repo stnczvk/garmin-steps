@@ -17,7 +17,7 @@ router = APIRouter()
 TZ = ZoneInfo("Europe/Warsaw")
 IG = "https://graph.instagram.com"
 PLAN, CFG = "posts_plan.json", "posts_cfg.json"
-DEF = {"hours": {"jedzenie": "18:00", "karuzela": "09:00", "vlog": "20:00", "cheat": "19:00", "przepis": "17:00"},
+DEF = {"hours": {"jedzenie": "18:00", "karuzela": "09:00", "vlog": "20:00", "cheat": "19:00", "przepis": "17:00", "klip": "18:30"},
        "platforms": {"film": ["instagram", "youtube"], "karuzela": ["instagram"]}, "auto": True}
 _lock = threading.RLock()
 
@@ -133,6 +133,14 @@ def scan():
         if not f.is_file() or f"vf:{nm}" in have or time.time() - f.stat().st_mtime > 3 * 86400 or _dropped(f"vf:{nm}", f):
             continue
         kind = m.get("kind") or "vlog"
+        if kind == "klip":   # klipy z vloga YT: opis gotowy z Maca, po jednym dziennie (kolejne dni po ostatnim zaplanowanym)
+            o = m.get("opis") or {}
+            last = max([x["when"] for x in plan() if x.get("series") == "klip" and x.get("status") != "published"] + [0])
+            when = _when("klip", datetime.fromtimestamp(last, TZ) + timedelta(hours=2)) if last > time.time() else _when("klip")
+            _add({"src": f"vf:{nm}", "kind": "film", "series": "klip", "label": o.get("hook") or nm, "file": str(f), "when": when,
+                  "platforms": _film_pl("klip"), "caption": o.get("instagram", ""), "tiktok": o.get("tiktok", ""), "yt_title": o.get("yt_title", "")})
+            have.add(f"vf:{nm}")
+            continue
         ep = re.search(r"#\s*(\d+)", nm)
         job = next((j for j in reversed(V) if (j.get("kind") or "vlog") == kind and ep and str(j.get("ep")) == ep.group(1) and j.get("state") == "done"), None)
         o = _opis(kind, job["id"]) if job else {"ok": False}
