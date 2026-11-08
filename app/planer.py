@@ -57,6 +57,28 @@ def _when(kind, after=None):
     return t.timestamp()
 
 
+def _film_slot(P, streamer):
+    """Filmy YT na Strimach: każdy streamer max 1 film dziennie, ale różni streamerzy mogą mieć film tego samego dnia
+    o innych godzinach (17:00, potem 20:00, 14:00, 11:00). Pierwszy dzień, w którym ten streamer nie ma filmu i jest wolna godzina."""
+    H = [cfg()["hours"].get("strimy_film", "17:00"), "20:00", "14:00", "11:00"]
+    busy = [datetime.fromtimestamp(x["when"], TZ) for x in P if x.get("group") == "strimy" and x.get("hkind") == "strimy_film"
+            and x.get("status") not in ("published", "skipped", "error")]
+    mine = {datetime.fromtimestamp(x["when"], TZ).date() for x in P if x.get("group") == "strimy" and x.get("hkind") == "strimy_film"
+            and x.get("status") not in ("published", "skipped", "error") and (x.get("streamer") or "") == (streamer or "")}
+    now = datetime.now(TZ)
+    for dd in range(0, 400):
+        day = (now + timedelta(days=dd)).date()
+        if day in mine:
+            continue
+        used = {(b.hour, b.minute) for b in busy if b.date() == day}
+        for h in H:
+            hh, mm = map(int, h.split(":"))
+            t = datetime(day.year, day.month, day.day, hh, mm, tzinfo=TZ)
+            if t > now + timedelta(minutes=20) and (hh, mm) not in used:
+                return t.timestamp()
+    return _when("strimy_film")
+
+
 def add_strimy(jid, clip, path, long, auto=True, streamer=""):
     """Klipping „Strimy w Pigułce”: długie filmy → YouTube codziennie 17:00, shorty → YouTube Shorts + Reels 2× dziennie (12:30, 20:30)."""
     P = plan()
@@ -65,9 +87,12 @@ def add_strimy(jid, clip, path, long, auto=True, streamer=""):
     else:
         n = sum(1 for x in P if x.get("series") == "strimy_short")
         kind, plats = ("strimy_short" if n % 2 == 0 else "strimy_short2"), ["youtube", "instagram"]
-    same = [x["when"] for x in P if x.get("hkind") == kind and x.get("status") not in ("published", "skipped")]
-    last = max(same + [0])
-    when = _when(kind, datetime.fromtimestamp(last, TZ) + timedelta(hours=2)) if last > time.time() else _when(kind)
+    if long:
+        when = _film_slot(P, streamer)
+    else:
+        same = [x["when"] for x in P if x.get("hkind") == kind and x.get("status") not in ("published", "skipped")]
+        last = max(same + [0])
+        when = _when(kind, datetime.fromtimestamp(last, TZ) + timedelta(hours=2)) if last > time.time() else _when(kind)
     it = _add({"src": f"kl:{jid}:{clip['name']}", "kind": "film", "series": "strimy_film" if long else "strimy_short", "hkind": kind,
                "group": "strimy", "label": clip.get("yt_title") or clip.get("hook") or clip["name"], "file": str(path), "when": when,
                "platforms": plats, "caption": clip.get("instagram") or clip.get("yt_desc") or "", "tiktok": clip.get("tiktok", ""),
@@ -80,7 +105,7 @@ def add_strimy(jid, clip, path, long, auto=True, streamer=""):
             if x:
                 x["status"] = "approved"
                 save(P)
-    if it:
+    if it and not long:
         try:
             _przeplot(kind)
         except Exception as e:
