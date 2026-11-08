@@ -612,3 +612,111 @@ def api_clip(jid: str, name: str, dl: int = 0):
         return FileResponse(f, media_type="video/mp4", filename=f.name)
     from lite import lite
     return FileResponse(lite(str(f)), media_type="video/mp4")
+
+
+# ---------- statystyki kanału Strimy w Pigułce + pilnowanie blokad (co 6 h) ----------
+def stats_refresh():
+    """Wyświetlenia/polubienia z YouTube i Instagrama dla opublikowanych filmów kanału + wykrywanie blokad
+    (odrzucony, usunięty, zablokowany w krajach – typowe skutki zgłoszeń praw autorskich). Dobre i słabe wyniki uczą AI."""
+    import planer
+    from social import _google_access, _ig_token
+    P = [x for x in planer.plan() if x.get("group") == "strimy" and x.get("status") == "published"]
+    if not P:
+        return
+    upd = {}
+    _, yacc = planer._acc("youtube", "strimy")
+    if yacc:
+        ids = {(x.get("results") or {}).get("youtube", {}).get("id"): x["id"] for x in P}
+        ids.pop(None, None)
+        tok = _google_access(yacc)
+        L = list(ids)
+        for i in range(0, len(L), 50):
+            r = httpx.get("https://www.googleapis.com/youtube/v3/videos", timeout=30, headers={"Authorization": "Bearer " + tok},
+                          params={"id": ",".join(L[i:i + 50]), "part": "statistics,status,contentDetails"}).json()
+            seen = set()
+            for v in r.get("items", []):
+                seen.add(v["id"])
+                st, cd, s = v.get("statistics", {}), v.get("contentDetails", {}), v.get("status", {})
+                alert = ""
+                if s.get("uploadStatus") == "rejected":
+                    alert = f"YouTube odrzucił film ({s.get('rejectionReason', '')})"
+                elif (cd.get("regionRestriction") or {}).get("blocked"):
+                    alert = "film zablokowany w części krajów – prawdopodobnie zgłoszenie praw autorskich"
+                elif s.get("privacyStatus") != "public":
+                    alert = f"film nie jest publiczny ({s.get('privacyStatus')})"
+                upd.setdefault(ids[v["id"]], {})["yt"] = {"views": int(st.get("viewCount", 0)), "likes": int(st.get("likeCount", 0)),
+                                                         "comments": int(st.get("commentCount", 0)), "alert": alert}
+            if "items" in r:
+                for vid in L[i:i + 50]:
+                    if vid not in seen:
+                        upd.setdefault(ids[vid], {})["yt"] = {"views": 0, "alert": "film zniknął z YouTube (usunięty?)"}
+    key, iacc = planer._acc("instagram", "strimy")
+    if iacc:
+        tok = _ig_token(key, iacc)
+        for x in P:
+            mid = (x.get("results") or {}).get("instagram", {}).get("id")
+            if not mid:
+                continue
+            try:
+                m = httpx.get(f"https://graph.facebook.com/v21.0/{mid}", timeout=30,
+                              params={"fields": "like_count,comments_count", "access_token": tok}).json()
+                ins = httpx.get(f"https://graph.facebook.com/v21.0/{mid}/insights", timeout=30,
+                                params={"metric": "views", "access_token": tok}).json()
+                views = next((v["values"][0]["value"] for v in ins.get("data", []) if v.get("name") == "views"), 0)
+                upd.setdefault(x["id"], {})["ig"] = {"views": int(views or 0), "likes": int(m.get("like_count", 0)),
+                                                     "comments": int(m.get("comments_count", 0)), "alert": "" if "id" in m else "post zniknął z Instagrama"}
+            except Exception:
+                pass
+    if not upd:
+        return
+    with planer._lock:
+        PP = planer.plan()
+        for x in PP:
+            if x["id"] in upd:
+                x["stats"] = {**(x.get("stats") or {}), **upd[x["id"]], "at": time.time()}
+        planer.save(PP)
+    # nauka z wyników: po 3 dniach od publikacji najlepsze 30% = „dobry wynik”, najsłabsze 30% = „słaby wynik”
+    old = [x for x in PP if x.get("group") == "strimy" and x.get("stats") and not x.get("graded") and time.time() - x["when"] > 3 * 86400]
+    allv = sorted(sum((x["stats"].get(p) or {}).get("views", 0) for p in ("yt", "ig")) for x in PP if x.get("stats"))
+    if len(allv) >= 6 and old:
+        hi, lo = allv[int(len(allv) * 0.7)], allv[int(len(allv) * 0.3)]
+        for x in old:
+            v = sum((x["stats"].get(p) or {}).get("views", 0) for p in ("yt", "ig"))
+            if v >= hi or v <= lo:
+                feedback(x.get("streamer"), "dobry wynik (dużo wyświetleń)" if v >= hi else "słaby wynik (mało wyświetleń)",
+                         what=f"{x.get('yt_title') or x.get('label')} ({'film' if x.get('long') else 'short'}) – {v} wyświetleń")
+        with planer._lock:
+            PP = planer.plan()
+            for x in PP:
+                if x["id"] in {o["id"] for o in old}:
+                    x["graded"] = True
+            planer.save(PP)
+    bad = [(x, (x.get("stats") or {})) for x in PP if x.get("group") == "strimy"
+           and any(((x.get("stats") or {}).get(p) or {}).get("alert") for p in ("yt", "ig"))]
+    seen_a = set(_rd().get("alerted", []))
+    new = [x for x, _ in bad if x["id"] not in seen_a]
+    if new:
+        try:
+            from extra import push_all
+            a = new[0]["stats"]
+            push_all("⚠️ Strimy w Pigułce: problem z filmem", f"{new[0].get('label', '')[:60]}: " +
+                     ((a.get("yt") or {}).get("alert") or (a.get("ig") or {}).get("alert") or ""), "/#klipping")
+        except Exception:
+            pass
+        with _lock:
+            d = _rd()
+            d["alerted"] = (d.get("alerted", []) + [x["id"] for x in new])[-300:]
+            _wr(d)
+
+
+def _stats_loop():
+    time.sleep(120)
+    while True:
+        try:
+            stats_refresh()
+        except Exception as e:
+            print("strimy statystyki:", e, flush=True)
+        time.sleep(6 * 3600)
+
+
+threading.Thread(target=_stats_loop, daemon=True).start()

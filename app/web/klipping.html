@@ -170,7 +170,8 @@ async function kal(){let P=[];try{P=await (await fetch('/api/planer?group=strimy
  const ST_={approved:'✅ zaplanowane',draft:'⏸ wstrzymane',published:'📤 opublikowane',error:'❌ błąd',publishing:'⏳ publikuje się'};
  $('kal').innerHTML=`<b>Kalendarz kanału Strimy w Pigułce</b>`+(P.length?Object.entries(by).map(([d,L])=>`<div class="kd">${esc(d)}</div>`+L.map(p=>`<div class="ki">
    ${p.thumb_file?`<img src="/api/planer/${p.id}/thumb" alt="">`:''}<div class="t"><b>${new Date(p.when*1000).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} · ${esc(p.label)}</b>
-   <span class="mut">${p.long?'film YouTube':'short: YouTube + Reels'} · ${ST_[p.status]||esc(p.status)}${p.error?' – '+esc(p.error):''}</span></div>
+   <span class="mut">${p.long?'film YouTube':'short: YouTube + Reels'} · ${ST_[p.status]||esc(p.status)}${p.error?' – '+esc(p.error):''}${p.stats?` · 👁 ${((p.stats.yt||{}).views||0)+((p.stats.ig||{}).views||0)} · ❤️ ${((p.stats.yt||{}).likes||0)+((p.stats.ig||{}).likes||0)}`:''}</span>
+   ${p.stats&&((p.stats.yt||{}).alert||(p.stats.ig||{}).alert)?`<span style="color:#ff7a8a;font-size:12.5px">⚠️ ${esc((p.stats.yt||{}).alert||(p.stats.ig||{}).alert)}</span>`:''}</div>
    ${p.status==='approved'?`<button class="btn" data-pa="unapprove" data-pid="${p.id}">Wstrzymaj</button>`:p.status==='draft'?`<button class="btn" data-pa="approve" data-pid="${p.id}">Wznów</button>`:''}
    ${['approved','draft'].includes(p.status)?`<button class="btn" data-pa="now" data-pid="${p.id}">Teraz</button><button class="btn" data-pa="skip" data-pid="${p.id}">Usuń</button>`:''}</div>`).join('')).join(''):'<p class="mut" style="margin:8px 0 0">Na razie pusto – filmy pojawią się tu po zrobieniu klipów z włączoną publikacją.</p>');}
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-pa]');if(!b)return;b.disabled=true;

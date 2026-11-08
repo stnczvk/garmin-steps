@@ -681,11 +681,16 @@ def g_strimy():
         return FAIL, "brak połączonego konta: " + ", ".join(miss) + " – Klipping → Połącz", None
     if err:
         return FAIL, f"{len(err)} publikacji z błędem: {str(err[-1].get('error', ''))[:90]}", None
+    al = [x for x in P if any(((x.get("stats") or {}).get(p) or {}).get("alert") for p in ("yt", "ig"))]
+    if al:
+        st = al[-1]["stats"]
+        return FAIL, f"{len(al)} filmów z problemem (blokada/zgłoszenie?): " + ((st.get("yt") or {}).get("alert") or (st.get("ig") or {}).get("alert") or "")[:80], None
     if not nxt:
         return WARN, "nic nie jest zaplanowane – wrzuć nowy stream w Klippingu", None
     if nxt[0] - time.time() > 36 * 3600:
         return WARN, f"najbliższa publikacja dopiero {_ago(nxt[0])} – kolejka się kończy", None
-    return OK, f"{len(nxt)} w kolejce, najbliższa za {int((nxt[0] - time.time()) // 3600)} h · opublikowane: {len(pub)}", None
+    views = sum(((x.get("stats") or {}).get(p) or {}).get("views", 0) for x in pub for p in ("yt", "ig"))
+    return OK, f"{len(nxt)} w kolejce, najbliższa za {int((nxt[0] - time.time()) // 3600)} h · opublikowane: {len(pub)}, razem {views:,} wyśw.".replace(",", " "), None
 
 
 # ---------------------------------------------------------------- lista strażników
