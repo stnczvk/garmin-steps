@@ -58,23 +58,18 @@ def _when(kind, after=None):
 
 
 def _film_slot(P, streamer):
-    """Filmy YT na Strimach: każdy streamer max 1 film dziennie, ale różni streamerzy mogą mieć film tego samego dnia
-    o innych godzinach (17:00, potem 20:00, 14:00, 11:00). Pierwszy dzień, w którym ten streamer nie ma filmu i jest wolna godzina."""
-    H = [cfg()["hours"].get("strimy_film", "17:00"), "20:00", "14:00", "11:00"]
-    busy = [datetime.fromtimestamp(x["when"], TZ) for x in P if x.get("group") == "strimy" and x.get("hkind") == "strimy_film"
-            and x.get("status") not in ("published", "skipped", "error")]
-    mine = {datetime.fromtimestamp(x["when"], TZ).date() for x in P if x.get("group") == "strimy" and x.get("hkind") == "strimy_film"
-            and x.get("status") not in ("published", "skipped", "error") and (x.get("streamer") or "") == (streamer or "")}
+    """Filmy YT na Strimach: 3 okienka dziennie (13:00, 17:00, 20:00). Film wskakuje w pierwsze wolne okienko,
+    a kolejność streamerów potem przeplata _przeplot (żeby nie szło 3× Dzinold z rzędu, gdy czeka też Bandura)."""
+    H = ["13:00", "17:00", "20:00"]
+    used = {datetime.fromtimestamp(x["when"], TZ).strftime("%Y-%m-%d %H:%M") for x in P if x.get("group") == "strimy"
+            and x.get("hkind") == "strimy_film" and x.get("status") not in ("published", "skipped", "error")}
     now = datetime.now(TZ)
     for dd in range(0, 400):
         day = (now + timedelta(days=dd)).date()
-        if day in mine:
-            continue
-        used = {(b.hour, b.minute) for b in busy if b.date() == day}
         for h in H:
             hh, mm = map(int, h.split(":"))
             t = datetime(day.year, day.month, day.day, hh, mm, tzinfo=TZ)
-            if t > now + timedelta(minutes=20) and (hh, mm) not in used:
+            if t > now + timedelta(minutes=20) and t.strftime("%Y-%m-%d %H:%M") not in used:
                 return t.timestamp()
     return _when("strimy_film")
 
@@ -105,7 +100,7 @@ def add_strimy(jid, clip, path, long, auto=True, streamer=""):
             if x:
                 x["status"] = "approved"
                 save(P)
-    if it and not long:
+    if it:
         try:
             _przeplot(kind)
         except Exception as e:
