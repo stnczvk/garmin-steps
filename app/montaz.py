@@ -171,8 +171,8 @@ def karuzela(jid: str):
     if not fs and d and not busy and _karu_try.get(jid, 0) < time.time() - 900:
         try:
             _st = json.loads((d / "status.json").read_text(encoding="utf-8"))
-            # po filmie karuzelę robi sam montaż (do 10 min) – wchodzimy dopiero, gdy jej po tym czasie nadal nie ma
-            done = _st.get("state") == "done" and time.time() - float(_st.get("finished") or 0) > 720
+            # po filmie karuzelę robi sam montaż (do 25 min) – wchodzimy dopiero, gdy jej po tym czasie nadal nie ma
+            done = _st.get("state") == "done" and time.time() - float(_st.get("finished") or 0) > 1600
         except Exception:
             done = False
         if done and next(d.glob("dzien_*"), None):   # karuzeli brak (np. restart serwera w trakcie) → robimy ją sami w tle
@@ -205,7 +205,7 @@ def _karu_run(d, *extra):
     py = DZ / "venv" / "bin" / "python"
     tool = DZ / "src" / "app" / "montaz" / "karuzela.py"
     r = subprocess.run([str(py if py.exists() else "python3"), str(tool), str(day), str(d / "gotowe" / "karuzela"), *extra],
-                       capture_output=True, text=True, timeout=600, cwd=str(tool.parent))
+                       capture_output=True, text=True, timeout=1500, cwd=str(tool.parent))
     if r.returncode != 0:
         raise RuntimeError((r.stderr or r.stdout)[-300:])
     return r.stdout
