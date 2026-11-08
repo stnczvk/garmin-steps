@@ -17,7 +17,7 @@ router = APIRouter()
 TZ = ZoneInfo("Europe/Warsaw")
 IG = "https://graph.instagram.com"
 PLAN, CFG = "posts_plan.json", "posts_cfg.json"
-DEF = {"hours": {"jedzenie": "18:00", "karuzela": "09:00", "vlog": "20:00", "cheat": "19:00", "przepis": "17:00", "klip": "18:30"},
+DEF = {"hours": {"jedzenie": "18:00", "karuzela": "09:00", "vlog": "20:00", "cheat": "19:00", "przepis": "17:00", "klip": "18:30", "strimy_film": "17:00", "strimy_short": "12:30", "strimy_short2": "20:30"},
        "platforms": {"film": ["instagram", "youtube"], "karuzela": ["instagram"]}, "auto": True}
 _lock = threading.RLock()
 
@@ -55,6 +55,31 @@ def _when(kind, after=None):
     if t <= base + timedelta(minutes=20):
         t += timedelta(days=1)
     return t.timestamp()
+
+
+def add_strimy(jid, clip, path, long, auto=True):
+    """Klipping „Strimy w Pigułce”: długie filmy → YouTube codziennie 17:00, shorty → YouTube Shorts + Reels 2× dziennie (12:30, 20:30)."""
+    P = plan()
+    if long:
+        kind, plats = "strimy_film", ["youtube"]
+    else:
+        n = sum(1 for x in P if x.get("series") == "strimy_short")
+        kind, plats = ("strimy_short" if n % 2 == 0 else "strimy_short2"), ["youtube", "instagram"]
+    same = [x["when"] for x in P if x.get("hkind") == kind and x.get("status") not in ("published", "skipped")]
+    last = max(same + [0])
+    when = _when(kind, datetime.fromtimestamp(last, TZ) + timedelta(hours=2)) if last > time.time() else _when(kind)
+    it = _add({"src": f"kl:{jid}:{clip['name']}", "kind": "film", "series": "strimy_film" if long else "strimy_short", "hkind": kind,
+               "group": "strimy", "label": clip.get("yt_title") or clip.get("hook") or clip["name"], "file": str(path), "when": when,
+               "platforms": plats, "caption": clip.get("instagram") or clip.get("yt_desc") or "", "tiktok": clip.get("tiktok", ""),
+               "yt_title": clip.get("yt_title", ""), "yt_desc": clip.get("yt_desc", ""), "long": bool(long), "yt_cat": "24"})
+    if it and auto:
+        with _lock:
+            P = plan()
+            x = next((y for y in P if y["id"] == it["id"]), None)
+            if x:
+                x["status"] = "approved"
+                save(P)
+    return it
 
 
 def _public():
@@ -188,10 +213,10 @@ def on_film(name, kind):
 
 
 # ---------- publikacja ----------
-def _acc(platform):
+def _acc(platform, group="prywatne"):
     from social import _accounts
     for k, a in _accounts().items():
-        if a.get("platform") == platform and a.get("group") == "prywatne" and not a.get("error"):
+        if a.get("platform") == platform and a.get("group") == group and not a.get("error"):
             return k, a
     return None, None
 
@@ -237,9 +262,9 @@ def _ig_err(r):
 
 def pub_instagram(it):
     from social import _ig_token
-    key, acc = _acc("instagram")
+    key, acc = _acc("instagram", it.get("group") or "prywatne")
     if not acc:
-        raise RuntimeError("brak połączonego konta Instagram w grupie Prywatne")
+        raise RuntimeError(f"brak połączonego konta Instagram w grupie {it.get('group') or 'prywatne'}")
     tok, uid = _ig_token(key, acc), key.split(":", 1)[1]
     cap = (it.get("caption") or "")[:2200]
     if it["kind"] == "film":
@@ -271,15 +296,15 @@ def pub_instagram(it):
 
 def pub_youtube(it):
     from social import _google_access
-    _, acc = _acc("youtube")
+    _, acc = _acc("youtube", it.get("group") or "prywatne")
     if not acc:
-        raise RuntimeError("brak połączonego kanału YouTube w grupie Prywatne")
+        raise RuntimeError(f"brak połączonego kanału YouTube w grupie {it.get('group') or 'prywatne'}")
     tok = _google_access(acc)
-    cap = it.get("caption") or ""
+    cap = it.get("yt_desc") or it.get("caption") or ""
     title = (it.get("yt_title") or re.split(r"[\n.!?]", cap.strip())[0] or it["label"]).strip()[:90]
     tags = re.findall(r"#(\w+)", cap)[:10]
-    desc = cap + ("" if "#shorts" in cap.lower() else "\n\n#shorts")
-    meta = {"snippet": {"title": title, "description": desc[:4900], "tags": tags, "categoryId": "17", "defaultLanguage": "pl"},
+    desc = cap if it.get("long") or "#shorts" in cap.lower() else cap + "\n\n#shorts"   # długie filmy bez #shorts
+    meta = {"snippet": {"title": title, "description": desc[:4900], "tags": tags, "categoryId": it.get("yt_cat") or "17", "defaultLanguage": "pl"},
             "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False}}
     size = os.path.getsize(it["file"])
     r = httpx.post("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", timeout=60,

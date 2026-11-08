@@ -151,7 +151,8 @@ async def api_job(req: Request):
         mode = "reakcje" if b.get("mode") == "reakcje" else "kampania"
         j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": None if mode == "reakcje" else camp,
              "mode": mode, "lang": "pl" if mode == "reakcje" else "en", "cam": (b.get("cam") or "auto")[:12], "who": (b.get("who") or "")[:40],
-             "format": "yt" if b.get("format") == "yt" else "short",
+             "format": b.get("format") if b.get("format") in ("yt", "short", "oba") else "short",
+             "auto": bool(b.get("auto")) and mode == "reakcje",   # sama publikacja na kanale Strimy w Pigułce
              "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}   # n=0 → AI decyduje
         d["jobs"] = (d["jobs"] + [j])[-60:]
         _wr(d)
@@ -426,6 +427,13 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
             j["clips"] = [c for c in j["clips"] if c.get("name") != nm] + [{"name": nm, **{k: o.get(k, "") for k in ("hook", "tiktok", "instagram", "yt_title", "yt_desc", "thumb")},
                                                                             "dur": round(_num(o.get("end")) - _num(o.get("start")), 1)}]
             _wr(d)
+    if j and j.get("auto"):
+        try:
+            import planer
+            c = next(c for c in j["clips"] if c["name"] == nm)
+            planer.add_strimy(jid, c, f, long=c["dur"] > 90)
+        except Exception as e:
+            print("klipping → planer:", e, flush=True)
     return {"ok": True}
 
 
