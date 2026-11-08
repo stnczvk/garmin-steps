@@ -475,12 +475,15 @@ function scanner(S,FG){
 }
 
 // ---------- biura ----------
-const COL=['#8fd3ff','#ffc24b','#c9c2e3','#ff9fc4','#3ddc84','#ffd66b','#9fe6c8','#c9b8ff'];
+const COL=['#8fd3ff','#ffc24b','#c9c2e3','#ff9fc4','#3ddc84','#ffd66b','#9fe6c8','#c9b8ff','#ff8a65'];
+let KJ=null;   // aktywne zadanie klippingu (Strimy w Pigułce)
+async function klipJob(){try{const r=await (await fetch('/api/klipping')).json();KJ=(r.jobs||[]).find(j=>['queued','working'].includes(j.state))||null}catch(e){KJ=null}}
 function offices(A,V,G,AUD,Q){
  const last=A?.last||{},busy=A?.busy||{};
  const vw=(V?.jobs||[]).find(j=>['working','claimed','ask'].includes(j.state));
  const L=[['Trend Scout','TS',busy.scout||busy.research||(A?`${(A.queue||[]).length} tematów w kolejce`:'–'),busy.scout||busy.research?'wk':'',Math.min(100,(A?.queue||[]).length/6*100),'agencja'],
   ['Montażysta','M',vw?`${vw.kind==='cheat'?'cheat':'vlog'} #${vw.ep}: ${vw.step||'montuje'}`:(V?.online?'Mac online, czeka':'Mac offline'),vw?'wk':'',vw?60:100,'montazownia'],
+  ['Klipper','Kl',KJ?`${KJ.title||'stream'}: ${KJ.step||'pracuje'}`:'czeka na stream',KJ?'wk':'',KJ?60:100,'klipping'],
   ['Analityk','A',busy.retention||last.retention?.text||'–',busy.retention?'wk':'',100,'agencja'],
   ['Inbox','I',busy.inbox||last.inbox?.text||'–',last.inbox?.kind==='error'?'er':'',100,'agencja'],
   ['Strażnicy','S',G?`${G.count?.ok||0} z ${(G.guardians||[]).length} OK`:'–',G?.count?.fail?'er':'',G?(G.count?.ok||0)/Math.max(1,(G.guardians||[]).length)*100:0,'straznicy'],
@@ -529,7 +532,7 @@ async function load(){
  try{
   const [D,S,EQ,FG,A,P,AUD,G,V,F,W]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit'),get('/api/guardians'),get('/api/mont-vlog/state'),get('/api/mont/jobs'),get('/api/wallets')]);
   const HK=await get('/api/ui/hidden');if(HK&&HK.keys){HK.keys.forEach(k=>HID.add(k))}
-  AP=[A,V,F,G];kal();weekly();await mailCard();const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
+  AP=[A,V,F,G];kal();weekly();await mailCard();const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);await klipJob();offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
  }finally{busy=false}
 }
 // ---------- planer postów ----------

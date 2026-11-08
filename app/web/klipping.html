@@ -76,9 +76,9 @@ input#url{flex:1 1 320px}
    <div id="rowReak"><select id="fmt"><option value="oba">oba</option><option value="yt">yt</option><option value="short">short</option></select><input id="who"><select id="cam"><option value="auto">auto</option></select></div></div>
  </div>
 
+ <div id="jobs"></div>
  <h2>Kalendarz</h2>
  <div class="box" id="kal"></div>
- <div id="jobs"></div>
  <div class="box" id="acc"></div>
 
  <div hidden><span id="when"></span><button id="scan"></button><div id="camps"></div>
@@ -100,7 +100,7 @@ function camps(){const C=S.campaigns||[];
   <div class="row">${c.url?`<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Otwórz</a>`:''}${c.manual?`<button class="btn" data-mdel="${esc(c.id)}">Usuń</button>`:''}<button class="btn" data-pick="${esc(c.id)}">Użyj do klipów</button></div></div>`).join(''):'<div class="box empty mut">Brak kampanii – kliknij „Szukaj teraz” (potrzebny token Apify w Ustawieniach).</div>';
 }
 function jobs(){const J=S.jobs||[];
- $('jobs').innerHTML=J.length?'<h2>Zadania</h2>'+J.map(j=>`<div class="j"><div class="row" style="justify-content:space-between"><div><b>${esc(j.title||j.url)}</b>
+ $('jobs').innerHTML=J.length?'<h2>W trakcie i gotowe</h2>'+J.map(j=>`<div class="j"><div class="row" style="justify-content:space-between"><div><b>${esc(j.title||j.url)}</b>
   <div class="st ${j.state==='error'?'err':j.state==='done'?'ok':''}">${j.state==='done'?'✅ Gotowe – '+j.clips.length+' klipów':j.state==='error'?'❌ '+esc(j.error||'błąd'):'⏳ '+esc(j.step||'')}${j.campaign?' · '+esc(j.campaign.name):''}</div></div>
   <button class="btn" data-del="${j.id}">Usuń</button></div>
   ${j.clips.length?`<div class="clips">${j.clips.map(c=>`<div class="cl" style="${c.dur>90?'--ar:16/9;grid-column:span 2':''}"><video src="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}" preload="none" controls playsinline></video>
@@ -122,7 +122,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
  if(b.dataset.del){await fetch(`/api/klipping/job/${b.dataset.del}/delete`,{method:'POST'});sig='';load()}});
 $('go').onclick=async()=>{const url=$('url').value.trim();if(!url)return;$('go').disabled=true;
  const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value,mode:$('mode').value,who:$('who').value,cam:$('cam').value,format:$('mode').value==='reakcje'?$('fmt').value:'short',auto:$('mode').value==='reakcje'&&$('auto').checked,streamer:$('mode').value==='reakcje'?ST:''})});
- const j=await r.json();$('go').disabled=false;if(j.error){alert(j.error);return}$('url').value='';sig='';load()};
+ const j=await r.json();$('go').disabled=false;if(j.error){alert(j.error);return}$('url').value='';sig='';await load();
+ if(window.toast)toast('Zlecone – Mac zaraz zacznie, postęp widać niżej');$('jobs').scrollIntoView({behavior:'smooth',block:'start'})};
 $('scan').onclick=async()=>{const b=$('scan');b.disabled=true;b.textContent='Szukam… (do 5 min)';
  const r=await fetch('/api/klipping/scan',{method:'POST'});const j=await r.json();b.disabled=false;b.textContent='↻ Szukaj teraz';if(j.error)alert(j.error);sig='';load()};
 $('mode').onchange=()=>{const r=$('mode').value==='reakcje';$('rowCamp').hidden=r;$('rowReak').hidden=!r;$('rowStr').hidden=!r;try{localStorage.setItem('kl-mode',$('mode').value)}catch(e){}};
