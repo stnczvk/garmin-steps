@@ -125,7 +125,8 @@ threading.Thread(target=loop, daemon=True).start()
 def api_state():
     d = _rd()
     pl = d.get("pl", {})
-    return {"campaigns": [dict(c, pl=pl.get(c["id"])) for c in d["campaigns"]], "scanned": d["scanned"], "jobs": list(reversed(d["jobs"][-30:]))}
+    C = d.get("manual", []) + d["campaigns"]
+    return {"campaigns": [dict(c, pl=pl.get(c["id"])) for c in C], "scanned": d["scanned"], "jobs": list(reversed(d["jobs"][-30:]))}
 
 
 @router.post("/api/klipping/scan")
@@ -146,12 +147,45 @@ async def api_job(req: Request):
         return JSONResponse({"error": "Wklej link do filmu albo nagrania live"}, status_code=400)
     with _lock:
         d = _rd()
-        camp = next((c for c in d["campaigns"] if c["id"] == str(b.get("campaign") or "")), None)
+        camp = next((c for c in d.get("manual", []) + d["campaigns"] if c["id"] == str(b.get("campaign") or "")), None)
         j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": camp,   # 0 = AI decyduje
              "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}
         d["jobs"] = (d["jobs"] + [j])[-60:]
         _wr(d)
     return j
+
+
+@router.post("/api/klipping/manual")
+async def api_manual(req: Request):
+    """Kampania dodana ręcznie (np. z clipping.net – panel za logowaniem, nie da się go pobierać automatycznie)."""
+    import asyncio
+    b = await req.json()
+    name = (b.get("name") or "").strip()[:120]
+    if not name:
+        return JSONResponse({"error": "Podaj nazwę kampanii"}, status_code=400)
+    c = {"id": "m-" + secrets.token_hex(4), "name": name, "url": (b.get("url") or "").strip(), "rate": _num(b.get("rate")), "rate_min": 0,
+         "left": _num(b.get("left")), "total": 0, "platforms": [p for p in PLATFORMS if p in (b.get("platforms") or PLATFORMS)],
+         "max_payout": _num(b.get("max_payout")), "days": None, "category": (b.get("source") or "ręcznie")[:30],
+         "rules": (b.get("rules") or "")[:3000], "manual": True}
+    c["score"] = round(c["rate"] * math.log10(max(10.0, c["left"] or 1000)) * 10, 2)
+    with _lock:
+        d = _rd()
+        d["manual"] = (d.get("manual", []) + [c])[-30:]
+        _wr(d)
+    try:
+        await asyncio.to_thread(explain, [c])
+    except Exception:
+        pass
+    return c
+
+
+@router.post("/api/klipping/manual/{cid}/delete")
+def api_manual_del(cid: str):
+    with _lock:
+        d = _rd()
+        d["manual"] = [c for c in d.get("manual", []) if c["id"] != cid]
+        _wr(d)
+    return {"ok": True}
 
 
 @router.post("/api/klipping/job/{jid}/delete")
