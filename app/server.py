@@ -147,7 +147,9 @@ from grafiki import router as grafiki_router  # noqa: E402
 app.include_router(grafiki_router)
 from montaz import router as montaz_router  # noqa: E402
 from klipping import router as klipping_router  # noqa: E402
-app.include_router(klipping_router)   # przed montażem – jego /api/mont-hook/{jid}/{what} łapał /klipping/import i /klipping/wybor
+app.include_router(klipping_router)
+from vlogyt import router as vlogyt_router  # noqa: E402
+app.include_router(vlogyt_router)   # przed montażem – jego /api/mont-hook/{jid}/{what} łapał /klipping/import i /klipping/wybor
 app.include_router(montaz_router)
 from agency_extra import router as agency_extra_router  # noqa: E402
 app.include_router(agency_extra_router)
