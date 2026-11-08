@@ -500,6 +500,46 @@ def _pick(K, n, auto_max):
     return good[:auto_max]
 
 
+def _window(trans, a, b):
+    import re
+    out = []
+    for ln in trans.split("\n"):
+        m = re.match(r"\[(\d+)\]", ln)
+        if m and a <= int(m.group(1)) <= b:
+            out.append(ln)
+    return "\n".join(out)
+
+
+async def _granice(b, who, K):
+    """Drugie podejście do każdego segmentu YT: AI widzi szersze okno (10 min przed, do 65 min po) i ustala pełne granice,
+    żeby całe oglądanie filmu / cała gra była jednym filmem, a nie 2-minutowym kawałkiem."""
+    from agency import claude, as_json
+    import asyncio
+    trans = b.get("transkrypcja") or ""
+    end_all = float(b.get("dur") or 0) or 1e9
+
+    def one(k):
+        w = _window(trans, k["start"] - 600, k["start"] + 3900)
+        r = claude(f"Transkrypcja streama ({who}), każda linia: [sekunda] tekst.\n\n{w}\n\n"
+                   f"Wstępnie wybrany segment na film YouTube: {k['start']:.0f}–{k['end']:.0f} s. Co się dzieje: {k.get('dlaczego') or k.get('yt_title')}.\n"
+                   f"Ustal PEŁNE granice tej jednej całości. Jeśli {who} ogląda film / klip: start chwilę przed włączeniem (gdy zapowiada, co ogląda), "
+                   "koniec dopiero gdy film się skończy i skończy się komentarz do niego, a stream przechodzi do czegoś innego. Jeśli gra: cała runda/mecz. "
+                   "Nie ucinaj w środku, ale nie dokładaj innego tematu ani reklam/sponsorów. Max 60 min.\n"
+                   'Odpowiedz tylko JSON: {"start": s, "end": s}', max_tokens=300)
+        j = as_json(r) or {}
+        a, e = float(j.get("start", k["start"])), float(j.get("end", k["end"]))
+        if 90 <= e - a <= 62 * 60 and a < k["end"] and e > k["start"]:
+            k = dict(k, start=max(0, a), end=min(e, end_all))
+        return k
+    R = await asyncio.gather(*[asyncio.to_thread(one, k) for k in K], return_exceptions=True)
+    out = []
+    for k, r in zip(K, R):
+        r = k if isinstance(r, Exception) else r
+        if all(r["end"] <= o["start"] or r["start"] >= o["end"] for o in out):
+            out.append(r)
+    return out
+
+
 async def _wybor_yt(b, n, dur_min):
     """Poziome filmy na YouTube: CAŁE segmenty (np. od początku do końca oglądania jednego filmu / ogłoszenia), 3–60 min."""
     who = b.get("who") or "streamer"
@@ -507,6 +547,8 @@ async def _wybor_yt(b, n, dur_min):
     zas = _zasady(b.get("streamer"))
     ask = (f"Znajdź w TYM fragmencie najlepsze segmenty (0–3, zero jeśli nic nie jest naprawdę ciekawe) na osobne POZIOME filmy na YouTube. "
            f"Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip i na niego reaguje, gra jedną rundę/mecz, "
+           "(gdy ogląda film: segment obejmuje CAŁE oglądanie od włączenia do końca filmu, nigdy pojedynczy kawałek; jeśli koniec jest poza tym "
+           "fragmentem, daj end jako ostatnią sekundę fragmentu, później go dociągnę), "
            "ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję. W środku musi być kilka mocnych momentów, a nie spokojne gadanie. "
            + DOBRE + " Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość 3–60 min. "
            "Oceń każdy segment szczerze 1–10 (10 = ludzie obejrzą do końca i udostępnią, 5 = przeciętny fragment streama). "
@@ -522,8 +564,13 @@ async def _wybor_yt(b, n, dur_min):
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=502)
     from montaz import human
+    P = _pick(K, n, 6)
+    try:
+        P = await _granice(b, who, P)
+    except Exception as e:
+        print("klipping granice:", e, flush=True)
     out = []
-    for k in _pick(K, n, 6):
+    for k in P:
         o = {x: human(str(k.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
         out.append({"start": k["start"], "end": k["end"], **o, "tiktok": "", "instagram": o["yt_desc"], "ocena": k["ocena"], "dlaczego": str(k.get("dlaczego") or "")[:200]})
     return {"klipy": sorted(out, key=lambda k: k["start"])}
