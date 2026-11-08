@@ -524,11 +524,11 @@ async def _granice(b, who, K):
                    f"Wstępnie wybrany segment na film YouTube: {k['start']:.0f}–{k['end']:.0f} s. Co się dzieje: {k.get('dlaczego') or k.get('yt_title')}.\n"
                    f"Ustal PEŁNE granice tej jednej całości. Jeśli {who} ogląda film / klip: start chwilę przed włączeniem (gdy zapowiada, co ogląda), "
                    "koniec dopiero gdy film się skończy i skończy się komentarz do niego, a stream przechodzi do czegoś innego. Jeśli gra: cała runda/mecz. "
-                   "Nie ucinaj w środku, ale nie dokładaj innego tematu ani reklam/sponsorów. Min 5 min, max 60 min.\n"
+                   "Nie ucinaj w środku, ale nie dokładaj innego tematu ani reklam/sponsorów. Celuj w min 5 min, max 60 min.\n"
                    'Odpowiedz tylko JSON: {"start": s, "end": s}', max_tokens=300)
         j = as_json(r) or {}
         a, e = float(j.get("start", k["start"])), float(j.get("end", k["end"]))
-        if 300 <= e - a <= 62 * 60 and a < k["end"] and e > k["start"]:
+        if 170 <= e - a <= 62 * 60 and a < k["end"] and e - a >= k["end"] - k["start"] - 5 and e > k["start"]:
             k = dict(k, start=max(0, a), end=min(e, end_all))
         return k
     R = await asyncio.gather(*[asyncio.to_thread(one, k) for k in K], return_exceptions=True)
@@ -579,7 +579,7 @@ async def _wybor_yt(b, n, dur_min):
            "(gdy ogląda film: segment obejmuje CAŁE oglądanie od włączenia do końca filmu, nigdy pojedynczy kawałek; jeśli koniec jest poza tym "
            "fragmentem, daj end jako ostatnią sekundę fragmentu, później go dociągnę), "
            "ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję. W środku musi być kilka mocnych momentów, a nie spokojne gadanie. "
-           + DOBRE + " Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość 5–60 min (krócej niż 5 min nie wybieraj, rozszerz segment o naturalny wstęp i komentarz po). "
+           + DOBRE + " Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość celuj w 5–60 min (rozszerz segment o naturalny wstęp i komentarz po). 3–4 min tylko gdy moment jest naprawdę dobry, a nie da się go naturalnie wydłużyć. "
            "Oceń każdy segment szczerze 1–10 (10 = ludzie obejrzą do końca i udostępnią, 5 = przeciętny fragment streama). "
            "Do każdego: tytuł YouTube po polsku " + STYL(who) + " "
            + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
@@ -588,7 +588,7 @@ async def _wybor_yt(b, n, dur_min):
            "i jednym zdaniem, co konkretnie się dzieje (pole dlaczego).\n"
            'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "ocena": 1-10, "dlaczego": "...", "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}]}')
     try:
-        K = await _kandydaci(b, dur_min, 60000, ask, 240, 62 * 60)
+        K = await _kandydaci(b, dur_min, 60000, ask, 170, 62 * 60)
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=502)
     from montaz import human
