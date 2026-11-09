@@ -642,41 +642,100 @@ def STYL(who):
             "wykrzykniki co zdanie, pytania retoryczne na koniec.")
 
 
+def _kompakt(trans, step=60):
+    """Mapa całego streama: co minutę ~180 znaków mowy + liczniki 🔊 i ⭐ (z klipem widzów) – mieści się cały stream w jednym zapytaniu."""
+    import re
+    B = {}
+    for ln in trans.split("\n"):
+        m = re.match(r"\[(\d+)\]\s*(.*)", ln)
+        if not m:
+            continue
+        k = int(m.group(1)) // step
+        x = B.setdefault(k, {"t": [], "loud": 0, "star": 0, "klip": ""})
+        txt = m.group(2)
+        x["loud"] += "🔊" in txt
+        x["star"] += "⭐" in txt
+        km = re.search(r"⭐ KLIP WIDZÓW: (.*)$", txt)
+        if km and not x["klip"]:
+            x["klip"] = km.group(1)[:90]
+        x["t"].append(re.sub(r"\s*(🔊|⭐.*)$", "", txt))
+    out = []
+    for k in sorted(B):
+        x = B[k]
+        t = " ".join(x["t"])
+        t = t[:180] + ("…" if len(t) > 180 else "")
+        out.append(f"[{k * step // 60} min] {t}" + (" 🔊" * min(x["loud"], 3)) + (f" ⭐{x['klip']}" if x["klip"] else (" ⭐" if x["star"] else "")))
+    return "\n".join(out)
+
+
 async def _wybor_yt(b, n, dur_min):
-    """Poziome filmy na YouTube: CAŁE segmenty (np. od początku do końca oglądania jednego filmu / ogłoszenia), 3–60 min."""
+    """Poziome filmy na YouTube. Krok 1: AI dostaje mapę CAŁEGO streama (minuta po minucie) i dzieli go na całe segmenty
+    (oglądanie jednego filmu, jeden mecz, jedna historia, IRL: jedna sytuacja). Krok 2: dla najlepszych segmentów pełna
+    transkrypcja tylko tego kawałka → dokładne granice, tytuł, opis, miniatura."""
+    from agency import claude, as_json
+    import asyncio
     who = b.get("who") or "streamer"
     hint = (b.get("title_hint") or "").strip()
     zas = _zasady(b.get("streamer"))
-    ask = (f"Znajdź w TYM fragmencie najlepsze segmenty (0–3, zero jeśli nic nie jest naprawdę ciekawe) na osobne POZIOME filmy na YouTube. "
-           f"Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip i na niego reaguje, gra jedną rundę/mecz, "
-           "(gdy ogląda film: segment obejmuje CAŁE oglądanie od włączenia do końca filmu, nigdy pojedynczy kawałek; jeśli koniec jest poza tym "
-           "fragmentem, daj end jako ostatnią sekundę fragmentu, później go dociągnę), "
-           "ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję; na streamie IRL (na mieście, w podróży, z ludźmi): "
-           "jedna sytuacja, jedno miejsce albo jedna akcja od początku do końca. W środku musi być kilka mocnych momentów, a nie spokojne gadanie. "
-           + DOBRE + " Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość celuj w 5–60 min (rozszerz segment o naturalny wstęp i komentarz po). 3–4 min tylko gdy moment jest naprawdę dobry, a nie da się go naturalnie wydłużyć. "
-           "Oceń każdy segment szczerze 1–10 (10 = ludzie obejrzą do końca i udostępnią, 5 = przeciętny fragment streama). "
-           "Przy filmach YT klipy widzów (⭐) mówią, KTÓRE oglądanie / mecz / historia było najlepsze (im więcej ⭐ i wyświetleń w środku, tym wyższa ocena), "
-           "ale granice to zawsze cała ta rzecz od początku do końca, a nie sam klip widzów. "
-           "Do każdego: tytuł YouTube po polsku " + STYL(who) + " "
-           + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
-           (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
-           "opis YouTube (2–3 krótkie zdania + 3–5 hashtagów, styl opisu jak wyżej), krótki napis na miniaturę (2–4 słowa, WERSALIKI), hook na pierwsze 4 s filmu (max 7 słów) "
-           "i jednym zdaniem, co konkretnie się dzieje (pole dlaczego).\n"
-           'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "ocena": 1-10, "dlaczego": "...", "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}]}')
+    trans = _widz_lines(_energy_lines(b.get("transkrypcja") or "", b.get("energia")), b.get("widzowie"))
+    mapa = _kompakt(trans)
+    ask1 = (f"Mapa całego streama {who} ({dur_min:.0f} min), minuta po minucie: początek tego, co mówi. 🔊 = głośno (śmiech, krzyk), "
+            "⭐ = widzowie zrobili tu klip na Twitchu (z tytułem).\n\n" + mapa[:120000] +
+            f"\n\nPodziel stream na kolejne SEGMENTY tematyczne, czyli całe rzeczy od początku do końca: {who} ogląda jeden film / klip / odcinek "
+            "(od włączenia do końca filmu i komentarza po), gra jeden mecz / rundę, prowadzi jedną rozmowę / historię / dyskusję, na IRL jedno miejsce "
+            "albo jedna sytuacja. Nie tnij oglądania ani meczu na kawałki: jeśli oglądał film 25 minut, to jeden segment 25 min. "
+            "Pomiń jako segmenty: start i koniec streama, czekanie, przerwy, czytanie donejtów, reklamy i współprace sponsorskie. "
+            "Każdy segment oceń 1–10 jako osobny film na YouTube (10 = ludzie obejrzą do końca i udostępnią; dużo ⭐ i 🔊 w środku = wyżej; "
+            "spokojne gadanie o niczym = nisko). " + (f"ZASADY z moich ocen (stosuj):\n{zas}\n" if zas else "") +
+            'Odpowiedz tylko JSON: {"segmenty": [{"od_min": m, "do_min": m, "co": "krótko co się dzieje", "ocena": 1-10}]}')
     try:
-        K = await _kandydaci(b, dur_min, 60000, ask, 170, 62 * 60)
+        r1 = await asyncio.to_thread(lambda: claude(ask1, max_tokens=4000))
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=502)
+    S = []
+    for x in (as_json(r1) or {}).get("segmenty") or []:
+        try:
+            a_, e_ = float(x["od_min"]) * 60, float(x["do_min"]) * 60 + 60
+        except Exception:
+            continue
+        if 170 <= e_ - a_ <= 62 * 60:
+            S.append({"start": a_, "end": e_, "co": str(x.get("co") or ""), "ocena": float(x.get("ocena") or 0)})
+    S.sort(key=lambda x: -x["ocena"])
+    P = [x for x in S if x["ocena"] >= 6][:n] if n else ([x for x in S if x["ocena"] >= 7][:6] or S[:1])
+    sysm = __import__("skills").sk("hook", "caption", "trend", "slop")
+
+    def one(k):
+        w = _window(trans, k["start"] - 240, k["end"] + 240)
+        if len(w) > 90000:   # bardzo długi segment: środek skrócony, początek i koniec pełne (tam są granice)
+            w = w[:45000] + "\n[…]\n" + w[-45000:]
+        r = claude(f"Transkrypcja fragmentu streama {who}, każda linia: [sekunda] tekst (🔊 głośno, ⭐ klip widzów).\n\n{w}\n\n"
+                   f"W tym fragmencie jest segment: {k['co']} (mniej więcej {k['start']:.0f}–{k['end']:.0f} s). Ustal jego DOKŁADNE granice: start chwilę "
+                   "przed rozpoczęciem (zapowiedź, co włącza / w co gra / o czym mówi), koniec gdy ta rzecz i komentarz do niej się kończą. Całość, nie kawałek. "
+                   "Bez reklam i sponsorów na początku i końcu. Celuj w min 5 min, max 60 min.\n"
+                   "Potem napisz tytuł YouTube po polsku " + STYL(who) + " " + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
+                   (f"ZASADY z moich ocen (stosuj):\n{zas}\n" if zas else "") +
+                   "opis YouTube (2–3 krótkie zdania + 3–5 hashtagów), napis na miniaturę (2–4 słowa, WERSALIKI) i hook na pierwsze 4 s (max 7 słów). "
+                   "Tytuł i opis mają mówić o najmocniejszym momencie z tego segmentu.\n"
+                   'Odpowiedz tylko JSON: {"start": s, "end": s, "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}',
+                   max_tokens=1500, system=sysm)
+        j = as_json(r) or {}
+        try:
+            a_, e_ = float(j.get("start", k["start"])), float(j.get("end", k["end"]))
+        except Exception:
+            a_, e_ = k["start"], k["end"]
+        if not (170 <= e_ - a_ <= 62 * 60 and a_ < k["end"] and e_ > k["start"]):
+            a_, e_ = k["start"], k["end"]
+        return {**k, **{x: j.get(x) for x in ("yt_title", "yt_desc", "thumb", "hook")}, "start": max(0.0, a_), "end": e_}
+    R = await asyncio.gather(*[asyncio.to_thread(one, k) for k in P], return_exceptions=True)
     from montaz import human
-    P = _pick(K, n, 6)
-    try:
-        P = await _granice(b, who, P)
-    except Exception as e:
-        print("klipping granice:", e, flush=True)
     out = []
-    for k in P:
-        o = {x: human(str(k.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
-        out.append({"start": k["start"], "end": k["end"], **o, "tiktok": "", "instagram": o["yt_desc"], "ocena": k["ocena"], "dlaczego": str(k.get("dlaczego") or "")[:200]})
+    for k, r in zip(P, R):
+        if isinstance(r, Exception) or not r.get("yt_title"):
+            continue
+        if not all(r["end"] <= o["start"] or r["start"] >= o["end"] for o in out):
+            continue
+        o = {x: human(str(r.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
+        out.append({"start": r["start"], "end": r["end"], **o, "tiktok": "", "instagram": o["yt_desc"], "ocena": r["ocena"], "dlaczego": r["co"][:200]})
     return {"klipy": sorted(out, key=lambda k: k["start"])}
 
 
