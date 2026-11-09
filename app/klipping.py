@@ -352,7 +352,28 @@ def watch_server():
                 print("klipping watch: nowy stream w kolejce", st["id"], v["url"], flush=True)
 
 
+def _auto_wszyscy():
+    """Jednorazowo: 📡 włączone u wszystkich 7 streamerów; starsze nagrania pomijamy (od teraz)."""
+    with _lock:
+        d = _rd()
+        if d.get("auto_wszyscy_v1"):
+            return
+        now = time.time()
+        have = {x["id"]: x for x in d.get("streamers", [])}
+        for st in STREAMERS:
+            x = {**st, **have.get(st["id"], {}), "auto_vod": True}
+            have[st["id"]] = x
+            d.setdefault("watch_since", {}).setdefault(st["id"], now)
+        d["streamers"] = list(have.values())
+        d["auto_wszyscy_v1"] = True
+        _wr(d)
+
+
 def _watch_loop():
+    try:
+        _auto_wszyscy()
+    except Exception as e:
+        print("klipping auto:", e, flush=True)
     time.sleep(180)
     while True:
         try:
