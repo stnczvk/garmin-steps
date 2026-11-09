@@ -145,8 +145,8 @@ STREAMERS = [   # domyślne profile – wszystko można zmienić w zakładce
     {"id": "tuszol", "name": "Tuszol", "link": "kick.com/tuszol", "cam": "auto", "fmt": "oba"},
     {"id": "merghani", "name": "Merghani", "link": "kick.com/xmerghani", "cam": "auto", "fmt": "oba"},
     {"id": "neex", "name": "Neex", "link": "", "cam": "auto", "fmt": "oba"},
-    {"id": "discokarol", "name": "DiscoKarol", "link": "twitch.tv/discokarol", "cam": "auto", "fmt": "oba"},
-    {"id": "pirlo", "name": "Pirlo", "link": "twitch.tv/pirlo444", "cam": "auto", "fmt": "oba"},
+    {"id": "discokarol", "name": "DiscoKarol", "link": "kick.com/discokarol", "cam": "auto", "fmt": "oba"},
+    {"id": "pirlo", "name": "Pirlo", "link": "kick.com/pirlo444", "cam": "auto", "fmt": "oba"},
 ]
 
 
