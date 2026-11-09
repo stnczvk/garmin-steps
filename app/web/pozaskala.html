@@ -146,6 +146,8 @@ body:not(.t-long) .pt-long,body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-l
  <div class="card pt-today" id="c-today"><h2><span>📅 Dziś według harmonogramu</span><small id="tdd" class="mono" style="color:var(--faint);font-weight:400"></small></h2><div id="today"></div></div>
  <div class="card pt-long" id="c-long"><h2><span>🎬 Długie filmy YouTube – „What If?” ze stickmanem</span><button class="btn" id="dlRun">Zrób teraz</button></h2>
   <div class="dlc" id="dlCfg"></div><div id="dlList"><div class="empty">Ładuję…</div></div></div>
+ <div class="card pt-long" id="c-zdrowie"><h2><span>🩺 Kanał Zdrowie 50+ – Walt (EN, 8–10 min)</span><button class="btn" id="zdRun">Zrób teraz</button></h2>
+  <div class="dlc" id="zdCfg"></div><div id="zdList"><div class="empty">Ładuję…</div></div></div>
  <div class="lanes pt-lanes" id="lanes"></div>
  <details class="stage-d" hidden><summary>Schemat przepływu</summary><div class="stage"><svg id="svg" viewBox="0 0 1200 640" role="img" aria-label="Schemat pipeline'u PozaSkala"></svg></div></details>
  <div class="grid2">
@@ -361,20 +363,20 @@ document.querySelectorAll('.fold').forEach(c=>{const k='fold-'+c.id,b=c.querySel
 $('all').onclick=()=>{sel=null;draw();list()};
 
 // ---- długie filmy ----
-async function dlLoad(){let r;try{r=await (await fetch('/api/dlugi')).json()}catch(e){return}
+async function dlLoad(API,P){API=API||'/api/dlugi';P=P||'dl';const $p=x=>$(P+x);let r;try{r=await (await fetch(API)).json()}catch(e){return}
  const c=r.cfg,D=['pn','wt','śr','cz','pt','sb','nd'];
- $('dlCfg').innerHTML=`<label><input type="checkbox" id="dlEn" ${c.enabled?'checked':''}>automatycznie</label>`+D.map((d,i)=>`<label><input type="checkbox" data-dd="${i}" ${c.days.includes(i)?'checked':''}>${d}</label>`).join('')+
-  `<label><input type="checkbox" id="dlAp" ${c.auto_publish?'checked':''}>publikuj bez zatwierdzania</label>`;
- const save=()=>fetch('/api/dlugi-cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:$('dlEn').checked,auto_publish:$('dlAp').checked,days:[...document.querySelectorAll('[data-dd]')].filter(x=>x.checked).map(x=>+x.dataset.dd)})});
- $('dlCfg').querySelectorAll('input').forEach(i=>i.onchange=save);
- $('dlRun').disabled=r.busy;$('dlRun').textContent=r.busy?'Robi film…':'Zrób teraz';
+ $p('Cfg').innerHTML=`<label><input type="checkbox" id="${P}En" ${c.enabled?'checked':''}>automatycznie</label>`+D.map((d,i)=>`<label><input type="checkbox" data-dd="${i}" ${c.days.includes(i)?'checked':''}>${d}</label>`).join('')+
+  `<label><input type="checkbox" id="${P}Ap" ${c.auto_publish?'checked':''}>publikuj bez zatwierdzania</label>`;
+ const save=()=>fetch(API+'-cfg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:$p('En').checked,auto_publish:$p('Ap').checked,days:[...$p('Cfg').querySelectorAll('[data-dd]')].filter(x=>x.checked).map(x=>+x.dataset.dd)})});
+ $p('Cfg').querySelectorAll('input').forEach(i=>i.onchange=save);
+ $p('Run').disabled=r.busy;$p('Run').textContent=r.busy?'Robi film…':'Zrób teraz';
  const S={working:['w trakcie','wr'],review:['do zatwierdzenia','ok'],uploading:['wysyłam','wr'],published:['opublikowany','ok'],error:['błąd','bad'],rejected:['odrzucony','']};
- $('dlList').innerHTML=r.items.length?r.items.map(x=>{const s=S[x.status]||[x.status,''];return `<div class="dli"><div class="h"><span class="st ${s[1]}">${s[0]}</span><b>${esc(x.title||'(scenariusz w drodze)')}</b><small>${new Date(x.at*1000).toLocaleString('pl',{weekday:'short',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}${x.length?` · ${Math.floor(x.length/60)}:${String(x.length%60).padStart(2,'0')} min`:''}${x.images?` · ${x.images} kadrów`:''}</small></div>
-  <small>${esc(x.step||'')}</small>${x.status==='review'?`<video src="/api/dlugi/${x.id}/final.mp4" controls preload="none" poster="/api/dlugi/${x.id}/thumb.png"></video><div class="h"><button class="btn pri" data-dp="${x.id}">Publikuj na YouTube</button><button class="btn" data-dr="${x.id}">Odrzuć</button></div>`:''}${x.yt?`<a href="https://youtu.be/${x.yt}" target="_blank" rel="noopener">Zobacz na YouTube →</a>`:''}</div>`}).join(''):'<div class="empty">Pierwszy film powstanie w najbliższy wtorek albo piątek – albo kliknij „Zrób teraz” (ok. 10–20 min).</div>';
- $('dlList').querySelectorAll('[data-dp]').forEach(b=>b.onclick=async()=>{b.disabled=true;await fetch(`/api/dlugi/${b.dataset.dp}/publish`,{method:'POST'});setTimeout(dlLoad,1500)});
- $('dlList').querySelectorAll('[data-dr]').forEach(b=>b.onclick=async()=>{if(!confirm('Odrzucić ten film?'))return;await fetch(`/api/dlugi/${b.dataset.dr}/reject`,{method:'POST'});dlLoad()})}
-$('dlRun').onclick=async()=>{$('dlRun').disabled=true;await fetch('/api/dlugi/run',{method:'POST'});setTimeout(dlLoad,1500)};
-dlLoad();setInterval(dlLoad,30000);
+ $p('List').innerHTML=r.items.length?r.items.map(x=>{const s=S[x.status]||[x.status,''];return `<div class="dli"><div class="h"><span class="st ${s[1]}">${s[0]}</span><b>${esc(x.title||'(scenariusz w drodze)')}</b><small>${new Date(x.at*1000).toLocaleString('pl',{weekday:'short',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}${x.length?` · ${Math.floor(x.length/60)}:${String(x.length%60).padStart(2,'0')} min`:''}${x.images?` · ${x.images} kadrów`:''}</small></div>
+  <small>${esc(x.step||'')}</small>${x.status==='review'?`<video src="${API}/${x.id}/final.mp4" controls preload="none" poster="${API}/${x.id}/thumb.png"></video><div class="h"><button class="btn pri" data-dp="${x.id}">Publikuj na YouTube</button><button class="btn" data-dr="${x.id}">Odrzuć</button></div>`:''}${x.yt?`<a href="https://youtu.be/${x.yt}" target="_blank" rel="noopener">Zobacz na YouTube →</a>`:''}</div>`}).join(''):'<div class="empty">Pierwszy film powstanie w najbliższy wtorek albo piątek – albo kliknij „Zrób teraz” (ok. 10–20 min).</div>';
+ $p('List').querySelectorAll('[data-dp]').forEach(b=>b.onclick=async()=>{b.disabled=true;await fetch(`${API}/${b.dataset.dp}/publish`,{method:'POST'});setTimeout(()=>dlLoad(API,P),1500)});
+ $p('List').querySelectorAll('[data-dr]').forEach(b=>b.onclick=async()=>{if(!confirm('Odrzucić ten film?'))return;await fetch(`${API}/${b.dataset.dr}/reject`,{method:'POST'});dlLoad(API,P)})}
+for(const [A,P] of [['/api/dlugi','dl'],['/api/zdrowie','zd']]){const b=$(P+'Run');if(b)b.onclick=async()=>{b.disabled=true;await fetch(A+'/run',{method:'POST'});setTimeout(()=>dlLoad(A,P),1500)}}
+const dlAll=()=>{dlLoad('/api/dlugi','dl');if($('zdRun'))dlLoad('/api/zdrowie','zd')};dlAll();setInterval(dlAll,30000);
 
 // zakładki strony (zapamiętane)
 (function(){let t='today';try{t=localStorage.getItem('pz-tab')||'today'}catch(e){}
