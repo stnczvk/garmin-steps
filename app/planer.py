@@ -58,21 +58,60 @@ def _when(kind, after=None):
 
 
 def _film_slot(P, streamer, long=True):
-    """Filmy YT na Strimach: 3 okienka dziennie (13:00, 17:00, 20:00). Film wskakuje w pierwsze wolne okienko,
-    a kolejność streamerów potem przeplata _przeplot (żeby nie szło 3× Dzinold z rzędu, gdy czeka też Bandura)."""
-    H = ["13:00", "17:00", "20:00"] if long else ["12:30", "16:30", "20:30"]   # shorty: też 3 okienka
+    """Kanał Strimy: 3 okienka dziennie na filmy YT (13, 17, 20) i 3 na shorty (12:30, 16:30, 20:30).
+    Jeden streamer dziennie max 1 film i max 2 shorty – reszta okienek zostaje dla innych streamerów albo kolejnych dni."""
+    H = ["13:00", "17:00", "20:00"] if long else ["12:30", "16:30", "20:30"]
     hk = ("strimy_film",) if long else ("strimy_short", "strimy_short2")
-    used = {datetime.fromtimestamp(x["when"], TZ).strftime("%Y-%m-%d %H:%M") for x in P if x.get("group") == "strimy"
-            and x.get("hkind") in hk and x.get("status") not in ("published", "skipped", "error")}
+    lim = 1 if long else 2
+    Q = [x for x in P if x.get("group") == "strimy" and x.get("hkind") in hk and x.get("status") not in ("published", "skipped", "error")]
+    used = {datetime.fromtimestamp(x["when"], TZ).strftime("%Y-%m-%d %H:%M") for x in Q}
     now = datetime.now(TZ)
     for dd in range(0, 400):
         day = (now + timedelta(days=dd)).date()
+        mine = sum(1 for x in Q if (x.get("streamer") or "") == (streamer or "") and datetime.fromtimestamp(x["when"], TZ).date() == day)
+        if mine >= lim:
+            continue
         for h in H:
             hh, mm = map(int, h.split(":"))
             t = datetime(day.year, day.month, day.day, hh, mm, tzinfo=TZ)
             if t > now + timedelta(minutes=20) and t.strftime("%Y-%m-%d %H:%M") not in used:
                 return t.timestamp()
     return _when("strimy_film")
+
+
+def replan_strimy(long=None):
+    """Przeplanowanie kolejki Strimów od nowa: streamerzy na zmianę, limity dzienne (1 film, 2 shorty na streamera),
+    najwcześniejsze wolne okienka. Nie rusza wpisów na najbliższe 3 h ani tych z ręcznie ustawioną godziną."""
+    moved = 0
+    with _lock:
+        P = plan()
+        for lg in ([long] if long is not None else [True, False]):
+            hk = ("strimy_film",) if lg else ("strimy_short", "strimy_short2")
+            Q = sorted([x for x in P if x.get("group") == "strimy" and x.get("hkind") in hk and not x.get("pin")
+                        and x.get("status") in ("approved", "draft") and x["when"] > time.time() + 3 * 3600], key=lambda x: x["when"])
+            ids = {x["id"] for x in Q}
+            G = {}
+            for x in Q:
+                G.setdefault(x.get("streamer") or "", []).append(x)
+            order, last = [], None
+            while any(G.values()):
+                c = sorted([k for k in G if G[k]], key=lambda k: (k == last, -len(G[k])))
+                last = c[0]
+                order.append(G[last].pop(0))
+            base = [x for x in P if x["id"] not in ids]
+            for x in order:
+                w = _film_slot(base, x.get("streamer"), lg)
+                if w != x["when"]:
+                    moved += 1
+                x["when"] = w
+                base.append(x)
+        save(P)
+    return moved
+
+
+@router.post("/api/planer/strimy-replan")
+def api_strimy_replan():
+    return {"ok": True, "moved": replan_strimy()}
 
 
 def add_strimy(jid, clip, path, long, auto=True, streamer=""):
@@ -97,9 +136,9 @@ def add_strimy(jid, clip, path, long, auto=True, streamer=""):
                 save(P)
     if it:
         try:
-            _przeplot(kind)
+            replan_strimy(bool(long))
         except Exception as e:
-            print("strimy przeplot:", e, flush=True)
+            print("strimy przeplanowanie:", e, flush=True)
     return it
 
 

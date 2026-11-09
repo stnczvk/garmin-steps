@@ -192,8 +192,11 @@ async function kal(){let P=[];try{const r=await (await fetch('/api/planer?group=
      ${['approved','draft'].includes(p.status)?`<button data-pa="now" data-pid="${p.id}" title="Opublikuj teraz">⚡</button><button data-pa="skip" data-pid="${p.id}" title="Usuń">✕</button>`:''}</div></div>`).join(''):'<div class="kt" style="opacity:.5">—</div>')+'</div>'};
  $('kal').innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><button class="btn" data-kw="-1">‹</button>
   <span class="mut">${days[0].toLocaleDateString('pl-PL',{day:'numeric',month:'long'})} – ${days[6].toLocaleDateString('pl-PL',{day:'numeric',month:'long'})} · ${P.filter(p=>p.status==='approved').length} zaplanowanych</span>
-  <button class="btn" data-kw="1">›</button></div><div class="kg">${days.map(cell).join('')}</div>`;}
+  <span class="row" style="gap:6px"><button class="btn" id="replan" title="Ułóż kolejkę od nowa: streamerzy na zmianę, dziennie max 1 film i 2 shorty od jednego streamera">🔄 Przeplanuj</button><button class="btn" data-kw="1">›</button></span></div><div class="kg">${days.map(cell).join('')}</div>`;}
 document.addEventListener('click',async e=>{const w=e.target.closest('[data-kw]');if(w){KW+=+w.dataset.kw;kal();return}
+ if(e.target.id==='replan'){const b=e.target;b.disabled=true;b.textContent='Układam…';
+  try{const r=await (await fetch('/api/planer/strimy-replan',{method:'POST'})).json();if(window.toast)toast(r.moved?`Przeplanowane: ${r.moved} postów`:'Kolejka już jest ułożona')}catch(x){alert('Nie udało się przeplanować')}
+  kal();return}
  const b=e.target.closest('[data-pa]');if(!b)return;if(b.dataset.pa==='skip'&&!confirm('Usunąć ten film z kalendarza?'))return;b.disabled=true;
  await fetch(`/api/planer/${b.dataset.pid}/${b.dataset.pa}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});kal()});
 kal();setInterval(kal,30000);
