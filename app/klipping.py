@@ -145,7 +145,6 @@ STREAMERS = [   # domyślne profile – wszystko można zmienić w zakładce
     {"id": "tuszol", "name": "Tuszol", "link": "kick.com/tuszol", "cam": "auto", "fmt": "oba"},
     {"id": "merghani", "name": "Merghani", "link": "kick.com/xmerghani", "cam": "auto", "fmt": "oba"},
     {"id": "neex", "name": "Neex", "link": "", "cam": "auto", "fmt": "oba"},
-    {"id": "anglik", "name": "Anglik", "link": "twitch.tv/anglik2k", "cam": "auto", "fmt": "oba"},
     {"id": "remsua", "name": "Remsua", "link": "twitch.tv/remsua", "cam": "auto", "fmt": "oba"},
 ]
 
@@ -156,7 +155,7 @@ def _streamers(d=None):
     return [have.get(x["id"], x) for x in STREAMERS] + [x for x in d.get("streamers", []) if x["id"] not in {y["id"] for y in STREAMERS} | USUNIECI]
 
 
-USUNIECI = {"discokarol", "pirlo", "amar", "klon", "mario"}   # dodani i od razu wycofani – nie pokazujemy, nawet jeśli zdążyli się zapisać
+USUNIECI = {"discokarol", "pirlo", "amar", "klon", "mario", "anglik"}   # dodani i od razu wycofani – nie pokazujemy, nawet jeśli zdążyli się zapisać
 
 
 @router.get("/api/klipping/kanal")
