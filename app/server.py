@@ -805,6 +805,9 @@ def _mz_env():
         pass
     if kv_get("elevenlabs_key"):          # klucz wpisany w aplikacji (Ustawienia → Montaż)
         env["ELEVENLABS_API_KEY"] = kv_get("elevenlabs_key")
+    # przerwa w ElevenLabs do odnowienia kredytów (13.11.2026) – wszystko idzie przez Groq, klucz zostaje zapisany
+    if time.strftime("%Y-%m-%d") < "2026-11-13":
+        env.pop("ELEVENLABS_API_KEY", None)
     env["MONTAZ_MUSIC"] = str(MZ_DIR / "muzyka_tlo.mp3")
     env["MONTAZ_FONT"] = str(MZ_DIR / "Montserrat.ttf")
     env["DZ_DB"] = str(DB_PATH)
