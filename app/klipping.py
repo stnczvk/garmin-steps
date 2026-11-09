@@ -246,7 +246,11 @@ async def hook_found(req: Request):
     """Mac znalazł zakończone nagranie streama → zadanie jak po kliknięciu „Zrób filmy” (AI sama decyduje ile, auto publikacja)."""
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
-    b = await req.json()
+    return _found(await req.json())
+
+
+def _found(b):
+    """Nowe zakończone nagranie (zgłoszone przez serwer albo przez Maca) → zadanie w kolejce; Mac weźmie je, gdy będzie włączony."""
     vid, sid, url = str(b.get("vid") or "")[:80], b.get("streamer"), (b.get("url") or "").strip()
     if not vid or not url.startswith("http"):
         return {"ok": False}
@@ -270,6 +274,90 @@ async def hook_found(req: Request):
     except Exception:
         pass
     return {"ok": True, "new": True, "job": j["id"]}
+
+
+# ---------- wykrywanie nowych streamów NA SERWERZE (działa 24/7, także gdy Mac jest wyłączony) ----------
+_GQL_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko"   # publiczny identyfikator strony twitch.tv
+
+
+def _tw_vods(login):
+    q = ('query{user(login:"%s"){stream{id} videos(first:5,type:ARCHIVE,sort:TIME){edges{node{id title lengthSeconds createdAt}}}}}' % login)
+    r = httpx.post("https://gql.twitch.tv/gql", json={"query": q}, timeout=30,
+                   headers={"Client-ID": _GQL_ID, "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130 Safari/537.36"})
+    u = ((r.json().get("data") or {}).get("user") or {})
+    live = bool(u.get("stream"))
+    out = []
+    for i, e in enumerate(((u.get("videos") or {}).get("edges") or [])):
+        n = e.get("node") or {}
+        if live and i == 0:   # trwający stream (jego nagranie jest najnowsze) – weźmiemy po zakończeniu
+            continue
+        from datetime import datetime
+        try:
+            ts = datetime.fromisoformat(str(n.get("createdAt")).replace("Z", "+00:00")).timestamp()
+        except Exception:
+            ts = 0
+        out.append({"vid": f"tw:v{n['id']}", "url": f"https://www.twitch.tv/videos/{n['id']}", "title": n.get("title") or "",
+                    "ts": ts, "dur": n.get("lengthSeconds") or 0})
+    return out
+
+
+def _kick_vods(slug):
+    from datetime import datetime
+    r = httpx.get(f"https://kick.com/api/v2/channels/{slug}/videos", timeout=30, headers={
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130 Safari/537.36", "Accept": "application/json"})
+    if r.status_code >= 300:
+        raise RuntimeError(f"kick {r.status_code}")   # Cloudflare potrafi blokować serwery – wtedy wykrywa Mac
+    L = r.json()
+    out = []
+    for e in (L if isinstance(L, list) else L.get("data") or [])[:5]:
+        if e.get("is_live"):
+            continue
+        uid = (e.get("video") or {}).get("uuid") or e.get("uuid")
+        if not uid:
+            continue
+        try:
+            ts = datetime.fromisoformat(str(e.get("start_time") or e.get("created_at")).replace("Z", "+00:00").replace(" ", "T")).timestamp()
+        except Exception:
+            ts = 0
+        out.append({"vid": "kick:" + uid, "url": f"https://kick.com/{slug}/videos/{uid}", "title": e.get("session_title") or "",
+                    "ts": ts, "dur": (e.get("duration") or 0) / 1000})
+    return out
+
+
+def watch_server():
+    import re
+    d = _rd()
+    seen = set(d.get("seen_vods") or [])
+    for st in _streamers(d):
+        if not st.get("auto_vod") or not st.get("link"):
+            continue
+        m = re.match(r"(?:https?://)?(?:www\.)?(twitch\.tv|kick\.com)/([\w-]+)", st["link"].strip(), re.I)
+        if not m:
+            continue
+        try:
+            V = _tw_vods(m.group(2).lower()) if m.group(1).lower() == "twitch.tv" else _kick_vods(m.group(2).lower())
+        except Exception as e:
+            print("klipping watch", st["id"], e, flush=True)
+            continue
+        for v in V:
+            if v["vid"] in seen or (v["dur"] and v["dur"] < 20 * 60):
+                continue
+            r = _found({**v, "streamer": st["id"]})
+            if r.get("new"):
+                print("klipping watch: nowy stream w kolejce", st["id"], v["url"], flush=True)
+
+
+def _watch_loop():
+    time.sleep(180)
+    while True:
+        try:
+            watch_server()
+        except Exception as e:
+            print("klipping watch:", e, flush=True)
+        time.sleep(1800)
+
+
+threading.Thread(target=_watch_loop, daemon=True).start()
 
 
 @router.post("/api/klipping/manual")
