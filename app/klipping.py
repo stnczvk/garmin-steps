@@ -782,6 +782,8 @@ async def _wybor_yt(b, n, dur_min):
             f"\n\nPodziel stream na kolejne SEGMENTY tematyczne, czyli całe rzeczy od początku do końca: {who} ogląda jeden film / klip / odcinek "
             "(od włączenia do końca filmu i komentarza po), gra jeden mecz / rundę, prowadzi jedną rozmowę / historię / dyskusję, na IRL jedno miejsce "
             "albo jedna sytuacja. Nie tnij oglądania ani meczu na kawałki: jeśli oglądał film 25 minut, to jeden segment 25 min. "
+            "Segment ma max 60 min: gdy jedna rzecz trwa dłużej (np. wielogodzinne granie w jedną grę), podziel ją na kilka segmentów "
+            "po 15–60 min w naturalnych miejscach (osobne mecze, rundy, misje, etapy, ważne wydarzenia w grze). "
             "Pomiń jako segmenty: start i koniec streama, czekanie, przerwy, czytanie donejtów, reklamy i współprace sponsorskie. "
             "Każdy segment oceń 1–10 jako osobny film na YouTube (10 = ludzie obejrzą do końca i udostępnią; dużo ⭐ i 🔊 w środku = wyżej; "
             "spokojne gadanie o niczym = nisko). " + (f"ZASADY z moich ocen (stosuj):\n{zas}\n" if zas else "") +
@@ -796,10 +798,14 @@ async def _wybor_yt(b, n, dur_min):
             a_, e_ = float(x["od_min"]) * 60, float(x["do_min"]) * 60 + step
         except Exception:
             continue
+        if e_ - a_ > 62 * 60:   # AI dało za długi kawałek – bierzemy pierwsze 60 min, granice i tak poprawi drugi krok
+            e_ = a_ + 60 * 60
         if 170 <= e_ - a_ <= 62 * 60:
             S.append({"start": a_, "end": e_, "co": str(x.get("co") or ""), "ocena": float(x.get("ocena") or 0)})
     S.sort(key=lambda x: -x["ocena"])
-    P = [x for x in S if x["ocena"] >= 6][:n] if n else ([x for x in S if x["ocena"] >= 7][:6] or S[:1])
+    # bez ręcznej liczby: oceny 7+ (max 6); gdy żadna nie dobiła do 7 – 2 najlepsze z 5+, żeby długi stream nie skończył się bez filmu
+    P = [x for x in S if x["ocena"] >= 6][:n] if n else ([x for x in S if x["ocena"] >= 7][:6] or [x for x in S if x["ocena"] >= 5][:2] or S[:1])
+    print(f"klipping yt: segmentów {len(S)}, wybrane {len(P)}", flush=True)
     sysm = __import__("skills").sk("hook", "caption", "trend", "slop")
 
     def one(k):
