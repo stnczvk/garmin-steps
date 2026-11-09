@@ -655,6 +655,8 @@ async def _wybor_yt(b, n, dur_min):
            "jedna sytuacja, jedno miejsce albo jedna akcja od początku do końca. W środku musi być kilka mocnych momentów, a nie spokojne gadanie. "
            + DOBRE + " Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość celuj w 5–60 min (rozszerz segment o naturalny wstęp i komentarz po). 3–4 min tylko gdy moment jest naprawdę dobry, a nie da się go naturalnie wydłużyć. "
            "Oceń każdy segment szczerze 1–10 (10 = ludzie obejrzą do końca i udostępnią, 5 = przeciętny fragment streama). "
+           "Przy filmach YT klipy widzów (⭐) mówią, KTÓRE oglądanie / mecz / historia było najlepsze (im więcej ⭐ i wyświetleń w środku, tym wyższa ocena), "
+           "ale granice to zawsze cała ta rzecz od początku do końca, a nie sam klip widzów. "
            "Do każdego: tytuł YouTube po polsku " + STYL(who) + " "
            + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
            (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
