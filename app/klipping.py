@@ -475,6 +475,8 @@ async def hook_import(req: Request):
 DOBRE = ("DOBRY moment to szczyt emocji albo akcji: głośny śmiech, wkurzenie, szok, kłótnia, mocna puenta, wygrana albo porażka w grze, "
          "absurdalna sytuacja, ostra opinia o czymś znanym, historia z zaskakującym końcem. Linie oznaczone 🔊 to miejsca, gdzie na streamie "
          "robi się wyraźnie głośniej niż zwykle (śmiech, krzyk, emocje), to mocna wskazówka, ale sprawdź w tekście, czy coś się tam dzieje. "
+         "Linie z ⭐ to miejsca, które WIDZOWIE SAMI wycięli jako klipy na Twitchu (z tytułem i liczbą wyświetleń): to najpewniejszy znak "
+         "dobrego momentu, wybieraj je w pierwszej kolejności (więcej wyświetleń = lepiej) i dawaj im wyższą ocenę. "
          "ZŁY moment (nigdy): czekanie, start i koniec streama, czytanie donejtów i czatu, dziękowanie za suby, sprawy techniczne, menu i "
          "ładowanie gry, spokojne gadanie o niczym, rzeczy niezrozumiałe bez kontekstu. SEGMENTY SPONSORSKIE pomijaj całkowicie: "
          "reklamy, współprace, kody rabatowe, linki w opisie, promocje sklepów, kasyn, bukmacherów i aplikacji. Klip ani segment nie może "
@@ -499,6 +501,26 @@ def _energy_lines(trans, energia):
     return "\n".join(out)
 
 
+def _widz_lines(trans, W):
+    """⭐ przy liniach, które widzowie sami zaklipowali na Twitchu (z tytułem i liczbą wyświetleń przy pierwszej linii)."""
+    import re
+    if not W:
+        return trans
+    W = sorted(W, key=lambda w: -w.get("views", 0))[:60]
+    out, first = [], set()
+    for ln in trans.split("\n"):
+        m = re.match(r"\[(\d+)\]", ln)
+        if m:
+            t = int(m.group(1))
+            hit = next((w for w in W if w["t"] - 3 <= t <= w["t"] + w.get("dur", 30)), None)
+            if hit:
+                k = (hit["t"], hit.get("title"))
+                ln += " ⭐" if k in first else f" ⭐ KLIP WIDZÓW: „{hit.get('title', '')}” ({hit.get('views', 0)} wyśw.)"
+                first.add(k)
+        out.append(ln)
+    return "\n".join(out)
+
+
 def _parts(trans, size):
     """Cała transkrypcja (nie tylko początek) w kawałkach po ~size znaków z małą zakładką."""
     L, out, cur, n = trans.split("\n"), [], [], 0
@@ -515,7 +537,7 @@ async def _kandydaci(b, dur_min, size, ask, lo, hi):
     """Każdy kawałek streama oceniany osobno (równolegle) → kandydaci z oceną 1–10 → najlepsi z całego streama."""
     from agency import claude, as_json
     import asyncio
-    trans = _energy_lines(b.get("transkrypcja") or "", b.get("energia"))
+    trans = _widz_lines(_energy_lines(b.get("transkrypcja") or "", b.get("energia")), b.get("widzowie"))
     P = _parts(trans, size)
     sysm = __import__("skills").sk("hook", "caption", "trend", "slop")
 
