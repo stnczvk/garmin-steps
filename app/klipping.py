@@ -189,9 +189,12 @@ async def api_streamer_save(req: Request):
         cam = "auto"
     x = {"id": sid, "name": (b.get("name") or sid)[:40], "link": (b.get("link") or "").strip().replace("https://", "").replace("www.", "")[:80],
          "cam": cam, "fmt": b.get("fmt") if b.get("fmt") in ("yt", "short", "oba") else "oba",
-         "title_hint": (b.get("title_hint") or "")[:300]}
+         "title_hint": (b.get("title_hint") or "")[:300], "auto_vod": bool(b.get("auto_vod"))}
     with _lock:
         d = _rd()
+        old = next((y for y in _streamers(d) if y["id"] == sid), {})
+        if x["auto_vod"] and not old.get("auto_vod"):   # od teraz: starsze nagrania pomijamy
+            d.setdefault("watch_since", {})[sid] = time.time()
         d["streamers"] = [y for y in d.get("streamers", []) if y["id"] != sid] + [x]
         _wr(d)
     return x
@@ -205,6 +208,13 @@ async def api_job(req: Request):
         return JSONResponse({"error": "Wklej link do filmu albo nagrania live"}, status_code=400)
     with _lock:
         d = _rd()
+        j = _mk_job(d, b, url)
+        _wr(d)
+    return j
+
+
+def _mk_job(d, b, url):
+    if True:
         camp = next((c for c in d.get("manual", []) + d.get("external", []) + d["campaigns"] if c["id"] == str(b.get("campaign") or "")), None)
         mode = "reakcje" if b.get("mode") == "reakcje" else "kampania"
         st = next((x for x in _streamers(d) if x["id"] == b.get("streamer")), None) if mode == "reakcje" else None
@@ -217,8 +227,49 @@ async def api_job(req: Request):
              "streamer": st["id"] if st else "", "link": st.get("link", "") if st else "", "title_hint": st.get("title_hint", "") if st else "",
              "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}   # n=0 → AI decyduje
         d["jobs"] = (d["jobs"] + [j])[-60:]
-        _wr(d)
     return j
+
+
+# ---------- automatyczne wykrywanie nowych streamów (Mac sprawdza kanały co 30 min) ----------
+@router.get("/api/mont-hook/klipping/watch")
+def hook_watch(req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    d = _rd()
+    return {"streamers": [{"id": x["id"], "link": x["link"], "since": (d.get("watch_since") or {}).get(x["id"], time.time())}
+                          for x in _streamers(d) if x.get("auto_vod") and x.get("link")],
+            "seen": (d.get("seen_vods") or [])[-300:]}
+
+
+@router.post("/api/mont-hook/klipping/found")
+async def hook_found(req: Request):
+    """Mac znalazł zakończone nagranie streama → zadanie jak po kliknięciu „Zrób filmy” (AI sama decyduje ile, auto publikacja)."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    vid, sid, url = str(b.get("vid") or "")[:80], b.get("streamer"), (b.get("url") or "").strip()
+    if not vid or not url.startswith("http"):
+        return {"ok": False}
+    with _lock:
+        d = _rd()
+        seen = d.setdefault("seen_vods", [])
+        if vid in seen or any(j["url"] == url for j in d["jobs"]):
+            return {"ok": True, "new": False}
+        seen.append(vid); d["seen_vods"] = seen[-500:]
+        since = (d.get("watch_since") or {}).get(sid, 0)
+        st = next((x for x in _streamers(d) if x["id"] == sid), None)
+        if not st or float(b.get("ts") or 0) < since:
+            _wr(d)
+            return {"ok": True, "new": False}
+        j = _mk_job(d, {"mode": "reakcje", "streamer": sid, "n": 0, "auto": True}, url)
+        j["title"] = (b.get("title") or "")[:120]; j["found"] = True
+        _wr(d)
+    try:
+        from extra import push_all
+        push_all(f"📡 Nowy stream: {st['name']}", (b.get("title") or url)[:100] + " – robię filmy", "/#klipping")
+    except Exception:
+        pass
+    return {"ok": True, "new": True, "job": j["id"]}
 
 
 @router.post("/api/klipping/manual")
