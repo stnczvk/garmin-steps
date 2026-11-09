@@ -149,6 +149,9 @@ STREAMERS = [   # domyślne profile – wszystko można zmienić w zakładce
     {"id": "pirlo", "name": "Pirlo", "link": "kick.com/pirlo444", "cam": "auto", "fmt": "oba"},
     {"id": "anglik", "name": "Anglik", "link": "twitch.tv/anglik2k", "cam": "auto", "fmt": "oba"},
     {"id": "remsua", "name": "Remsua", "link": "twitch.tv/remsua", "cam": "auto", "fmt": "oba"},
+    {"id": "amar", "name": "Amar", "link": "kick.com/amar8ygg", "cam": "auto", "fmt": "oba"},
+    {"id": "klon", "name": "Klon", "link": "twitch.tv/younggklon", "cam": "auto", "fmt": "oba"},
+    {"id": "mario", "name": "Mario", "link": "twitch.tv/mariospzoo", "cam": "auto", "fmt": "oba"},
 ]
 
 
