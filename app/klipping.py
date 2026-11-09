@@ -147,6 +147,7 @@ STREAMERS = [   # domyślne profile – wszystko można zmienić w zakładce
     {"id": "neex", "name": "Neex", "link": "", "cam": "auto", "fmt": "oba"},
     {"id": "discokarol", "name": "DiscoKarol", "link": "kick.com/discokarol", "cam": "auto", "fmt": "oba"},
     {"id": "pirlo", "name": "Pirlo", "link": "kick.com/pirlo444", "cam": "auto", "fmt": "oba"},
+    {"id": "anglik", "name": "Anglik", "link": "twitch.tv/anglik2k", "cam": "auto", "fmt": "oba"},
 ]
 
 
