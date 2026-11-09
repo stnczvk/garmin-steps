@@ -672,6 +672,45 @@ def api_tg_quiet():
     return apply_tg_quiet()
 
 
+# ---------------------------------------------------------------- Kling: dłuższe czekanie na wideo
+def apply_kling_wait():
+    """Kling/PiAPI w godzinach szczytu potrafi mielić zadanie ponad 30 min (status „processing”) i generator padał
+    w Check Timeout Or Failure. Limit czekania 30 → 75 min."""
+    wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
+    done = []
+    for w in wfs:
+        if w.get("isArchived"):
+            continue
+        wf = n8n("GET", f"/api/v1/workflows/{w['id']}").json()
+        node = next((n for n in wf.get("nodes", []) if n.get("name") == "Check Timeout Or Failure"), None)
+        js = (node or {}).get("parameters", {}).get("jsCode", "")
+        if "const MAX_WAIT_MS = 30 * 60 * 1000;" not in js:
+            continue
+        new = copy.deepcopy(wf)
+        for n in new["nodes"]:
+            if n["name"] == "Check Timeout Or Failure":
+                n["parameters"]["jsCode"] = js.replace("const MAX_WAIT_MS = 30 * 60 * 1000;", "const MAX_WAIT_MS = 75 * 60 * 1000;")
+        _save_backup(wf, "przed wydłużeniem czekania na Kling (30 → 75 min)")
+        r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new))
+        if r.status_code >= 400:
+            r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new, minimal=True))
+        if r.status_code >= 400:
+            log("op", f"{wf.get('name')}: n8n nie przyjął zmiany czekania na Kling: {r.text[:120]}", "error")
+            continue
+        if wf.get("active"):
+            n8n("POST", f"/api/v1/workflows/{wf['id']}/activate")
+        done.append(wf.get("name"))
+    if done:
+        log("op", "Kling: czekanie na wideo wydłużone do 75 min (" + ", ".join(done) + ")", "ok")
+        _bust()
+    return {"ok": True, "changed": done}
+
+
+@router.post("/api/n8n/kling-wait")
+def api_kling_wait():
+    return apply_kling_wait()
+
+
 def _img_loop():
     import threading, time as _t
     def run():
@@ -697,6 +736,10 @@ def _img_loop():
                 apply_tg_quiet()
             except Exception as e:
                 print("tg quiet", e, flush=True)
+            try:
+                apply_kling_wait()
+            except Exception as e:
+                print("kling wait", e, flush=True)
             _t.sleep(6 * 3600)
     threading.Thread(target=run, daemon=True).start()
 
