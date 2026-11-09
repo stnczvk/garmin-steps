@@ -147,6 +147,7 @@ Return ONLY JSON:
 Also add "sources": ["3-6 real, well-known sources by organisation and topic, e.g. CDC - Physical Activity Guidelines for Older Adults"].
 The sum of all narration must be 1300-1600 words."""
     r = _chk(as_json(claude(p, SMART, 7000, system=sk("reel", "hook"))))
+    r = _wydluz(r, 1350, "220-260")
     # sprawdzanie faktów: drugi przebieg poprawia przesadzone albo wątpliwe twierdzenia (zdrowie = YouTube patrzy szczególnie)
     fx = as_json(claude("You are a strict medical fact-checker for a general-audience health video. Below is the script JSON. "
                         "Fix any claim that is exaggerated, not mainstream evidence, too specific (exact numbers you are not sure about), "
@@ -160,6 +161,31 @@ The sum of all narration must be 1300-1600 words."""
     src = [x for x in (r.get("sources") or []) if isinstance(x, str)][:6]
     r["description"] = (r.get("description") or "").strip() + ("\n\nSources:\n" + "\n".join("- " + x for x in src) if src else "") + \
         "\n\nThis video is for general education, not medical advice. Talk to your doctor before changing your exercise, diet or medication."
+    return r
+
+
+def _slowa(r):
+    return sum(len(str(c.get("narration") or "").split()) for c in r.get("chapters") or [])
+
+
+def _wydluz(r, min_words, per):
+    """AI zwykle pisze krócej, niż prosimy (wychodziło ~5 min zamiast 8–10). Za krótki scenariusz → jedno podejście „rozwiń”:
+    więcej konkretu i przykładów w każdym rozdziale, ten sam styl i sceny (+2–3 sceny na rozdział)."""
+    n = _slowa(r)
+    if n >= min_words:
+        return r
+    try:
+        x = _chk(as_json(claude(
+            f"This YouTube script is too short ({n} words of narration, it must be at least {min_words}). Expand EVERY chapter's narration to "
+            f"{per} words by adding concrete, useful detail: a relatable everyday example, a simple explanation of why it happens, "
+            "and one practical tip. Keep the same voice, style, facts policy, title and structure; add 2-3 extra scenes to each chapter "
+            "for the new parts. No filler, no repetition. Return ONLY the full JSON in the same format.\n\n" + json.dumps(r, ensure_ascii=False),
+            SMART, 9000)))
+        if _slowa(x) > n:
+            log(LOG, f"Scenariusz wydłużony: {n} → {_slowa(x)} słów", "info")
+            return {**r, **x}
+    except Exception as e:
+        print("wydluz", e, flush=True)
     return r
 
 
