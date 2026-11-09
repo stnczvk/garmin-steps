@@ -105,7 +105,7 @@ JSON_SPEC = """{{"title":"{title}","description":"3-4 sentences + 3 hashtags {ta
 
 def script_humor(used):
     """PozaSkala – nauka wyjaśniona z humorem: Stick tłumaczy codzienne „dlaczego?” (ziewanie, czkawka, czemu niebo jest niebieskie)."""
-    p = f"""Write ONE long-form YouTube episode (EN, 6-8 minutes) for the channel "Poza Skala", series "Stick Explains" starring Stick
+    p = f"""Write ONE long-form YouTube episode (EN, 8-10 minutes) for the channel "Poza Skala", series "Stick Explains" starring Stick
 (a simple stick figure with a round white head and his signature red baseball cap) and his sidekick Bolt (a tiny round white robot).
 Topic: one everyday science question people secretly wonder about and that has a surprising real answer (e.g. Why do we yawn,
 Why does time feel faster as we get older, Why can't you tickle yourself, Where does fat actually go when you lose weight).
@@ -121,8 +121,8 @@ Return ONLY JSON:
 """ + JSON_SPEC.format(title="max 60 chars, a curiosity question or bold claim", tags="incl. #Science #Stickman",
                        thumb="Stick with a funny confused or shocked face, one clear focal object, bold composition",
                        scene="what Stick and Bolt do, funny visual exaggeration") + """
-The sum of all narration must be 1050-1350 words."""
-    return _chk(as_json(claude(p, SMART, 6000, system=sk("reel", "hook"))))
+The sum of all narration must be 1250-1500 words (8-10 minutes: from 8 minutes YouTube can show mid-roll ads)."""
+    return _wydluz(_chk(as_json(claude(p, SMART, 7000, system=sk("reel", "hook")))), 1200, "200-240")
 
 
 def script_zdrowie(used):
@@ -203,8 +203,8 @@ Return ONLY JSON:
 {{"title":"max 60 chars, starts with What If","description":"3-4 sentences + 3 hashtags incl. #WhatIf #Stickman",
 "tags":["8-12 search phrases"],"thumbnail_prompt":"Stick with a shocked face in the most dramatic moment, bold composition",
 "chapters":[{{"title":"short chapter title","narration":"150-230 words","scenes":["7-9 visual scene descriptions, each one focal idea, what Stick does + the scale object"]}}]}}
-The sum of all narration must be 1050-1350 words."""
-    return _chk(as_json(claude(p, SMART, 6000, system=sk("reel", "hook"))))
+The sum of all narration must be 1250-1500 words (8-10 minutes: from 8 minutes YouTube can show mid-roll ads)."""
+    return _wydluz(_chk(as_json(claude(p, SMART, 7000, system=sk("reel", "hook")))), 1200, "200-240")
 
 
 # ---------------------------------------------------------------- 2. lektor i kadry
