@@ -842,16 +842,60 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
                                                                             "dur": round(_num(o.get("end")) - _num(o.get("start")), 1)}]
             _wr(d)
     if j and j.get("auto"):
-        try:
-            import planer
-            c = next(c for c in j["clips"] if c["name"] == nm)
-            th = _dir(jid) / (nm + ".jpg")
-            mail = _rd().get("mail")
-            c = {**c, **{k: _uklad(c.get(k), j, mail) for k in ("yt_desc", "instagram", "tiktok") if c.get(k)}}
-            planer.add_strimy(jid, {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=c["dur"] > 90, streamer=j.get("streamer", ""))
-        except Exception as e:
-            print("klipping → planer:", e, flush=True)
+        _do_planu(j, nm)
     return {"ok": True}
+
+
+def _do_planu(j, nm):
+    """Gotowy klip → kalendarz kanału Strimy. Błąd zapisuje się przy zadaniu (widać go w zakładce), a nie tylko w logu."""
+    import traceback
+    try:
+        import planer
+        c = next(c for c in j["clips"] if c["name"] == nm)
+        f = _dir(j["id"]) / (nm + ".mp4")
+        th = _dir(j["id"]) / (nm + ".jpg")
+        mail = _rd().get("mail")
+        c = {**c, **{k: _uklad(c.get(k), j, mail) for k in ("yt_desc", "instagram", "tiktok") if c.get(k)}}
+        planer.add_strimy(j["id"], {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=_num(c.get("dur")) > 90, streamer=j.get("streamer", ""))
+        return None
+    except Exception as e:
+        err = f"{type(e).__name__}: {e}"[:200]
+        print("klipping → planer:", err, traceback.format_exc()[-600:], flush=True)
+        with _lock:
+            d = _rd()
+            for jj in d["jobs"]:
+                if jj["id"] == j["id"]:
+                    jj["plan_err"] = err
+            _wr(d)
+        return err
+
+
+@router.post("/api/klipping/job/{jid}/plan")
+def api_job_plan(jid: str):
+    """Ręcznie: wszystkie klipy z tego streama, których nie ma w kalendarzu → do kalendarza."""
+    import planer
+    d = _rd()
+    j = next((j for j in d["jobs"] if j["id"] == jid), None)
+    if not j:
+        return JSONResponse({"error": "Nie ma takiego zadania"}, status_code=404)
+    have = {x.get("src") for x in planer.plan()}
+    added, errs = 0, []
+    for c in j.get("clips", []):
+        if f"kl:{jid}:{c['name']}" in have:
+            continue
+        e = _do_planu(j, c["name"])
+        if e:
+            errs.append(f"{c['name']}: {e}")
+        else:
+            added += 1
+    if not errs:
+        with _lock:
+            d = _rd()
+            for jj in d["jobs"]:
+                if jj["id"] == jid:
+                    jj.pop("plan_err", None)
+            _wr(d)
+    return {"ok": not errs, "added": added, "errors": errs[:5]}
 
 
 @router.put("/api/mont-hook/klipping/{jid}/thumb")

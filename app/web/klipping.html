@@ -107,7 +107,8 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-zw]');if(!
 function jobs(){const J=(S.jobs||[]).filter(j=>!ST||j.streamer===ST);
  $('jobs').innerHTML=J.length?'<h2>W trakcie i gotowe</h2>'+J.map((j,i)=>`<div class="j${zw(j,i)?' zw':''}"><div class="row" style="justify-content:space-between"><div data-zw="${j.id}" style="cursor:pointer;flex:1"><b>${zw(j,i)?'▸':'▾'} ${esc(j.title||j.url)}</b>
   <div class="st ${j.state==='error'?'err':j.state==='done'?'ok':''}">${j.state==='done'?'✅ Gotowe – '+j.clips.length+' klipów':j.state==='error'?'❌ '+esc(j.error||'błąd'):'⏳ '+esc(j.step||'')}${j.campaign?' · '+esc(j.campaign.name):''}</div></div>
-  <button class="btn" data-del="${j.id}">Usuń</button></div>
+  <div class="row" style="gap:6px">${j.state==='done'&&j.clips.length&&j.streamer?`<button class="btn" data-plan="${j.id}" title="Klipy, których nie ma w kalendarzu, dodaj do kalendarza">📅 Do kalendarza</button>`:''}<button class="btn" data-del="${j.id}">Usuń</button></div></div>
+  ${j.plan_err?`<div class="st err">Nie dodało się do kalendarza: ${esc(j.plan_err)}</div>`:''}
   ${j.clips.length?`<div class="clips">${j.clips.map(c=>`<div class="cl" style="${c.dur>90?'--ar:16/9;grid-column:span 2':''}"><video src="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}" preload="none" controls playsinline></video>
    <div class="in"><b>${esc(c.hook||c.name)}</b><span class="mut">${c.dur?(c.dur>90?Math.floor(c.dur/60)+' min '+Math.round(c.dur%60)+' s':c.dur+' s'):''}</span>
    <div class="row"><a class="btn" href="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}?dl=1">⬇ Pobierz</a>
@@ -116,6 +117,8 @@ function jobs(){const J=(S.jobs||[]).filter(j=>!ST||j.streamer===ST);
 async function load(){try{S=await (await fetch('/api/klipping')).json()}catch(e){return}
  const s=JSON.stringify([S.scanned,(S.campaigns||[]).length,(S.jobs||[]).map(j=>[j.id,j.state,j.step,j.clips.length])]);if(s===sig)return;sig=s;camps();jobs()}
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.plan){b.disabled=true;const r=await (await fetch('/api/klipping/job/'+b.dataset.plan+'/plan',{method:'POST'})).json();b.disabled=false;
+  if(r.errors&&r.errors.length)alert('Błąd: '+r.errors.join('\n'));else if(window.toast)toast(r.added?`Dodane do kalendarza: ${r.added}`:'Wszystko już jest w kalendarzu');sig='';load();if(window.kal)kal();return}
  if(b.dataset.pick){$('camp').value=b.dataset.pick;$('url').focus();scrollTo({top:0,behavior:'smooth'})}
  if(b.dataset.cp!==undefined){try{await navigator.clipboard.writeText(b.dataset.cp);b.textContent='Skopiowane ✓'}catch(x){}}
  if(b.dataset.oc){let u='';if(b.dataset.oc==='slaby'){u=prompt('Co było nie tak? (np. zły moment, za długi, słaby tytuł)')||''}
