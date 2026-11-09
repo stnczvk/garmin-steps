@@ -176,6 +176,8 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 .hvw{position:relative;cursor:pointer;border-radius:10px;overflow:hidden}.hvw video{display:block}
 .hvs{position:absolute;right:8px;bottom:8px;font-size:13px;padding:3px 7px;border-radius:99px;background:rgba(0,0,0,.55);pointer-events:none}
 .hvw:hover{outline:2px solid #a294d8;outline-offset:-2px}
+.gfil{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 8px}.gfil button{border:1px solid var(--line,#333);background:rgba(255,255,255,.04);color:inherit;border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
+.gfil button.on{background:rgba(139,124,199,.28);border-color:#8b7cc7}.gfil small{opacity:.6;margin-left:3px}.gj.zw .pv,.gj.zw .fl{display:none}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -235,7 +237,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
    <div class="g2"><label class="gup">Twoje zdjęcie (opcjonalnie)<input type="file" accept="image/*" id="g-mph"><small id="g-mph-s">bez tego: folder „zdjęcia” albo pozowanie</small></label>
    <label class="gup">Jedzenie / przedmiot obok Ciebie (opcjonalnie)<input type="file" accept="image/*" id="g-mfd"><small id="g-mfd-s">wytnie się z tła jako naklejka</small></label></div>
    <p class="mut">Zdjęcie bierze się samo: najnowsze z folderu „Animacje vlog YT/Miniatury/zdjęcia” (jeśli wrzucisz), a jak go nie ma – najlepsza klatka z ostatniego nagrania pozowania. Tło wycina się automatycznie, ujęcia biorą się z różnych momentów nagrania. Słowo w *gwiazdkach* (np. „Schudłem *-1,2 kg*”) dostaje kolor – bez gwiazdek wyróżniają się liczby. Przy „Mieszance” każda propozycja ma inny układ i kolor. Tablica wyników sama wyciąga liczby z napisu, np. „10000 kcal = +5 kg” → dwa wielkie kafle.</p><button class="btn pri" data-go="miniatura">Generuj miniaturę</button></div>
-  <div id="gjobs"></div></div></section>
+  <div class="gfil" id="gfil"></div><div id="gjobs"></div></div></section>
  <section class="glass vlog dash-only s-cheat fold-s" id="csec" data-fold="cjobs"><h2 class="fh">🍔 <span class="lg-only">Cheat meale – </span>Zlecenia <small id="cmac"></small><span class="chev">▾</span></h2>
   <div class="fb"><div class="row" style="margin:0 0 10px"><button class="btn pri" id="cheatb2">🍔 Nowy cheat meal</button></div><div id="cjobs"><p class="mut">Ładuję…</p></div></div></section>
  <section class="glass dash-only s-cheat fold-s" data-fold="cfilms"><h2 class="fh">🎞 Zmontowane<span class="lg-only">&nbsp;cheat meale</span> <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
@@ -579,14 +581,22 @@ load();setInterval(load,15000);
  [['g-mph','g-mph-s'],['g-mfd','g-mfd-s']].forEach(([i,sI])=>$g(i).onchange=()=>{const f=$g(i).files[0],el=$g(sI);if(f){el.textContent='✓ '+f.name;el.classList.add('ok')}});
  const TN={dni:'Przejścia dni',napis:'Własny napis',miniatura:'Miniatura',godzina:'Godziny'},SN={queued:['czeka','work'],claimed:['Mac zaczyna','work'],working:['renderuje','work'],done:['gotowe','done'],error:['błąd','error']};
  const sum=j=>{const p=j.params||{};if(j.type==='godzina')return (p.times||'').split(/\n|,|;/).filter(x=>x.trim()).length+' godz. · '+(p.style==='ciemny'?'ciemne':'jasne');return j.type==='dni'?`od ${p.start} · ${(p.days||[0,1,2,3,4,5,6]).length} dni`:j.type==='napis'?`„${p.text}”`:`„${p.text}”${p.tag?' · '+p.tag:''}${p.food?' · + jedzenie':''}`};
+ // segregacja po rodzaju + zwijanie (domyślnie rozwinięte tylko 2 najnowsze i te w trakcie / z błędem); wybór pamięta przeglądarka
+ let GJ=[],GF='all',GZ={};try{GF=localStorage.gfil||'all';GZ=JSON.parse(localStorage.gzw||'{}')}catch(e){}
+ const gz=(j,i)=>j.id in GZ?GZ[j.id]:(i>1&&j.state==='done');
  let tm=0;async function load(){const r=await fetch('/api/grafiki').then(r=>r.json()).catch(()=>null);if(!r)return;
   $g('gmac').textContent=r.mac_online?'Mac online':'Mac offline – zrobi, gdy się włączy';
-  $g('gjobs').innerHTML=r.jobs.slice(0,10).map(j=>{const s=SN[j.state]||[j.state,''];return `<div class="gj"><div class="h"><b>${TN[j.type]||j.type}</b><small>${esc(sum(j))}</small><span class="st ${s[1]}">${s[0]}</span></div>
+  GJ=r.jobs;const L=r.jobs.filter(j=>GF==='all'||j.type===GF).slice(0,30);
+  $g('gfil').innerHTML=[['all','Wszystkie'],...Object.entries(TN)].map(([k,v])=>{const n=k==='all'?r.jobs.length:r.jobs.filter(j=>j.type===k).length;return n||k==='all'?`<button data-gfil="${k}" class="${GF===k?'on':''}">${v} <small>${n}</small></button>`:''}).join('');
+  $g('gjobs').innerHTML=L.length?L.map((j,i)=>{const s=SN[j.state]||[j.state,''],zw=gz(j,i);return `<div class="gj${zw?' zw':''}"><div class="h" data-gzw="${j.id}" style="cursor:pointer"><b>${zw?'▸':'▾'} ${TN[j.type]||j.type}</b><small>${esc(sum(j))}</small><span class="st ${s[1]}">${s[0]}</span></div>
    ${j.state!=='done'?`<div class="fl">${esc(j.error||j.step||'')}${j.state==='error'?` · <a href="#" data-retry="${j.id}" style="color:#c9c2e3">Ponów</a>`:''}</div>`:''}
    ${j.previews?`<div class="pv">${Array.from({length:j.previews},(_,i)=>`<img src="/api/grafiki/${j.id}/preview/${i}" loading="lazy" alt="">`).join('')}</div>`:''}
-   ${j.files?.length?`<div class="fl">Na Macu: Animacje vlog YT / ${j.files.map(esc).join(', ')}</div>`:''}</div>`}).join('');
+   ${j.files?.length?`<div class="fl">Na Macu: Animacje vlog YT / ${j.files.map(esc).join(', ')}</div>`:''}</div>`}).join(''):'<p class="mut">Nic tu jeszcze nie ma.</p>';
   clearTimeout(tm);if(r.jobs.some(j=>!['done','error'].includes(j.state)))tm=setTimeout(load,5000)}
- $g('gjobs').onclick=async e=>{const im=e.target.closest('.pv img');if(im){$g('gbig').querySelector('img').src=im.src;$g('gbig').classList.add('on');return}
+ $g('gfil').onclick=e=>{const b=e.target.closest('[data-gfil]');if(!b)return;GF=b.dataset.gfil;try{localStorage.gfil=GF}catch(x){}load()};
+ $g('gjobs').onclick=async e=>{const h=e.target.closest('[data-gzw]');if(h&&!e.target.closest('a')){const id=h.dataset.gzw,L=GJ.filter(j=>GF==='all'||j.type===GF),i=L.findIndex(j=>j.id===id);
+  GZ[id]=!gz(L[i],i);try{localStorage.gzw=JSON.stringify(GZ)}catch(x){}load();return}
+  const im=e.target.closest('.pv img');if(im){$g('gbig').querySelector('img').src=im.src;$g('gbig').classList.add('on');return}
   const r=e.target.closest('[data-retry]');if(r){e.preventDefault();await fetch(`/api/grafiki/${r.dataset.retry}/retry`,{method:'POST'});load()}};
  $g('gbig').onclick=()=>$g('gbig').classList.remove('on');
  load();

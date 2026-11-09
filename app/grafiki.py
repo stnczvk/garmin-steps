@@ -142,10 +142,10 @@ async def hook_status(gid: str, req: Request):
         if b.get("state") in ("done", "error"):
             j["finished"] = time.time()
         _write(F, L)
-    if b.get("state") == "done":
+    if b.get("state") == "error":   # powiadomienie tylko przy błędzie – gotowe grafiki widać w Montażowni
         try:
             from extra import push_all
-            push_all("🎨 Grafiki gotowe", f"{len(b.get('files') or [])} plików w „Animacje vlog YT” na Macu", "/#montazownia")
+            push_all("🎨 Grafika: błąd na Macu", (b.get("error") or "")[:120], "/#montazownia")
         except Exception:
             pass
     return {"ok": True}
