@@ -162,7 +162,10 @@ def run(wid: str, trigger: str = ""):
             n8n("POST", f"/api/v1/workflows/{wid}/deactivate")
             n8n("POST", f"/api/v1/workflows/{wid}/activate")
         log("op", f"Dodał przyciski „Uruchom” do workflow {name}", "info")
-    trig = trigger if trigger in paths else next(iter(paths))
+    # domyślnie start jak z harmonogramu (np. 8:00) – ręczny trigger w n8n bywa podpięty tylko do części gałęzi
+    # (generator: bez „List Recent Video Logs” → Merge Context dostawał 0 elementów i przebieg kończył się po 2 s)
+    off = {n["name"] for n in wf.get("nodes", []) if n.get("disabled")}
+    trig = trigger if trigger in paths else sorted(paths, key=lambda k: (k in off, "schedule" not in k.lower(), list(paths).index(k)))[0]
     temp = not active
     if temp:  # webhook działa tylko w aktywnym workflow – włączamy na chwilę
         a = n8n("POST", f"/api/v1/workflows/{wid}/activate")
