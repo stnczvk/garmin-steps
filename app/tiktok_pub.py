@@ -157,6 +157,36 @@ def publish(path, caption="", direct=None, opts=None):
     except Exception:
         dur = 0
     print(f"tiktok publish {path} {os.path.getsize(path)} B {dur:.1f} s", flush=True)
+    # TikTok tnie film do długości ścieżki OBRAZU – gdy dźwięk jest dłuższy (np. montaż kończy się dźwiękiem na ostatniej klatce),
+    # końcówka znikała. Wtedy dociągamy obraz ostatnią klatką do końca dźwięku.
+    pad = 0.0
+    if not os.path.basename(path).startswith("tt_"):
+        try:
+            import subprocess
+            def sd(sel):
+                o = subprocess.run(["ffprobe", "-v", "error", "-select_streams", sel, "-show_entries", "stream=duration:format=duration",
+                                    "-of", "csv=p=0", path], capture_output=True, text=True, timeout=30).stdout.split()
+                v = [float(x) for x in o if x.replace(".", "", 1).isdigit()]
+                return v[0] if v else 0.0
+            vd, ad = sd("v:0"), sd("a:0")
+            if vd and ad and ad - vd > 0.25:
+                pad = ad - vd + 0.1
+                print(f"tiktok: dźwięk {ad:.2f} s dłuższy niż obraz {vd:.2f} s – dociągam obraz", flush=True)
+        except Exception as e:
+            print("tiktok: sprawdzanie długości", e, flush=True)
+    if pad:
+        import subprocess, tempfile
+        out = os.path.join(tempfile.gettempdir(), f"tt_{secrets.token_hex(4)}.mp4")
+        subprocess.run(["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-i", path, "-vf", f"tpad=stop_mode=clone:stop_duration={pad:.2f}",
+                        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                        "-movflags", "+faststart", out], check=True, timeout=1800)
+        try:
+            return publish(out, caption, direct, opts)
+        finally:
+            try:
+                os.unlink(out)
+            except Exception:
+                pass
     # wysyłka w kawałkach kończyła się filmem, który po ~10 s (pierwszy kawałek) stawał w miejscu –
     # większe pliki przekodowujemy do < 60 MB i wysyłamy jednym kawałkiem (TikTok i tak kompresuje)
     if os.path.getsize(path) > 60 * 1024 * 1024 and dur > 0:
