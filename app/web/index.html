@@ -787,6 +787,7 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
     <button data-v="pozaskala" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Pipeline PozaSkala</span></button>
     <button data-v="stats-ps" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki PozaSkala</span></button>
     <button data-v="zdrowie" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></i><span>Zdrowie 50+</span></button>
+    <button data-v="kalendarz-yt" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></i><span>Kalendarz YT</span></button>
     <button data-v="etsy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
     <div class="s-sep"></div>
     <button data-hub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Skaner giełdowy</span><em class="hubb"></em></button>
@@ -850,7 +851,7 @@ body.has-subt .subt{display:block}
 </style>
 <script>
 addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav'),bar=document.getElementById('subt');if(!nav||!bar)return;
- const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats": "Statystyki", "stats-ps": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Poza Skalą", "zdrowie": "Zdrowie 50+", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
+ const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats": "Statystyki", "stats-ps": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Poza Skalą", "zdrowie": "Zdrowie 50+", "kalendarz-yt": "Kalendarz", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
  const H=()=>[...nav.querySelectorAll('button[data-hub]')];
  let last={};try{last=JSON.parse(localStorage.getItem('hub-last')||'{}')}catch(e){}
  const subs=g=>[...nav.querySelectorAll(`button[data-sub="${g}"]`)];
@@ -1522,7 +1523,7 @@ $('#theme').onclick = e => {
 setTheme(document.documentElement.dataset.theme || 'auto');
 
 // widoki z menu bocznego: Ekran główny / Statystyki / Agencja AI / Pipeline / Skaner (osobne strony w iframe, ładowane raz)
-const VIEWS = ['home', 'straznicy', 'powiadomienia', 'poczta', 'tresci', 'montazownia', 'klipping', 'kalendarz-strimy', 'notatki', 'hasla', 'etsy', 'stats', 'stats-ps', 'agencja', 'pozaskala', 'zdrowie', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
+const VIEWS = ['home', 'straznicy', 'powiadomienia', 'poczta', 'tresci', 'montazownia', 'klipping', 'kalendarz-strimy', 'notatki', 'hasla', 'etsy', 'stats', 'stats-ps', 'agencja', 'pozaskala', 'zdrowie', 'kalendarz-yt', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
 function vRepaint() { const box = document.getElementById('vframe'); if (!box || !document.body.classList.contains('v-ext')) return;
   box.style.display = 'none'; void box.offsetHeight; box.style.display = ''; }
 function setView(v, push) {

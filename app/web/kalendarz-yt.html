@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kalendarz YT</title>
+<script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
+<link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
+<style>
+button,input,select,textarea{font-family:inherit}
+html,body{min-height:100%;color:var(--ink);font:14px/1.45 Geist,system-ui,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:22px;margin:0 0 4px}.mut{color:var(--faint,#8a8a99)}
+.bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:12px 0}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);border-radius:10px;padding:6px 12px;cursor:pointer}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.kg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.kc{border:1px solid var(--line);border-radius:14px;padding:8px;min-height:150px;background:rgba(255,255,255,.02);display:flex;flex-direction:column;gap:6px;min-width:0}
+.kc.today{border-color:#8b7cc7;box-shadow:0 0 0 1px #8b7cc7 inset}.kc h4{margin:0;font-size:12px;color:var(--faint,#8a8a99);font-weight:600}
+.kp{border-radius:10px;padding:6px 7px;background:rgba(255,255,255,.05);border-left:3px solid #ffd600;font-size:12px;min-width:0;overflow-wrap:anywhere}
+.kp.zdrowie{border-left-color:#5fbf7f}.kp.short{opacity:.6}.kp b{display:block;font-weight:600}.kp small{color:var(--faint,#8a8a99)}
+.kp.plan{border-style:dashed;border-left-style:solid;background:transparent;border:1px dashed var(--line);border-left:3px solid}
+@media(max-width:900px){.kg{grid-template-columns:1fr}.kc{min-height:0}}
+</style></head><body class="lg"><div class="lg-bg" aria-hidden="true"></div>
+<div class="wrap">
+<h1>Kalendarz kanałów YT</h1><div class="mut">Poza Skalą i Zdrowie 50+: długie filmy, zwiastuny i codzienne shorty</div>
+<div class="bar"><button class="btn" id="prev">‹</button><span id="rng"></span><button class="btn" id="next">›</button></div>
+<div class="leg"><span><i style="background:#ffd600"></i>Poza Skalą</span><span><i style="background:#5fbf7f"></i>Zdrowie 50+</span><span>przerywana ramka = plan</span></div>
+<div class="kg" id="kg" style="margin-top:10px"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let E=[],W=0;const D=['pn','wt','śr','cz','pt','sb','nd'],K={film:'🎬 Film',zwiastun:'✂️ Zwiastun',short:'📱 Short'};
+function draw(){const t0=new Date();t0.setHours(0,0,0,0);const mon=new Date(t0);mon.setDate(t0.getDate()-((t0.getDay()+6)%7)+W*7);
+ const days=[...Array(7)].map((_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d});
+ $('rng').textContent=days[0].toLocaleDateString('pl',{day:'numeric',month:'short'})+' – '+days[6].toLocaleDateString('pl',{day:'numeric',month:'short'});
+ $('kg').innerHTML=days.map((d,i)=>{const a=d.getTime()/1e3,b=a+86400,ev=E.filter(e=>e.t>=a&&e.t<b);
+  return `<div class="kc${d.getTime()===t0.getTime()?' today':''}"><h4>${D[i]} ${d.getDate()}.${d.getMonth()+1}</h4>${ev.map(e=>`<div class="kp ${e.ch} ${e.kind}${e.status==='plan'?' plan':''}" style="${e.ch==='zdrowie'?'border-left-color:#5fbf7f':''}">
+  <small>${new Date(e.t*1e3).toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'})} · ${K[e.kind]||e.kind} · ${esc(e.status)}</small><b>${e.yt?`<a href="https://youtu.be/${e.yt}" target="_blank" rel="noopener">${esc(e.title)}</a>`:esc(e.title)}</b></div>`).join('')||'<small class="mut">—</small>'}</div>`}).join('')}
+async function load(){try{E=(await (await fetch('/api/kanaly/kalendarz?days=42')).json()).events||[]}catch(e){}draw()}
+$('prev').onclick=()=>{W--;draw()};$('next').onclick=()=>{W++;draw()};load();setInterval(load,60000);
+</script></body></html>
