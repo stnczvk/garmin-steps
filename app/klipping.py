@@ -986,9 +986,10 @@ def _do_planu(j, nm):
         f = _dir(j["id"]) / (nm + ".mp4")
         th = _dir(j["id"]) / (nm + ".jpg")
         mail = _rd().get("mail")
-        if _num(c.get("dur")) <= 90:   # shorty: zawsze pełny opis z hashtagami (też na YouTube Shorts)
+        if _num(c.get("dur")) <= 90:   # shorty: tylko zdanie + hashtagi, bez linku do streamera i maila do współpracy
             c = {**c, **_opis_short(c, j)}
-        c = {**c, **{k: _uklad(c.get(k), j, mail) for k in ("yt_desc", "instagram", "tiktok") if c.get(k)}}
+        else:
+            c = {**c, **{k: _uklad(c.get(k), j, mail) for k in ("yt_desc", "instagram", "tiktok") if c.get(k)}}
         planer.add_strimy(j["id"], {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=_num(c.get("dur")) > 90, streamer=j.get("streamer", ""))
         return None
     except Exception as e:
