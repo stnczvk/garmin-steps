@@ -1114,8 +1114,16 @@ def stats_refresh():
                 ins = httpx.get(f"https://graph.facebook.com/v21.0/{mid}/insights", timeout=30,
                                 params={"metric": "views", "access_token": tok}).json()
                 views = next((v["values"][0]["value"] for v in ins.get("data", []) if v.get("name") == "views"), 0)
-                upd.setdefault(x["id"], {})["ig"] = {"views": int(views or 0), "likes": int(m.get("like_count", 0)),
-                                                     "comments": int(m.get("comments_count", 0)), "alert": "" if "id" in m else "post zniknął z Instagrama"}
+                er = m.get("error") or {}
+                # „zniknął” tylko gdy Instagram wprost mówi, że takiego posta nie ma (kod 100 / podkod 33).
+                # Inne błędy (limit zapytań, token, chwilowa awaria) to nie usunięcie – wcześniej dawały fałszywy alarm.
+                gone = er.get("code") == 100 and er.get("error_subcode") == 33
+                if er and not gone:
+                    continue
+                old = ((x.get("stats") or {}).get("ig") or {})
+                upd.setdefault(x["id"], {})["ig"] = {"views": int(views or old.get("views", 0) or 0), "likes": int(m.get("like_count", old.get("likes", 0))),
+                                                     "comments": int(m.get("comments_count", old.get("comments", 0))),
+                                                     "alert": "post zniknął z Instagrama" if gone else ""}
             except Exception:
                 pass
     if not upd:
