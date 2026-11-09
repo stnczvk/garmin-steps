@@ -54,6 +54,7 @@ def get_config():
     c = _read("config.json", {})
     out = {k: ("••••" + c[k][-4:] if k in SECRET_KEYS and c.get(k) else c.get(k, "")) for k in CFG_KEYS}
     out["set"] = {k: bool(c.get(k)) for k in CFG_KEYS}
+    out["groups"] = GROUPS
     return out
 
 

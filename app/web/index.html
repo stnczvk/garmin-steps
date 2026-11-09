@@ -952,7 +952,7 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
       <h3>Połączone konta</h3>
       <div id="list"></div>
       <div class="line">
-        <input type="hidden" id="grp" value="pozaskala"><span class="when" id="grp-l" style="margin:0"></span>
+        <span class="when" id="grp-l" style="margin:0">Nowe konto trafi do:</span><select id="grp" title="Do której grupy (kanału) podpiąć nowe konto"><option value="pozaskala">PozaSkala</option></select>
         <button id="add-yt">Dodaj kanał YouTube</button>
         <button id="add-ig">Dodaj konto Instagram</button>
       </div>
@@ -1306,8 +1306,11 @@ async function loadSettings() {
   ttStatus();
   const accAll = await api('/api/social/accounts');
   const accs = group ? accAll.filter(a => a.group === group) : accAll;
-  if (group && $('#grp')) $('#grp').value = group;
-  if ($('#grp-l')) $('#grp-l').textContent = 'Nowe konto trafi do: ' + ($('#grp').value === 'prywatne' ? 'Prywatne' : 'PozaSkala');
+  if ($('#grp') && c.groups) {   // wybór grupy: PozaSkala, Prywatne, Strimy w Pigułce, Zdrowie 50+ …
+    const cur = $('#grp').value;
+    $('#grp').innerHTML = Object.entries(c.groups).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+    $('#grp').value = group || (c.groups[cur] ? cur : 'pozaskala');
+  }
   $('#list').innerHTML = accs.length ? accs.map(a => `
     <div class="line" style="--pc:var(--${VAR[a.platform]})">
       <span class="logo">${ICON[a.platform]}</span><b>${esc(a.name)}</b>
