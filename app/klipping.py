@@ -632,7 +632,12 @@ async def _kandydaci(b, dur_min, size, ask, lo, hi):
     def one(i, part):
         return claude(f"Fragment {i + 1} z {len(P)} transkrypcji streama ({dur_min:.0f} min całość). Każda linia: [sekunda] tekst.\n\n"
                       + part + "\n\n" + ask, max_tokens=4000, system=sysm)
-    R = await asyncio.gather(*[asyncio.to_thread(one, i, p) for i, p in enumerate(P)], return_exceptions=True)
+    sem = asyncio.Semaphore(6)
+
+    async def lim(i, p):
+        async with sem:
+            return await asyncio.to_thread(one, i, p)
+    R = await asyncio.gather(*[lim(i, p) for i, p in enumerate(P)], return_exceptions=True)
     if all(isinstance(r, Exception) for r in R):
         raise R[0]
     K = []
@@ -730,7 +735,7 @@ def STYL(who):
             "wykrzykniki co zdanie, pytania retoryczne na koniec.")
 
 
-def _kompakt(trans, step=60):
+def _kompakt(trans, step=60, chars=180):
     """Mapa całego streama: co minutę ~180 znaków mowy + liczniki 🔊 i ⭐ (z klipem widzów) – mieści się cały stream w jednym zapytaniu."""
     import re
     B = {}
@@ -751,7 +756,7 @@ def _kompakt(trans, step=60):
     for k in sorted(B):
         x = B[k]
         t = " ".join(x["t"])
-        t = t[:180] + ("…" if len(t) > 180 else "")
+        t = t[:chars] + ("…" if len(t) > chars else "")
         out.append(f"[{k * step // 60} min] {t}" + (" 🔊" * min(x["loud"], 3)) + (f" ⭐{x['klip']}" if x["klip"] else (" ⭐" if x["star"] else "")))
     return "\n".join(out)
 
@@ -766,8 +771,11 @@ async def _wybor_yt(b, n, dur_min):
     hint = (b.get("title_hint") or "").strip()
     zas = _zasady(b.get("streamer"))
     trans = _widz_lines(_energy_lines(b.get("transkrypcja") or "", b.get("energia")), b.get("widzowie"))
-    mapa = _kompakt(trans)
-    ask1 = (f"Mapa całego streama {who} ({dur_min:.0f} min), minuta po minucie: początek tego, co mówi. 🔊 = głośno (śmiech, krzyk), "
+    # 48-godzinny stream to ~2900 minut: co 3 min i krócej, żeby AI widziało cały stream, a nie pierwsze godziny
+    step = 60 if dur_min <= 400 else int(min(240, 60 * (dur_min / 400) ** 0.7))
+    ln = max(1, dur_min * 60 / step)
+    mapa = _kompakt(trans, step, int(max(70, min(180, 110000 / ln - 25))))
+    ask1 = (f"Mapa całego streama {who} ({dur_min:.0f} min), linia co {step // 60} min: początek tego, co mówi. 🔊 = głośno (śmiech, krzyk), "
             "⭐ = widzowie zrobili tu klip na Twitchu (z tytułem).\n\n" + mapa[:120000] +
             f"\n\nPodziel stream na kolejne SEGMENTY tematyczne, czyli całe rzeczy od początku do końca: {who} ogląda jeden film / klip / odcinek "
             "(od włączenia do końca filmu i komentarza po), gra jeden mecz / rundę, prowadzi jedną rozmowę / historię / dyskusję, na IRL jedno miejsce "
@@ -783,7 +791,7 @@ async def _wybor_yt(b, n, dur_min):
     S = []
     for x in (as_json(r1) or {}).get("segmenty") or []:
         try:
-            a_, e_ = float(x["od_min"]) * 60, float(x["do_min"]) * 60 + 60
+            a_, e_ = float(x["od_min"]) * 60, float(x["do_min"]) * 60 + step
         except Exception:
             continue
         if 170 <= e_ - a_ <= 62 * 60:
