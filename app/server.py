@@ -638,6 +638,8 @@ async def hook_asr(req: Request, key: str = ""):
     lang = "en" if req.query_params.get("lang") == "en" else "pl"   # klipping (kampanie po angielsku)
     want_words = "lang" in req.query_params                          # klipping chce czasów słów także po polsku
     ek = _mz_env().get("ELEVENLABS_API_KEY")
+    if req.query_params.get("via") == "groq":   # klipping streamów: godziny nagrań – tanio przez Groq, ElevenLabs zostaje na Twoje filmy
+        ek = None
     if ek:
         res = await _scribe(audio, ek, lang=lang)
         if res and res.get("text"):
