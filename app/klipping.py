@@ -629,7 +629,8 @@ async def _wybor_yt(b, n, dur_min):
            f"Segment to zamknięta całość: {who} od początku do końca ogląda jeden film / klip i na niego reaguje, gra jedną rundę/mecz, "
            "(gdy ogląda film: segment obejmuje CAŁE oglądanie od włączenia do końca filmu, nigdy pojedynczy kawałek; jeśli koniec jest poza tym "
            "fragmentem, daj end jako ostatnią sekundę fragmentu, później go dociągnę), "
-           "ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję. W środku musi być kilka mocnych momentów, a nie spokojne gadanie. "
+           "ogłasza coś ważnego, opowiada jedną historię albo prowadzi jedną dyskusję; na streamie IRL (na mieście, w podróży, z ludźmi): "
+           "jedna sytuacja, jedno miejsce albo jedna akcja od początku do końca. W środku musi być kilka mocnych momentów, a nie spokojne gadanie. "
            + DOBRE + " Start: chwila przed rozpoczęciem tematu (żeby widz wiedział, o co chodzi), koniec: gdy temat się zamyka. Długość celuj w 5–60 min (rozszerz segment o naturalny wstęp i komentarz po). 3–4 min tylko gdy moment jest naprawdę dobry, a nie da się go naturalnie wydłużyć. "
            "Oceń każdy segment szczerze 1–10 (10 = ludzie obejrzą do końca i udostępnią, 5 = przeciętny fragment streama). "
            "Do każdego: tytuł YouTube po polsku " + STYL(who) + " "
@@ -660,7 +661,8 @@ async def _wybor_reakcje(b, n, dur_min):
     who = b.get("who") or "streamer"
     zas = _zasady(b.get("streamer"))
     ask = (f"Znajdź w TYM fragmencie najlepsze momenty (0–6, zero jeśli nic nie jest naprawdę mocne) na pionowe shorty, w których {who} "
-           "ogląda coś, gra albo rozmawia i dzieje się coś mocnego. " + DOBRE +
+           "ogląda coś, gra, rozmawia albo jest na IRL (na mieście, w podróży, z ludźmi: zaczepki, reakcje przechodniów, wpadki, "
+           "spięcia, zabawne sytuacje) i dzieje się coś mocnego. " + DOBRE +
            " Klip 20–60 s, zrozumiały bez reszty streama, mocny początek (reakcja albo zapowiedź w pierwszych 2 s), koniec na puencie. "
            "Oceń każdy szczerze 1–10 (10 = viral, 7 = dobry short, 5 = przeciętny fragment streama). "
            "Do każdego: krótki napis na górę ekranu po polsku w stylu "
