@@ -856,7 +856,8 @@ async def _wybor_reakcje(b, n, dur_min):
            "Oceń każdy szczerze 1–10 (10 = viral, 7 = dobry short, 5 = przeciętny fragment streama). "
            "Do każdego: krótki napis na górę ekranu po polsku w stylu "
            f"„{who} ogląda …” / „{who} reaguje na …” albo sedno sytuacji (max 7 słów, bez clickbaitu, bez myślników), opis TikTok (1 zdanie + 3–5 hashtagów), "
-           "opis Instagram (1–2 zdania + hashtagi), tytuł YouTube Shorts " + STYL(who) + " i jednym zdaniem, co się dzieje (pole dlaczego). "
+           "opis Instagram i YouTube Shorts (1–2 zdania jak od fana, co się dzieje i dlaczego warto obejrzeć, + 4–6 hashtagów tematycznych: o czym jest "
+           "klip, gra, film, osoba; imię streamera i #shorts dokleję sam), tytuł YouTube Shorts " + STYL(who) + " i jednym zdaniem, co się dzieje (pole dlaczego). "
            "Naturalnie, bez myślników jako przerw w zdaniu.\n"
            + (f"ZASADY wyciągnięte z moich poprzednich ocen i poprawek (stosuj je):\n{zas}\n" if zas else "") +
            'Odpowiedz tylko JSON: {"klipy": [{"start": s, "end": s, "ocena": 1-10, "dlaczego": "...", "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
@@ -954,6 +955,28 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
     return {"ok": True}
 
 
+def _opis_short(c, j):
+    """Opis shorta: zdanie o tym, co się dzieje + hashtagi streamera i tematu. Gdy AI dało pusty / sam hashtag – składamy z hooka."""
+    import re
+    st = next((x for x in _streamers() if x["id"] == j.get("streamer")), {}) or {}
+    name = st.get("name") or j.get("who") or ""
+    nick = re.sub(r"^.*/", "", (st.get("link") or "").strip("/"))
+    plat = "kick" if "kick" in (st.get("link") or "") else "twitch"
+    base = (c.get("instagram") or c.get("tiktok") or c.get("yt_desc") or "").strip()
+    body = re.sub(r"(\s*#\w+)+\s*$", "", base).strip()
+    tags = re.findall(r"#\w+", base)
+    if len(body) < 15:
+        body = (c.get("hook") or c.get("yt_title") or "").strip().rstrip(".") + "."
+    nm_tag = re.sub(r"\W", "", name.lower())
+    want = [("#" + nm_tag) if nm_tag else "", f"#{nick.lower()}" if nick and nick.lower() != name.lower() else "",
+            f"#{plat}", "#strimywpigulce", "#shorts"]
+    for t in want:
+        if t and t.lower() not in [x.lower() for x in tags]:
+            tags.append(t)
+    txt = body + "\n\n" + " ".join(tags[:10])
+    return {"instagram": txt, "yt_desc": txt, "tiktok": c.get("tiktok") or txt}
+
+
 def _do_planu(j, nm):
     """Gotowy klip → kalendarz kanału Strimy. Błąd zapisuje się przy zadaniu (widać go w zakładce), a nie tylko w logu."""
     import traceback
@@ -963,6 +986,8 @@ def _do_planu(j, nm):
         f = _dir(j["id"]) / (nm + ".mp4")
         th = _dir(j["id"]) / (nm + ".jpg")
         mail = _rd().get("mail")
+        if _num(c.get("dur")) <= 90:   # shorty: zawsze pełny opis z hashtagami (też na YouTube Shorts)
+            c = {**c, **_opis_short(c, j)}
         c = {**c, **{k: _uklad(c.get(k), j, mail) for k in ("yt_desc", "instagram", "tiktok") if c.get(k)}}
         planer.add_strimy(j["id"], {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=_num(c.get("dur")) > 90, streamer=j.get("streamer", ""))
         return None
