@@ -782,10 +782,11 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
     <button data-hub="klip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5l4 2.5-4 2.5z"/><path d="M2 8v8M22 8v8"/></svg></i><span>Klipping</span><em class="hubb"></em></button>
     <button data-v="klipping" data-sub="klip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5l4 2.5-4 2.5z"/><path d="M2 8v8M22 8v8"/></svg></i><span>Filmy ze streamów</span></button>
     <button data-v="kalendarz-strimy" data-sub="klip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></i><span>Kalendarz</span></button>
-    <button data-hub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>PozaSkala AI</span><em class="hubb"></em></button>
+    <button data-hub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Kanały YT</span><em class="hubb"></em></button>
     <button data-v="agencja" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
     <button data-v="pozaskala" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Pipeline PozaSkala</span></button>
     <button data-v="stats-ps" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki PozaSkala</span></button>
+    <button data-v="zdrowie" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></i><span>Zdrowie 50+</span></button>
     <button data-v="etsy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
     <div class="s-sep"></div>
     <button data-hub="skan"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1A10 10 0 1 1 19.1 19.1"/><path d="M12 12l4-4"/><circle cx="12" cy="12" r="1.5"/></svg></i><span>Skaner giełdowy</span><em class="hubb"></em></button>
@@ -849,7 +850,7 @@ body.has-subt .subt{display:block}
 </style>
 <script>
 addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav'),bar=document.getElementById('subt');if(!nav||!bar)return;
- const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats": "Statystyki", "stats-ps": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Pipeline", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
+ const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats": "Statystyki", "stats-ps": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Poza Skalą", "zdrowie": "Zdrowie 50+", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
  const H=()=>[...nav.querySelectorAll('button[data-hub]')];
  let last={};try{last=JSON.parse(localStorage.getItem('hub-last')||'{}')}catch(e){}
  const subs=g=>[...nav.querySelectorAll(`button[data-sub="${g}"]`)];
@@ -1521,7 +1522,7 @@ $('#theme').onclick = e => {
 setTheme(document.documentElement.dataset.theme || 'auto');
 
 // widoki z menu bocznego: Ekran główny / Statystyki / Agencja AI / Pipeline / Skaner (osobne strony w iframe, ładowane raz)
-const VIEWS = ['home', 'straznicy', 'powiadomienia', 'poczta', 'tresci', 'montazownia', 'klipping', 'kalendarz-strimy', 'notatki', 'hasla', 'etsy', 'stats', 'stats-ps', 'agencja', 'pozaskala', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
+const VIEWS = ['home', 'straznicy', 'powiadomienia', 'poczta', 'tresci', 'montazownia', 'klipping', 'kalendarz-strimy', 'notatki', 'hasla', 'etsy', 'stats', 'stats-ps', 'agencja', 'pozaskala', 'zdrowie', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty'];
 function vRepaint() { const box = document.getElementById('vframe'); if (!box || !document.body.classList.contains('v-ext')) return;
   box.style.display = 'none'; void box.offsetHeight; box.style.display = ''; }
 function setView(v, push) {
@@ -1539,7 +1540,7 @@ function setView(v, push) {
   // iPhone potrafi zostawić na ekranie „zamrożony” obraz poprzedniej zakładki – wymuszamy pełne przerysowanie kontenera
   vRepaint();
   if (!isS && !box.querySelector(`iframe[data-v="${v}"]`)) {
-    const f = document.createElement('iframe'); f.dataset.v = v; f.className = 'on'; f.src = ({'kalendarz-strimy': '/tresci?group=strimy'})[v] || ('/' + v); f.setAttribute('aria-label', v); f.style.display = 'block';
+    const f = document.createElement('iframe'); f.dataset.v = v; f.className = 'on'; f.src = ({'kalendarz-strimy': '/tresci?group=strimy', 'zdrowie': '/pozaskala?ch=zdrowie'})[v] || ('/' + v); f.setAttribute('aria-label', v); f.style.display = 'block';
     f.addEventListener('load', () => setTimeout(() => window.hideSplash && hideSplash(), 250), {once: true}); box.appendChild(f);
   }
   if (isS) { setTimeout(() => pills(), 0); setTimeout(() => window.hideSplash && hideSplash(), 600); }

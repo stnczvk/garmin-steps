@@ -125,14 +125,18 @@ body:not(.t-long) .pt-long,body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-l
 .dli .h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.dli b{font-size:14px}.dli small{color:var(--faint)}
 .dli video{width:100%;max-width:640px;border-radius:12px;background:#000;aspect-ratio:16/9}
 .st{font:600 11.5px Geist,system-ui;padding:3px 8px;border-radius:8px;background:var(--v3-s3,#242536)}.st.ok{color:var(--ok);background:rgba(61,220,132,.12)}.st.wr{color:var(--warn);background:rgba(255,194,75,.12)}.st.bad{color:var(--bad);background:rgba(255,107,122,.12)}
+body.zd .wrap>*:not(#c-zdrowie):not(h1){display:none!important}body.zd #c-zdrowie{display:block!important}
+body:not(.zd) #c-zdrowie{display:none}
 </style>
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
 <body class="lg">
+<script>if(new URLSearchParams(location.search).get("ch")==="zdrowie")document.body.classList.add("zd")</script>
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
- <h1>Pipeline PozaSkala <small id="upd">łączę z n8n…</small></h1>
+ <h1><span class="nzd">Pipeline PozaSkala</span><span class="izd" hidden>Zdrowie 50+</span> <small id="upd">łączę z n8n…</small></h1>
+ <script>if(document.body.classList.contains("zd")){document.querySelector(".nzd").hidden=true;document.querySelector(".izd").hidden=false;document.getElementById("upd").hidden=true}</script>
  <div id="msg"></div>
  <div class="sum" id="sum"></div>
  <div class="kpis" hidden>
