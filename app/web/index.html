@@ -1308,8 +1308,10 @@ async function loadSettings() {
   const accs = group ? accAll.filter(a => a.group === group) : accAll;
   if ($('#grp') && c.groups) {   // wybór grupy: PozaSkala, Prywatne, Strimy w Pigułce, Zdrowie 50+ …
     const cur = $('#grp').value;
-    $('#grp').innerHTML = Object.entries(c.groups).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
-    $('#grp').value = group || (c.groups[cur] ? cur : 'pozaskala');
+    // w „Kanały YT” tylko kanały AI (PozaSkala, Zdrowie 50+), w Social Twoje konta (Prywatne, Strimy w Pigułce)
+    const fam = (group || cur) === 'pozaskala' || (group || cur) === 'zdrowie' ? ['pozaskala', 'zdrowie'] : ['prywatne', 'strimy'];
+    $('#grp').innerHTML = Object.entries(c.groups).filter(([k]) => fam.includes(k)).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+    $('#grp').value = fam.includes(group) ? group : fam[0];
   }
   $('#list').innerHTML = accs.length ? accs.map(a => `
     <div class="line" style="--pc:var(--${VAR[a.platform]})">
