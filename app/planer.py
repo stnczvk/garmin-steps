@@ -114,6 +114,25 @@ def api_strimy_replan():
     return {"ok": True, "moved": replan_strimy()}
 
 
+def _strimy_tags(streamer, long):
+    """Tagi YT dla Strimów: imię i nick streamera (ludzie wpisują je w wyszukiwarkę, często z literówkami) + nazwa kanału."""
+    try:
+        from klipping import _streamers
+        st = next((x for x in _streamers() if x["id"] == streamer), {}) or {}
+    except Exception:
+        st = {}
+    nick = re.sub(r"^.*/", "", (st.get("link") or "").strip("/"))
+    name = st.get("name") or streamer or ""
+    T = [name, nick, f"{name} klipy", f"{name} stream", f"{name} {'reakcja' if long else 'shorts'}", "Strimy w Pigułce", "klipy ze streamów",
+         "polski stream", "twitch polska" if "twitch" in (st.get("link") or "") else "kick polska"]
+    out = []
+    for t in T:
+        t = (t or "").strip()
+        if t and t.lower() not in [x.lower() for x in out]:
+            out.append(t)
+    return out
+
+
 def add_strimy(jid, clip, path, long, auto=True, streamer=""):
     """Klipping „Strimy w Pigułce”: długie filmy → YouTube codziennie 17:00, shorty → YouTube Shorts + Reels 2× dziennie (12:30, 20:30)."""
     P = plan()
@@ -126,7 +145,7 @@ def add_strimy(jid, clip, path, long, auto=True, streamer=""):
                "group": "strimy", "label": clip.get("yt_title") or clip.get("hook") or clip["name"], "file": str(path), "when": when,
                "platforms": plats, "caption": clip.get("instagram") or clip.get("yt_desc") or "", "tiktok": clip.get("tiktok", ""),
                "yt_title": clip.get("yt_title", ""), "yt_desc": clip.get("yt_desc", ""), "long": bool(long), "yt_cat": "24",
-               "thumb_file": clip.get("thumb_file") or "", "streamer": streamer})
+               "thumb_file": clip.get("thumb_file") or "", "streamer": streamer, "yt_tags": _strimy_tags(streamer, long)})
     if it and auto:
         with _lock:
             P = plan()
@@ -386,7 +405,10 @@ def pub_youtube(it):
     tok = _google_access(acc)
     cap = it.get("yt_desc") or it.get("caption") or ""
     title = (it.get("yt_title") or re.split(r"[\n.!?]", cap.strip())[0] or it["label"]).strip()[:90]
-    tags = re.findall(r"#(\w+)", cap)[:10]
+    tags = []
+    for t in (it.get("yt_tags") or []) + re.findall(r"#(\w+)", cap)[:10]:   # tagi kanału + hashtagi z opisu, limit YouTube 500 znaków
+        if t.lower() not in [x.lower() for x in tags] and sum(len(x) + 3 for x in tags) + len(t) < 480:
+            tags.append(t)
     desc = cap if it.get("long") or "#shorts" in cap.lower() else cap + "\n\n#shorts"   # długie filmy bez #shorts
     meta = {"snippet": {"title": title, "description": desc[:4900], "tags": tags, "categoryId": it.get("yt_cat") or "17", "defaultLanguage": "pl"},
             "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False}}
