@@ -847,9 +847,14 @@ async def _wybor_yt(b, n, dur_min):
                    f"komentarzem kanału w chwili, gdy się przydają (np. „{who} jeszcze nie wie, co zaraz zobaczy”, „to jest ten moment z klipu”, "
                    "„tu zaczyna się kłótnia”), max 8 słów, naturalnie, z humorem, bez myślników; rozdzialy = 3–6 rozdziałów filmu (pierwszy na starcie), "
                    "tytuł rozdziału max 5 słów.\n"
+                   "Na koniec PRZESTOJE do wycięcia (dynamiczny film, jak u dobrych klipperów): fragmenty min. 8 s, w których widz się nudzi, "
+                   f"np. {who} nie żyje w grze i tylko czeka na koniec rundy albo nowej gry (\"nie żyję\", \"dead\", cisza, ogląda kolegów bez emocji), "
+                   "przerwy taktyczne i między połowami, lobby, kolejka, ładowanie, menu, kupowanie bez rozmowy, odchodzenie od kompa. "
+                   "NIE wycinaj: zabawnych rozmów, reakcji, clutchy kolegów, które komentuje, ani niczego potrzebnego do zrozumienia akcji. "
+                   "Jeśli nie ma pewnych przestojów, zostaw pustą listę.\n"
                    'Odpowiedz tylko JSON: {"start": s, "end": s, "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "...", '
-                   '"notatki": [{"t": s, "tekst": "..."}], "rozdzialy": [{"t": s, "tytul": "..."}]}',
-                   max_tokens=1500, system=sysm)
+                   '"notatki": [{"t": s, "tekst": "..."}], "rozdzialy": [{"t": s, "tytul": "..."}], "wytnij": [{"od": s, "do": s}]}',
+                   max_tokens=3000, system=sysm)
         j = as_json(r) or {}
         try:
             a_, e_ = float(j.get("start", k["start"])), float(j.get("end", k["end"]))
@@ -867,8 +872,19 @@ async def _wybor_yt(b, n, dur_min):
                 if a_ <= t <= e_ and str(z.get(f) or "").strip():
                     out.append({"t": round(t - a_, 1), f: str(z[f]).strip()[:60]})
             return sorted(out, key=lambda z: z["t"])[:8]
+        W = []
+        for z in j.get("wytnij") or []:
+            try:
+                x0, x1 = max(float(z["od"]), a_ + 5), min(float(z["do"]), e_ - 5)
+            except Exception:
+                continue
+            if x1 - x0 >= 8:
+                W.append([round(x0 - a_, 1), round(x1 - a_, 1)])
+        W = sorted(W)[:80]
+        if sum(y - x for x, y in W) > 0.4 * (e_ - a_):   # AI chce wyciąć prawie wszystko – nie ufamy, zostaje tylko cięcie ciszy
+            W = []
         return {**k, **{x: j.get(x) for x in ("yt_title", "yt_desc", "thumb", "hook")}, "start": max(0.0, a_), "end": e_,
-                "notatki": tl(j.get("notatki"), "tekst"), "rozdzialy": tl(j.get("rozdzialy"), "tytul")}
+                "notatki": tl(j.get("notatki"), "tekst"), "rozdzialy": tl(j.get("rozdzialy"), "tytul"), "wytnij": W}
     R = await asyncio.gather(*[asyncio.to_thread(one, k) for k in P], return_exceptions=True)
     from montaz import human
     out = []
@@ -880,7 +896,8 @@ async def _wybor_yt(b, n, dur_min):
         o = {x: human(str(r.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
         out.append({"start": r["start"], "end": r["end"], **o, "tiktok": "", "instagram": o["yt_desc"], "ocena": r["ocena"], "dlaczego": r["co"][:200],
                     "notatki": [{"t": z["t"], "tekst": human(z["tekst"])} for z in r.get("notatki") or []],
-                    "rozdzialy": [{"t": z["t"], "tytul": human(z["tytul"])} for z in r.get("rozdzialy") or []]})
+                    "rozdzialy": [{"t": z["t"], "tytul": human(z["tytul"])} for z in r.get("rozdzialy") or []],
+                    "wytnij": r.get("wytnij") or []})
     return {"klipy": sorted(out, key=lambda k: k["start"])}
 
 
