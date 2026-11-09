@@ -716,7 +716,12 @@ async def _wybor_yt(b, n, dur_min):
                    (f"ZASADY z moich ocen (stosuj):\n{zas}\n" if zas else "") +
                    "opis YouTube (2–3 krótkie zdania + 3–5 hashtagów), napis na miniaturę (2–4 słowa, WERSALIKI) i hook na pierwsze 4 s (max 7 słów). "
                    "Tytuł i opis mają mówić o najmocniejszym momencie z tego segmentu.\n"
-                   'Odpowiedz tylko JSON: {"start": s, "end": s, "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "..."}',
+                   "Dodatkowo WŁASNA WARSTWA KANAŁU (to odróżnia nas od surowego VOD): notatki = 3–6 krótkich napisów na ekranie z kontekstem albo "
+                   f"komentarzem kanału w chwili, gdy się przydają (np. „{who} jeszcze nie wie, co zaraz zobaczy”, „to jest ten moment z klipu”, "
+                   "„tu zaczyna się kłótnia”), max 8 słów, naturalnie, z humorem, bez myślników; rozdzialy = 3–6 rozdziałów filmu (pierwszy na starcie), "
+                   "tytuł rozdziału max 5 słów.\n"
+                   'Odpowiedz tylko JSON: {"start": s, "end": s, "yt_title": "...", "yt_desc": "...", "thumb": "...", "hook": "...", '
+                   '"notatki": [{"t": s, "tekst": "..."}], "rozdzialy": [{"t": s, "tytul": "..."}]}',
                    max_tokens=1500, system=sysm)
         j = as_json(r) or {}
         try:
@@ -725,7 +730,18 @@ async def _wybor_yt(b, n, dur_min):
             a_, e_ = k["start"], k["end"]
         if not (170 <= e_ - a_ <= 62 * 60 and a_ < k["end"] and e_ > k["start"]):
             a_, e_ = k["start"], k["end"]
-        return {**k, **{x: j.get(x) for x in ("yt_title", "yt_desc", "thumb", "hook")}, "start": max(0.0, a_), "end": e_}
+        def tl(L, f):
+            out = []
+            for z in L or []:
+                try:
+                    t = float(z.get("t"))
+                except Exception:
+                    continue
+                if a_ <= t <= e_ and str(z.get(f) or "").strip():
+                    out.append({"t": round(t - a_, 1), f: str(z[f]).strip()[:60]})
+            return sorted(out, key=lambda z: z["t"])[:8]
+        return {**k, **{x: j.get(x) for x in ("yt_title", "yt_desc", "thumb", "hook")}, "start": max(0.0, a_), "end": e_,
+                "notatki": tl(j.get("notatki"), "tekst"), "rozdzialy": tl(j.get("rozdzialy"), "tytul")}
     R = await asyncio.gather(*[asyncio.to_thread(one, k) for k in P], return_exceptions=True)
     from montaz import human
     out = []
@@ -735,7 +751,9 @@ async def _wybor_yt(b, n, dur_min):
         if not all(r["end"] <= o["start"] or r["start"] >= o["end"] for o in out):
             continue
         o = {x: human(str(r.get(x) or "")) for x in ("yt_title", "yt_desc", "thumb", "hook")}
-        out.append({"start": r["start"], "end": r["end"], **o, "tiktok": "", "instagram": o["yt_desc"], "ocena": r["ocena"], "dlaczego": r["co"][:200]})
+        out.append({"start": r["start"], "end": r["end"], **o, "tiktok": "", "instagram": o["yt_desc"], "ocena": r["ocena"], "dlaczego": r["co"][:200],
+                    "notatki": [{"t": z["t"], "tekst": human(z["tekst"])} for z in r.get("notatki") or []],
+                    "rozdzialy": [{"t": z["t"], "tytul": human(z["tytul"])} for z in r.get("rozdzialy") or []]})
     return {"klipy": sorted(out, key=lambda k: k["start"])}
 
 
@@ -839,7 +857,9 @@ async def hook_clip(jid: str, req: Request, name: str = "", opis: str = ""):
         j = next((j for j in d["jobs"] if j["id"] == jid), None)
         if j:
             j["clips"] = [c for c in j["clips"] if c.get("name") != nm] + [{"name": nm, "has_thumb": (_dir(jid) / (nm + ".jpg")).is_file(), **{k: o.get(k, "") for k in ("hook", "tiktok", "instagram", "yt_title", "yt_desc", "thumb")},
-                                                                            "dur": round(_num(o.get("end")) - _num(o.get("start")), 1)}]
+                                                                            "dur": round(_num(o.get("end")) - _num(o.get("start")), 1),
+                                                                            "src_start": _num(o.get("start")), "src_end": _num(o.get("end")), "ai_ocena": _num(o.get("ocena")),
+                                                                            "at": time.time()}]
             _wr(d)
     if j and j.get("auto"):
         _do_planu(j, nm)
@@ -1037,3 +1057,86 @@ def _stats_loop():
 
 
 threading.Thread(target=_stats_loop, daemon=True).start()
+
+
+# ---------- kompilacja tygodnia: „TOP 10 momentów X w tym tygodniu” (niedziela, osobno dla każdego streamera) ----------
+def kompilacja(sid, force=False):
+    """Najlepsze shorty streamera z ostatnich 7 dni (wyświetlenia YT+IG, a bez statystyk ocena AI) → zadanie dla Maca:
+    poziomy film 16:9 z numerami #10 → #1, planszami i intro. To nowa treść kanału, a nie surowy fragment streama."""
+    from agency import claude, as_json
+    import planer
+    d = _rd()
+    st = next((x for x in _streamers(d) if x["id"] == sid), None)
+    if not st:
+        return {"ok": False, "error": "nie ma takiego streamera"}
+    wk = time.strftime("%G-%V")
+    if not force and (d.get("komp_done") or {}).get(sid) == wk:
+        return {"ok": False, "error": "kompilacja z tego tygodnia już jest"}
+    stats = {x.get("src"): x.get("stats") or {} for x in planer.plan() if x.get("group") == "strimy"}
+    C = []
+    for j in d["jobs"]:
+        if j.get("streamer") != sid or j.get("mode") == "kompilacja" or not str(j.get("url", "")).startswith("http"):
+            continue
+        for c in j.get("clips", []):
+            if c.get("dur", 999) > 90 or not c.get("src_end") or time.time() - c.get("at", 0) > 7 * 86400 or c.get("ocena") == "slaby":
+                continue
+            s_ = stats.get(f"kl:{j['id']}:{c['name']}", {})
+            views = sum((s_.get(p) or {}).get("views", 0) for p in ("yt", "ig"))
+            C.append({"url": j["url"], "start": c["src_start"], "end": c["src_end"], "hook": c.get("hook") or c.get("yt_title") or "",
+                      "score": views + 1000 * _num(c.get("ai_ocena")) * (0 if views else 1) + (5000 if c.get("ocena") == "dobry" else 0)})
+    if len(C) < 5:
+        return {"ok": False, "error": f"za mało shortów z tego tygodnia ({len(C)}, potrzeba min. 5)"}
+    C = sorted(C, key=lambda c: -c["score"])[:10]
+    who = st["name"]
+    lst = "\n".join(f"#{i + 1}: {c['hook']}" for i, c in enumerate(C))
+    r = claude(f"Robię kompilację na YouTube „TOP {len(C)} momentów {who} z tego tygodnia”. Momenty od najlepszego:\n{lst}\n\n"
+               f"Napisz: tytuł YouTube po polsku {STYL(who)} (zaznacz, że to najlepsze momenty tygodnia), opis YouTube (2–3 zdania + 3–5 hashtagów), "
+               "napis na miniaturę (2–4 słowa, WERSALIKI), krótkie intro na planszę (max 10 słów) i dla każdego momentu napis na planszę przed nim "
+               "(max 6 słów, zapowiedź bez spoilera puenty).\n"
+               'Odpowiedz tylko JSON: {"yt_title": "...", "yt_desc": "...", "thumb": "...", "intro": "...", "plansze": ["...", ...]}',
+               max_tokens=1500, system=__import__("skills").sk("hook", "caption", "trend", "slop"))
+    o = as_json(r) or {}
+    from montaz import human
+    pl = o.get("plansze") or []
+    items = [{**c, "plansza": human(str(pl[i] if i < len(pl) else c["hook"]))[:60], "nr": i + 1} for i, c in enumerate(C)]
+    items.reverse()   # od #10 do #1
+    j = {"id": secrets.token_hex(4), "mode": "kompilacja", "url": f"kompilacja:{sid}:{wk}", "streamer": sid, "who": who,
+         "link": st.get("link", ""), "auto": True, "format": "yt", "lang": "pl", "cam": st.get("cam", "auto"), "n": 0,
+         "komp": {"items": items, "yt_title": human(str(o.get("yt_title") or f"TOP {len(C)} momentów {who} w tym tygodniu")),
+                  "yt_desc": human(str(o.get("yt_desc") or "")), "thumb": human(str(o.get("thumb") or "TOP TYGODNIA")),
+                  "intro": human(str(o.get("intro") or f"Najlepsze momenty {who} z tego tygodnia"))},
+         "title": f"Kompilacja tygodnia: {who} ({wk})", "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}
+    with _lock:
+        d = _rd()
+        d["jobs"] = (d["jobs"] + [j])[-60:]
+        d.setdefault("komp_done", {})[sid] = wk
+        _wr(d)
+    return {"ok": True, "job": j["id"], "n": len(items)}
+
+
+@router.post("/api/klipping/kompilacja/{sid}")
+def api_kompilacja(sid: str):
+    try:
+        return kompilacja(sid, force=True)
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=500)
+
+
+def _komp_loop():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    time.sleep(300)
+    while True:
+        try:
+            now = datetime.now(ZoneInfo("Europe/Warsaw"))
+            if now.weekday() == 6 and now.hour >= 10:   # niedziela od 10:00
+                for st in _streamers():
+                    r = kompilacja(st["id"])
+                    if r.get("ok"):
+                        print("kompilacja tygodnia:", st["id"], r, flush=True)
+        except Exception as e:
+            print("kompilacja:", e, flush=True)
+        time.sleep(3600)
+
+
+threading.Thread(target=_komp_loop, daemon=True).start()

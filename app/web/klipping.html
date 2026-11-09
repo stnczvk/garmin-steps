@@ -163,9 +163,12 @@ function drawStr(){const x=STR.find(y=>y.id===ST)||{};
    <select id="s_fmt"><option value="oba">filmy + shorty</option><option value="yt">tylko filmy YT</option><option value="short">tylko shorty</option></select></div>
   <input id="s_hint" value="${esc(x.title_hint||'')}" placeholder="Styl tytułów (opcjonalnie), np. „krótko, z humorem, zawsze nick na początku”" style="width:100%;margin-top:8px">
   <label class="row" style="margin-top:8px;gap:6px;cursor:pointer;color:var(--ink)"><input type="checkbox" id="s_auto" ${x.auto_vod?'checked':''}> 📡 Sam wykrywaj nowe streamy i rób z nich filmy (Mac sprawdza kanał co 30 min, publikacja automatyczna)</label>
-  <div class="row" style="margin-top:8px"><button class="btn" id="s_save">Zapisz ustawienia</button><span class="mut" id="s_msg"></span></div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="s_save">Zapisz ustawienia</button>${x.id?`<button class="btn" id="s_komp" title="Kompilacja TOP 10 najlepszych shortów z ostatnich 7 dni (robi się też sama w każdą niedzielę)">🏆 Kompilacja tygodnia teraz</button>`:''}<span class="mut" id="s_msg"></span></div>
   <details style="margin-top:10px"><summary class="mut" style="cursor:pointer">🧠 Czego AI nauczyło się z Twoich ocen i poprawek</summary><p id="s_zas" class="mut" style="white-space:pre-wrap;margin:6px 0 0">${esc((ZAS||{})[x.id]||'Jeszcze nic – oceniaj filmy 👍/👎 i poprawiaj tytuły w kalendarzu, a po 3 ocenach AI wyciągnie zasady.')}</p></details>`;
  $('s_fmt').value=x.fmt||'oba';$('fmt').value=x.fmt||'oba';
+ if($('s_komp'))$('s_komp').onclick=async()=>{const b=$('s_komp');b.disabled=true;
+  const r=await (await fetch('/api/klipping/kompilacja/'+x.id,{method:'POST'})).json();b.disabled=false;
+  if(r.ok){if(window.toast)toast(`Kompilacja zlecona (${r.n} momentów) – Mac ją zrobi, widać niżej`);sig='';load()}else alert(r.error||'Nie udało się')};
  $('s_cam').onchange=()=>{$('s_cc').hidden=$('s_cam').value!=='custom'};
  $('s_save').onclick=async()=>{const c=$('s_cam').value,cam=c==='custom'?[0,1,2,3].map(i=>(+$('s_c'+i).value||0)/100):c;
   const r=await fetch('/api/klipping/streamers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.id||$('s_name').value,name:$('s_name').value,link:$('s_link').value,cam,fmt:$('s_fmt').value,title_hint:$('s_hint').value,auto_vod:$('s_auto').checked})});
