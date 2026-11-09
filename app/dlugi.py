@@ -190,7 +190,7 @@ def _wydluz(r, min_words, per):
 
 
 def script_whatif(used):
-    p = f"""Write ONE long-form YouTube episode (EN, 6-8 minutes) for the channel "Poza Skala", series "What If?" starring Stick
+    p = f"""Write ONE long-form YouTube episode (EN, 8-10 minutes) for the channel "Poza Skala", series "What If?" starring Stick
 (a simple stick figure with a round white head and his signature red baseball cap). Real science and real scale are the payoff; numbers conservative and correct.
 Pick a fresh hypothetical scenario that a 13-year-old instantly understands and wants answered (e.g. What if you fell into a black hole,
 What if the Moon disappeared, What if you lived on Jupiter for a day). Do NOT repeat these titles: {"; ".join(used[-40:]) or "none"}.
