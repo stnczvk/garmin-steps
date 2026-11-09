@@ -858,7 +858,7 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
  nav.addEventListener('click',e=>{const h=e.target.closest('button[data-hub]');if(!h)return;const g=h.dataset.hub,L=subs(g).map(b=>b.dataset.v);setView(L.includes(last[g])?last[g]:L[0],true);document.body.classList.remove('s-open')});
  let curG=null;
  function pill(anim){const on=bar.querySelector('button.on'),p=bar.querySelector('.pill');if(!on||!p)return;p.style.transition=anim?'':'none';p.style.width=on.offsetWidth+'px';p.style.transform=`translateX(${on.offsetLeft-4}px)`;
-  try{on.scrollIntoView({block:'nearest',inline:'nearest'})}catch(e){}}
+  try{const sc=bar.querySelector('.subt-in');if(sc){const l=on.offsetLeft-(sc.clientWidth-on.offsetWidth)/2;sc.scrollTo({left:Math.max(0,l),behavior:anim?'smooth':'auto'})}}catch(e){}}   // tylko pasek w poziomie – scrollIntoView przewijał całą stronę na telefonie
  function sync(){const cur=nav.querySelector('button[data-v][aria-current=page]'),v=cur&&cur.dataset.v,g=cur&&cur.dataset.sub;
   H().forEach(h=>h.dataset.hub===g?h.setAttribute('aria-current','page'):h.removeAttribute('aria-current'));
   document.body.classList.toggle('has-subt',!!g&&subs(g).length>1);   // jedna podzakładka (np. Klipping) – bez paska

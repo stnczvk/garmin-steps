@@ -257,6 +257,11 @@ def klipping_page(req: Request):
     return _page(req, "klipping")
 
 
+@app.get("/kalendarz-yt")
+def kalendarz_yt_page(req: Request):
+    return _page(req, "kalendarz-yt")
+
+
 @app.get("/tresci")
 def tresci(req: Request):
     return _page(req, "tresci")
