@@ -222,7 +222,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
   <div class="fb"><div id="vjobs"><p class="mut">Ładuję…</p></div></div></section>
 <section class="glass dash-only s-vlog fold-s" id="gsec" data-fold="graf"><h2 class="fh">🎨 Grafiki do vloga <small id="gmac"></small><span class="chev">▾</span></h2>
   <div class="fb"><div class="gtabs" id="gtabs"><button data-g="dni" class="on">Przejścia dni</button><button data-g="godzina">Godziny</button><button data-g="napis">Własny napis</button><button data-g="miniatura">Miniatura</button></div>
-  <div class="gf" data-gf="dni"><label>Poniedziałek tygodnia<input type="date" id="g-start"></label><div class="gd" id="g-days"></div><p class="mut">Dostaniesz animację na każdy zaznaczony dzień, np. „Poniedziałek · 3 listopada” – w tym samym stylu i z dźwiękiem co paczka.</p><button class="btn pri" data-go="dni">Generuj przejścia</button></div>
+  <div class="gf" data-gf="dni"><label>Tydzień (wybierz dowolny dzień)<input type="date" id="g-start"></label><div class="gd" id="g-days"></div><p class="mut">Dostaniesz animację na każdy zaznaczony dzień, np. „Poniedziałek · 3 listopada” – w tym samym stylu i z dźwiękiem co paczka.</p><button class="btn pri" data-go="dni">Generuj przejścia</button></div>
   <div class="gf" data-gf="godzina" hidden><label>Godziny – każda w nowej linii, opis opcjonalny<textarea id="g-times" rows="4" placeholder="7:30 Pobudka&#10;12:15 Obiad&#10;18:40 Trening&#10;22:00"></textarea></label>
    <label>Styl<select id="g-tstyle"><option value="jasny">Jasna pigułka (jak w vlogu)</option><option value="ciemny">Ciemna pigułka</option></select></label>
    <p class="mut">Plakietka jak w daily vlogu: słońce albo księżyc (zależnie od godziny), cyfry wpadają po kolei, z dźwiękiem. Dostaniesz animację .mov i statyczny .png na każdą godzinę (folder „Animacje vlog YT/Godziny”).</p><button class="btn pri" data-go="godzina">Generuj godziny</button></div>
@@ -558,8 +558,13 @@ load();setInterval(load,15000);
 <script>
 (()=>{const $g=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  const T=(m,e)=>window.toast?toast(m,e):alert(m);if(!$g('gsec'))return;
- const DN=['Pon','Wt','Śr','Czw','Pt','Sob','Nd'];$g('g-days').innerHTML=DN.map((d,i)=>`<label><input type="checkbox" data-d="${i}" checked>${d}</label>`).join('');
- const nm=new Date();nm.setDate(nm.getDate()+((8-nm.getDay())%7||7));$g('g-start').value=nm.toISOString().slice(0,10);
+ // dowolna data → poniedziałek tego tygodnia; przy dniach widać konkretną datę, domyślnie nic nie jest zaznaczone
+ // (wcześniej wszystkie dni były zaznaczone, a data nie-poniedziałek przesuwała dni – stąd „losowe” przejścia)
+ const DN=['Pon','Wt','Śr','Czw','Pt','Sob','Nd'],iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+ const mon=v=>{const d=new Date(v+'T12:00:00');d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
+ const drawDays=()=>{const m=mon($g('g-start').value),was=new Set([...document.querySelectorAll('#g-days [data-d]:checked')].map(x=>x.dataset.d));
+  $g('g-start').value=iso(m);$g('g-days').innerHTML=DN.map((d,i)=>{const x=new Date(m);x.setDate(m.getDate()+i);return `<label><input type="checkbox" data-d="${i}"${was.has(String(i))?' checked':''}>${d} ${x.getDate()}.${x.getMonth()+1}</label>`}).join('')};
+ $g('g-start').value=iso(new Date());drawDays();$g('g-start').onchange=drawDays;
  $g('gtabs').onclick=e=>{const b=e.target.closest('[data-g]');if(!b)return;$g('gtabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('#gsec [data-gf]').forEach(f=>f.hidden=f.dataset.gf!==b.dataset.g)};
  document.querySelectorAll('#gsec [data-go]').forEach(b=>b.onclick=async()=>{const t=b.dataset.go;let body={type:t};
   if(t==='dni'){body.start=$g('g-start').value;body.days=[...document.querySelectorAll('#g-days [data-d]:checked')].map(x=>+x.dataset.d);if(!body.days.length)return T('Zaznacz choć jeden dzień',1)}
