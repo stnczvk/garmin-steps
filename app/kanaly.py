@@ -30,8 +30,9 @@ def api_kal(days: int = 35):
             if st == "published" and it.get("publish_at"):
                 pa = it["publish_at"]
                 E.append(_ev(ch, "film", pa, it.get("title", ""), "zaplanowany" if pa > now else "opublikowany", {"yt": it.get("yt")}))
-                E.append(_ev(ch, "zwiastun", pa + 1800, "Zwiastun 1: " + it.get("title", ""), "zaplanowany" if pa + 1800 > now else "opublikowany"))
-                E.append(_ev(ch, "zwiastun", pa + 86400, "Zwiastun 2: " + it.get("title", ""), "zaplanowany" if pa + 86400 > now else "opublikowany"))
+                for n in range(1, int(c.get("shorts", 2)) + 1):
+                    tt = pa + (1800 if n == 1 else (n - 1) * 86400)
+                    E.append(_ev(ch, "zwiastun", tt, f"Short {n}: " + it.get("title", ""), "zaplanowany" if tt > now else "opublikowany"))
             elif st == "review":
                 E.append(_ev(ch, "film", it.get("at", now), it.get("title", ""), "do zatwierdzenia"))
             elif st in ("working", "uploading"):

@@ -23,14 +23,14 @@ router = APIRouter()
 CH = "zdrowie" if __name__.endswith("zdrowie") else "pozaskala"
 if CH == "zdrowie":
     F, WORK, API, GROUP, TAGLINE, PUSH = "zdrowie_dlugie.json", DIR / "zdrowie_dlugie", "/api/zdrowie", "zdrowie", "#Health #Over50 #shorts", "/#zdrowie"
-    DEF = {"enabled": False, "days": [2], "hour": 9, "img_quality": "low", "voice": "onyx", "auto_publish": False, "us_hour": 10}
+    DEF = {"enabled": False, "days": [2], "hour": 9, "img_quality": "low", "voice": "onyx", "auto_publish": False, "us_hour": 10, "shorts": 5}
     STYLE = ("2D flat vector cartoon, the stick figure character Walt (a friendly 60-year-old stick figure: black stick body, round white head, "
              "two dot eyes, small round glasses, short grey hair tuft, light blue sweater vest), thick clean black outlines, "
              "warm calm flat background (soft beige, sage green, light blue), simple clean medical/anatomy icons drawn in the same flat style "
              "when needed (muscles, heart, bones, brain), bold readable shapes, horizontal 16:9, no text, no watermark, never photoreal, never gory")
 else:
     F, WORK, API, GROUP, TAGLINE, PUSH = "dlugie.json", DIR / "dlugie", "/api/dlugi", "pozaskala", "#WhatIf #Stickman #shorts", "/#pozaskala"
-    DEF = {"enabled": True, "days": [1, 4], "hour": 9, "img_quality": "low", "voice": "alloy", "auto_publish": False, "us_hour": 14}
+    DEF = {"enabled": True, "days": [1, 4], "hour": 9, "img_quality": "low", "voice": "alloy", "auto_publish": False, "us_hour": 14, "shorts": 2}
     STYLE = ("2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, two dot eyes, red baseball cap always on), "
              "thick clean black outlines, simple flat pastel background, bold readable shapes, correct relative proportions, "
              "horizontal 16:9, no text, no watermark")
@@ -380,11 +380,14 @@ def trailers(d, sc, cds):
     """2 pionowe shorty-zwiastuny z długiego filmu: początek (hook) i najmocniejszy moment (przedostatni rozdział).
     Kadr 16:9 na rozmytym tle 9:16 + tytuł u góry i „Full episode on the channel” na dole."""
     f = d / "final.mp4"
-    starts = [(0.0, min(55.0, max(20.0, cds[0] if cds else 50)))]
-    if len(cds) >= 3:
-        k = len(cds) - 2
-        st = sum(cds[:k])
-        starts.append((st, min(55.0, max(20.0, cds[k]))))
+    n = max(1, int(cfg().get("shorts", 2)))
+    # 1: początek (hook); dalej: najmocniejszy moment (przedostatni rozdział), potem kolejne rozdziały od początku
+    ks = [0] + ([len(cds) - 2] if len(cds) >= 3 else []) + [k for k in range(1, len(cds)) if k != len(cds) - 2]
+    ks = ks[:n]
+    starts = [(sum(cds[:k]), min(55.0, max(20.0, cds[k] if k < len(cds) else 50))) for k in ks] if cds else [(0.0, 50.0)]
+    chs = sc.get("chapters") or []
+    (d / "trailers.json").write_text(json.dumps([{"n": i + 1, "ch": k, "title": (chs[k].get("title") if k and k < len(chs) else "") or ""}
+                                                 for i, k in enumerate(ks)], ensure_ascii=False))
     font = next((x for x in FONTS if os.path.exists(x)), None)
     made = []
     for i, (ss, ln) in enumerate(starts):
@@ -446,7 +449,15 @@ def publish_trailer(vid, n, at=None):
     sc = json.loads((WORK / vid / "script.json").read_text())
     _, acc = _account()
     tok = _google_access(acc)
-    yid = _yt_upload(tok, f, {"snippet": {"title": (sc["title"][:80] + " #shorts"), "categoryId": "27", "defaultLanguage": "en",
+    title = sc["title"]
+    try:   # kolejne shorty z tego samego filmu: tytuł rozdziału, żeby nie było 5 takich samych tytułów
+        tj = json.loads((WORK / vid / "trailers.json").read_text())
+        ct = next((x["title"] for x in tj if x["n"] == n), "")
+        if ct and n > 1:
+            title = ct
+    except Exception:
+        pass
+    yid = _yt_upload(tok, f, {"snippet": {"title": (title[:80] + " #shorts"), "categoryId": "27", "defaultLanguage": "en",
                                           "description": f"Full episode 👉 https://youtu.be/{it['yt']}\n\n{TAGLINE}",
                                           "tags": (sc.get("tags") or [])[:10]},
                               "status": ({"privacyStatus": "private", "publishAt": _iso(at)} if at else {"privacyStatus": "public"}) | {"selfDeclaredMadeForKids": False}})
@@ -521,12 +532,15 @@ def _loop():
                 if c["enabled"] and now.weekday() in c["days"] and now.hour >= c["hour"] and not any(x["id"].startswith(today) for x in S["items"]):
                     produce()
                 for it in S["items"]:
-                    if it.get("status") == "published" and it.get("yt") and "2" not in (it.get("trailers") or {}) \
-                            and time.time() - it.get("published", 0) > 3600 and (WORK / it["id"] / "trailer2.mp4").exists():
-                        try:   # zwiastun 2 – dzień po filmie, o tej samej godzinie dla USA
-                            publish_trailer(it["id"], 2, at=us_slot(after=it.get("publish_at", it.get("published", time.time())) + 86400 - 1800, min_lead=0))
+                    if it.get("status") != "published" or not it.get("yt") or time.time() - it.get("published", 0) < 3600:
+                        continue
+                    for n in range(2, 9):   # kolejne shorty z filmu – po jednym dziennie, o tej samej godzinie dla USA
+                        if str(n) in (it.get("trailers") or {}) or not (WORK / it["id"] / f"trailer{n}.mp4").exists():
+                            continue
+                        try:
+                            publish_trailer(it["id"], n, at=us_slot(after=it.get("publish_at", it.get("published", time.time())) + (n - 1) * 86400 - 1800, min_lead=0))
                         except Exception as e:
-                            print("dlugi trailer2", e, flush=True)
+                            print("dlugi trailer", n, e, flush=True)
                 # sprzątanie: odrzucone/stare katalogi > 10 dni
                 for p in WORK.glob("*"):
                     if p.is_dir() and time.time() - p.stat().st_mtime > 10 * 86400:
