@@ -741,14 +741,15 @@ async def hook_klipy_wybor(req: Request):
     if b.get("uwagi"):
         extra += "\nMOJE UWAGI DO POPRZEDNICH KLIPÓW (popraw to koniecznie): " + str(b["uwagi"])[:800] + "\n"
     prompt = (f"To transkrypcja vloga z YouTube „{name}” ({dur / 60:.0f} min), kanał ŁysyVlog. Autor: Bartłomiej, natural bodybuilding, "
-              "redukcja, jedzenie, trening, codzienne życie. " + ("Każda linia to jedno zdanie: [numer | sekunda] tekst. " if zd else "Każda linia: [sekunda] tekst. ") + "\n\n" + tr + "\n" + extra +
+              "redukcja, jedzenie, trening, codzienne życie. " + ("Każda linia to jedno zdanie: [numer | start | długość] tekst. " if zd else "Każda linia: [sekunda] tekst. ") + "\n\n" + tr + "\n" + extra +
               f"\n\nZrób {'1' if ile == 1 else ('2–' + str(ile) if ile <= 3 else '3–' + str(ile))} PIONOWYCH KLIPÓW na TikToka/Reels/Shorts, które PROMUJĄ cały odcinek. Klip to NIE jest wycięty kawałek vloga, "
               "tylko krótka historia zmontowana z kilku momentów (beatów), które mogą być z różnych miejsc filmu, ale opowiadają JEDNĄ rzecz "
               "(np. ile zjadłem na cheat mealu i co na to waga, jak wyglądał trening, plan na redukcję).\n"
               "Zasady (jak u dobrych twórców):\n"
               "- pierwszy beat = najmocniejsze zdanie z liczbą, zaskoczeniem albo emocją (hook w pierwszych 2 s), żadnego „cześć”, „dzisiaj”, wstępu;\n"
               + ("- beat = CIĄG CAŁYCH ZDAŃ podany numerami: od (pierwsze zdanie) do (ostatnie zdanie, włącznie); zdania wybieraj tak, żeby myśl była "
-                 "skończona i zrozumiała bez reszty filmu; 3–6 beatów, każdy 1–3 zdania, razem 20–45 s;\n" if zd else
+                 "skończona i zrozumiała bez reszty filmu; w linii masz start i długość zdania – beat 3–10 s, 3–6 beatów, "
+                 "SUMA DŁUGOŚCI 20–45 s (policz!);\n" if zd else
                  "- 3–6 beatów, każdy 2–10 s (dokładnie od początku do końca zdania, bez urwanych słów, bez „yyy”), razem 20–45 s;\n") +
               "- w środku coś, co trzyma dalej (pytanie, zwrot akcji, „ale…”); ostatni beat = puenta (wynik, liczba, reakcja);\n"
               "- beaty w kolejności, która ma sens dla widza (nie musi być chronologiczna), bez powtarzania tej samej myśli;\n"
