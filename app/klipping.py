@@ -398,6 +398,9 @@ def _watch_loop():
     try:
         _auto_wszyscy()
         _seen_reset()
+        dd = duplikaty(True)
+        if dd:
+            print("klipping: przy starcie pominięte duble", len(dd), flush=True)
     except Exception as e:
         print("klipping auto:", e, flush=True)
     time.sleep(60)
@@ -1123,6 +1126,57 @@ def _opis_short(c, j):
     return {"instagram": txt, "yt_desc": txt, "tiktok": c.get("tiktok") or txt}
 
 
+def _zakres(j, c):
+    try:
+        return float(c["src_start"]), float(c["src_end"])
+    except Exception:
+        return None
+
+
+def _nakladka(a, b):
+    """Ile krótszego z dwóch fragmentów pokrywa się z drugim (0–1)."""
+    x = min(a[1], b[1]) - max(a[0], b[0])
+    return max(0.0, x) / max(1.0, min(a[1] - a[0], b[1] - b[0]))
+
+
+def duplikaty(apply=True):
+    """Ten sam stream przerobiony drugi raz (np. ponowne wrzucenie) daje te same momenty jeszcze raz. W kalendarzu zostaje
+    wcześniejszy / już opublikowany klip, dubel dostaje status „pominięty” (bez wpływu na naukę AI)."""
+    import planer
+    d = _rd()
+    info = {}
+    for j in d["jobs"]:
+        if not str(j.get("url", "")).startswith("http"):
+            continue
+        for c in j.get("clips", []):
+            z = _zakres(j, c)
+            if z:
+                info[f"kl:{j['id']}:{c['name']}"] = (j["url"], z, _num(c.get("dur")) <= 90)
+    out = []
+    with planer._lock:
+        P = planer.plan()
+        S = [x for x in P if x.get("group") == "strimy" and x.get("src") in info and x.get("status") in ("approved", "draft", "published")]
+        S.sort(key=lambda x: (x.get("status") != "published", x.get("when", 0)))   # opublikowane i wcześniejsze wygrywają
+        keep = []
+        for x in S:
+            u, z, short = info[x["src"]]
+            dup = next((k for k in keep if info[k["src"]][0] == u and info[k["src"]][2] == short and _nakladka(info[k["src"]][1], z) > 0.5), None)
+            if dup and x.get("status") != "published":
+                out.append({"id": x["id"], "tytul": x.get("yt_title") or x.get("caption", "")[:60], "jak": dup.get("yt_title") or dup.get("caption", "")[:60]})
+                if apply:
+                    x["status"] = "skipped"; x["note"] = "dubel – ten sam moment jest już w kalendarzu"
+            else:
+                keep.append(x)
+        if apply and out:
+            planer.save(P)
+    return out
+
+
+@router.post("/api/klipping/duplikaty")
+def api_duplikaty():
+    return {"ok": True, "usuniete": duplikaty(True)}
+
+
 def _do_planu(j, nm):
     """Gotowy klip → kalendarz kanału Strimy. Błąd zapisuje się przy zadaniu (widać go w zakładce), a nie tylko w logu."""
     import traceback
@@ -1137,6 +1191,12 @@ def _do_planu(j, nm):
         else:
             c = {**c, **{k: _uklad(c.get(k), j, mail) for k in ("yt_desc", "instagram", "tiktok") if c.get(k)}}
         planer.add_strimy(j["id"], {**c, "thumb_file": str(th) if th.is_file() else ""}, f, long=_num(c.get("dur")) > 90, streamer=j.get("streamer", ""))
+        try:
+            dd = duplikaty(True)
+            if dd:
+                print("klipping: pominięte duble", len(dd), flush=True)
+        except Exception as e:
+            print("duplikaty", e, flush=True)
         return None
     except Exception as e:
         err = f"{type(e).__name__}: {e}"[:200]
