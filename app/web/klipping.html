@@ -47,6 +47,7 @@ input#url{flex:1 1 320px}
 .kc.today{border-color:#8b7cc7;box-shadow:0 0 0 1px #8b7cc7 inset}
 .kh{font-size:12px;color:var(--soft);text-transform:capitalize}.kh b{color:var(--ink)}
 .kp{border-radius:10px;padding:6px;background:rgba(255,255,255,.05);border-left:3px solid #5b8cff;font-size:12px;min-width:0}
+.kp{cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}.kp.drag{opacity:.35}.kp.ghost{position:fixed;z-index:999;pointer-events:none;opacity:.92;transform:rotate(2deg);box-shadow:0 18px 40px -10px rgba(0,0,0,.7)}.kc.hov{border-color:#8b7cc7;background:rgba(139,124,199,.12)}
 .kp.lg{border-left-color:#ffd600}.kp img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;margin-bottom:4px}
 .kt{font-size:11.5px;color:var(--soft)}.kl{font-weight:600;font-size:12px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .ka{display:flex;gap:4px;margin-top:4px}.ka button{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);border-radius:8px;padding:2px 7px;cursor:pointer;font-size:12px}
@@ -183,13 +184,14 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-st]');if(!
  try{localStorage.setItem('kl-str',ST)}catch(x){}drawStr();if(S.jobs)jobs()});
 zas().then(strs);
 // ---- kalendarz kanału: 7 dni od dziś, kolumny = dni
-let KW=0;
-async function kal(){let P=[];try{const r=await (await fetch('/api/planer?group=strimy')).json();P=Array.isArray(r)?r:(r.items||[])}catch(e){return}
+let KW=0,KD=null,KSUP=0;
+async function kal(){if(KD)return;let P=[];try{const r=await (await fetch('/api/planer?group=strimy')).json();P=Array.isArray(r)?r:(r.items||[])}catch(e){return}
  const d0=new Date();d0.setHours(0,0,0,0);d0.setDate(d0.getDate()+KW*7);const days=[...Array(7)].map((_,i)=>{const d=new Date(d0);d.setDate(d0.getDate()+i);return d});
  const ST_={approved:'✅',draft:'⏸',published:'📤',error:'❌',publishing:'⏳'};
  const cell=d=>{const L=P.filter(p=>{const t=new Date(p.when*1000);return t.toDateString()===d.toDateString()}).sort((a,b)=>a.when-b.when);
-  return `<div class="kc${d.toDateString()===new Date().toDateString()?' today':''}"><div class="kh">${d.toLocaleDateString('pl-PL',{weekday:'short'})} <b>${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</b></div>`+
-   (L.length?L.map(p=>`<div class="kp ${p.long?'lg':'sh'}" title="${esc(p.label)}">
+  const dk=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `<div class="kc${d.toDateString()===new Date().toDateString()?' today':''}" data-d="${dk}"><div class="kh">${d.toLocaleDateString('pl-PL',{weekday:'short'})} <b>${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</b></div>`+
+   (L.length?L.map(p=>`<div class="kp ${p.long?'lg':'sh'}" ${['approved','draft'].includes(p.status)?`data-id="${p.id}"`:''} data-w="${p.when}" title="${esc(p.label)}">
     ${p.long&&p.thumb_file?`<img src="/api/planer/${p.id}/thumb" alt="">`:''}
     <div class="kt">${new Date(p.when*1000).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} · ${p.long?'🎬 film':'📱 short'} ${ST_[p.status]||''}</div>
     <div class="kl">${esc(p.label)}</div>
@@ -212,6 +214,31 @@ document.addEventListener('click',async e=>{const w=e.target.closest('[data-kw]'
   kal();return}
  const b=e.target.closest('[data-pa]');if(!b)return;if(b.dataset.pa==='skip'&&!confirm('Usunąć ten film z kalendarza?'))return;b.disabled=true;
  await fetch(`/api/planer/${b.dataset.pid}/${b.dataset.pa}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});kal()});
+// przeciąganie postów między dniami (mysz od razu, dotyk: przytrzymaj)
+document.addEventListener('pointerdown',e=>{const k=e.target.closest('.kp[data-id]');if(!k||e.button>0||e.target.closest('button'))return;
+ KD={k,x:e.clientX,y:e.clientY,id:e.pointerId,on:false,touch:e.pointerType!=='mouse'};
+ if(KD.touch)KD.tm=setTimeout(()=>{if(KD&&!KD.on)kBeg(KD.x,KD.y)},320)});
+function kBeg(x,y){KD.on=true;const g=KD.k.cloneNode(true);g.classList.add('ghost');g.style.width=KD.k.offsetWidth+'px';document.body.appendChild(g);KD.g=g;KD.k.classList.add('drag');
+ const r=KD.k.getBoundingClientRect();KD.ox=x-r.left;KD.oy=y-r.top;kMv(x,y);try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
+function kMv(x,y){KD.g.style.left=(x-KD.ox)+'px';KD.g.style.top=(y-KD.oy)+'px';const el=document.elementFromPoint(x,y),c=el&&el.closest('.kc[data-d]');
+ document.querySelectorAll('.kc.hov').forEach(n=>n!==c&&n.classList.remove('hov'));if(c)c.classList.add('hov');KD.tg=c}
+document.addEventListener('pointermove',e=>{if(!KD||e.pointerId!==KD.id)return;
+ if(!KD.on){if(Math.hypot(e.clientX-KD.x,e.clientY-KD.y)>6){if(KD.touch){clearTimeout(KD.tm);KD=null;return}kBeg(e.clientX,e.clientY)}else return}
+ e.preventDefault();kMv(e.clientX,e.clientY)},{passive:false});
+document.addEventListener('touchmove',e=>{if(KD&&KD.on)e.preventDefault()},{passive:false});
+async function kEnd(e){if(!KD||(e&&e.pointerId!==KD.id))return;clearTimeout(KD.tm);const d=KD;if(!d.on){KD=null;return}KSUP=Date.now();
+ d.g.remove();d.k.classList.remove('drag');document.querySelectorAll('.kc.hov').forEach(n=>n.classList.remove('hov'));
+ const c=d.tg,o=new Date(d.k.dataset.w*1000);if(!c){KD=null;return}
+ const hm=`${String(o.getHours()).padStart(2,'0')}:${String(o.getMinutes()).padStart(2,'0')}`,day=c.dataset.d;
+ const od=`${o.getFullYear()}-${String(o.getMonth()+1).padStart(2,'0')}-${String(o.getDate()).padStart(2,'0')}`;
+ if(day===od){KD=null;return}
+ if(new Date(day+'T'+hm)<new Date()){KD=null;if(window.toast)toast('Ta godzina już minęła');else alert('Ta godzina już minęła');return}
+ c.appendChild(d.k);KD=null;
+ try{const r=await (await fetch(`/api/planer/${d.k.dataset.id}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({when:day+'T'+hm})})).json();
+  if(window.toast)toast(r.ok===false?(r.error||'Nie udało się'):'Przesunięte na '+new Date(day).toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'short'})+' '+hm)}catch(x){alert('Nie udało się przesunąć')}
+ kal()}
+document.addEventListener('pointerup',kEnd);document.addEventListener('pointercancel',e=>{if(KD&&KD.on)kEnd(e);else if(KD){clearTimeout(KD.tm);KD=null}});
+document.addEventListener('click',e=>{if(Date.now()-KSUP<300&&e.target.closest('.kp')){e.stopPropagation();e.preventDefault()}},true);
 kal();setInterval(kal,30000);
 load();setInterval(load,10000);
 </script>
