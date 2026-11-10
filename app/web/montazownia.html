@@ -607,15 +607,15 @@ load();setInterval(load,15000);
 (()=>{const c=document.getElementById('cst');window.CSTYLE='';c.onclick=e=>{const b=e.target.closest('[data-st]');if(!b)return;c.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));window.CSTYLE=b.dataset.st;document.getElementById('czam').hidden=!window.CSTYLE}})();
 </script>
 <script>
-// Vlog YT: wstępne cięcie w Edits na Macu jednym kliknięciem
+// Vlog YT: wstępne cięcie na Macu jednym kliknięciem → pocięte kawałki pod CapCut
 (()=>{const box=document.getElementById('vyt');if(!box)return;let sig='';const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function L(){let r;try{r=await (await fetch('/api/vlogyt')).json()}catch(x){return}
  const j=(r.jobs||[])[0],busy=j&&['queued','working'].includes(j.state),k=JSON.stringify([r.folders,r.mac,j&&[j.state,j.step,j.error]]);if(k===sig)return;sig=k;
- box.innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between"><div><b>🎬 Vlog na YouTube – wstępne cięcie w Edits</b>
+ box.innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between"><div><b>🎬 Vlog na YouTube – wstępne cięcie pod CapCut</b>
   <div class="mut" style="margin-top:2px">${r.mac?'Mac online':'Mac offline – włącz Maca, żeby zobaczyć foldery'} · każde nagranie osobnym blokiem, wycięta cisza, kolejność ustawiasz sam</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="vyf" style="background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:8px 10px">${(r.folders||[]).map(f=>`<option value="${e(f.name)}">${e(f.name)} (${f.n} nagrań)</option>`).join('')||'<option value="">brak folderów</option>'}</select>
-  <button class="btn pri" id="vyg" ${busy||!(r.folders||[]).length?'disabled':''}>✂️ Przygotuj w Edits</button></div></div>
-  ${j?`<div class="mut" style="margin-top:8px">${j.state==='done'?'✅ Gotowe: '+e(j.project||j.folder)+' – otwórz w Edits':j.state==='error'?'❌ '+e(j.error):'⏳ '+e(j.folder)+': '+e(j.step)}</div>`:''}`;
+  <button class="btn pri" id="vyg" ${busy||!(r.folders||[]).length?'disabled':''}>✂️ Potnij nagrania</button></div></div>
+  ${j?`<div class="mut" style="margin-top:8px">${j.state==='done'?'✅ Gotowe: '+e(j.project||j.folder)+' – zaimportuj do CapCut':j.state==='error'?'❌ '+e(j.error):'⏳ '+e(j.folder)+': '+e(j.step)}</div>`:''}`;
  const b=document.getElementById('vyg');if(b)b.onclick=async()=>{b.disabled=true;const q=await fetch('/api/vlogyt/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folder:document.getElementById('vyf').value})});const x=await q.json();if(x.error)alert(x.error);sig='';L()}}
 L();setInterval(L,8000)})();
 </script>

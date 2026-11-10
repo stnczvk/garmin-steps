@@ -1,4 +1,4 @@
-"""Vlog YT: przycisk w centrum → Mac robi w Edits wstępne cięcie (każde nagranie osobnym blokiem, wycięta cisza).
+"""Vlog YT: przycisk w centrum → Mac robi wstępne cięcie pod CapCut (każde nagranie osobnym blokiem, wycięta cisza).
 Mac co kilka minut zgłasza listę folderów z nagraniami (Biurko/ŁysyVlog/...), centrum zleca zadanie, Mac je wykonuje."""
 import secrets, threading, time
 
@@ -89,7 +89,7 @@ async def hook_status(jid: str, req: Request):
     if j and b.get("state") in ("done", "error"):
         try:
             from extra import push_all
-            push_all("🎬 Vlog YT" + (" gotowy w Edits" if b["state"] == "done" else ": błąd"),
+            push_all("🎬 Vlog YT" + (" – kawałki gotowe do CapCut" if b["state"] == "done" else ": błąd"),
                      (b.get("project") or b.get("error") or "")[:120], "/#montazownia")
         except Exception:
             pass
