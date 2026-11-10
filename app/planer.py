@@ -611,7 +611,7 @@ def api_plan(group: str = ""):
         tt = tiktok_pub.connected()
     except Exception:
         tt = False
-    return {"items": P[-40:], "d0": d0, "cfg": cfg(), "tiktok": tt, "tt_mode": tiktok_pub.mode() if tt else "",
+    return {"items": P[-400:], "d0": d0, "cfg": cfg(), "tiktok": tt, "tt_mode": tiktok_pub.mode() if tt else "",
             "public": bool(_public())}
 
 
