@@ -712,6 +712,41 @@ def apply_kling_wait():
     return {"ok": True, "changed": done}
 
 
+def apply_kling_taskid():
+    """Node „kling” czasem oddaje 2 elementy (pierwszy bez numeru zadania) – HTTP Request1 / Refresh Kling URL brały numer
+    z pierwszego elementu → adres …/task/undefined → „resource could not be found”. Teraz bierzemy pierwszy prawdziwy numer zadania."""
+    OLD = '{{$node["kling"].json.body.data.task_id}}'
+    NEW = ("{{ $('kling').all().map(i => (i.json.body && i.json.body.data && i.json.body.data.task_id) "
+           "|| (i.json.data && i.json.data.task_id)).find(Boolean) }}")
+    wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
+    done = []
+    for w in wfs:
+        if w.get("isArchived"):
+            continue
+        wf = n8n("GET", f"/api/v1/workflows/{w['id']}").json()
+        if not any(OLD in str((n.get("parameters") or {}).get("url", "")) for n in wf.get("nodes", [])):
+            continue
+        new = copy.deepcopy(wf)
+        for n in new["nodes"]:
+            u = (n.get("parameters") or {}).get("url")
+            if isinstance(u, str) and OLD in u:
+                n["parameters"]["url"] = u.replace(OLD, NEW)
+        _save_backup(wf, "przed poprawką numeru zadania Kling")
+        r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new))
+        if r.status_code >= 400:
+            r = n8n("PUT", f"/api/v1/workflows/{wf['id']}", json=AN.put_body(new, minimal=True))
+        if r.status_code >= 400:
+            log("op", f"{wf.get('name')}: n8n nie przyjął poprawki numeru zadania Kling: {r.text[:120]}", "error")
+            continue
+        if wf.get("active"):
+            n8n("POST", f"/api/v1/workflows/{wf['id']}/activate")
+        done.append(wf.get("name"))
+    if done:
+        log("op", "Kling: numer zadania brany z pierwszego poprawnego elementu (" + ", ".join(done) + ")", "ok")
+        _bust()
+    return {"ok": True, "changed": done}
+
+
 @router.post("/api/n8n/kling-wait")
 def api_kling_wait():
     return apply_kling_wait()
@@ -746,6 +781,10 @@ def _img_loop():
                 apply_kling_wait()
             except Exception as e:
                 print("kling wait", e, flush=True)
+            try:
+                apply_kling_taskid()
+            except Exception as e:
+                print("kling taskid", e, flush=True)
             _t.sleep(6 * 3600)
     threading.Thread(target=run, daemon=True).start()
 
