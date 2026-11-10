@@ -371,6 +371,36 @@ async def hook_vlogyt(req: Request, name: str = "", meta: str = ""):
     return {"ok": True, "id": (it or {}).get("id"), "when": (it or {}).get("when")}
 
 
+def klipy_po_vlogu(v, P=None):
+    """Klipy z vloga YT (promocja) idą za premierą: pierwszy 1,5 h po vlogu, kolejne po jednym dziennie o godzinie klipów."""
+    own = P is None
+    if own:
+        P = plan()
+    base = v["src"][4:] if v.get("src", "").startswith("vyt:") else ""
+    K = sorted([x for x in P if x.get("series") == "klip" and x.get("status") in ("draft", "approved") and not x.get("pin")
+                and base and str(x.get("src", "")).startswith(f"vf:{base} klip")], key=lambda x: x.get("src"))
+    t = v["when"] + 90 * 60
+    for x in K:
+        x["when"] = t
+        t = _when("klip", datetime.fromtimestamp(t, TZ) + timedelta(hours=2))
+    if own:
+        save(P)
+    return len(K)
+
+
+@router.post("/api/mont-hook/vlogyt-klipy-reset")
+def hook_vlogyt_klipy_reset(req: Request, name: str = ""):
+    """Nowe klipy z tego samego vloga → stare, nieopublikowane znikają z planu."""
+    from montaz import _tok
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100]
+    srcs = [x["src"] for x in plan() if str(x.get("src", "")).startswith(f"vf:{nm} klip") and x.get("status") in ("draft", "approved", "error")]
+    if srcs:
+        drop(srcs, why="nowe klipy z vloga")
+    return {"ok": True, "usuniete": len(srcs)}
+
+
 DROP = "posts_dropped.json"
 
 
@@ -717,6 +747,8 @@ async def api_act(pid: str, action: str, req: Request):
                 try:
                     it["when"] = datetime.fromisoformat(b["when"]).replace(tzinfo=TZ).timestamp()
                     it["pin"] = True   # ręcznie ustawiona godzina – przeplatanie streamerów jej nie rusza
+                    if it.get("series") == "vlogyt":   # przesunięty vlog → klipy promujące idą za nim
+                        klipy_po_vlogu(it, P)
                 except ValueError:
                     return {"ok": False, "error": "zła data"}
             if isinstance(b.get("tt"), dict):

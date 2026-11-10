@@ -716,37 +716,58 @@ async def hook_vlogyt_pakiet(req: Request):
 
 @router.post("/api/mont-hook/klipy-wybor")
 async def hook_klipy_wybor(req: Request):
-    """Mac wysyła transkrypcję gotowego vloga z YouTube (z czasami) → AI wybiera 3–5 fragmentów na pionowe klipy."""
+    """Mac wysyła transkrypcję gotowego vloga z YouTube (z czasami) → AI układa 3–5 krótkich historii na TikToka/Reels/Shorts
+    z kilku momentów vloga (nie jeden pocięty kawałek): hook, rozwinięcie, puenta, zaproszenie na cały odcinek."""
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     from agency import claude, as_json
     import asyncio
     b = await req.json()
     tr, name, dur = (b.get("transkrypcja") or "")[:60000], b.get("name") or "", float(b.get("dur") or 0)
-    prompt = (f"To transkrypcja długiego vloga z YouTube „{name}” ({dur / 60:.0f} min). Autor: Bartłomiej, natural bodybuilding, "
+    prompt = (f"To transkrypcja vloga z YouTube „{name}” ({dur / 60:.0f} min), kanał ŁysyVlog. Autor: Bartłomiej, natural bodybuilding, "
               "redukcja, jedzenie, trening, codzienne życie. Każda linia: [sekunda] tekst.\n\n" + tr +
-              "\n\nWybierz 3–5 fragmentów na osobne pionowe klipy (TikTok, Reels, Shorts), po jednym dziennie. Każdy fragment: "
-              "20–60 s, zrozumiały bez reszty vloga, zaczyna się od mocnego zdania (hook w pierwszych 2 s), kończy na pełnej myśli. "
-              "Bez nakładania się fragmentów. Do każdego: krótki napis na górę ekranu (max 6 słów, ciekawość, bez clickbaitu), "
-              "opis TikTok (1–2 zdania + 3–5 hashtagów), opis Instagram (2–4 zdania + CTA + hashtagi), tytuł YouTube Shorts. "
-              "Klipy PROMUJĄ cały vlog na YouTube: w opisie TikTok i Instagram jedno naturalne zdanie, że cały odcinek jest na YouTube "
-              "(kanał ŁysyVlog, link w bio), bez nachalności.\n"
+              "\n\nZrób 3–5 PIONOWYCH KLIPÓW na TikToka/Reels/Shorts, które PROMUJĄ cały odcinek. Klip to NIE jest wycięty kawałek vloga, "
+              "tylko krótka historia zmontowana z kilku momentów (beatów), które mogą być z różnych miejsc filmu, ale opowiadają JEDNĄ rzecz "
+              "(np. ile zjadłem na cheat mealu i co na to waga, jak wyglądał trening, plan na redukcję).\n"
+              "Zasady (jak u dobrych twórców):\n"
+              "- pierwszy beat = najmocniejsze zdanie z liczbą, zaskoczeniem albo emocją (hook w pierwszych 2 s), żadnego „cześć”, „dzisiaj”, wstępu;\n"
+              "- 3–6 beatów, każdy 2–10 s (dokładnie od początku do końca zdania, bez urwanych słów, bez „yyy”), razem 20–45 s;\n"
+              "- w środku coś, co trzyma dalej (pytanie, zwrot akcji, „ale…”); ostatni beat = puenta (wynik, liczba, reakcja);\n"
+              "- beaty w kolejności, która ma sens dla widza (nie musi być chronologiczna), bez powtarzania tej samej myśli;\n"
+              "- każdy klip o czymś innym.\n"
+              "Do każdego: hook = napis na ekran na pierwsze 3 s, 2–5 słów, DOPEŁNIA to, co mówię (nie powtarza), ciekawość albo liczba; "
+              "opis TikTok i Instagram (z jednym naturalnym zdaniem, że cały odcinek jest na YouTube, kanał ŁysyVlog, link w bio), tytuł YouTube Shorts.\n"
               + OPIS_RULES +
-              '\nOdpowiedz wyłącznie JSON: {"klipy": [{"start": s, "end": s, "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
+              '\nOdpowiedz wyłącznie JSON: {"klipy": [{"temat": "...", "beats": [{"start": s, "end": s}], "hook": "...", "tiktok": "...", '
+              '"instagram": "...", "yt_title": "..."}]}')
     try:
-        txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=3000, system=__import__("skills").sk("hook", "caption", "trend", "slop")))
+        txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=4000, system=__import__("skills").sk("hook", "reel", "caption", "trend", "slop")))
     except Exception as e:
         return JSONResponse({"error": str(e)[:200]}, status_code=502)
     K = (as_json(txt) or {}).get("klipy") or []
     out = []
     for k in K:
-        try:
-            a, e = float(k["start"]), float(k["end"])
-        except Exception:
+        B = []
+        for x in (k.get("beats") or []):
+            try:
+                a, e = float(x["start"]), float(x["end"])
+            except Exception:
+                continue
+            if 1.0 <= e - a <= 15 and 0 <= a and (not dur or e <= dur + 1):
+                B.append({"start": a, "end": e})
+        if not B:   # stary format: jeden fragment
+            try:
+                a, e = float(k["start"]), float(k["end"])
+                if 8 <= e - a <= 60:
+                    B = [{"start": a, "end": e}]
+            except Exception:
+                pass
+        tot = sum(x["end"] - x["start"] for x in B)
+        if not B or tot < 8 or tot > 70:
             continue
-        if 8 <= e - a <= 90:
-            out.append({"start": a, "end": e, "hook": human(str(k.get("hook") or "")), "tiktok": human(str(k.get("tiktok") or "")),
-                        "instagram": human(str(k.get("instagram") or "")), "yt_title": human(str(k.get("yt_title") or ""))})
+        out.append({"start": B[0]["start"], "end": B[-1]["end"], "beats": B[:7], "temat": str(k.get("temat") or "")[:80],
+                    "hook": human(str(k.get("hook") or "")), "tiktok": human(str(k.get("tiktok") or "")),
+                    "instagram": human(str(k.get("instagram") or "")), "yt_title": human(str(k.get("yt_title") or ""))})
     return {"klipy": out[:5]}
 
 
