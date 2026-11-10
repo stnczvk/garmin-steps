@@ -835,6 +835,10 @@ async def _wybor_yt(b, n, dur_min):
             "Segment ma max 60 min: gdy jedna rzecz trwa dłużej (np. wielogodzinne granie w jedną grę), podziel ją na kilka segmentów "
             "po 15–60 min w naturalnych miejscach (osobne mecze, rundy, misje, etapy, ważne wydarzenia w grze). "
             "Pomiń jako segmenty: start i koniec streama, czekanie, przerwy, czytanie donejtów, reklamy i współprace sponsorskie. "
+            + ("TYLKO OGLĄDANIE: granie w grę idzie do osobnego skrótu, więc tu wypisz WYŁĄCZNIE segmenty, w których "
+               f"{who} ogląda i komentuje coś (film, odcinek, klip, filmik z YouTube/TikToka, mecz, wiadomości) albo prowadzi dłuższą rozmowę "
+               "na jakiś temat. Granie pomiń całkowicie. Jeśli nic takiego nie ma, zwróć pustą listę segmentów. "
+               if b.get("tylko_ogladanie") else "") +
             "Każdy segment oceń 1–10 jako osobny film na YouTube (10 = ludzie obejrzą do końca i udostępnią; dużo ⭐ i 🔊 w środku = wyżej; "
             "spokojne gadanie o niczym = nisko). " + (f"ZASADY z moich ocen (stosuj):\n{zas}\n" if zas else "") +
             'Odpowiedz tylko JSON: {"segmenty": [{"od_min": m, "do_min": m, "co": "krótko co się dzieje", "ocena": 1-10}]}')
@@ -855,6 +859,8 @@ async def _wybor_yt(b, n, dur_min):
     S.sort(key=lambda x: -x["ocena"])
     # bez ręcznej liczby: oceny 7+ (max 6); gdy żadna nie dobiła do 7 – 2 najlepsze z 5+, żeby długi stream nie skończył się bez filmu
     P = [x for x in S if x["ocena"] >= 6][:n] if n else ([x for x in S if x["ocena"] >= 7][:6] or [x for x in S if x["ocena"] >= 5][:2] or S[:1])
+    if b.get("tylko_ogladanie"):   # przy skrócie: odcinki tylko z oglądania, bez awaryjnego „weź cokolwiek”
+        P = [x for x in S if x["ocena"] >= 6][:6]
     print(f"klipping yt: segmentów {len(S)}, wybrane {len(P)}", flush=True)
     sysm = __import__("skills").sk("hook", "caption", "trend", "slop")
 
