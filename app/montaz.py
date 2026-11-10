@@ -791,7 +791,9 @@ def vlog_check(jid):
                          "czy kolejność ma sens.\n\n"
                          f"Odcinek #{j.get('ep')} z {j.get('date')}, długość podglądu {dur:.0f} s\n\nRAPORT:\n{j.get('raport', '')[:3500]}\n\n"
                          f"NAPISY:\n{j.get('napisy', '')[:3000]}\n\n"
-                         f"MOJE WCZEŚNIEJSZE POPRAWKI (te błędy nie mogą się powtórzyć):\n{_lessons(j.get('kind') or 'vlog') or 'brak'}\n\n"
+                         f"MOJE WCZEŚNIEJSZE POPRAWKI DO INNYCH ODCINKÓW (tylko jako przykłady RODZAJÓW błędów; ich treść dotyczy innych dni – "
+                         f"nie wymagaj, żeby ten odcinek mówił o tym samym):\n{_lessons(j.get('kind') or 'vlog') or 'brak'}\n\n"
+                         "WAŻNE: przekręcone przez rozpoznawanie mowy nazwy w raporcie to nie błąd montażu – zgłaszaj je tylko, jeśli są w NAPISACH.\n\n"
                          'Odpowiedz JSON: {"ok": true/false, "review": "2-3 zdania oceny po polsku", '
                          '"fix": "jeśli coś trzeba poprawić – polecenie dla montażu po polsku (np. zostaw zdanie o krokach, wytnij drugie podejście do zdania o obiedzie), inaczej pusty"}',
                          max_tokens=500)
@@ -884,7 +886,10 @@ def check(jid):
                          "Dostajesz raport automatycznych cięć i transkrypcję klipów. Sprawdź: czy nie zostały powtórzone zdania, "
                          "czy nie wycięto czegoś ważnego, czy kolejność posiłków ma sens, czy są przekleństwa/pomyłki.\n\n"
                          f"Tytuł: {' / '.join(st.get('title') or [])}\nDługość: {dur:.0f} s\n{_btxt(base)}\n\nRAPORT:\n{rap}\n\nTRANSKRYPCJA:\n{tr}\n\n"
-                         f"MOJE WCZEŚNIEJSZE POPRAWKI (te błędy nie mogą się powtórzyć):\n{_lessons('jedzenie') or 'brak'}\n\n"
+                         f"MOJE WCZEŚNIEJSZE POPRAWKI DO INNYCH FILMÓW (tylko jako przykłady RODZAJÓW błędów, np. powtórzone zdanie albo wycięta liczba; "
+                         f"ich treść dotyczy innych dni – nie wymagaj, żeby ten film mówił o tym samym, i nie porównuj z nimi treści):\n{_lessons('jedzenie') or 'brak'}\n\n"
+                         "WAŻNE: transkrypcja jest automatyczna i często przekręca słowa i nazwy (np. sos, potrawy, marki) – takich przekręceń NIE zgłaszaj jako błędów. "
+                         "Zgłaszaj tylko realne problemy montażu.\n\n"
                          'Odpowiedz JSON: {"ok": true/false, "review": "2-3 zdania oceny po polsku", '
                          '"fix": "jeśli coś trzeba poprawić – polecenie dla montażysty po polsku (np. wytnij w klipie 2 drugie podejście do zdania o obiedzie), inaczej pusty"}',
                          max_tokens=500)
@@ -1440,7 +1445,7 @@ async def hook_straznik(req: Request):
                      f"{' x' + str(s.get('speed')) if s.get('speed') not in (None, 1, 1.0) else ''}" for s in segs[:300])
     lessons = _lessons(kind)
     prompt = (f"{GUARD_RULES}\n\nODCINEK: {kind} #{b.get('ep')} z {b.get('date')}\n\n"
-              f"MOJE WCZEŚNIEJSZE POPRAWKI (ucz się z nich – te błędy NIE mogą się powtórzyć):\n{lessons or 'brak'}\n\n"
+              f"MOJE WCZEŚNIEJSZE POPRAWKI DO INNYCH ODCINKÓW (ucz się z nich RODZAJÓW błędów; ich treść dotyczy innych dni – nie wymagaj, żeby ten odcinek mówił o tym samym):\n{lessons or 'brak'}\n\n"
               f"UJĘCIA:\n{segt}\n\nNAPISY:\n{capt}\n\nJUŻ WYCIĘTE PRZEZ MONTAŻ:\n{str(b.get('cut') or '')[:2500]}")
     try:
         res = as_json(claude(prompt, SMART, 2500)) or {}
