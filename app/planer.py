@@ -388,17 +388,54 @@ def klipy_po_vlogu(v, P=None):
     return len(K)
 
 
+def _klip_base(src):
+    src = str(src or "")
+    if src.startswith("vyt:"):
+        return src[4:]
+    m = re.match(r"vf:(.+) klip \d+$", src)
+    return m.group(1) if m else ""
+
+
 @router.post("/api/mont-hook/vlogyt-klipy-reset")
 def hook_vlogyt_klipy_reset(req: Request, name: str = ""):
-    """Nowe klipy z tego samego vloga → stare, nieopublikowane znikają z planu."""
+    """Nowe klipy z tego samego vloga → stare NIEZATWIERDZONE znikają z planu; zatwierdzone i opublikowane zostają (Mac numeruje dalej)."""
     from montaz import _tok
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100]
-    srcs = [x["src"] for x in plan() if str(x.get("src", "")).startswith(f"vf:{nm} klip") and x.get("status") in ("draft", "approved", "error")]
+    K = [x for x in plan() if str(x.get("src", "")).startswith(f"vf:{nm} klip")]
+    srcs = [x["src"] for x in K if x.get("status") in ("draft", "error")]
+    zost = [x for x in K if x["src"] not in srcs]
+    nums = [int(m.group(1)) for x in K for m in [re.search(r"klip (\d+)$", x["src"])] if m]
     if srcs:
         drop(srcs, why="nowe klipy z vloga")
-    return {"ok": True, "usuniete": len(srcs)}
+    return {"ok": True, "usuniete": len(srcs), "next": max(nums + [0]) + 1, "ile": max(0, 5 - len(zost)),
+            "zostaja": [x.get("label") or "" for x in zost]}
+
+
+@router.post("/api/planer/klipy-popraw")
+async def api_klipy_popraw(req: Request):
+    """Guzik „✂️ Popraw klipy”: Mac robi od nowa niezatwierdzone klipy z tego vloga (z Twoimi uwagami)."""
+    b = await req.json()
+    nm = _klip_base(b.get("psrc"))
+    if not nm:
+        return {"ok": False, "error": "to nie jest klip z vloga YouTube"}
+    with _lock:
+        Q = [x for x in _read("klipy_popraw.json", []) if x["name"] != nm]
+        Q.append({"name": nm, "uwagi": str(b.get("uwagi") or "")[:800], "at": time.time()})
+        _write("klipy_popraw.json", Q[-20:])
+    return {"ok": True}
+
+
+@router.get("/api/mont-hook/klipy-popraw")
+def hook_klipy_popraw(req: Request):
+    from montaz import _tok
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    with _lock:
+        Q = _read("klipy_popraw.json", [])
+        _write("klipy_popraw.json", [])
+    return {"zadania": Q}
 
 
 DROP = "posts_dropped.json"

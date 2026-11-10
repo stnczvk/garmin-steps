@@ -724,9 +724,15 @@ async def hook_klipy_wybor(req: Request):
     import asyncio
     b = await req.json()
     tr, name, dur = (b.get("transkrypcja") or "")[:60000], b.get("name") or "", float(b.get("dur") or 0)
+    ile = max(1, min(5, int(b.get("ile") or 5)))
+    extra = ""
+    if b.get("zostaja"):
+        extra += "\nTe klipy z tego vloga już są (zatwierdzone) – zrób o CZYMŚ INNYM: " + " | ".join(map(str, b["zostaja"]))[:800] + "\n"
+    if b.get("uwagi"):
+        extra += "\nMOJE UWAGI DO POPRZEDNICH KLIPÓW (popraw to koniecznie): " + str(b["uwagi"])[:800] + "\n"
     prompt = (f"To transkrypcja vloga z YouTube „{name}” ({dur / 60:.0f} min), kanał ŁysyVlog. Autor: Bartłomiej, natural bodybuilding, "
-              "redukcja, jedzenie, trening, codzienne życie. Każda linia: [sekunda] tekst.\n\n" + tr +
-              "\n\nZrób 3–5 PIONOWYCH KLIPÓW na TikToka/Reels/Shorts, które PROMUJĄ cały odcinek. Klip to NIE jest wycięty kawałek vloga, "
+              "redukcja, jedzenie, trening, codzienne życie. Każda linia: [sekunda] tekst.\n\n" + tr + "\n" + extra +
+              f"\n\nZrób {'1' if ile == 1 else ('2–' + str(ile) if ile <= 3 else '3–' + str(ile))} PIONOWYCH KLIPÓW na TikToka/Reels/Shorts, które PROMUJĄ cały odcinek. Klip to NIE jest wycięty kawałek vloga, "
               "tylko krótka historia zmontowana z kilku momentów (beatów), które mogą być z różnych miejsc filmu, ale opowiadają JEDNĄ rzecz "
               "(np. ile zjadłem na cheat mealu i co na to waga, jak wyglądał trening, plan na redukcję).\n"
               "Zasady (jak u dobrych twórców):\n"
@@ -768,7 +774,7 @@ async def hook_klipy_wybor(req: Request):
         out.append({"start": B[0]["start"], "end": B[-1]["end"], "beats": B[:7], "temat": str(k.get("temat") or "")[:80],
                     "hook": human(str(k.get("hook") or "")), "tiktok": human(str(k.get("tiktok") or "")),
                     "instagram": human(str(k.get("instagram") or "")), "yt_title": human(str(k.get("yt_title") or ""))})
-    return {"klipy": out[:5]}
+    return {"klipy": out[:ile]}
 
 
 VPOD = SOCIAL_ROOT / "vlog_podglad"

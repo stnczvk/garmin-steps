@@ -82,7 +82,8 @@ def api_get(month: str = "", group: str = ""):
                       "rel": max((s["rel"] for s in st if s["rel"]), default=None), "views": sum(s["views"] for s in st) or None,
                       "movable": x["status"] in ("draft", "approved", "error"),
                       "caption": x.get("caption") or "", "yt_title": x.get("yt_title") or "", "tiktok": x.get("tiktok") or "",
-                      "step": x.get("step") or "", "n_files": len(x.get("files") or [])})
+                      "step": x.get("step") or "", "n_files": len(x.get("files") or []),
+                      "series": x.get("series") or "", "psrc": x.get("src") or ""})
     for r in R:
         if r["id"] in used or not (a <= r["t"] <= b):
             continue
