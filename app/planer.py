@@ -292,8 +292,13 @@ def scan():
         if kind == "klip":   # klipy z vloga YT: opis gotowy z Maca, po jednym dziennie (kolejne dni po ostatnim zaplanowanym)
             o = m.get("opis") or {}
             # promocja vloga: klipy dopiero po premierze odcinka na YouTube
-            last = max([x["when"] for x in plan() if x.get("series") in ("klip", "vlogyt") and x.get("status") != "published"] + [0])
-            when = _when("klip", datetime.fromtimestamp(last, TZ) + timedelta(hours=2)) if last > time.time() else _when("klip")
+            PP = [x for x in plan() if x.get("series") in ("klip", "vlogyt") and x.get("status") != "published"]
+            lastx = max(PP, key=lambda x: x["when"], default=None)
+            last = lastx["when"] if lastx else 0
+            if lastx and lastx.get("series") == "vlogyt" and last > time.time():
+                when = last + 90 * 60   # pierwszy klip 1,5 h po premierze vloga (kop w pierwszych godzinach), kolejne po jednym dziennie
+            else:
+                when = _when("klip", datetime.fromtimestamp(last, TZ) + timedelta(hours=2)) if last > time.time() else _when("klip")
             _add({"src": f"vf:{nm}", "kind": "film", "series": "klip", "label": o.get("hook") or nm, "file": str(f), "when": when,
                   "platforms": _film_pl("klip"), "caption": o.get("instagram", ""), "tiktok": o.get("tiktok", ""), "yt_title": o.get("yt_title", "")})
             have.add(f"vf:{nm}")
