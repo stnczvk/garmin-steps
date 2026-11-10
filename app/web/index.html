@@ -1563,7 +1563,14 @@ function setView(v, push) {
   if (push) history.replaceState(null, '', '#' + v);
   if (typeof kbFix === 'function') setTimeout(kbFix, 50);
 }
-$('#snav').onclick = e => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v, true); };
+$('#snav').onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return;
+  // ponowne kliknięcie tej samej zakładki = „odśwież ją”: ramka ładowana od nowa (wyjście awaryjne, gdy ekran się zatnie)
+  if (b.dataset.v === document.body.dataset.view) {
+    const f = document.querySelector(`#vframe iframe[data-v="${b.dataset.v}"]`);
+    if (f) { try { f.contentWindow.location.reload(); } catch (x) { f.src = f.src; } }
+    vRepaint(); return;
+  }
+  setView(b.dataset.v, true); };
 $('#burger').onclick = () => document.body.classList.toggle('s-open');
 $('#sdim').onclick = () => document.body.classList.remove('s-open');
 // motyw w menu bocznym (na telefonie zamiast przełącznika w nagłówku)
@@ -1610,8 +1617,10 @@ if (window.visualViewport) {
 setInterval(() => { const v = document.body.dataset.view; if (!v || v === 'stats' || v === 'stats-ps' || v === 'stats-strimy') return;
   const fs = [...document.querySelectorAll('#vframe iframe')], bad = fs.some(f => f.classList.contains('on') !== (f.dataset.v === v));
   if (bad || !fs.some(f => f.dataset.v === v) || fs.some(f => f.dataset.v !== v && f.style.display !== 'none')) setView(v); }, 2500);
-addEventListener('pageshow', () => setTimeout(vRepaint, 50));
-document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(vRepaint, 50); });
+// po powrocie do aplikacji (uśpienie, inna aplikacja) widok ustawiany od nowa – zacięty obraz poprzedniej zakładki znika
+const vBack = () => setTimeout(() => { const v = document.body.dataset.view; if (v) setView(v); vRepaint(); }, 80);
+addEventListener('pageshow', vBack); addEventListener('focus', vBack);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) vBack(); });
 function deepActive() { let a = document.activeElement; try { while (a && a.tagName === 'IFRAME' && a.contentDocument) a = a.contentDocument.activeElement; } catch (e) {} return a; }
 function kbFix() {
   if (!document.body.classList.contains('kb')) return;
