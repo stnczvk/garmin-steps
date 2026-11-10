@@ -192,7 +192,7 @@ async def api_streamer_save(req: Request):
     elif not isinstance(cam, str):
         cam = "auto"
     x = {"id": sid, "name": (b.get("name") or sid)[:40], "link": (b.get("link") or "").strip().replace("https://", "").replace("www.", "")[:80],
-         "cam": cam, "fmt": b.get("fmt") if b.get("fmt") in ("yt", "short", "oba") else "oba",
+         "cam": cam, "fmt": b.get("fmt") if b.get("fmt") in ("yt", "short", "oba", "skrot") else "oba",
          "title_hint": (b.get("title_hint") or "")[:300], "auto_vod": bool(b.get("auto_vod"))}
     with _lock:
         d = _rd()
@@ -226,7 +226,7 @@ def _mk_job(d, b, url):
             b = {**b, "who": st["name"], "cam": st["cam"], "format": b.get("format") or st.get("fmt")}
         j = {"id": secrets.token_hex(4), "url": url, "n": max(0, min(15, int(b.get("n") or 0))), "campaign": None if mode == "reakcje" else camp,
              "mode": mode, "lang": "pl" if mode == "reakcje" else "en", "cam": b.get("cam") if isinstance(b.get("cam"), list) else (b.get("cam") or "auto")[:12], "who": (b.get("who") or "")[:40],
-             "format": b.get("format") if b.get("format") in ("yt", "short", "oba") else "short",
+             "format": b.get("format") if b.get("format") in ("yt", "short", "oba", "skrot") else "short",
              "auto": bool(b.get("auto")) and mode == "reakcje",   # sama publikacja na kanale Strimy w Pigułce
              "streamer": st["id"] if st else "", "link": st.get("link", "") if st else "", "title_hint": st.get("title_hint", "") if st else "",
              "state": "queued", "step": "Czeka na Maca…", "created": time.time(), "clips": []}   # n=0 → AI decyduje
@@ -954,6 +954,60 @@ async def _wybor_reakcje(b, n, dur_min):
     return {"klipy": sorted(out, key=lambda k: k["start"])}
 
 
+async def _wybor_skrot(b, dur_min):
+    """SKRÓT całego streama (np. przejście gry w 38 h) w jednym filmie 20–35 min: najważniejsze momenty po kolei,
+    przed każdym krótka plansza z kontekstem („Godzina 12: pierwszy boss”)."""
+    from agency import claude, as_json
+    import asyncio, re
+    who = b.get("who") or "streamer"
+    trans = _widz_lines(_energy_lines(b.get("transkrypcja") or "", b.get("energia")), b.get("widzowie"))
+    step = 60 if dur_min <= 400 else int(min(240, 60 * (dur_min / 400) ** 0.7))
+    ln = max(1, dur_min * 60 / step)
+    mapa = _kompakt(trans, step, int(max(70, min(180, 110000 / ln - 25))))
+    zas = _zasady(b.get("streamer"))
+    ask = (f"Mapa całego streama {who} ({dur_min:.0f} min = {dur_min / 60:.1f} h), linia co {step // 60} min: początek tego, co mówi. "
+           "🔊 = głośno, ⭐ = widzowie zrobili tu klip.\n\n" + mapa[:120000] +
+           f"\n\nZrób z tego SKRÓT na YouTube, 20–35 minut łącznie: historia całego streama w pigułce, po kolei (chronologicznie). "
+           f"Np. przy przechodzeniu gry: start i pierwsze wrażenia, ważne momenty i bossowie, największe wkurzenia i porażki, przełomy, zakończenie. "
+           "Wybierz 14–28 momentów, każdy 40–180 s, tylko mocne i zrozumiałe, bez reklam, czekania i czytania czatu. "
+           "Do każdego krótki napis na planszę przed nim (max 7 słów, z kontekstem czasu albo postępu, np. „Godzina 12: pierwszy boss”, "
+           "„Po 200 śmierciach…”). Do całości: tytuł YouTube " + STYL(who) + " (zaznacz, że to skrót całego streama / przejścia gry), "
+           "opis YouTube (2–3 zdania + 3–5 hashtagów), napis na miniaturę (2–4 słowa, WERSALIKI), intro na pierwszą planszę (max 10 słów)."
+           + (f"\nZASADY z moich ocen (stosuj):\n{zas}" if zas else "") +
+           '\nOdpowiedz tylko JSON: {"momenty": [{"od_min": m, "do_min": m, "plansza": "..."}], "yt_title": "...", "yt_desc": "...", '
+           '"thumb": "...", "intro": "..."}')
+    try:
+        r = as_json(await asyncio.to_thread(lambda: claude(ask, max_tokens=5000, system=__import__("skills").sk("hook", "caption", "trend", "slop"))))
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=502)
+    # czasy z mapy (co kilka minut) → dociągnięte do początków zdań w transkrypcji
+    T = [int(m.group(1)) for m in re.finditer(r"^\[(\d+)\]", trans, re.M)]
+    import bisect
+
+    def snap(t):
+        i = bisect.bisect_left(T, t)
+        return float(T[i]) if i < len(T) else float(t)
+    items = []
+    for x in (r or {}).get("momenty") or []:
+        try:
+            a_, e_ = float(x["od_min"]) * 60, float(x["do_min"]) * 60
+        except Exception:
+            continue
+        a_ = snap(max(0.0, a_ - 3))
+        e_ = max(e_, a_ + 40)
+        e_ = min(e_, a_ + 200)
+        if items and a_ < items[-1]["end"]:
+            continue
+        items.append({"start": a_, "end": e_, "plansza": str(x.get("plansza") or "")[:60]})
+    if len(items) < 3:
+        return JSONResponse({"error": "AI nie znalazło dość momentów na skrót"}, status_code=502)
+    from montaz import human
+    return {"skrot": {"items": [{**it, "plansza": human(it["plansza"]), "nr": 0} for it in items],
+                      "yt_title": human(str(r.get("yt_title") or f"{who}: skrót całego streama")),
+                      "yt_desc": human(str(r.get("yt_desc") or "")), "thumb": human(str(r.get("thumb") or "SKRÓT STREAMA")),
+                      "intro": human(str(r.get("intro") or f"Cały stream {who} w pigułce"))}}
+
+
 @router.post("/api/mont-hook/klipping/wybor")
 async def hook_wybor(req: Request):
     """Transkrypcja filmu (angielski) → AI wybiera N fragmentów pod kampanię i pisze hooki, opisy, tytuły."""
@@ -964,6 +1018,8 @@ async def hook_wybor(req: Request):
     b = await req.json()
     n, camp = max(0, min(15, int(b.get("n") or 0))), b.get("campaign") or {}
     dur_min = float(b.get("dur") or 0) / 60
+    if b.get("format") == "skrot":
+        return await _wybor_skrot(b, dur_min)
     if b.get("mode") == "reakcje" and b.get("format") == "yt":
         return await _wybor_yt(b, n, dur_min)
     if b.get("mode") == "reakcje":
