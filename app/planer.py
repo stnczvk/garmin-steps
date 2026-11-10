@@ -467,9 +467,26 @@ async def hook_vlogyt(req: Request, name: str = "", meta: str = ""):
             P.remove(old)
             save(P)
     it = _add({"src": src, "kind": "film", "series": "vlogyt", "label": m.get("yt_title") or nm, "file": str(f), "when": _when("vlogyt"),
-               "platforms": ["youtube"], "caption": m.get("yt_desc") or "", "yt_title": m.get("yt_title") or nm, "yt_desc": m.get("yt_desc") or "",
+               "platforms": ["youtube"], "caption": vlog_opis(m.get("yt_desc")), "yt_title": m.get("yt_title") or nm, "yt_desc": vlog_opis(m.get("yt_desc")),
                "yt_tags": m.get("tags") or [], "long": True, "yt_cat": "22", "thumb_file": str(th) if th.is_file() else ""})
     return {"ok": True, "id": (it or {}).get("id"), "when": (it or {}).get("when")}
+
+
+VLOG_LINKI = ("Instagram: https://www.instagram.com/st4nczuk_/\n"
+              "TikTok: https://www.tiktok.com/@lysyzsilowni\n"
+              "Współpraca: bartlomiej_kontakt@icloud.com")
+
+
+def vlog_opis(d):
+    """Opis vloga YT: stałe linki przed rozdziałami (albo przed hashtagami, gdy rozdziałów brak)."""
+    d = d or ""
+    if "instagram.com/st4nczuk_" in d:
+        return d
+    L = d.split("\n")
+    i = next((k for k, x in enumerate(L) if re.match(r"\s*(ROZDZIA|0:00)", x, re.I)), None)
+    if i is None:
+        i = next((k for k, x in enumerate(L) if x.strip().startswith("#")), len(L))
+    return "\n".join(L[:i]).rstrip() + "\n\n" + VLOG_LINKI + "\n\n" + "\n".join(L[i:]).lstrip()
 
 
 def klipy_po_vlogu(v, P=None):
@@ -667,6 +684,8 @@ def pub_youtube(it):
         raise RuntimeError(f"brak połączonego kanału YouTube w grupie {it.get('group') or 'prywatne'}")
     tok = _google_access(acc)
     cap = it.get("yt_desc") or it.get("caption") or ""
+    if it.get("series") == "vlogyt":
+        cap = vlog_opis(cap)
     title = (it.get("yt_title") or re.split(r"[\n.!?]", cap.strip())[0] or it["label"]).strip()[:90]
     tags = []
     for t in (it.get("yt_tags") or []) + re.findall(r"#(\w+)", cap)[:10]:   # tagi kanału + hashtagi z opisu, limit YouTube 500 znaków
@@ -879,6 +898,9 @@ async def api_act(pid: str, action: str, req: Request):
         if action in ("save", "approve"):
             if "caption" in b:
                 it["caption"] = str(b["caption"])[:2200]
+                if it.get("series") == "vlogyt":   # opis vloga YT edytowany w planerze → idzie na YouTube
+                    it["caption"] = str(b["caption"])[:4900]
+                    it["yt_desc"] = it["caption"]
             if b.get("yt_title") is not None:
                 it["yt_title"] = str(b["yt_title"])[:100]
             if b.get("when"):
