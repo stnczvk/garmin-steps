@@ -394,6 +394,32 @@ def _auto_wszyscy():
         _wr(d)
 
 
+def sprzatanie_serwer():
+    """Dysk serwera: plik klipu znika 3 dni po publikacji albo pominięciu (wszędzie już jest), foldery usuniętych zadań po 7 dniach."""
+    import shutil, planer
+    from social import ROOT
+    base = ROOT / "klipping"
+    if not base.is_dir():
+        return 0
+    stan = {x.get("src"): x for x in planer.plan() if x.get("group") == "strimy"}
+    jobs = {j["id"] for j in _rd()["jobs"]}
+    freed, now = 0, time.time()
+    for p in base.iterdir():
+        if not p.is_dir():
+            continue
+        if p.name not in jobs:
+            if now - p.stat().st_mtime > 7 * 86400:
+                freed += sum(f.stat().st_size for f in p.rglob("*") if f.is_file()); shutil.rmtree(p, ignore_errors=True)
+            continue
+        for f in p.glob("*.mp4"):
+            it = stan.get(f"kl:{p.name}:{f.stem}")
+            if it and it.get("status") in ("published", "skipped") and now - max(it.get("when", 0), it.get("published", 0) or 0) > 3 * 86400:
+                freed += f.stat().st_size; f.unlink(missing_ok=True)
+    if freed > 50_000_000:
+        print(f"klipping: serwer posprzątany, {freed / 1e9:.1f} GB", flush=True)
+    return freed
+
+
 def _watch_loop():
     try:
         _auto_wszyscy()
@@ -409,6 +435,11 @@ def _watch_loop():
             watch_server()
         except Exception as e:
             print("klipping watch:", e, flush=True)
+        try:
+            if time.localtime().tm_hour == 4:   # raz w nocy
+                sprzatanie_serwer()
+        except Exception as e:
+            print("klipping sprzątanie:", e, flush=True)
         time.sleep(1800)
 
 
