@@ -732,7 +732,8 @@ async def hook_klipy_wybor(req: Request):
     from agency import claude, as_json
     import asyncio
     b = await req.json()
-    tr, name, dur = (b.get("transkrypcja") or "")[:60000], b.get("name") or "", float(b.get("dur") or 0)
+    zd = b.get("zdania") or ""   # numerowane zdania: AI wybiera numery, Mac zamienia je na dokładne czasy (bez urwanych zdań)
+    tr, name, dur = (zd or b.get("transkrypcja") or "")[:70000], b.get("name") or "", float(b.get("dur") or 0)
     ile = max(1, min(5, int(b.get("ile") or 5)))
     extra = ""
     if b.get("zostaja"):
@@ -740,21 +741,23 @@ async def hook_klipy_wybor(req: Request):
     if b.get("uwagi"):
         extra += "\nMOJE UWAGI DO POPRZEDNICH KLIPÓW (popraw to koniecznie): " + str(b["uwagi"])[:800] + "\n"
     prompt = (f"To transkrypcja vloga z YouTube „{name}” ({dur / 60:.0f} min), kanał ŁysyVlog. Autor: Bartłomiej, natural bodybuilding, "
-              "redukcja, jedzenie, trening, codzienne życie. Każda linia: [sekunda] tekst.\n\n" + tr + "\n" + extra +
+              "redukcja, jedzenie, trening, codzienne życie. " + ("Każda linia to jedno zdanie: [numer | sekunda] tekst. " if zd else "Każda linia: [sekunda] tekst. ") + "\n\n" + tr + "\n" + extra +
               f"\n\nZrób {'1' if ile == 1 else ('2–' + str(ile) if ile <= 3 else '3–' + str(ile))} PIONOWYCH KLIPÓW na TikToka/Reels/Shorts, które PROMUJĄ cały odcinek. Klip to NIE jest wycięty kawałek vloga, "
               "tylko krótka historia zmontowana z kilku momentów (beatów), które mogą być z różnych miejsc filmu, ale opowiadają JEDNĄ rzecz "
               "(np. ile zjadłem na cheat mealu i co na to waga, jak wyglądał trening, plan na redukcję).\n"
               "Zasady (jak u dobrych twórców):\n"
               "- pierwszy beat = najmocniejsze zdanie z liczbą, zaskoczeniem albo emocją (hook w pierwszych 2 s), żadnego „cześć”, „dzisiaj”, wstępu;\n"
-              "- 3–6 beatów, każdy 2–10 s (dokładnie od początku do końca zdania, bez urwanych słów, bez „yyy”), razem 20–45 s;\n"
+              + ("- beat = CIĄG CAŁYCH ZDAŃ podany numerami: od (pierwsze zdanie) do (ostatnie zdanie, włącznie); zdania wybieraj tak, żeby myśl była "
+                 "skończona i zrozumiała bez reszty filmu; 3–6 beatów, każdy 1–3 zdania, razem 20–45 s;\n" if zd else
+                 "- 3–6 beatów, każdy 2–10 s (dokładnie od początku do końca zdania, bez urwanych słów, bez „yyy”), razem 20–45 s;\n") +
               "- w środku coś, co trzyma dalej (pytanie, zwrot akcji, „ale…”); ostatni beat = puenta (wynik, liczba, reakcja);\n"
               "- beaty w kolejności, która ma sens dla widza (nie musi być chronologiczna), bez powtarzania tej samej myśli;\n"
               "- każdy klip o czymś innym.\n"
               "Do każdego: hook = napis na ekran na pierwsze 3 s, 2–5 słów, DOPEŁNIA to, co mówię (nie powtarza), ciekawość albo liczba; "
               "opis TikTok i Instagram (z jednym naturalnym zdaniem, że cały odcinek jest na YouTube, kanał ŁysyVlog, link w bio), tytuł YouTube Shorts.\n"
               + OPIS_RULES +
-              '\nOdpowiedz wyłącznie JSON: {"klipy": [{"temat": "...", "beats": [{"start": s, "end": s}], "hook": "...", "tiktok": "...", '
-              '"instagram": "...", "yt_title": "..."}]}')
+              '\nOdpowiedz wyłącznie JSON: {"klipy": [{"temat": "...", "beats": [' + ('{"od": nr, "do": nr}' if zd else '{"start": s, "end": s}') +
+              '], "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
     try:
         txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=4000, system=__import__("skills").sk("hook", "reel", "caption", "trend", "slop")))
     except Exception as e:
@@ -763,6 +766,19 @@ async def hook_klipy_wybor(req: Request):
     out = []
     for k in K:
         B = []
+        if zd:
+            for x in (k.get("beats") or []):
+                try:
+                    o, d_ = int(x["od"]), int(x["do"])
+                except Exception:
+                    continue
+                if 0 <= o <= d_ <= o + 6:
+                    B.append({"od": o, "do": d_})
+            if B:
+                out.append({"beats": B[:7], "temat": str(k.get("temat") or "")[:80], "hook": human(str(k.get("hook") or "")),
+                            "tiktok": human(str(k.get("tiktok") or "")), "instagram": human(str(k.get("instagram") or "")),
+                            "yt_title": human(str(k.get("yt_title") or ""))})
+            continue
         for x in (k.get("beats") or []):
             try:
                 a, e = float(x["start"]), float(x["end"])
