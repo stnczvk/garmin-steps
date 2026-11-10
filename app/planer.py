@@ -17,7 +17,7 @@ router = APIRouter()
 TZ = ZoneInfo("Europe/Warsaw")
 IG = "https://graph.instagram.com"
 PLAN, CFG = "posts_plan.json", "posts_cfg.json"
-DEF = {"hours": {"jedzenie": "18:00", "karuzela": "09:00", "vlog": "20:00", "cheat": "19:00", "przepis": "17:00", "klip": "18:30", "strimy_film": "17:00", "strimy_short": "12:30", "strimy_short2": "20:30"},
+DEF = {"hours": {"jedzenie": "18:00", "karuzela": "09:00", "vlog": "20:00", "cheat": "19:00", "przepis": "17:00", "klip": "18:30", "vlogyt": "17:00", "strimy_film": "17:00", "strimy_short": "12:30", "strimy_short2": "20:30"},
        "platforms": {"film": ["instagram", "youtube"], "karuzela": ["instagram"]}, "auto": True}
 _lock = threading.RLock()
 
@@ -291,7 +291,8 @@ def scan():
         kind = m.get("kind") or "vlog"
         if kind == "klip":   # klipy z vloga YT: opis gotowy z Maca, po jednym dziennie (kolejne dni po ostatnim zaplanowanym)
             o = m.get("opis") or {}
-            last = max([x["when"] for x in plan() if x.get("series") == "klip" and x.get("status") != "published"] + [0])
+            # promocja vloga: klipy dopiero po premierze odcinka na YouTube
+            last = max([x["when"] for x in plan() if x.get("series") in ("klip", "vlogyt") and x.get("status") != "published"] + [0])
             when = _when("klip", datetime.fromtimestamp(last, TZ) + timedelta(hours=2)) if last > time.time() else _when("klip")
             _add({"src": f"vf:{nm}", "kind": "film", "series": "klip", "label": o.get("hook") or nm, "file": str(f), "when": when,
                   "platforms": _film_pl("klip"), "caption": o.get("instagram", ""), "tiktok": o.get("tiktok", ""), "yt_title": o.get("yt_title", "")})
@@ -302,6 +303,67 @@ def scan():
         o = _opis(kind, job["id"]) if job else {"ok": False}
         _add({"src": f"vf:{nm}", "kind": "film", "series": kind, "label": nm, "file": str(f), "when": _when(kind),
               "platforms": _film_pl(kind), "caption": (o.get("instagram") or "") if o.get("ok") else "", "tiktok": o.get("tiktok", ""), "yt_title": ""})
+
+
+# ---------- vlog YouTube (ŁysyVlog) z Maca: film + miniatura + opis → szkic w planerze, klipy z niego jako promocja po premierze ----------
+@router.put("/api/mont-hook/vlogyt-thumb")
+async def hook_vlogyt_thumb(req: Request, name: str = ""):
+    from montaz import _tok, VFILM
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100] or "vlog"
+    VFILM.mkdir(parents=True, exist_ok=True)
+    data = await req.body()
+    if len(data) < 2000:
+        return {"ok": False, "error": "pusta miniatura"}
+    (VFILM / (nm + ".yt.jpg")).write_bytes(data)
+    return {"ok": True}
+
+
+@router.post("/api/mont-hook/vlogyt-meta")
+async def hook_vlogyt_meta(req: Request, name: str = ""):
+    from montaz import _tok, VFILM
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100] or "vlog"
+    VFILM.mkdir(parents=True, exist_ok=True)
+    b = await req.json()
+    (VFILM / (nm + ".yt.json")).write_text(json.dumps({k: b.get(k) for k in ("yt_title", "yt_desc", "tags")}, ensure_ascii=False), encoding="utf-8")
+    return {"ok": True}
+
+
+@router.put("/api/mont-hook/vlogyt")
+async def hook_vlogyt(req: Request, name: str = "", meta: str = ""):
+    from montaz import _tok, VFILM
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100] or "vlog"
+    VFILM.mkdir(parents=True, exist_ok=True)
+    tmp = VFILM / (nm + ".yt.part")
+    with tmp.open("wb") as f:
+        async for chunk in req.stream():
+            f.write(chunk)
+    if tmp.stat().st_size < 100000:
+        tmp.unlink(missing_ok=True)
+        return {"ok": False, "error": "pusty plik"}
+    f = VFILM / (nm + ".yt.mp4")
+    tmp.replace(f)
+    try:
+        m = json.loads(meta or (VFILM / (nm + ".yt.json")).read_text(encoding="utf-8"))
+    except Exception:
+        m = {}
+    th = VFILM / (nm + ".yt.jpg")
+    src = f"vyt:{nm}"
+    with _lock:
+        P = plan()
+        old = next((x for x in P if x["src"] == src), None)
+        if old and old["status"] not in ("published", "publishing"):
+            P.remove(old)
+            save(P)
+    it = _add({"src": src, "kind": "film", "series": "vlogyt", "label": m.get("yt_title") or nm, "file": str(f), "when": _when("vlogyt"),
+               "platforms": ["youtube"], "caption": m.get("yt_desc") or "", "yt_title": m.get("yt_title") or nm, "yt_desc": m.get("yt_desc") or "",
+               "yt_tags": m.get("tags") or [], "long": True, "yt_cat": "22", "thumb_file": str(th) if th.is_file() else ""})
+    return {"ok": True, "id": (it or {}).get("id"), "when": (it or {}).get("when")}
 
 
 DROP = "posts_dropped.json"
@@ -446,8 +508,15 @@ def pub_youtube(it):
                             "X-Upload-Content-Length": str(size)}, json=meta)
     if r.status_code >= 300 or "location" not in r.headers:
         raise RuntimeError("YouTube: " + r.text[:200])
-    with open(it["file"], "rb") as f:
-        u = httpx.put(r.headers["location"], content=f.read(), timeout=1800, headers={"Content-Type": "video/mp4"})
+    def _chunks(fn):   # strumieniowo – długi vlog (GB) nie ląduje w pamięci serwera
+        with open(fn, "rb") as f:
+            while True:
+                b = f.read(8 << 20)
+                if not b:
+                    break
+                yield b
+    u = httpx.put(r.headers["location"], content=_chunks(it["file"]), timeout=httpx.Timeout(3600, connect=60),
+                  headers={"Content-Type": "video/mp4", "Content-Length": str(size)})
     if u.status_code >= 300:
         raise RuntimeError("YouTube (wysyłka): " + u.text[:200])
     vid = u.json().get("id")
