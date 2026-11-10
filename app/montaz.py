@@ -694,7 +694,10 @@ async def hook_vlogyt_pakiet(req: Request):
               "redukcja, jedzenie, trening, codzienne życie. Każda linia: [sekunda] tekst.\n\n" + tr +
               "\n\nPrzygotuj publikację na YouTube:\n"
               "- yt_title: tytuł do 70 znaków, konkretny i ciekawy (co się wydarzyło / czego się dowiem), bez clickbaitu, bez emotek na początku;\n"
-              "- yt_desc: opis po polsku: 2–3 zdania o odcinku pisane jak człowiek, potem pusta linia i ROZDZIAŁY (pierwszy 0:00, min. 4, "
+              "- yt_desc: opis po polsku. PIERWSZE ~150 znaków widać w wyszukiwarce i nad „…więcej”: od razu konkret z frazą, którą ktoś wpisze "
+              "(np. „dzień na redukcji”, „co jem w ciągu dnia”), bez „W tym odcinku…”, „Zapraszam…”. Potem 1–2 zdania o tym, co się dzieje "
+              "(liczby z filmu), jak człowiek, i jedno PYTANIE do widzów pod komentarz (łatwe do odpowiedzi, za każdym razem inne). "
+              "Potem pusta linia i ROZDZIAŁY (pierwszy 0:00, min. 4, "
               "co najmniej 10 s odstępu, krótkie nazwy), w ostatniej linii DOKŁADNIE 3 hashtagi (YouTube pokazuje je nad tytułem): "
               "2 frazy, które ludzie naprawdę wyszukują i pasują do tego odcinka (np. #redukcja, #cojemwciągudnia, #dzieńnaredukcji, #cheatmeal), "
               "a trzeci zawsze #łysyvlog;\n"
