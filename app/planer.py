@@ -404,9 +404,9 @@ def hook_vlogyt_klipy_reset(req: Request, name: str = ""):
         return JSONResponse({"error": "token"}, status_code=401)
     nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100]
     K = [x for x in plan() if str(x.get("src", "")).startswith(f"vf:{nm} klip")]
-    srcs = [x["src"] for x in K if x.get("status") in ("draft", "error")]
+    srcs = [x["src"] for x in K if x.get("status") in ("draft", "error", "skipped")]   # usunięte ręcznie też (inaczej blokują nowe pliki o tej nazwie)
     zost = [x for x in K if x["src"] not in srcs]
-    nums = [int(m.group(1)) for x in K for m in [re.search(r"klip (\d+)$", x["src"])] if m]
+    nums = [int(m.group(1)) for x in zost for m in [re.search(r"klip (\d+)$", x["src"])] if m]
     if srcs:
         drop(srcs, why="nowe klipy z vloga")
     return {"ok": True, "usuniete": len(srcs), "next": max(nums + [0]) + 1, "ile": max(0, 5 - len(zost)),
