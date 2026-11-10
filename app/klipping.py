@@ -577,6 +577,26 @@ def rec_tick():
                 shutil.rmtree(_recdir(r["rid"]), ignore_errors=True)
             else:
                 nowe.append((st, r))
+    # kawałki, których Mac nie zabrał przez 72 h → kasujemy (dysk serwera); nagranie bez kawałków → zadanie z błędem
+    for rid, r in list(R.items()):
+        if r["state"] not in ("rec", "done"):
+            continue
+        stare = [f for f in _recdir(rid).glob("*.ts") if time.time() - f.stat().st_mtime > 72 * 3600]
+        for f in stare:
+            f.unlink(missing_ok=True)
+        if stare:
+            zmiana = True
+            print("klipping rec: skasowane stare kawałki", rid, len(stare), flush=True)
+            if r["state"] == "done" and not r.get("got") and not list(_recdir(rid).glob("*.ts")):
+                r["state"] = "expired"
+                jj = next((j for j in d["jobs"] if j["id"] == r.get("job")), None)
+                if jj and jj["state"] == "queued":
+                    with _lock:
+                        d2 = _rd()
+                        j2 = next((j for j in d2["jobs"] if j["id"] == jj["id"]), None)
+                        if j2:
+                            j2.update(state="error", error="Nagranie usunięte z serwera po 72 h (Mac go nie zabrał)")
+                            _wr(d2)
     # stare wpisy: zadanie zrobione → folder precz po 3 dniach
     for rid, r in list(R.items()):
         if r["state"] != "rec" and time.time() - r.get("end", r["start"]) > 3 * 86400:
