@@ -967,8 +967,9 @@ async def _wybor_skrot(b, dur_min):
     zas = _zasady(b.get("streamer"))
     ask = (f"Mapa całego streama {who} ({dur_min:.0f} min = {dur_min / 60:.1f} h), linia co {step // 60} min: początek tego, co mówi. "
            "🔊 = głośno, ⭐ = widzowie zrobili tu klip.\n\n" + mapa[:120000] +
-           f"\n\nZrób z tego SKRÓT na YouTube, 20–35 minut łącznie: historia całego streama w pigułce, po kolei (chronologicznie). "
-           f"Np. przy przechodzeniu gry: start i pierwsze wrażenia, ważne momenty i bossowie, największe wkurzenia i porażki, przełomy, zakończenie. "
+           f"\n\nZrób z tego SKRÓT na YouTube, 20–35 minut łącznie: NAJLEPSZE MOMENTY z całego streama, ułożone po kolei (chronologicznie). "
+           "Liczy się przede wszystkim to, co jest mocne: najwięcej ⭐ (klipy widzów) i 🔊 (śmiech, krzyk, emocje), zabawne i dramatyczne sytuacje. "
+           "Przy przechodzeniu gry dodaj też kilka momentów, które trzymają historię w całości (start, ważny przełom, zakończenie). "
            "Wybierz 14–28 momentów, każdy 40–180 s, tylko mocne i zrozumiałe, bez reklam, czekania i czytania czatu. "
            "Do każdego krótki napis na planszę przed nim (max 7 słów, z kontekstem czasu albo postępu, np. „Godzina 12: pierwszy boss”, "
            "„Po 200 śmierciach…”). Do całości: tytuł YouTube " + STYL(who) + " (zaznacz, że to skrót całego streama / przejścia gry), "
