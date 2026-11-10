@@ -127,7 +127,11 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
  if(b.id==='m_add'){b.disabled=true;b.textContent='Agent czyta zasady…';
   const r=await fetch('/api/klipping/manual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('m_name').value,rate:$('m_rate').value,left:$('m_left').value,url:$('m_url').value,source:$('m_src').value,rules:$('m_rules').value})});
   const j=await r.json();b.disabled=false;b.textContent='Dodaj kampanię';if(j.error){alert(j.error);return}['m_name','m_rate','m_left','m_url','m_rules'].forEach(i=>$(i).value='');sig='';load()}
- if(b.dataset.del){await fetch(`/api/klipping/job/${b.dataset.del}/delete`,{method:'POST'});sig='';load()}});
+ if(b.dataset.del){const j=(S.jobs||[]).find(x=>x.id===b.dataset.del);
+  // przed usunięciem: gotowe klipy trafiają do kalendarza (inaczej przepadną razem z zadaniem)
+  if(j&&j.clips&&j.clips.length&&j.streamer){try{await fetch('/api/klipping/job/'+j.id+'/plan',{method:'POST'})}catch(x){}}
+  if(!confirm(j&&['working','queued'].includes(j.state)?'Usunąć zadanie z listy? Gotowe klipy zostają w kalendarzu. (Żeby zatrzymać Maca, zrestartuj pomocnika.)':'Usunąć z listy? Gotowe klipy zostają w kalendarzu.'))return;
+  await fetch(`/api/klipping/job/${b.dataset.del}/delete`,{method:'POST'});sig='';load()}});
 $('go').onclick=async()=>{const U=($('url').value.match(/(https?:\/\/)?(www\.)?(twitch\.tv|kick\.com|youtube\.com|youtu\.be|m\.youtube\.com)\/[^\s,;]+/gi)||[]).map(u=>u.startsWith('http')?u:'https://'+u);
  if(!U.length){const one=$('url').value.trim();if(!one)return;U.push(one)}$('go').disabled=true;let j={},ok=0;
  for(const url of [...new Set(U)]){const r=await fetch('/api/klipping/job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,n:+$('n').value,campaign:$('camp').value,mode:$('mode').value,who:$('who').value,cam:$('cam').value,format:$('mode').value==='reakcje'?$('fmt').value:'short',auto:$('mode').value==='reakcje'&&$('auto').checked,streamer:$('mode').value==='reakcje'?ST:''})});
