@@ -779,15 +779,37 @@ def _uklad(t, j, mail):
     return body + ("\n" + tags if tags else "")
 
 
+def _ostatnie():
+    """Ostatnie tytuły i napisy z miniatur na kanale Strimy – żeby AI ich nie powtarzało."""
+    try:
+        import planer
+        P = [x for x in planer.plan() if x.get("group") == "strimy"]
+        P.sort(key=lambda x: x.get("when", 0))
+        T = [x.get("yt_title") or x.get("label") or "" for x in P][-30:]
+    except Exception:
+        T = []
+    d = _rd()
+    M = [c.get("thumb") for j in d["jobs"][-15:] for c in j.get("clips", []) if c.get("thumb")][-20:]
+    return [t for t in T if t], M
+
+
 def STYL(who):
-    """Tytuły i opisy jak od człowieka, który prowadzi kanał z klipami, a nie od AI."""
-    return (f"(max 60 znaków). Tytuł ma przyciągnąć kliknięcie jak na polskich kanałach z klipami ze streamów: konkretna sytuacja, "
-            f"emocja albo cytat, imię {who} na początku albo naturalnie w środku, potoczny język widzów (np. „{who} NIE WYTRZYMAŁ po tym meczu”, "
-            f"„{who} o Doncicu: to jest kosmita”, „{who} przegrał wszystko w ostatniej sekundzie”). Możesz dać 1–2 słowa WERSALIKAMI dla emocji. "
+    """Tytuły i opisy jak od człowieka, który prowadzi kanał z klipami, a nie od AI – i za każdym razem inaczej."""
+    T, M = _ostatnie()
+    rec = ("\nOSTATNIE TYTUŁY NA KANALE (NIE powtarzaj ich schematu, słów-kluczy ani początku, każdy nowy ma być wyraźnie inny):\n"
+           + "\n".join("- " + t for t in T[-20:]) + "\n") if T else ""
+    rec += ("OSTATNIE NAPISY NA MINIATURACH (nie powtarzaj ich, szczególnie słów typu NIE WYTRZYMAŁ, SZOK, MASAKRA):\n"
+            + ", ".join(M) + "\n") if M else ""
+    return (f"(max 60 znaków). Tytuł ma przyciągnąć kliknięcie jak na polskich kanałach z klipami ze streamów: KONKRETNA sytuacja z tego "
+            f"fragmentu (co się stało, z kim, o co poszło, cytat), imię {who} na początku albo naturalnie w środku, potoczny język widzów. "
+            "Różne schematy na zmianę: cytat („to jest kosmita”), konkret liczby („200 śmierci na jednym bossie”), pytanie, opis sytuacji, "
+            "reakcja na kogoś/coś znanego, zaskakujący zwrot. Max 1–2 słowa WERSALIKAMI i nie w każdym tytule. "
+            "Unikaj ogólników pasujących do każdego klipu (nie wytrzymał, oszalał, szok, masakra, zobacz co zrobił). "
             "Ciekawość ma wynikać z sytuacji, ale nie kłam i nie obiecuj czegoś, czego nie ma w filmie. "
             "Opisy piszesz jak fan na luzie, krótko i konkretnie, co się dzieje. ZAKAZANE (brzmią jak AI): „Sprawdź”, „Zobacz, jak”, „imponujący”, "
             "„unikalny”, „niesamowity”, „prawdziwy król”, „analiza”, „nie uwierzysz”, „w tym filmie”, „przekonaj się”, myślniki jako przerwy w zdaniu, "
-            "wykrzykniki co zdanie, pytania retoryczne na koniec.")
+            "wykrzykniki co zdanie, pytania retoryczne na koniec. Napis na miniaturę: konkret z tego filmu (np. „200 ŚMIERCI”, „BOSS POKONANY”, "
+            "„KABEL URWANY”), a nie ogólna emocja." + rec)
 
 
 def _kompakt(trans, step=60, chars=180):
