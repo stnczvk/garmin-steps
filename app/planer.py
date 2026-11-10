@@ -321,7 +321,108 @@ async def hook_vlogyt_thumb(req: Request, name: str = ""):
     data = await req.body()
     if len(data) < 2000:
         return {"ok": False, "error": "pusta miniatura"}
+    n = int(req.query_params.get("n") or 0)
+    if n:   # propozycje miniatur do wyboru w planerze (1 = domyślna)
+        (VFILM / f"{nm}.yt.{n}.jpg").write_bytes(data)
+        if n == 1:
+            (VFILM / (nm + ".yt.jpg")).write_bytes(data)
+        with _lock:
+            P = plan()
+            it = next((x for x in P if x.get("src") == f"vyt:{nm}" and x["status"] not in ("published", "publishing")), None)
+            if it and n == 1 and not it.get("thumb_pick"):
+                it["thumb_file"] = str(VFILM / (nm + ".yt.jpg"))
+                save(P)
+        return {"ok": True}
     (VFILM / (nm + ".yt.jpg")).write_bytes(data)
+    return {"ok": True}
+
+
+def _vyt(pid):
+    from montaz import VFILM
+    it = next((x for x in plan() if x["id"] == pid), None)
+    if not it or not str(it.get("src", "")).startswith("vyt:"):
+        return None, None, None
+    return it, it["src"][4:], VFILM
+
+
+@router.get("/api/planer/{pid}/thumbs")
+def api_thumbs(pid: str):
+    it, nm, V = _vyt(pid)
+    if not it:
+        return {"thumbs": []}
+    L = sorted(V.glob(f"{glob_escape(nm)}.yt.*.jpg"), key=lambda f: f.name)
+    cur = it.get("thumb_file") or ""
+    return {"thumbs": [{"n": f.name.split(".yt.")[1][:-4], "on": os.path.realpath(cur) == os.path.realpath(str(f)) or
+                        (it.get("thumb_pick") or "1") == f.name.split(".yt.")[1][:-4], "t": int(f.stat().st_mtime)} for f in L]}
+
+
+def glob_escape(x):
+    import glob
+    return glob.escape(x)
+
+
+@router.get("/api/planer/{pid}/thumbv/{n}")
+def api_thumbv(pid: str, n: str):
+    it, nm, V = _vyt(pid)
+    if not it or not re.fullmatch(r"\d|own", n):
+        return JSONResponse({"error": "nie ma"}, status_code=404)
+    f = V / f"{nm}.yt.{n}.jpg"
+    return FileResponse(str(f), media_type="image/jpeg") if f.is_file() else JSONResponse({"error": "nie ma"}, status_code=404)
+
+
+@router.post("/api/planer/{pid}/thumb-pick")
+async def api_thumb_pick(pid: str, req: Request):
+    it, nm, V = _vyt(pid)
+    if not it:
+        return {"ok": False, "error": "to nie vlog YT"}
+    n = str((await req.json()).get("n") or "")
+    f = V / f"{nm}.yt.{n}.jpg"
+    if not re.fullmatch(r"\d|own", n) or not f.is_file():
+        return {"ok": False, "error": "nie ma tej miniatury"}
+    with _lock:
+        P = plan()
+        x = next((y for y in P if y["id"] == pid), None)
+        if x:
+            x["thumb_file"], x["thumb_pick"] = str(f), n
+            save(P)
+    return {"ok": True}
+
+
+@router.post("/api/planer/{pid}/thumb-own")
+async def api_thumb_own(pid: str, req: Request):
+    """Własna miniatura z telefonu/komputera (JPG/PNG) → 1280×720 JPG."""
+    import shutil, subprocess, tempfile
+    it, nm, V = _vyt(pid)
+    if not it:
+        return {"ok": False, "error": "to nie vlog YT"}
+    data = await req.body()
+    if len(data) < 2000:
+        return {"ok": False, "error": "pusty plik"}
+    f = V / f"{nm}.yt.own.jpg"
+    with tempfile.NamedTemporaryFile(suffix=".img") as t:
+        t.write(data); t.flush()
+        r = subprocess.run([shutil.which("ffmpeg") or "ffmpeg", "-y", "-v", "error", "-i", t.name, "-frames:v", "1", "-vf",
+                            "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720", "-q:v", "3", str(f)], capture_output=True, text=True)
+    if r.returncode or not f.is_file():
+        return {"ok": False, "error": "zły obrazek: " + (r.stderr.strip()[-80:] or "?")}
+    with _lock:
+        P = plan()
+        x = next((y for y in P if y["id"] == pid), None)
+        if x:
+            x["thumb_file"], x["thumb_pick"] = str(f), "own"
+            save(P)
+    return {"ok": True}
+
+
+@router.post("/api/planer/{pid}/thumb-nowe")
+def api_thumb_nowe(pid: str):
+    it, nm, V = _vyt(pid)
+    if not it:
+        return {"ok": False, "error": "to nie vlog YT"}
+    with _lock:
+        Q = [x for x in _read("klipy_popraw.json", []) if not (x["name"] == nm and x.get("typ") == "miniatury")]
+        Q.append({"name": nm, "typ": "miniatury", "at": time.time()})
+        _write("klipy_popraw.json", Q[-20:])
     return {"ok": True}
 
 
@@ -421,7 +522,7 @@ async def api_klipy_popraw(req: Request):
     if not nm:
         return {"ok": False, "error": "to nie jest klip z vloga YouTube"}
     with _lock:
-        Q = [x for x in _read("klipy_popraw.json", []) if x["name"] != nm]
+        Q = [x for x in _read("klipy_popraw.json", []) if not (x["name"] == nm and not x.get("typ"))]
         Q.append({"name": nm, "uwagi": str(b.get("uwagi") or "")[:800], "at": time.time()})
         _write("klipy_popraw.json", Q[-20:])
     return {"ok": True}

@@ -383,11 +383,20 @@ async function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie'
   <div class="fl"><label>Kiedy</label><input type="datetime-local" id="ew" value="${dtl(p.t)}"></div>
   <div class="fl" style="grid-column:span 2"><label>Gdzie</label><div class="pls" id="epl">${all.map(x=>`<label><input type="checkbox" value="${x}" ${(p.platforms||[]).includes(x)?'checked':''}>${{instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok'}[x]}</label>`).join('')}</div></div>
   ${film?`<div class="fl w" data-pf="youtube"><label>Tytuł na YouTube</label><input id="ey" value="${esc(p.yt_title)}" placeholder="puste = pierwsze zdanie opisu"></div>`:''}
+  ${p.series==='vlogyt'?`<div class="fl w"><label>Miniatura YouTube <small style="opacity:.6">(kliknij, żeby wybrać)</small></label><div id="tgrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><small style="opacity:.6">Ładuję…</small></div>
+   <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><label class="ib" style="cursor:pointer">📤 Wgraj własną<input type="file" id="town" accept="image/*" hidden></label><button class="ib" id="tnew" type="button">🔄 Nowe propozycje</button></div></div>`:''}
   ${film&&all.includes('tiktok')?`<div class="fl w" data-pf="tiktok"><label>Opis na TikToka</label><textarea id="et" rows="3">${esc(p.tiktok)}</textarea></div>`:''}</div>
  <div class="ac"><button class="ib del" data-a="skip">Usuń z planu</button><span class="sp"></span>${['klip','vlogyt'].includes(p.series)?'<button class="ib" id="kpop" title="Mac zrobi od nowa niezatwierdzone klipy z tego vloga">✂️ Popraw klipy</button>':''}<button class="ib" data-a="now">Opublikuj teraz</button>
   ${p.status==='approved'?'<button class="ib" data-a="unapprove">Cofnij zatwierdzenie</button><button class="ib pri" data-a="save">Zapisz</button>':p.status==='error'?'<button class="ib" data-a="save">Zapisz</button><button class="ib pri" data-a="retry">Ponów</button>':'<button class="ib" data-a="save">Zapisz</button><button class="ib pri" data-a="approve">Zatwierdź</button>'}</div>`;
  $('mb').classList.add('on');
  const vis=()=>{const on=[...document.querySelectorAll('#epl input:checked')].map(i=>i.value);document.querySelectorAll('#md [data-pf]').forEach(e=>e.hidden=!on.includes(e.dataset.pf))};vis();$('epl').onchange=vis;
+ const tgrid=async()=>{if(!$('tgrid'))return;let L=[];try{L=(await (await fetch(`/api/planer/${p.id}/thumbs`)).json()).thumbs||[]}catch(e){}
+  $('tgrid').innerHTML=L.length?L.map(t=>`<img data-tn="${t.n}" src="/api/planer/${p.id}/thumbv/${t.n}?v=${t.t}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;cursor:pointer;outline:${t.on?'3px solid #ffd600':'1px solid rgba(255,255,255,.12)'};outline-offset:2px" alt="">`).join(''):'<small style="opacity:.6">Brak propozycji – kliknij „Nowe propozycje”</small>'};
+ tgrid();
+ if($('tgrid'))$('tgrid').onclick=async e=>{const i=e.target.closest('[data-tn]');if(!i)return;const r=await api(`/api/planer/${p.id}/thumb-pick`,{n:i.dataset.tn});if(r.ok===false)return toast(r.error||'Nie udało się');toast('Miniatura wybrana');tgrid()};
+ if($('town'))$('town').onchange=async()=>{const f=$('town').files[0];if(!f)return;toast('Wysyłam…');
+  const r=await (await fetch(`/api/planer/${p.id}/thumb-own`,{method:'POST',body:f})).json().catch(()=>({ok:false}));if(r.ok===false)return toast(r.error||'Nie udało się');toast('Twoja miniatura ustawiona');tgrid()};
+ if($('tnew'))$('tnew').onclick=async()=>{const r=await api(`/api/planer/${p.id}/thumb-nowe`,{});if(r.ok===false)return toast(r.error||'Nie udało się');toast('Mac zrobi 4 nowe propozycje (kilka minut)')};
  if($('kpop'))$('kpop').onclick=async()=>{const u=prompt('Co poprawić w klipach? (np. mniej o jedzeniu, mocniejsze hooki, krótsze) – możesz zostawić puste','');if(u===null)return;
   const r=await api('/api/planer/klipy-popraw',{psrc:p.psrc,uwagi:u});if(r.ok===false)return toast(r.error||'Nie udało się');
   closeM();toast('Mac zrobi nowe klipy – niezatwierdzone podmienią się same (kilkanaście minut)')};

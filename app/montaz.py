@@ -698,9 +698,11 @@ async def hook_vlogyt_pakiet(req: Request):
               "co najmniej 10 s odstępu, krótkie nazwy), na końcu 3–5 hashtagów;\n"
               "- tags: 8–15 tagów YouTube (frazy, które ludzie wyszukują);\n"
               "- thumb_text: napis na miniaturę, 2–4 słowa, duże emocje albo liczba, inny niż tytuł;\n"
-              "- thumb_t: sekunda filmu z najlepszym kadrem na miniaturę (twarz, emocja albo jedzenie, nie przejście).\n"
+              "- thumb_t: sekunda filmu z najlepszym kadrem na miniaturę (twarz, emocja albo jedzenie, nie przejście);\n"
+              "- thumbs: 4 RÓŻNE propozycje miniatury do wyboru, każda: t (sekunda kadru, różne sceny: twarz z emocją, jedzenie, siłownia, waga) "
+              "i text (2–4 słowa, różne podejścia: liczba, emocja, pytanie, kontrast).\n"
               + OPIS_RULES +
-              '\nOdpowiedz wyłącznie JSON: {"yt_title": "...", "yt_desc": "...", "tags": ["..."], "thumb_text": "...", "thumb_t": s}')
+              '\nOdpowiedz wyłącznie JSON: {"yt_title": "...", "yt_desc": "...", "tags": ["..."], "thumb_text": "...", "thumb_t": s, "thumbs": [{"t": s, "text": "..."}]}')
     try:
         txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=2500, system=__import__("skills").sk("hook", "caption", "seo", "slop")))
     except Exception as e:
@@ -711,7 +713,9 @@ async def hook_vlogyt_pakiet(req: Request):
     except Exception:
         t = dur * 0.3
     return {"yt_title": human(str(j.get("yt_title") or name))[:100], "yt_desc": human(str(j.get("yt_desc") or ""))[:4800],
-            "tags": [str(x)[:60] for x in (j.get("tags") or [])][:15], "thumb_text": human(str(j.get("thumb_text") or ""))[:40], "thumb_t": t}
+            "tags": [str(x)[:60] for x in (j.get("tags") or [])][:15], "thumb_text": human(str(j.get("thumb_text") or ""))[:40], "thumb_t": t,
+            "thumbs": [{"t": min(max(3.0, float(x.get("t") or 0)), max(3.0, dur - 3)), "text": human(str(x.get("text") or ""))[:40]}
+                       for x in (j.get("thumbs") or []) if isinstance(x, dict) and str(x.get("t", "")).replace(".", "", 1).isdigit()][:4]}
 
 
 @router.post("/api/mont-hook/klipy-wybor")
