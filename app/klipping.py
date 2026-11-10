@@ -145,7 +145,7 @@ STREAMERS = [   # domyślne profile – wszystko można zmienić w zakładce
     {"id": "tuszol", "name": "Tuszol", "link": "kick.com/tuszol", "cam": "auto", "fmt": "oba"},
     {"id": "merghani", "name": "Merghani", "link": "kick.com/xmerghani", "cam": "auto", "fmt": "oba"},
     {"id": "neex", "name": "Neex", "link": "", "cam": "auto", "fmt": "oba"},
-    {"id": "remsua", "name": "Remsua", "link": "twitch.tv/remsua", "cam": "auto", "fmt": "oba"},
+    {"id": "remsua", "name": "Remsua", "link": "twitch.tv/remsua", "cam": "auto", "fmt": "short"},
 ]
 
 
@@ -402,6 +402,19 @@ def _auto_wszyscy():
         _wr(d)
 
 
+def _remsua_shorty():
+    """Jednorazowo: Remsua – same shorty (bez filmów YT)."""
+    with _lock:
+        d = _rd()
+        if d.get("remsua_short_v1"):
+            return
+        for x in d.get("streamers", []):
+            if x.get("id") == "remsua":
+                x["fmt"] = "short"
+        d["remsua_short_v1"] = True
+        _wr(d)
+
+
 def sprzatanie_serwer():
     """Dysk serwera: plik klipu znika 3 dni po publikacji albo pominięciu (wszędzie już jest), foldery usuniętych zadań po 7 dniach."""
     import shutil, planer
@@ -431,6 +444,7 @@ def sprzatanie_serwer():
 def _watch_loop():
     try:
         _auto_wszyscy()
+        _remsua_shorty()
         _seen_reset()
         dd = duplikaty(True)
         if dd:
