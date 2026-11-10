@@ -790,3 +790,65 @@ def _img_loop():
 
 
 _img_loop()
+
+
+# ---------------------------------------------------------------- generator: automatyczne ponowienie po błędzie
+_RETRY = {}   # dzień → liczba ponowień
+
+
+def auto_retry_generator():
+    """Dzisiejszy przebieg generatora padł (np. Kling w PiAPI chwilowo niedostępny), a po nim nie było udanego →
+    po 2 godzinach centrum samo uruchamia go od nowa, max 3 razy dziennie i tylko do 20:00 (publikacja o północy)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("Europe/Warsaw"))
+    if now.hour >= 20 or now.hour < 7:
+        return
+    day = now.strftime("%Y-%m-%d")
+    if _RETRY.get(day, 0) >= 3:
+        return
+    wfs = n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data", [])
+    gen = next((w for w in wfs if (w.get("name") or "").strip().lower() == "generator" and not w.get("isArchived")), None)
+    if not gen:
+        return
+    ex = n8n("GET", "/api/v1/executions", params={"workflowId": gen["id"], "limit": 10}).json().get("data", [])
+
+    def loc(t):
+        try:
+            return datetime.fromisoformat(str(t).replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/Warsaw"))
+        except Exception:
+            return None
+    today = [e for e in ex if loc(e.get("startedAt")) and loc(e.get("startedAt")).date() == now.date()]
+    if not today:
+        return
+    today.sort(key=lambda e: str(e.get("startedAt")), reverse=True)
+    st = (today[0].get("status") or "").lower()
+    if st in ("running", "waiting", "new", "success") or any((e.get("status") or "").lower() == "success" for e in today):
+        return
+    t_end = loc(today[0].get("stoppedAt") or today[0].get("startedAt"))
+    if not t_end or (now - t_end).total_seconds() < 2 * 3600:
+        return
+    _RETRY[day] = _RETRY.get(day, 0) + 1
+    r = run(gen["id"])
+    try:
+        from extra import push_all
+        push_all("🔁 PozaSkala: ponawiam generator", f"Próba {_RETRY[day]} z 3 po błędzie z {t_end:%H:%M}", "/#pozaskala")
+    except Exception:
+        pass
+    return r
+
+
+def _retry_loop():
+    import threading, time as _t
+    def go():
+        _t.sleep(300)
+        while True:
+            try:
+                auto_retry_generator()
+            except Exception as e:
+                print("auto retry", e, flush=True)
+            _t.sleep(900)
+    threading.Thread(target=go, daemon=True).start()
+
+
+_retry_loop()
