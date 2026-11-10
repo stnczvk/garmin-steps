@@ -1293,8 +1293,10 @@ def vlog_log(jid: str):
 
 # ---------- opis i hashtagi do publikacji (TikTok + Instagram) – dla jedzenia, vloga i cheat meala ----------
 OPIS_RULES = """Zasady (social media):
-TIKTOK: do ~150 znaków, opis to wyszukiwarka – wpleć naturalnie frazę, którą ktoś wpisze (np. „dzień na redukcji”, „co jem na redukcji”,
-„cheat meal”), na końcu 3–5 hashtagów: 1 szeroki, 2 średnie, 1–2 niszowe (bez #fyp). Może 1 emoji.
+TIKTOK: do ~200 znaków, opis to wyszukiwarka – wpleć naturalnie frazę, którą ktoś wpisze (np. „dzień na redukcji”, „co jem na redukcji”,
+„cheat meal”), potem jedno krótkie PYTANIE do widzów pasujące do tego filmu, na które łatwo odpisać jednym słowem albo liczbą
+(np. „A Ty ile kcal jesz na redukcji?”, „Zjadłbyś to na śniadanie?”, „Płatki czy owsianka?”; za każdym razem inne, nie „co myślicie?”),
+na końcu 3–5 hashtagów: 1 szeroki, 2 średnie, 1–2 niszowe (bez #fyp). Może 1 emoji.
 HASHTAGI: tylko takie, które opisują TREŚĆ TEGO filmu albo serii (np. #redukcja, #cojemwciągudnia, #cheatmeal, #dietaredukcyjna,
 #fitjedzenie, #siłownia, #dzieńzżycia, nazwy dań/produktów z filmu). Ktoś, kto kliknie hashtag, ma trafić na podobne filmy.
 NIE dawaj hashtagów z nazwy konta ani skrótów, których widz nie szuka i które nie mówią nic o filmie (np. #wnbf, #dailywnbf,
