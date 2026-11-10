@@ -98,6 +98,7 @@ def replan_strimy(long=None):
                 c = sorted([k for k in G if G[k]], key=lambda k: (k == last, -len(G[k])))
                 last = c[0]
                 order.append(G[last].pop(0))
+            order.sort(key=lambda x: not x.get("prio"))   # skróty streamów przed resztą (sort stabilny – kolejność reszty bez zmian)
             base = [x for x in P if x["id"] not in ids]
             for x in order:
                 w = _film_slot(base, x.get("streamer"), lg)
@@ -145,7 +146,8 @@ def add_strimy(jid, clip, path, long, auto=True, streamer=""):
                "group": "strimy", "label": clip.get("yt_title") or clip.get("hook") or clip["name"], "file": str(path), "when": when,
                "platforms": plats, "caption": clip.get("instagram") or clip.get("yt_desc") or "", "tiktok": clip.get("tiktok", ""),
                "yt_title": clip.get("yt_title", ""), "yt_desc": clip.get("yt_desc", ""), "long": bool(long), "yt_cat": "24",
-               "thumb_file": clip.get("thumb_file") or "", "streamer": streamer, "yt_tags": _strimy_tags(streamer, long)})
+               "thumb_file": clip.get("thumb_file") or "", "streamer": streamer, "yt_tags": _strimy_tags(streamer, long),
+               "prio": str(clip.get("name") or "").startswith("skrót")})   # skrót streama – pierwszy wolny termin
     if it and auto:
         with _lock:
             P = plan()
