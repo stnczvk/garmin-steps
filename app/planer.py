@@ -57,10 +57,36 @@ def _when(kind, after=None):
     return t.timestamp()
 
 
+SLOTS_DEF = {"film": ["14:00", "17:30", "20:00"], "short": ["11:30", "15:30", "21:30"]}   # min. 1,5 h odstępu film ↔ short
+
+
+def strimy_slots():
+    c = _read(CFG, {}).get("strimy_slots") or {}
+    ok = lambda L: sorted({x for x in L if re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", str(x))}, key=lambda t: tuple(map(int, t.split(":"))))
+    return {k: (ok(c.get(k) or []) or SLOTS_DEF[k]) for k in SLOTS_DEF}
+
+
+@router.get("/api/planer/strimy-slots")
+def api_slots_get():
+    return strimy_slots()
+
+
+@router.post("/api/planer/strimy-slots")
+async def api_slots_set(req: Request):
+    """Godziny okienek Strimów (filmy YT / shorty) – po zapisaniu kolejka układa się od nowa."""
+    b = await req.json()
+    with _lock:
+        c = _read(CFG, {})
+        c["strimy_slots"] = {k: [str(x).strip() for x in (b.get(k) or [])][:6] for k in ("film", "short")}
+        _write(CFG, c)
+    moved = replan_strimy()
+    return {"ok": True, "slots": strimy_slots(), "moved": moved}
+
+
 def _film_slot(P, streamer, long=True):
     """Kanał Strimy: 3 okienka dziennie na filmy YT (13, 17, 20) i 3 na shorty (12:30, 16:30, 20:30).
     Jeden streamer dziennie max 1 film i max 2 shorty – reszta okienek zostaje dla innych streamerów albo kolejnych dni."""
-    H = ["13:00", "17:00", "20:00"] if long else ["12:30", "16:30", "20:30"]
+    H = strimy_slots()["film" if long else "short"]
     hk = ("strimy_film",) if long else ("strimy_short", "strimy_short2")
     lim = 1 if long else 2
     Q = [x for x in P if x.get("group") == "strimy" and x.get("hkind") in hk and x.get("status") not in ("published", "skipped", "error")]

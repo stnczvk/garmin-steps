@@ -79,7 +79,8 @@ input#url{flex:1 1 320px}
 
  <div id="jobs"></div>
  <h2>Kalendarz</h2>
- <div class="box" id="kal"></div>
+ <div id="slotsBox" hidden style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;color:var(--ink)">   <b>Godziny publikacji</b> <span class="mut">(HH:MM po przecinku, max 3 dziennie każdego rodzaju; zmiana od razu przestawia kolejkę)</span>   <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><label class="mut">🎬 Filmy YT <input id="slF" style="width:190px"></label>   <label class="mut">📱 Shorty / Reels <input id="slS" style="width:190px"></label><button class="btn" id="slSave">Zapisz</button></div></div> 
+<div class="box" id="kal"></div>
  <div class="box" id="acc"></div>
 
  <div hidden><span id="when"></span><button id="scan"></button><div id="camps"></div>
@@ -199,8 +200,13 @@ async function kal(){let P=[];try{const r=await (await fetch('/api/planer?group=
      ${['approved','draft'].includes(p.status)?`<button data-pa="now" data-pid="${p.id}" title="Opublikuj teraz">⚡</button><button data-pa="skip" data-pid="${p.id}" title="Usuń">✕</button>`:''}</div></div>`).join(''):'<div class="kt" style="opacity:.5">—</div>')+'</div>'};
  $('kal').innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><button class="btn" data-kw="-1">‹</button>
   <span class="mut">${days[0].toLocaleDateString('pl-PL',{day:'numeric',month:'long'})} – ${days[6].toLocaleDateString('pl-PL',{day:'numeric',month:'long'})} · ${P.filter(p=>p.status==='approved').length} zaplanowanych</span>
-  <span class="row" style="gap:6px"><button class="btn" id="replan" title="Ułóż kolejkę od nowa: streamerzy na zmianę, dziennie max 1 film i 2 shorty od jednego streamera">🔄 Przeplanuj</button><button class="btn" data-kw="1">›</button></span></div><div class="kg">${days.map(cell).join('')}</div>`;}
+  <span class="row" style="gap:6px"><button class="btn" id="slotsBtn" title="Godziny publikacji filmów i shortów">⏰ Godziny</button><button class="btn" id="replan" title="Ułóż kolejkę od nowa: streamerzy na zmianę, dziennie max 1 film i 2 shorty od jednego streamera">🔄 Przeplanuj</button><button class="btn" data-kw="1">›</button></span></div><div class="kg">${days.map(cell).join('')}</div>`;}
 document.addEventListener('click',async e=>{const w=e.target.closest('[data-kw]');if(w){KW+=+w.dataset.kw;kal();return}
+ if(e.target.id==='slotsBtn'){const bx=$('slotsBox');bx.hidden=!bx.hidden;if(!bx.hidden){try{const r=await (await fetch('/api/planer/strimy-slots')).json();$('slF').value=r.film.join(', ');$('slS').value=r.short.join(', ')}catch(x){}}return}
+ if(e.target.id==='slSave'){const sp=v=>v.split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);e.target.disabled=true;
+  try{const r=await (await fetch('/api/planer/strimy-slots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({film:sp($('slF').value),short:sp($('slS').value)})})).json();
+   if(window.toast)toast(`Zapisane – filmy ${r.slots.film.join(', ')} · shorty ${r.slots.short.join(', ')}`+(r.moved?` · przestawione: ${r.moved}`:''))}catch(x){alert('Nie udało się zapisać')}
+  e.target.disabled=false;kal();return}
  if(e.target.id==='replan'){const b=e.target;b.disabled=true;b.textContent='Układam…';
   try{const r=await (await fetch('/api/planer/strimy-replan',{method:'POST'})).json();if(window.toast)toast(r.moved?`Przeplanowane: ${r.moved} postów`:'Kolejka już jest ułożona')}catch(x){alert('Nie udało się przeplanować')}
   kal();return}
