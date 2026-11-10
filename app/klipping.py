@@ -266,7 +266,8 @@ def _found(b):
         seen.append(vid); d["seen_vods"] = seen[-500:]
         since = (d.get("watch_since") or {}).get(sid, 0)
         st = next((x for x in _streamers(d) if x["id"] == sid), None)
-        if not st or float(b.get("ts") or 0) < since:
+        # liczy się KONIEC streama (start + długość): stream, który trwał w chwili włączenia 📡, też ma wejść
+        if not st or float(b.get("ts") or 0) + float(b.get("dur") or 0) < since:
             _wr(d)
             return {"ok": True, "new": False}
         j = _mk_job(d, {"mode": "reakcje", "streamer": sid, "n": 0, "auto": True}, url)
@@ -351,6 +352,18 @@ def watch_server():
                 print("klipping watch: nowy stream w kolejce", st["id"], v["url"], flush=True)
 
 
+def _seen_reset():
+    """Jednorazowo: nagrania odrzucone przez złe porównanie (start zamiast końca streama) do ponownego sprawdzenia.
+    Już zrobione streamy nie wejdą drugi raz – zadania sprawdzają też adres."""
+    with _lock:
+        d = _rd()
+        if d.get("seen_reset_v1"):
+            return
+        d["seen_vods"] = []
+        d["seen_reset_v1"] = True
+        _wr(d)
+
+
 def _auto_wszyscy():
     """Jednorazowo: 📡 włączone u wszystkich 7 streamerów; starsze nagrania pomijamy (od teraz)."""
     with _lock:
@@ -371,9 +384,10 @@ def _auto_wszyscy():
 def _watch_loop():
     try:
         _auto_wszyscy()
+        _seen_reset()
     except Exception as e:
         print("klipping auto:", e, flush=True)
-    time.sleep(180)
+    time.sleep(60)
     while True:
         try:
             watch_server()
