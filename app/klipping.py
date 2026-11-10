@@ -250,7 +250,13 @@ async def hook_found(req: Request):
     """Mac znalazł zakończone nagranie streama → zadanie jak po kliknięciu „Zrób filmy” (AI sama decyduje ile, auto publikacja)."""
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
-    return _found(await req.json())
+    b = await req.json()
+    try:
+        if _rec_vod(b.get("streamer"), {"vid": str(b.get("vid") or ""), "url": b.get("url") or "", "ts": b.get("ts"), "dur": b.get("dur")}):
+            return {"ok": True, "new": False}
+    except Exception as e:
+        print("klipping rec vod:", e, flush=True)
+    return _found(b)
 
 
 def _found(b):
@@ -360,6 +366,8 @@ def watch_server():
         for v in V:
             if v["vid"] in seen or (v["dur"] and v["dur"] < 20 * 60):
                 continue
+            if _rec_vod(st["id"], v):   # już nagrany na żywo
+                continue
             r = _found({**v, "streamer": st["id"]})
             if r.get("new"):
                 print("klipping watch: nowy stream w kolejce", st["id"], v["url"], flush=True)
@@ -444,6 +452,238 @@ def _watch_loop():
 
 
 threading.Thread(target=_watch_loop, daemon=True).start()
+
+
+# ---------- nagrywanie streamów NA ŻYWO na serwerze (materiał zbiera się, nawet gdy Mac jest wyłączony) ----------
+# Co 2 min sprawdzamy, kto z 📡 jest live → yt-dlp nagrywa (do 720p) w 30-minutowych kawałkach .ts.
+# Mac, gdy jest włączony, zabiera gotowe kawałki i kasuje je z serwera (dysk serwera się nie zapycha).
+# Po końcu streama (15 min offline) → zadanie „rec:<id>” w kolejce, jak przy nagraniu VOD.
+REC_SEG = 1800
+_RECP = {}   # rid → Popen (tylko w pamięci; po restarcie serwera nagrywanie wznawia się do tego samego folderu)
+_rec_full = 0
+
+
+def _recdir(rid=""):
+    from social import ROOT
+    p = ROOT / "klipping" / "_rec" / rid if rid else ROOT / "klipping" / "_rec"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def _live(st):
+    """(live, tytuł) – Twitch przez GQL, Kick przez API v2."""
+    import re
+    m = re.match(r"(?:https?://)?(?:www\.)?(twitch\.tv|kick\.com)/([\w-]+)", (st.get("link") or "").strip(), re.I)
+    if not m:
+        return False, ""
+    UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130 Safari/537.36"
+    if m.group(1).lower() == "twitch.tv":
+        q = 'query{user(login:"%s"){stream{id title}}}' % m.group(2).lower()
+        u = ((httpx.post("https://gql.twitch.tv/gql", json={"query": q}, timeout=20, headers={"Client-ID": _GQL_ID, "User-Agent": UA}).json()
+              .get("data") or {}).get("user") or {})
+        s = u.get("stream")
+        return bool(s), (s or {}).get("title") or ""
+    r = httpx.get(f"https://kick.com/api/v2/channels/{m.group(2).lower()}", timeout=20, headers={"User-Agent": UA, "Accept": "application/json"})
+    if r.status_code >= 300:
+        raise RuntimeError(f"kick {r.status_code}")
+    ls = r.json().get("livestream") or {}
+    return bool(ls.get("is_live")), ls.get("session_title") or ""
+
+
+def _rec_running(rid):
+    p = _RECP.get(rid)
+    return bool(p and p.poll() is None)
+
+
+def _rec_start(st, r):
+    import shlex, subprocess, sys
+    dd = _recdir(r["rid"])
+    n = max([int(f.stem) for f in dd.glob("*.ts") if f.stem.isdigit()] + [r.get("next", 0) - 1, -1]) + 1
+    r["next"] = n
+    cmd = (f"{shlex.quote(sys.executable)} -m yt_dlp -q --no-part --retries 10 -f 'best[height<=720]/best' -o - {shlex.quote(st['link'].strip())}"
+           f" | ffmpeg -v error -i - -map '0:v:0?' -map '0:a:0?' -c copy -f segment -segment_time {REC_SEG} -segment_start_number {n}"
+           f" -reset_timestamps 1 {shlex.quote(str(dd))}/%04d.ts")
+    _RECP[r["rid"]] = subprocess.Popen(["nice", "-n", "5", "bash", "-c", cmd], start_new_session=True,
+                                       stdout=subprocess.DEVNULL, stderr=open(dd / "log.txt", "a"))
+    print("klipping rec: nagrywam", st["id"], r["rid"], "od kawałka", n, flush=True)
+
+
+def _rec_stop(rid):
+    import os, signal
+    p = _RECP.pop(rid, None)
+    if p and p.poll() is None:
+        try:
+            os.killpg(p.pid, signal.SIGINT)
+            p.wait(timeout=20)
+        except Exception:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except Exception:
+                pass
+
+
+def _rec_segs(rid):
+    """Kawałki gotowe do zabrania (przy trwającym nagraniu bez ostatniego, który jeszcze rośnie)."""
+    dd = _recdir(rid)
+    L = sorted([f for f in dd.glob("*.ts") if f.stem.isdigit()], key=lambda f: int(f.stem))
+    if _rec_running(rid) and L:
+        L = L[:-1]
+    return [{"name": f.name, "size": f.stat().st_size} for f in L if f.stat().st_size > 0]
+
+
+def rec_tick():
+    import shutil
+    global _rec_full
+    d = _rd()
+    R = d.setdefault("rec", {})
+    free = shutil.disk_usage(str(_recdir())).free
+    low = free < 6e9
+    if low and time.time() - _rec_full > 6 * 3600:
+        _rec_full = time.time()
+        try:
+            from extra import push_all
+            push_all("⚠️ Serwer: mało miejsca", f"Zostało {free / 1e9:.1f} GB – nagrywanie streamów wstrzymane, włącz Maca, żeby zabrał nagrania", "/#klipping")
+        except Exception:
+            pass
+    zmiana, nowe = False, []
+    for st in _streamers(d):
+        if not st.get("auto_vod") or not st.get("link"):
+            continue
+        r = next((x for x in R.values() if x["sid"] == st["id"] and x["state"] == "rec"), None)
+        try:
+            live, title = _live(st)
+        except Exception as e:
+            print("klipping rec live", st["id"], e, flush=True)
+            continue
+        if live:
+            if not r:
+                rid = secrets.token_hex(4)
+                r = R[rid] = {"rid": rid, "sid": st["id"], "state": "rec", "start": time.time(), "title": title[:120], "got": []}
+                zmiana = True
+            r["last"] = time.time()
+            if title:
+                r["title"] = title[:120]
+            if low:
+                _rec_stop(r["rid"])
+            elif not _rec_running(r["rid"]):
+                _rec_start(st, r)
+            zmiana = True
+        elif r and time.time() - r.get("last", r["start"]) > 15 * 60:
+            _rec_stop(r["rid"])
+            r["state"] = "done"; r["end"] = r.get("last", time.time())
+            zmiana = True
+            if r["end"] - r["start"] < 20 * 60:
+                r["state"] = "short"
+                shutil.rmtree(_recdir(r["rid"]), ignore_errors=True)
+            else:
+                nowe.append((st, r))
+    # stare wpisy: zadanie zrobione → folder precz po 3 dniach
+    for rid, r in list(R.items()):
+        if r["state"] != "rec" and time.time() - r.get("end", r["start"]) > 3 * 86400:
+            jj = next((j for j in d["jobs"] if j["id"] == r.get("job")), None)
+            if not jj or jj["state"] in ("done", "error"):
+                shutil.rmtree(_recdir(rid), ignore_errors=True)
+                R.pop(rid); zmiana = True
+    if zmiana or nowe:
+        with _lock:
+            d2 = _rd()
+            old = d2.get("rec") or {}
+            for rid, r in R.items():   # „zabrane” kawałki mogły dojść w międzyczasie
+                r["got"] = sorted(set(r.get("got", [])) | set((old.get(rid) or {}).get("got", [])))
+                if (old.get(rid) or {}).get("vod") and not r.get("vod"):
+                    r["vod"] = old[rid]["vod"]
+            for st, r in nowe:
+                j = _mk_job(d2, {"mode": "reakcje", "streamer": st["id"], "n": 0, "auto": True}, "rec:" + r["rid"])
+                j["title"] = r.get("title") or ""; j["found"] = True; j["rec"] = r["rid"]
+                if r.get("vod"):
+                    j["vod"] = r["vod"]
+                r["job"] = j["id"]
+            d2["rec"] = R
+            _wr(d2)
+    for st, r in nowe:
+        try:
+            from extra import push_all
+            push_all(f"🔴 Nagrany stream: {st['name']}", f"{(r['end'] - r['start']) / 3600:.1f} h – filmy zrobią się, gdy Mac zabierze nagranie", "/#klipping")
+        except Exception:
+            pass
+
+
+def _rec_vod(sid, v):
+    """VOD tego samego streama, który już nagraliśmy na żywo → bez drugiego zadania (link VOD tylko do klipów widzów)."""
+    d = _rd()
+    a, b = float(v.get("ts") or 0), float(v.get("ts") or 0) + float(v.get("dur") or 0)
+    for r in (d.get("rec") or {}).values():
+        if r["sid"] == sid and r["state"] in ("rec", "done") and min(b, r.get("last", r["start"])) - max(a, r["start"]) > 0.5 * max(1, b - a):
+            with _lock:
+                d2 = _rd()
+                rr = (d2.get("rec") or {}).get(r["rid"])
+                if rr:
+                    rr["vod"] = v["url"]
+                jj = next((j for j in d2["jobs"] if j["id"] == r.get("job")), None)
+                if jj and jj["state"] == "queued":
+                    jj["vod"] = v["url"]
+                seen = d2.setdefault("seen_vods", [])
+                if v["vid"] not in seen:
+                    seen.append(v["vid"])
+                _wr(d2)
+            return True
+    return False
+
+
+def _rec_loop():
+    time.sleep(90)
+    while True:
+        try:
+            rec_tick()
+        except Exception as e:
+            print("klipping rec:", e, flush=True)
+        time.sleep(120)
+
+
+threading.Thread(target=_rec_loop, daemon=True).start()
+
+
+@router.get("/api/mont-hook/klipping/rec")
+def hook_rec(req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    R = _rd().get("rec") or {}
+    return {"rec": [{"rid": r["rid"], "sid": r["sid"], "state": r["state"], "segs": _rec_segs(r["rid"]), "got": r.get("got", [])}
+                    for r in R.values() if r["state"] in ("rec", "done")]}
+
+
+@router.get("/api/mont-hook/klipping/rec/{rid}/{name}")
+def hook_rec_file(rid: str, name: str, req: Request):
+    from fastapi.responses import FileResponse
+    import re
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    if not re.fullmatch(r"[0-9a-f]{8}", rid) or not re.fullmatch(r"\d{4,6}\.ts", name):
+        return JSONResponse({"error": "zła nazwa"}, status_code=400)
+    f = _recdir(rid) / name
+    if not f.is_file():
+        return JSONResponse({"error": "nie ma"}, status_code=404)
+    return FileResponse(str(f), media_type="video/mp2t")
+
+
+@router.post("/api/mont-hook/klipping/rec/{rid}/{name}/got")
+def hook_rec_got(rid: str, name: str, req: Request):
+    import re
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    if not re.fullmatch(r"[0-9a-f]{8}", rid) or not re.fullmatch(r"\d{4,6}\.ts", name):
+        return JSONResponse({"error": "zła nazwa"}, status_code=400)
+    if name not in [x["name"] for x in _rec_segs(rid)]:
+        return {"ok": False, "error": "kawałek jeszcze się nagrywa"}
+    with _lock:
+        d = _rd()
+        r = (d.get("rec") or {}).get(rid)
+        if r is not None:
+            if name not in r.setdefault("got", []):
+                r["got"].append(name)
+            _wr(d)
+    (_recdir(rid) / name).unlink(missing_ok=True)
+    return {"ok": True}
 
 
 @router.post("/api/klipping/manual")
@@ -1199,7 +1439,7 @@ def duplikaty(apply=True):
     d = _rd()
     info = {}
     for j in d["jobs"]:
-        if not str(j.get("url", "")).startswith("http"):
+        if not str(j.get("url", "")).startswith(("http", "rec:")):
             continue
         for c in j.get("clips", []):
             z = _zakres(j, c)
@@ -1463,7 +1703,7 @@ def kompilacja(sid, force=False):
                 continue
             s_ = stats.get(f"kl:{j['id']}:{c['name']}", {})
             views = sum((s_.get(p) or {}).get("views", 0) for p in ("yt", "ig"))
-            C.append({"url": j["url"], "start": c["src_start"], "end": c["src_end"], "hook": c.get("hook") or c.get("yt_title") or "",
+            C.append({"url": j.get("vod") or j["url"], "start": c["src_start"], "end": c["src_end"], "hook": c.get("hook") or c.get("yt_title") or "",
                       "score": views + 1000 * _num(c.get("ai_ocena")) * (0 if views else 1) + (5000 if c.get("ocena") == "dobry" else 0)})
     if len(C) < 5:
         return {"ok": False, "error": f"za mało shortów z tego tygodnia ({len(C)}, potrzeba min. 5)"}
@@ -1521,3 +1761,11 @@ def _komp_loop():
 
 
 threading.Thread(target=_komp_loop, daemon=True).start()
+
+
+@router.get("/api/klipping/rec")
+def api_rec():
+    R = _rd().get("rec") or {}
+    return {"rec": [{"sid": r["sid"], "state": r["state"], "start": r["start"], "last": r.get("last"), "title": r.get("title", ""),
+                     "na_serwerze": len(_rec_segs(r["rid"])), "zabrane": len(r.get("got", [])), "nagrywa": _rec_running(r["rid"])}
+                    for r in R.values() if r["state"] in ("rec", "done")]}

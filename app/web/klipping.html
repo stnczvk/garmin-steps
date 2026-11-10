@@ -78,6 +78,7 @@ input#url{flex:1 1 320px}
    <div id="rowReak"><select id="fmt"><option value="oba">oba</option><option value="yt">yt</option><option value="short">short</option><option value="skrot">skrot</option></select><input id="who"><select id="cam"><option value="auto">auto</option></select></div></div>
  </div>
 
+ <div id="recs"></div>
  <div id="jobs"></div>
  <h2>Kalendarz</h2>
  <div id="slotsBox" hidden style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;color:var(--ink)">   <b>Godziny publikacji</b> <span class="mut">(HH:MM po przecinku, max 3 dziennie każdego rodzaju; zmiana od razu przestawia kolejkę)</span>   <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><label class="mut">🎬 Filmy YT <input id="slF" style="width:190px"></label>   <label class="mut">📱 Shorty / Reels <input id="slS" style="width:190px"></label><button class="btn" id="slSave">Zapisz</button></div></div> 
@@ -116,7 +117,9 @@ function jobs(){const J=(S.jobs||[]).filter(j=>!ST||j.streamer===ST);
    <div class="row"><a class="btn" href="/api/klipping/${j.id}/clip/${encodeURIComponent(c.name)}?dl=1">⬇ Pobierz</a>
    <button class="btn" data-cp="${esc(c.yt_title)}">Tytuł YT</button>${c.yt_desc?`<button class="btn" data-cp="${esc(c.yt_desc)}">Opis YT</button>`:''}${c.thumb?`<span class="tag">Miniatura: ${esc(c.thumb)}</span>`:''}<button class="btn" data-cp="${esc(c.tiktok)}">Opis TT</button><button class="btn" data-oc="dobry" data-j="${j.id}" data-c="${esc(c.name)}" title="Dobry – AI będzie robić więcej takich"${c.ocena==='dobry'?' style="background:#2e7d4f"':''}>👍</button><button class="btn" data-oc="slaby" data-j="${j.id}" data-c="${esc(c.name)}" title="Słaby – napisz krótko dlaczego"${c.ocena==='slaby'?' style="background:#8a2f3c"':''}>👎</button><button class="btn" data-cp="${esc(c.instagram)}">Opis IG</button></div></div></div>`).join('')}</div>`:''}</div>`).join(''):'';
 }
-async function load(){try{S=await (await fetch('/api/klipping')).json()}catch(e){return}
+async function recs(){try{const r=await (await fetch('/api/klipping/rec')).json(),L=r.rec||[];const h=t=>{const m=Math.round((Date.now()/1000-t)/60);return m<60?m+' min':(m/60).toFixed(1)+' h'};
+ $('recs').innerHTML=L.length?'<div class="box" style="margin-bottom:10px">'+L.map(x=>`<div class="row" style="justify-content:space-between;gap:8px"><span>${x.state==='rec'?'🔴 <b>'+esc(x.sid)+'</b> nagrywany na żywo od '+h(x.start):'✅ <b>'+esc(x.sid)+'</b> nagrany, czeka na Maca'}${x.title?' · '+esc(x.title):''}</span><span class="mut">na serwerze ${x.na_serwerze} · zabrane ${x.zabrane} (po 30 min)</span></div>`).join('')+'</div>':''}catch(e){}}
+async function load(){recs();try{S=await (await fetch('/api/klipping')).json()}catch(e){return}
  const s=JSON.stringify([S.scanned,(S.campaigns||[]).length,(S.jobs||[]).map(j=>[j.id,j.state,j.step,j.clips.length])]);if(s===sig)return;sig=s;camps();jobs()}
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.plan){b.disabled=true;const r=await (await fetch('/api/klipping/job/'+b.dataset.plan+'/plan',{method:'POST'})).json();b.disabled=false;
