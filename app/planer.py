@@ -480,6 +480,13 @@ VLOG_LINKI = ("Instagram: https://www.instagram.com/st4nczuk_/\n"
 def vlog_opis(d):
     """Opis vloga YT: stałe linki przed rozdziałami (albo przed hashtagami, gdy rozdziałów brak)."""
     d = d or ""
+    if "#łysyvlog" not in d.lower():   # znak serii: klik w hashtag nad tytułem → wszystkie odcinki
+        L0 = d.rstrip().split("\n")
+        if L0 and L0[-1].strip().startswith("#"):
+            L0[-1] = L0[-1].rstrip() + " #łysyvlog"
+        else:
+            L0.append("\n#łysyvlog")
+        d = "\n".join(L0)
     if "instagram.com/st4nczuk_" in d:
         return d
     L = d.split("\n")
