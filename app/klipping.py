@@ -242,7 +242,7 @@ def hook_watch(req: Request):
     d = _rd()
     return {"streamers": [{"id": x["id"], "link": x["link"], "since": (d.get("watch_since") or {}).get(x["id"], time.time())}
                           for x in _streamers(d) if x.get("auto_vod") and x.get("link")],
-            "seen": (d.get("seen_vods") or [])[-300:]}
+            "seen": (d.get("seen_vods") or [])[-300:], "server": _WLOG}
 
 
 @router.post("/api/mont-hook/klipping/found")
@@ -289,7 +289,10 @@ def _tw_vods(login):
     q = ('query{user(login:"%s"){stream{id} videos(first:5,type:ARCHIVE,sort:TIME){edges{node{id title lengthSeconds createdAt}}}}}' % login)
     r = httpx.post("https://gql.twitch.tv/gql", json={"query": q}, timeout=30,
                    headers={"Client-ID": _GQL_ID, "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130 Safari/537.36"})
-    u = ((r.json().get("data") or {}).get("user") or {})
+    jj = r.json()
+    if jj.get("errors") or not (jj.get("data") or {}).get("user"):
+        raise RuntimeError(f"twitch {r.status_code}: {str(jj.get('errors') or jj)[:150]}")
+    u = jj["data"]["user"]
     live = bool(u.get("stream"))
     out = []
     for i, e in enumerate(((u.get("videos") or {}).get("edges") or [])):
@@ -329,6 +332,14 @@ def _kick_vods(slug):
     return out
 
 
+_WLOG = {}
+
+
+def _wlog(sid, stan, vods):
+    """Ostatnie sprawdzenie kanału (do diagnozy: co serwer widzi na Twitchu/Kicku)."""
+    _WLOG[sid] = {"at": time.time(), "stan": stan, "vods": vods}
+
+
 def watch_server():
     import re
     d = _rd()
@@ -341,8 +352,10 @@ def watch_server():
             continue
         try:
             V = _tw_vods(m.group(2).lower()) if m.group(1).lower() == "twitch.tv" else _kick_vods(m.group(2).lower())
+            _wlog(st["id"], "ok", [{k: v.get(k) for k in ("vid", "ts", "dur")} for v in V])
         except Exception as e:
             print("klipping watch", st["id"], e, flush=True)
+            _wlog(st["id"], f"błąd: {e}"[:200], [])
             continue
         for v in V:
             if v["vid"] in seen or (v["dur"] and v["dur"] < 20 * 60):
