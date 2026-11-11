@@ -42,7 +42,16 @@ def claim():
 def api_list():
     v = _read("mont_vlog.json", {})
     seen = (v.get("helper") or {}).get("seen")
-    return {"jobs": list(reversed(_jobs()[-30:])), "mac_online": bool(seen and time.time() - seen < 90)}
+    now = time.time()
+    J = [j for j in _jobs() if not (j.get("state") == "error" and now - (j.get("at") or j.get("created") or 0) > 24 * 3600)]   # stare błędy znikają po dobie
+    return {"jobs": list(reversed(J[-30:])), "mac_online": bool(seen and time.time() - seen < 90)}
+
+
+@router.post("/api/grafiki/clear-errors")
+def api_clear_errors():
+    L = [j for j in _jobs() if j.get("state") != "error"]
+    _write(F, L)
+    return {"ok": True}
 
 
 @router.post("/api/grafiki")

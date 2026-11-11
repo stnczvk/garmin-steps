@@ -179,7 +179,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 .gfil{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 8px}.gfil button{border:1px solid var(--line,#333);background:rgba(255,255,255,.04);color:inherit;border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
 .gfil button.on{background:rgba(139,124,199,.28);border-color:#8b7cc7}.gfil small{opacity:.6;margin-left:3px}.gj.zw .pv,.gj.zw .fl{display:none}
 .gone{display:none!important}
-.ytv{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}.ytv:first-child{border-top:0}.ytv img{width:150px;aspect-ratio:16/9;object-fit:cover;border-radius:10px}.ytv b{display:block;font-size:14px}.ytv small{opacity:.7}
+.ytv{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}.ytv:first-child{border-top:0}.ytv img{width:150px;aspect-ratio:16/9;object-fit:cover;border-radius:10px}.ytv b{display:block;font-size:14px}.yta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.ytgg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}.ytgg img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;cursor:pointer;outline:1px solid rgba(255,255,255,.12);outline-offset:2px}.ytgg img.on{outline:3px solid #ffd600}@media(max-width:600px){.ytv{grid-template-columns:1fr}.ytv>img{width:100%}}.ytv small{opacity:.7}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -266,8 +266,22 @@ const when=j=>{const m=j.id.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);retur
 async function ytv(){const el=document.getElementById('ytv');if(!el)return;let P=[];try{P=(await (await fetch('/api/planer')).json()).items||[]}catch(e){return}
  const V=P.filter(x=>x.series==='vlogyt').sort((a,b)=>b.when-a.when).slice(0,8),ST={draft:'⏳ do zatwierdzenia',approved:'📅 zaplanowany',publishing:'📤 publikuje się',published:'✅ opublikowany',error:'⚠️ błąd',skipped:'usunięty'};
  el.innerHTML=V.length?V.map(v=>{const nm=v.src.slice(4),K=P.filter(x=>x.series==='klip'&&String(x.src).startsWith('vf:'+nm+' klip')&&x.status!=='skipped'),ok=K.filter(x=>['approved','published'].includes(x.status)).length;
-  return `<div class="ytv"><img src="/api/planer/${v.id}/thumb?v=${Math.round(v.when)}" alt=""><div><b>${(v.yt_title||v.label||'').replace(/</g,'&lt;')}</b><small>${ST[v.status]||v.status} · ${new Date(v.when*1000).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small><br><small>🎬 klipy promujące: ${K.length} (zatwierdzone ${ok}) · edycja, miniatura i „✂️ Popraw klipy” w Treściach → kalendarz</small></div></div>`}).join(''):'<p class="mut">Jeszcze nic. Wyeksportuj gotowy vlog z CapCuta do folderu <b>_YT_VLOGI</b>: Mac sam zrobi tytuł, opis z rozdziałami, 4 miniatury do wyboru i klipy na TikToka.</p>'}
-ytv();setInterval(ytv,60000);
+  const ed=['draft','approved','error'].includes(v.status);
+  return `<div class="ytv"><img src="/api/planer/${v.id}/thumb?v=${Date.now()>>16}" alt=""><div><b>${(v.yt_title||v.label||'').replace(/</g,'&lt;')}</b><small>${ST[v.status]||v.status} · ${new Date(v.when*1000).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small><br><small>🎬 klipy promujące: ${K.length} (zatwierdzone ${ok})</small>
+   ${ed?`<div class="yta"><button class="btn" data-ytt="${v.id}">🖼 Miniatura</button><button class="btn" data-ytk="${v.src}">✂️ Popraw klipy</button>${v.status==='draft'?`<button class="btn pri" data-yta="${v.id}">✅ Zatwierdź vloga</button>`:''}</div><div class="ytg" id="ytg_${v.id}" hidden></div>`:''}</div></div>`}).join(''):'<p class="mut">Jeszcze nic. Wyeksportuj gotowy vlog z CapCuta do folderu <b>_YT_VLOGI</b>: Mac sam zrobi tytuł, opis z rozdziałami, 4 miniatury do wyboru i klipy na TikToka.</p>'}
+ytv();setInterval(()=>{if(!document.querySelector('.ytg:not([hidden])'))ytv()},60000);
+async function ytg(id){const g=document.getElementById('ytg_'+id);if(!g)return;let L=[];try{L=(await (await fetch(`/api/planer/${id}/thumbs`)).json()).thumbs||[]}catch(e){}
+ g.innerHTML=`<div class="ytgg">${L.map(t=>`<img data-ytp="${id}" data-n="${t.n}" src="/api/planer/${id}/thumbv/${t.n}?v=${t.t}" class="${t.on?'on':''}" alt="">`).join('')||'<small class="mut">Brak propozycji</small>'}</div>
+  <div class="yta"><label class="btn" style="cursor:pointer">📤 Wgraj własną<input type="file" accept="image/*" hidden data-yto="${id}"></label><button class="btn" data-ytn="${id}">🔄 Nowe propozycje</button></div>`}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-ytt],[data-ytk],[data-yta],[data-ytp],[data-ytn]');if(!b)return;e.preventDefault();
+ const P=(u,body)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json()).catch(()=>({ok:false,error:'Brak połączenia'}));
+ if(b.dataset.ytt){const g=document.getElementById('ytg_'+b.dataset.ytt);g.hidden=!g.hidden;if(!g.hidden)ytg(b.dataset.ytt);return}
+ if(b.dataset.ytp){const r=await P(`/api/planer/${b.dataset.ytp}/thumb-pick`,{n:b.dataset.n});if(r.ok===false)return alert(r.error);ytg(b.dataset.ytp);document.querySelectorAll('.ytv img:not([data-ytp])').forEach(i=>i.src=i.src.split('?')[0]+'?v='+Date.now());return}
+ if(b.dataset.ytn){const r=await P(`/api/planer/${b.dataset.ytn}/thumb-nowe`);alert(r.ok===false?r.error:'Mac zrobi 4 nowe propozycje (kilka minut)');return}
+ if(b.dataset.ytk){const u=prompt('Co poprawić w klipach? (możesz zostawić puste)','');if(u===null)return;const r=await P('/api/planer/klipy-popraw',{psrc:b.dataset.ytk,uwagi:u});alert(r.ok===false?r.error:'Mac zrobi nowe klipy – niezatwierdzone podmienią się same');return}
+ if(b.dataset.yta){if(!confirm('Zatwierdzić vloga? Wyjdzie sam o zaplanowanej godzinie.'))return;await P(`/api/planer/${b.dataset.yta}/save`,{});const r=await P(`/api/planer/${b.dataset.yta}/approve`);if(r.ok===false)return alert(r.error);ytv()}});
+document.addEventListener('change',async e=>{const i=e.target.closest('[data-yto]');if(!i||!i.files[0])return;const id=i.dataset.yto;
+ const r=await fetch(`/api/planer/${id}/thumb-own`,{method:'POST',body:i.files[0]}).then(r=>r.json()).catch(()=>({ok:false}));if(r.ok===false)return alert(r.error||'Nie udało się');ytg(id)});
 async function load(){
  try{D=await (await fetch('/api/mont/jobs')).json()}catch(e){D={ok:false,error:'Brak połączenia z centrum.',jobs:[]}}
  if(!D.ok&&!D.jobs.length){$('jl').innerHTML=`<p class="mut">${esc(D.error)}</p>`;return}
@@ -596,13 +610,13 @@ load();setInterval(load,15000);
  let tm=0;async function load(){const r=await fetch('/api/grafiki').then(r=>r.json()).catch(()=>null);if(!r)return;
   $g('gmac').textContent=r.mac_online?'Mac online':'Mac offline – zrobi, gdy się włączy';
   GJ=r.jobs;const L=r.jobs.filter(j=>GF==='all'||j.type===GF).slice(0,30);
-  $g('gfil').innerHTML=[['all','Wszystkie'],...Object.entries(TN)].map(([k,v])=>{const n=k==='all'?r.jobs.length:r.jobs.filter(j=>j.type===k).length;return n||k==='all'?`<button data-gfil="${k}" class="${GF===k?'on':''}">${v} <small>${n}</small></button>`:''}).join('');
+  $g('gfil').innerHTML=[['all','Wszystkie'],...Object.entries(TN)].map(([k,v])=>{const n=k==='all'?r.jobs.length:r.jobs.filter(j=>j.type===k).length;return n||k==='all'?`<button data-gfil="${k}" class="${GF===k?'on':''}">${v} <small>${n}</small></button>`:''}).join('')+(r.jobs.some(j=>j.state==='error')?'<button data-gclr="1" title="Usuń z listy wszystkie grafiki z błędem">🗑 Wyczyść błędy</button>':'');
   $g('gjobs').innerHTML=L.length?L.map((j,i)=>{const s=SN[j.state]||[j.state,''],zw=gz(j,i);return `<div class="gj${zw?' zw':''}"><div class="h" data-gzw="${j.id}" style="cursor:pointer"><b>${zw?'▸':'▾'} ${TN[j.type]||j.type}</b><small>${esc(sum(j))}</small><span class="st ${s[1]}">${s[0]}</span></div>
    ${j.state!=='done'?`<div class="fl">${esc(j.error||j.step||'')}${j.state==='error'?` · <a href="#" data-retry="${j.id}" style="color:#c9c2e3">Ponów</a>`:''}</div>`:''}
    ${j.previews?`<div class="pv">${Array.from({length:j.previews},(_,i)=>`<img src="/api/grafiki/${j.id}/preview/${i}" loading="lazy" alt="">`).join('')}</div>`:''}
    ${j.files?.length?`<div class="fl">Na Macu: Animacje vlog YT / ${j.files.map(esc).join(', ')}</div>`:''}</div>`}).join(''):'<p class="mut">Nic tu jeszcze nie ma.</p>';
   clearTimeout(tm);if(r.jobs.some(j=>!['done','error'].includes(j.state)))tm=setTimeout(load,5000)}
- $g('gfil').onclick=e=>{const b=e.target.closest('[data-gfil]');if(!b)return;GF=b.dataset.gfil;try{localStorage.gfil=GF}catch(x){}load()};
+ $g('gfil').onclick=async e=>{if(e.target.closest('[data-gclr]')){await fetch('/api/grafiki/clear-errors',{method:'POST'});load();return}const b=e.target.closest('[data-gfil]');if(!b)return;GF=b.dataset.gfil;try{localStorage.gfil=GF}catch(x){}load()};
  $g('gjobs').onclick=async e=>{const h=e.target.closest('[data-gzw]');if(h&&!e.target.closest('a')){const id=h.dataset.gzw,L=GJ.filter(j=>GF==='all'||j.type===GF),i=L.findIndex(j=>j.id===id);
   GZ[id]=!gz(L[i],i);try{localStorage.gzw=JSON.stringify(GZ)}catch(x){}load();return}
   const im=e.target.closest('.pv img');if(im){$g('gbig').querySelector('img').src=im.src;$g('gbig').classList.add('on');return}
