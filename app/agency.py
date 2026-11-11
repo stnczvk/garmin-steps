@@ -203,6 +203,36 @@ def claude(prompt, model=FAST, max_tokens=1500, system="", web=False):
     return "".join(b.get("text", "") for b in j.get("content", []) if b.get("type") == "text")
 
 
+def vision(prompt, images, model=SMART, max_tokens=1500):
+    """Model z obrazkami (lista JPEG-ów w base64) – Claude albo OpenAI, zależnie od provider()."""
+    _guard()
+    prov = provider()
+    if model in (SMART, FAST):
+        model = MODELS[prov][0 if model == SMART else 1]
+    if prov == "openai":
+        body = {"model": model, "max_output_tokens": max_tokens, "input": [{"role": "user", "content":
+                [{"type": "input_image", "image_url": "data:image/jpeg;base64," + b} for b in images] + [{"type": "input_text", "text": prompt}]}]}
+        r = http("POST", "https://api.openai.com/v1/responses", json=body, headers={"Authorization": "Bearer " + os.environ.get("OPENAI_API_KEY", "")})
+        j = r.json()
+        if r.status_code >= 400:
+            raise RuntimeError("OpenAI: " + str((j.get("error") or {}).get("message", j))[:200])
+        u = j.get("usage") or {}
+        _spend(model, u.get("input_tokens", 0), u.get("output_tokens", 0), 0)
+        return "".join(c.get("text", "") for o in j.get("output", []) if o.get("type") == "message"
+                       for c in o.get("content", []) if c.get("type") == "output_text")
+    key, url = _ai_key()
+    if not key:
+        raise RuntimeError("Brak ANTHROPIC_API_KEY")
+    content = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b}} for b in images] + [{"type": "text", "text": prompt}]
+    j = http("POST", url, headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
+             json={"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": content}]}).json()
+    if j.get("type") == "error":
+        raise RuntimeError(j["error"].get("message", str(j))[:200])
+    u = j.get("usage") or {}
+    _spend(model, u.get("input_tokens", 0), u.get("output_tokens", 0), 0)
+    return "".join(b.get("text", "") for b in j.get("content", []) if b.get("type") == "text")
+
+
 def _openai(prompt, model, max_tokens, system="", web=False):
     body = {"model": model, "input": prompt, "max_output_tokens": max_tokens}
     if system:

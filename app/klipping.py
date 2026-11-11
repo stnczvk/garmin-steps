@@ -1837,3 +1837,66 @@ def api_rec():
     return {"rec": [{"sid": r["sid"], "state": r["state"], "start": r["start"], "last": r.get("last"), "title": r.get("title", ""),
                      "na_serwerze": len(_rec_segs(r["rid"])), "zabrane": len(r.get("got", [])), "nagrywa": _rec_running(r["rid"])}
                     for r in R.values() if r["state"] in ("rec", "done")]}
+
+
+# ---------- rozmywanie nakładek reklamowych (bukmacherzy, kasyna, kody, QR) ----------
+def _iou(p, q):
+    ax, ay, aw, ah = p; bx, by, bw, bh = q
+    ix, iy = max(0, min(ax + aw, bx + bw) - max(ax, bx)), max(0, min(ay + ah, by + bh) - max(ay, by))
+    i = ix * iy
+    return i / max(1e-9, aw * ah + bw * bh - i)
+
+
+@router.post("/api/mont-hook/klipping/reklamy")
+async def hook_reklamy(req: Request):
+    """Mac wysyła kilka kadrów streama → AI zaznacza nakładki reklamowe; do rozmycia idą te, które są w tym samym miejscu
+    na większości kadrów (stała nakładka), + ręczne prostokąty streamera. Zwraca [[x, y, w, h]] jako ułamki kadru."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    import asyncio
+    from agency import vision, as_json
+    b = await req.json()
+    F = [x for x in (b.get("frames") or []) if isinstance(x, str) and len(x) > 1000][:6]
+    st = next((x for x in _streamers(_rd()) if x["id"] == b.get("streamer")), {}) or {}
+    reczne = [r for r in (st.get("blur") or []) if isinstance(r, list) and len(r) == 4]
+    if not F:
+        return {"rects": reczne}
+    prompt = (f"To {len(F)} kadrów z tego samego streama (po kolei: kadr 1, kadr 2, …). Zaznacz na KAŻDYM kadrze nakładki REKLAMOWE: "
+              "banery sponsorów, logo i nazwy bukmacherów / kasyn / stron z hazardem i skrzynkami (np. Stake, Rainbet, Fortuna, STS, Betclic, "
+              "Superbet, Gamdom, Hellcase, Clash), kody promocyjne („kod: …”, „!kod”), kody QR, paski z reklamą i linkiem do sklepu. "
+              "NIE zaznaczaj: kamerki, gry i jej HUD (mapa, wynik, ekwipunek), czatu, alertów o subach/donejtach, nicku i paska z nazwą kanału, "
+              "napisów, licznika widzów, zegara. Ramka ma obejmować całą nakładkę z małym zapasem. Współrzędne jako ułamki kadru 0–1 "
+              "(x, y = lewy górny róg). Jeśli na kadrze nie ma reklam, pusta lista.\n"
+              'Odpowiedz tylko JSON: {"kadry": [[{"x": 0.0, "y": 0.0, "w": 0.0, "h": 0.0, "co": "krótko"}], ...]}')
+    try:
+        txt = await asyncio.to_thread(vision, prompt, F, max_tokens=2000)
+    except Exception as e:
+        print("klipping reklamy:", e, flush=True)
+        return {"rects": reczne, "error": str(e)[:200]}
+    K = (as_json(txt) or {}).get("kadry") or []
+    boxes = []
+    for fi, L in enumerate(K[:len(F)]):
+        for z in L or []:
+            try:
+                r = [max(0.0, float(z["x"])), max(0.0, float(z["y"])), float(z["w"]), float(z["h"])]
+            except Exception:
+                continue
+            r[2], r[3] = min(r[2], 1 - r[0]), min(r[3], 1 - r[1])
+            if 0.01 <= r[2] <= 0.6 and 0.01 <= r[3] <= 0.6 and r[2] * r[3] <= 0.15:   # nie rozmywamy pół ekranu
+                boxes.append((fi, r))
+    need = max(1, -(-len(F) // 2))   # stała nakładka: co najmniej na połowie kadrów
+    out, used = [], set()
+    for i, (fi, r) in enumerate(boxes):
+        if i in used:
+            continue
+        grp = [(j, q) for j, (fj, q) in enumerate(boxes) if j not in used and _iou(r, q) > 0.3]
+        if len({boxes[j][0] for j, _ in grp}) >= need:
+            for j, _ in grp:
+                used.add(j)
+            x0 = min(q[0] for _, q in grp); y0 = min(q[1] for _, q in grp)
+            x1 = max(q[0] + q[2] for _, q in grp); y1 = max(q[1] + q[3] for _, q in grp)
+            pad = 0.006
+            out.append([round(max(0, x0 - pad), 4), round(max(0, y0 - pad), 4), round(min(1, x1 + pad) - max(0, x0 - pad), 4),
+                        round(min(1, y1 + pad) - max(0, y0 - pad), 4)])
+    print(f"klipping reklamy {b.get('streamer')}: wykryte {len(boxes)}, stałe {len(out)}, ręczne {len(reczne)}", flush=True)
+    return {"rects": out + reczne}
