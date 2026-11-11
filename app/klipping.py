@@ -1143,7 +1143,7 @@ def STYL(who):
             "„KABEL URWANY”), a nie ogólna emocja." + rec)
 
 
-def _kompakt(trans, step=60, chars=180):
+def _kompakt(trans, step=60, chars=180, obraz=None):
     """Mapa całego streama: co minutę ~180 znaków mowy + liczniki 🔊 i ⭐ (z klipem widzów) – mieści się cały stream w jednym zapytaniu."""
     import re
     B = {}
@@ -1165,7 +1165,11 @@ def _kompakt(trans, step=60, chars=180):
         x = B[k]
         t = " ".join(x["t"])
         t = t[:chars] + ("…" if len(t) > chars else "")
-        out.append(f"[{k * step // 60} min] {t}" + (" 🔊" * min(x["loud"], 3)) + (f" ⭐{x['klip']}" if x["klip"] else (" ⭐" if x["star"] else "")))
+        ob = ""
+        if obraz:   # co widać na ekranie w tej minucie (rozpoznane z kadrów)
+            L = [o["co"] for o in obraz if k * step <= o["t"] < (k + 1) * step]
+            ob = (" 🖥 " + L[0][:60]) if L else ""
+        out.append(f"[{k * step // 60} min]{ob} {t}" + (" 🔊" * min(x["loud"], 3)) + (f" ⭐{x['klip']}" if x["klip"] else (" ⭐" if x["star"] else "")))
     return "\n".join(out)
 
 
@@ -1182,9 +1186,11 @@ async def _wybor_yt(b, n, dur_min):
     # 48-godzinny stream to ~2900 minut: co 3 min i krócej, żeby AI widziało cały stream, a nie pierwsze godziny
     step = 60 if dur_min <= 400 else int(min(240, 60 * (dur_min / 400) ** 0.7))
     ln = max(1, dur_min * 60 / step)
-    mapa = _kompakt(trans, step, int(max(70, min(180, 110000 / ln - 25))))
+    OB = [o for o in (b.get("obraz") or []) if isinstance(o, dict) and o.get("co")]
+    mapa = _kompakt(trans, step, int(max(70, min(180, 110000 / ln - 25))), OB)
     ask1 = (f"Mapa całego streama {who} ({dur_min:.0f} min), linia co {step // 60} min: początek tego, co mówi. 🔊 = głośno (śmiech, krzyk), "
-            "⭐ = widzowie zrobili tu klip na Twitchu (z tytułem).\n\n" + mapa[:120000] +
+            "⭐ = widzowie zrobili tu klip na Twitchu (z tytułem). 🖥 = co NAPRAWDĘ widać wtedy na ekranie (rozpoznane z obrazu: gra i jej stan, "
+            "oglądany film, lobby, rozmowa) – to najpewniejszy sygnał, gdzie zaczyna się i kończy mecz albo oglądanie; zmiana 🖥 = zmiana segmentu.\n\n" + mapa[:120000] +
             f"\n\nPodziel stream na kolejne SEGMENTY tematyczne, czyli całe rzeczy od początku do końca: {who} ogląda jeden film / klip / odcinek "
             "(od włączenia do końca filmu i komentarza po), gra jeden mecz / rundę, prowadzi jedną rozmowę / historię / dyskusję, na IRL jedno miejsce "
             "albo jedna sytuacja. Nie tnij oglądania ani meczu na kawałki: jeśli oglądał film 25 minut, to jeden segment 25 min. "
@@ -1225,7 +1231,10 @@ async def _wybor_yt(b, n, dur_min):
         w = _window(trans, k["start"] - 1500, k["end"] + 1800)   # szerokie okno: gdy wstępny segment to tylko kawałek meczu, AI dociągnie do całości
         if len(w) > 90000:   # bardzo długi segment: środek skrócony, początek i koniec pełne (tam są granice)
             w = w[:45000] + "\n[…]\n" + w[-45000:]
+        ob = "\n".join(f"[{o['t']:.0f}] {o['co']}" for o in OB if k["start"] - 1500 <= o["t"] <= k["end"] + 1800)
         r = claude(f"Transkrypcja fragmentu streama {who}, każda linia: [sekunda] tekst (🔊 głośno, ⭐ klip widzów).\n\n{w}\n\n"
+                   + (f"CO WIDAĆ NA EKRANIE (z kadrów, [sekunda] opis) – NAJPEWNIEJSZY sygnał granic: początek = pierwszy kadr z tym meczem / "
+                      f"tym filmem, koniec = ostatni kadr z nim (+ krótka reakcja), zanim pojawi się lobby, menu albo coś innego:\n{ob}\n\n" if ob else "") +
                    f"W tym fragmencie jest segment: {k['co']} (mniej więcej {k['start']:.0f}–{k['end']:.0f} s). Ustal jego DOKŁADNE granice: start chwilę "
                    "przed rozpoczęciem (zapowiedź, co włącza / w co gra / o czym mówi), koniec gdy ta rzecz i komentarz do niej się kończą. Całość, nie kawałek. "
                    "Gra: CAŁY JEDEN MECZ od pierwszej rundy do wyniku (w CS zwykle 25–50 min), nie jedna runda ani akcja. Okno sięga 25 min przed "
@@ -1975,3 +1984,30 @@ async def hook_reklamy(req: Request):
                         round(min(1, y1 + pad) - max(0, y0 - pad), 4)])
     print(f"klipping reklamy {b.get('streamer')}: wykryte {len(boxes)}, stałe {len(out)}, ręczne {len(reczne)}", flush=True)
     return {"rects": out + reczne}
+
+
+
+@router.post("/api/mont-hook/klipping/obraz")
+async def hook_obraz(req: Request):
+    """Kadry ze streama (co 1–2 min) → krótki opis, co jest na ekranie. Dzięki temu granice meczu / oglądania są z obrazu, nie tylko z mowy."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    import asyncio
+    from agency import vision, as_json
+    b = await req.json()
+    F = [f for f in (b.get("frames") or []) if isinstance(f, dict) and len(str(f.get("img") or "")) > 1000][:24]
+    if not F:
+        return {"obraz": []}
+    who = b.get("who") or "streamer"
+    pr = (f"To {len(F)} kadrów ze streama {who}, po kolei w czasie. Dla KAŻDEGO kadru napisz krótko (max 8 słów), co jest na ekranie, "
+          "w stałym formacie, żeby było widać zmiany: „gra: <tytuł> – <stan>” (stan: mecz w trakcie / lobby / menu / ładowanie / wynik meczu / kupowanie), "
+          "„ogląda: <co, np. film YouTube o X / TikToki / stream Y / mecz piłki>” (jeśli widać tytuł lub temat, podaj go), "
+          "„rozmowa z czatem”, „IRL: <miejsce>”, „przerwa / ekran BRB”, „reklama / sponsor”. "
+          "Ten sam materiał na kolejnych kadrach opisuj TAK SAMO (ten sam tytuł), żeby było widać, gdzie się zaczyna i kończy.\n"
+          'Odpowiedz tylko JSON: {"kadry": ["opis 1", "opis 2", ...]}')
+    try:
+        txt = await asyncio.to_thread(vision, pr, [f["img"] for f in F], model="fast", max_tokens=1500)
+    except Exception as e:
+        return {"obraz": [], "error": str(e)[:200]}
+    L = (as_json(txt) or {}).get("kadry") or []
+    return {"obraz": [{"t": float(f.get("t") or 0), "co": str(c)[:80]} for f, c in zip(F, L) if str(c).strip()]}
