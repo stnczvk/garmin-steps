@@ -579,16 +579,41 @@ def nauka_klipu(it, dobry):
 
 
 def klipy_przyklady(typ):
-    """Ostatnie dobre i złe przykłady (dla promptu)."""
+    """Ostatnie dobre i złe przykłady + moje stałe uwagi (dla promptu)."""
+    U = [x["uwagi"] for x in _read("klipy_uwagi.json", [])][-6:]
+    uw = ("\nMOJE UWAGI Z WCZEŚNIEJSZYCH POPRAWEK (pilnuj ich zawsze):\n" + "\n".join("- " + u for u in U) + "\n") if U else ""
     L = [x for x in _read("klipy_nauka.json", []) if x.get("typ") == typ]
     dob = [x for x in L if x["ocena"] == "dobry"][-8:]
     zle = [x for x in L if x["ocena"] == "zły"][-8:]
     if not dob and not zle:
-        return ""
+        return uw
     f = lambda x: f"„{x['tytul']}” → „{x['tekst'][:140]}”"
     return ("\nMOJE WCZEŚNIEJSZE DECYZJE (ucz się mojego gustu – rób więcej takich jak DOBRE, unikaj takich jak ZŁE):\n"
             + ("DOBRE (zatwierdziłem):\n" + "\n".join("- " + f(x) for x in dob) + "\n" if dob else "")
-            + ("ZŁE (usunąłem):\n" + "\n".join("- " + f(x) for x in zle) + "\n" if zle else ""))
+            + ("ZŁE (usunąłem):\n" + "\n".join("- " + f(x) for x in zle) + "\n" if zle else "")) + uw
+
+
+@router.post("/api/mont-hook/slownik")
+async def hook_slownik_add(req: Request):
+    """Mac: pary „źle usłyszane → poprawne” z ręcznych poprawek napisów."""
+    from montaz import _tok
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    D = _read("napisy_slownik.json", {})
+    for zle, dobre in (b.get("pary") or []):
+        if 2 <= len(str(zle)) <= 40 and str(zle).lower() != str(dobre).lower():
+            D[str(zle).lower()] = str(dobre)[:40]
+    _write("napisy_slownik.json", dict(list(D.items())[-300:]))
+    return {"ok": True, "n": len(D)}
+
+
+@router.get("/api/mont-hook/slownik")
+def hook_slownik_get(req: Request):
+    from montaz import _tok
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    return {"slownik": _read("napisy_slownik.json", {})}
 
 
 @router.post("/api/mont-hook/klip-meta")
@@ -643,6 +668,9 @@ async def api_klipy_popraw(req: Request):
     with _lock:
         Q = [x for x in _read("klipy_popraw.json", []) if not (x["name"] == nm and not x.get("typ"))]
         Q.append({"name": nm, "uwagi": str(b.get("uwagi") or "")[:800], "at": time.time()})
+        if str(b.get("uwagi") or "").strip():   # uwagi zapamiętane na przyszłe vlogi
+            U = _read("klipy_uwagi.json", []) + [{"uwagi": str(b["uwagi"])[:400], "at": time.time()}]
+            _write("klipy_uwagi.json", U[-10:])
         _write("klipy_popraw.json", Q[-20:])
     return {"ok": True}
 
