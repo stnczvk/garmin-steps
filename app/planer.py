@@ -3,7 +3,7 @@ Instagram: Reels (film) i karuzela zdjęć (Instagram API z logowaniem przez Ins
 YouTube: Shorts (upload przez YouTube Data API, uprawnienie youtube.force-ssl, które już mamy).
 Pliki wystawiamy platformom pod jednorazowymi linkami /pub/<token>/… (ważne 24 h)."""
 import asyncio, json, os, re, secrets, threading, time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -564,6 +564,7 @@ def hook_klipy_popraw(req: Request):
 
 
 DROP = "posts_dropped.json"
+VLOG_LEAD = 24 * 3600   # vlog YT idzie na YouTube dobę przed premierą (prywatny + zaplanowany), żeby zdążył się przetworzyć
 
 
 def drop(srcs=(), series=None, ep=None, why="nowy montaż"):
@@ -701,6 +702,8 @@ def pub_youtube(it):
     desc = cap if it.get("long") or "#shorts" in cap.lower() else cap + "\n\n#shorts"   # długie filmy bez #shorts
     meta = {"snippet": {"title": title, "description": desc[:4900], "tags": tags, "categoryId": it.get("yt_cat") or "17", "defaultLanguage": "pl"},
             "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False}}
+    if it.get("series") == "vlogyt" and it["when"] > time.time() + 600:   # vlog wysłany wcześniej jako prywatny, YouTube sam opublikuje o premierze
+        meta["status"].update(privacyStatus="private", publishAt=datetime.fromtimestamp(it["when"], timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
     size = os.path.getsize(it["file"])
     r = httpx.post("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", timeout=60,
                    headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json", "X-Upload-Content-Type": "video/mp4",
@@ -852,7 +855,7 @@ def _loop():
         try:
             now = time.time()
             for it in plan():
-                if it["status"] == "approved" and it["when"] <= now:
+                if it["status"] == "approved" and (it["when"] <= now or (it.get("series") == "vlogyt" and it["when"] - VLOG_LEAD <= now)):
                     threading.Thread(target=publish, args=(it["id"],), daemon=True).start()
                 elif (it["status"] == "approved" and "tiktok" in it["platforms"] and it["when"] - TT_LEAD <= now
                       and not (it.get("results") or {}).get("tiktok", {}).get("ok") and it.get("file")):
