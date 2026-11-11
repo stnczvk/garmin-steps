@@ -1890,6 +1890,18 @@ async def hook_reklamy(req: Request):
     F = [x for x in (b.get("frames") or []) if isinstance(x, str) and len(x) > 1000][:6]
     st = next((x for x in _streamers(_rd()) if x["id"] == b.get("streamer")), {}) or {}
     reczne = [r for r in (st.get("blur") or []) if isinstance(r, list) and len(r) == 4]
+    Wy = [x for x in (b.get("wycinki") or []) if isinstance(x, str) and len(x) > 500][:12]
+    if Wy:   # 2. etap: powiększone wycinki z drobną siatką – które pola to SAM baner (żeby nie rozmywać pół ekranu)
+        nn = int(b.get("n") or 6)
+        pr = (f"To {len(Wy)} powiększonych wycinków ze streama, na każdym siatka {nn}×{nn} z numerami 1–{nn * nn} (wiersze od góry, w wierszu od lewej). "
+              "Dla KAŻDEGO wycinka podaj numery pól, na których jest baner / logo / kod reklamowy (sponsor, bukmacher, kasyno, skrzynki, marka, QR). "
+              "Zaznacz tylko pola z reklamą (z jej ramką), NIE gra, NIE tło, NIE kamerka. Jeśli na wycinku nie ma reklamy, pusta lista.\n"
+              'Odpowiedz tylko JSON: {"wycinki": [[numery], [numery], ...]}')
+        try:
+            txt = await asyncio.to_thread(vision, pr, Wy, max_tokens=600)
+            return {"komorki": (as_json(txt) or {}).get("wycinki") or []}
+        except Exception as e:
+            return {"komorki": [], "error": str(e)[:200]}
     G = [x for x in (b.get("siatka") or []) if isinstance(x, str) and len(x) > 1000][:8]
     if G:   # kadry z narysowaną siatką 8×6 (numery 1–48) – AI wskazuje komórki z reklamami (pewniejsze niż współrzędne)
         cols, rows = int(b.get("cols") or 8), int(b.get("rows") or 6)
@@ -1935,7 +1947,7 @@ async def hook_reklamy(req: Request):
                     M.append(list(r))
             out = M
             print(f"klipping reklamy {b.get('streamer')}: komórek {len(cells)}, obszarów {len(out)}", flush=True)
-            return {"rects": out + reczne}
+            return {"rects": out + reczne, "zgrubne": out, "reczne": reczne, "kadry": K, "cols": cols, "rows": rows}
         except Exception as e:
             print("klipping reklamy (siatka):", e, flush=True)
     C = [c for c in (b.get("kandydaci") or []) if isinstance(c, dict) and len(str(c.get("img") or "")) > 300 and len(c.get("rect") or []) == 4][:16]
