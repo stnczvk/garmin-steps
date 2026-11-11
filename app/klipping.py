@@ -633,6 +633,7 @@ def rec_tick():
                     r["skip_job"] = True
                 if (old.get(rid) or {}).get("state") == "zastapiony":
                     r["state"] = "zastapiony"
+            nowe = [(st, r) for st, r in nowe if not r.get("skip_job")]
             for st, r in nowe:
                 j = _mk_job(d2, {"mode": "reakcje", "streamer": st["id"], "n": 0, "auto": True}, "rec:" + r["rid"])
                 j["title"] = r.get("title") or ""; j["found"] = True; j["rec"] = r["rid"]
