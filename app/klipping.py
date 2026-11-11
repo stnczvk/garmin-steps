@@ -1235,6 +1235,10 @@ async def _wybor_yt(b, n, dur_min):
                    "Koniec stawiasz zaraz po wyniku i krótkiej reakcji: BEZ lobby, kolejki i przerwy po meczu, i NIGDY nie wchodź w następny mecz "
                    "(gdy w oknie są dwa mecze, wybierz ten, który obejmuje wstępny segment, w całości). "
                    "Przestoje w trakcie (śmierci, czekanie) wytniesz niżej, więc nie skracaj przez nie granic. "
+                   "OGLĄDANIE (film, odcinek, filmik z YT/TikToka, wywiad): w transkrypcji przeplata się głos streamera i dźwięk oglądanego materiału "
+                   "(inny styl, narrator, dialogi). Start = zapowiedź („dobra, oglądamy…”, „włączam”, czytanie tytułu) albo pierwsze zdania materiału, "
+                   "NIGDY w połowie. Koniec = materiał się skończył (zakończenie, „dzięki za obejrzenie”, „subskrybuj”, napisy końcowe, cisza po filmie) "
+                   "+ jego komentarz/ocena po, aż przejdzie do innego tematu. Jeśli w oknie nie widać końca, przesuń koniec do ostatniej linii materiału. "
                    "Bez reklam i sponsorów na początku i końcu. Celuj w min 8 min, max 60 min.\n"
                    "Potem napisz tytuł YouTube po polsku " + STYL(who) + " " + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
                    (f"ZASADY z moich ocen (stosuj):\n{zas}\n" if zas else "") +
