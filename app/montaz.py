@@ -723,6 +723,48 @@ async def hook_vlogyt_pakiet(req: Request):
                        for x in (j.get("thumbs") or []) if isinstance(x, dict) and str(x.get("t", "")).replace(".", "", 1).isdigit()][:4]}
 
 
+@router.post("/api/mont-hook/memy-wybor")
+async def hook_memy_wybor(req: Request):
+    """Memy z vloga: krótka puenta (całe zdania po numerach) + sytuacja memowa na górze („Kiedy ziomek pyta, jak ci idzie redukcja”)."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    from agency import claude, as_json
+    import asyncio
+    b = await req.json()
+    zd, name = (b.get("zdania") or "")[:70000], b.get("name") or ""
+    ile = max(0, min(5, int(b.get("ile") if b.get("ile") is not None else 4)))
+    if not ile or not zd:
+        return {"memy": []}
+    extra = ("\nTe memy z tego vloga już są – zrób INNE: " + " | ".join(map(str, b["zostaja"]))[:600] + "\n") if b.get("zostaja") else ""
+    if b.get("uwagi"):
+        extra += "\nMOJE UWAGI: " + str(b["uwagi"])[:600] + "\n"
+    prompt = (f"To transkrypcja vloga „{name}” (kanał Lysyzsilowni: natural bodybuilding, redukcja, jedzenie, trening, codzienność). "
+              "Każda linia to jedno zdanie: [numer | start | długość] tekst.\n\n" + zd + "\n" + extra +
+              f"\nZrób {ile} MEMÓW wideo na TikToka/Reels. Mem = na górze tekst sytuacji, a pod nim moja krótka wypowiedź z vloga jako puenta, "
+              "która ją zabawnie „odpowiada” (np. sytuacja: „Kiedy ziomek pyta, jak ci idzie redukcja” → puenta: „Dzisiaj zjadłem 4000 kcal”; "
+              "„Mama: na obiad jest tylko sałatka. Ja:” → „Na obiad mamy 4 pizze”).\n"
+              "Zasady: puenta = 1–2 CAŁE zdania (od, do: numery zdań), razem 3–10 s, sama w sobie zrozumiała, z kontrastem, liczbą albo emocją; "
+              "sytuacja = 6–14 słów, codzienna i relatable dla ludzi na diecie/siłowni (formaty: „Kiedy…”, „POV:…”, „Ja, gdy…”, „X: … Ja:”), "
+              "humor z dystansem do siebie, bez obrażania, bez emotek i bez myślników; każdy mem o czymś innym.\n"
+              "Do każdego opis TikTok i Instagram (krótko, luźno, jedno zdanie, że cały vlog na YouTube: Lysyzsilowni, link w bio, + 3–5 hashtagów) i tytuł Shorts.\n"
+              + OPIS_RULES +
+              '\nOdpowiedz wyłącznie JSON: {"memy": [{"od": nr, "do": nr, "sytuacja": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
+    try:
+        txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=2500, system=__import__("skills").sk("hook", "trend", "caption", "slop")))
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:200]}, status_code=502)
+    out = []
+    for m in (as_json(txt) or {}).get("memy") or []:
+        try:
+            o, d_ = int(m["od"]), int(m["do"])
+        except Exception:
+            continue
+        if 0 <= o <= d_ <= o + 2 and str(m.get("sytuacja") or "").strip():
+            out.append({"od": o, "do": d_, "sytuacja": human(str(m["sytuacja"]))[:120], "tiktok": human(str(m.get("tiktok") or "")),
+                        "instagram": human(str(m.get("instagram") or "")), "yt_title": human(str(m.get("yt_title") or "")), "hook": human(str(m["sytuacja"]))[:80]})
+    return {"memy": out[:ile]}
+
+
 @router.post("/api/mont-hook/klipy-wybor")
 async def hook_klipy_wybor(req: Request):
     """Mac wysyła transkrypcję gotowego vloga z YouTube (z czasami) → AI układa 3–5 krótkich historii na TikToka/Reels/Shorts

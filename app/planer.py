@@ -502,8 +502,11 @@ def klipy_po_vlogu(v, P=None):
     if own:
         P = plan()
     base = v["src"][4:] if v.get("src", "").startswith("vyt:") else ""
+    def _ord(x):   # klip 1, mem 1, klip 2, mem 2… (memy przeplatane z klipami)
+        m = re.search(r" (klip|mem) (\d+)$", str(x.get("src")))
+        return (int(m.group(2)), m.group(1) != "klip") if m else (99, True)
     K = sorted([x for x in P if x.get("series") == "klip" and x.get("status") in ("draft", "approved") and not x.get("pin")
-                and base and str(x.get("src", "")).startswith(f"vf:{base} klip")], key=lambda x: x.get("src"))
+                and base and (str(x.get("src", "")).startswith(f"vf:{base} klip") or str(x.get("src", "")).startswith(f"vf:{base} mem"))], key=_ord)
     t = v["when"] + 90 * 60
     for x in K:
         x["when"] = t
@@ -517,7 +520,7 @@ def _klip_base(src):
     src = str(src or "")
     if src.startswith("vyt:"):
         return src[4:]
-    m = re.match(r"vf:(.+) klip \d+$", src)
+    m = re.match(r"vf:(.+) (?:klip|mem) \d+$", src)
     return m.group(1) if m else ""
 
 
@@ -528,14 +531,37 @@ def hook_vlogyt_klipy_reset(req: Request, name: str = ""):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100]
-    K = [x for x in plan() if str(x.get("src", "")).startswith(f"vf:{nm} klip")]
-    srcs = [x["src"] for x in K if x.get("status") in ("draft", "error", "skipped")]   # usunięte ręcznie też (inaczej blokują nowe pliki o tej nazwie)
-    zost = [x for x in K if x["src"] not in srcs]
-    nums = [int(m.group(1)) for x in zost for m in [re.search(r"klip (\d+)$", x["src"])] if m]
+    P = plan()
+    res = {"ok": True}
+    srcs = []
+    for typ, ile0, key in (("klip", 5, ""), ("mem", 4, "_mem")):
+        K = [x for x in P if str(x.get("src", "")).startswith(f"vf:{nm} {typ} ")]
+        dr = [x["src"] for x in K if x.get("status") in ("draft", "error", "skipped")]   # usunięte ręcznie też (inaczej blokują nowe pliki o tej nazwie)
+        zost = [x for x in K if x["src"] not in dr]
+        nums = [int(m.group(1)) for x in zost for m in [re.search(rf"{typ} (\d+)$", x["src"])] if m]
+        srcs += dr
+        res.update({"next" + key: max(nums + [0]) + 1, "ile" + key: max(0, ile0 - len(zost)), "zostaja" + key: [x.get("label") or "" for x in zost]})
     if srcs:
         drop(srcs, why="nowe klipy z vloga")
-    return {"ok": True, "usuniete": len(srcs), "next": max(nums + [0]) + 1, "ile": max(0, 5 - len(zost)),
-            "zostaja": [x.get("label") or "" for x in zost]}
+    res["usuniete"] = len(srcs)
+    return res
+
+
+@router.post("/api/mont-hook/vlogyt-ulozenie")
+def hook_vlogyt_ulozenie(req: Request, name: str = ""):
+    """Po wrzuceniu nowych klipów i memów: ułóż je za premierą vloga (przeplatane, po jednym dziennie)."""
+    from montaz import _tok
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100]
+    with _lock:
+        P = plan()
+        v = next((x for x in P if x.get("src") == f"vyt:{nm}"), None)
+        if not v:
+            return {"ok": False, "error": "brak vloga w planie"}
+        n = klipy_po_vlogu(v, P)
+        save(P)
+    return {"ok": True, "ulozone": n}
 
 
 @router.post("/api/planer/klipy-popraw")
