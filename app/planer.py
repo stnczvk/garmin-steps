@@ -867,6 +867,39 @@ def _clean_once():
     _write(CFG, c)
 
 
+_last_disk = 0
+
+
+def sprzatanie_plikow():
+    """Dysk serwera: plik posta znika 12 h po publikacji albo pominięciu (jest już na platformach),
+    a przy małej ilości miejsca (< 15 GB) od razu. Plik używany jeszcze przez inny, nieopublikowany post zostaje."""
+    import shutil
+    from social import ROOT
+    global _last_disk
+    free = shutil.disk_usage(str(ROOT)).free
+    if time.time() - _last_disk < (600 if free < 15e9 else 3600):
+        return
+    _last_disk = time.time()
+    P = plan()
+    potrzebne = {x.get("file") for x in P if x.get("status") not in ("published", "skipped") and x.get("file")}
+    wiek = 0 if free < 15e9 else 12 * 3600
+    freed = 0
+    for x in P:
+        f = x.get("file")
+        if not f or f in potrzebne or x.get("status") not in ("published", "skipped"):
+            continue
+        t = x.get("done_at") or x.get("published") or x.get("when") or 0
+        if time.time() - t < wiek or not str(f).startswith(str(ROOT)):
+            continue
+        try:
+            if os.path.isfile(f):
+                freed += os.path.getsize(f); os.unlink(f)
+        except Exception:
+            pass
+    if freed > 50_000_000:
+        print(f"planer: posprzątane pliki opublikowanych postów, {freed / 1e9:.1f} GB (wolne było {free / 1e9:.1f} GB)", flush=True)
+
+
 def _loop():
     time.sleep(45)
     try:
@@ -878,6 +911,10 @@ def _loop():
             scan()
         except Exception as e:
             print("planer scan", e, flush=True)
+        try:
+            sprzatanie_plikow()
+        except Exception as e:
+            print("planer sprzątanie", e, flush=True)
         try:
             now = time.time()
             for it in plan():

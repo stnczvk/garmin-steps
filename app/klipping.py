@@ -425,8 +425,9 @@ def sprzatanie_serwer():
     stan = {x.get("src"): x for x in planer.plan() if x.get("group") == "strimy"}
     jobs = {j["id"] for j in _rd()["jobs"]}
     freed, now = 0, time.time()
+    ciasno = shutil.disk_usage(str(base)).free < 15e9
     for p in base.iterdir():
-        if not p.is_dir():
+        if not p.is_dir() or p.name == "_rec":
             continue
         if p.name not in jobs:
             if now - p.stat().st_mtime > 7 * 86400:
@@ -434,7 +435,7 @@ def sprzatanie_serwer():
             continue
         for f in p.glob("*.mp4"):
             it = stan.get(f"kl:{p.name}:{f.stem}")
-            if it and it.get("status") in ("published", "skipped") and now - max(it.get("when", 0), it.get("published", 0) or 0) > 3 * 86400:
+            if it and it.get("status") in ("published", "skipped") and (ciasno or now - max(it.get("when", 0), it.get("done_at", 0) or 0) > 12 * 3600):
                 freed += f.stat().st_size; f.unlink(missing_ok=True)
     if freed > 50_000_000:
         print(f"klipping: serwer posprzątany, {freed / 1e9:.1f} GB", flush=True)
@@ -458,7 +459,8 @@ def _watch_loop():
         except Exception as e:
             print("klipping watch:", e, flush=True)
         try:
-            if time.localtime().tm_hour == 4:   # raz w nocy
+            import shutil as _sh
+            if time.localtime().tm_hour == 4 or _sh.disk_usage("/").free < 15e9:   # w nocy, a przy małej ilości miejsca co obrót pętli
                 sprzatanie_serwer()
         except Exception as e:
             print("klipping sprzątanie:", e, flush=True)
