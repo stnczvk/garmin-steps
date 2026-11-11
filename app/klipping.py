@@ -261,6 +261,8 @@ async def hook_found(req: Request):
 
 def _found(b):
     """Nowe zakończone nagranie (zgłoszone przez serwer albo przez Maca) → zadanie w kolejce; Mac weźmie je, gdy będzie włączony."""
+    if WYLACZONY:
+        return {"ok": True, "new": False, "wylaczony": True}
     vid, sid, url = str(b.get("vid") or "")[:80], b.get("streamer"), (b.get("url") or "").strip()
     if not vid or not url.startswith("http"):
         return {"ok": False}
@@ -347,6 +349,8 @@ def _wlog(sid, stan, vods):
 
 
 def watch_server():
+    if WYLACZONY:
+        return
     import re
     d = _rd()
     seen = set(d.get("seen_vods") or [])
@@ -470,6 +474,50 @@ def _watch_loop():
 threading.Thread(target=_watch_loop, daemon=True).start()
 
 
+# ---------- projekt Strimy WYŁĄCZONY (11.2026, decyzja: koniec kanału ze streamami) ----------
+# Nic nie wykrywa, nie nagrywa ani nie publikuje. Kod zostaje – żeby wrócić, ustaw WYLACZONY = False.
+WYLACZONY = True
+
+
+def _wylacz_i_wyczysc():
+    import shutil, planer
+    from social import ROOT
+    d = _rd()
+    if d.get("wylaczony_v1"):
+        return
+    for rid in list(_RECP):
+        _rec_stop(rid)
+    srcs = [x["src"] for x in planer.plan() if x.get("group") == "strimy" and x.get("status") not in ("published", "publishing")]
+    if srcs:
+        planer.drop(srcs, why="projekt Strimy wyłączony")
+    base = ROOT / "klipping"
+    freed = 0
+    if base.is_dir():
+        for p in base.iterdir():
+            if p.is_dir():
+                freed += sum(f.stat().st_size for f in p.rglob("*") if f.is_file())
+                shutil.rmtree(p, ignore_errors=True)
+    with _lock:
+        d = _rd()
+        d["jobs"], d["rec"] = [], {}
+        for st in d.get("streamers", []):
+            st["auto_vod"] = False
+        d["wylaczony_v1"] = time.time()
+        _wr(d)
+    print(f"klipping: projekt wyłączony, usunięte posty {len(srcs)}, zwolnione {freed / 1e9:.1f} GB", flush=True)
+
+
+def _wylacz_loop():
+    time.sleep(30)
+    try:
+        _wylacz_i_wyczysc()
+    except Exception as e:
+        print("klipping wyłączanie:", e, flush=True)
+
+
+threading.Thread(target=_wylacz_loop, daemon=True).start()
+
+
 # ---------- nagrywanie streamów NA ŻYWO na serwerze (materiał zbiera się, nawet gdy Mac jest wyłączony) ----------
 # Co 2 min sprawdzamy, kto z 📡 jest live → yt-dlp nagrywa (do 720p) w 30-minutowych kawałkach .ts.
 # Mac, gdy jest włączony, zabiera gotowe kawałki i kasuje je z serwera (dysk serwera się nie zapycha).
@@ -548,6 +596,10 @@ def _rec_segs(rid):
 
 
 def rec_tick():
+    if WYLACZONY:
+        for rid in list(_RECP):
+            _rec_stop(rid)
+        return
     import shutil
     global _rec_full
     d = _rd()
@@ -872,6 +924,8 @@ def _tok(req):
 def hook_next(req: Request):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
+    if WYLACZONY:
+        return {"job": None}
     with _lock:
         d = _rd()
         for j in d["jobs"]:   # zawieszone (Mac się wyłączył) → po 2 h wracają do kolejki
@@ -1786,6 +1840,8 @@ threading.Thread(target=_stats_loop, daemon=True).start()
 def kompilacja(sid, force=False):
     """Najlepsze shorty streamera z ostatnich 7 dni (wyświetlenia YT+IG, a bez statystyk ocena AI) → zadanie dla Maca:
     poziomy film 16:9 z numerami #10 → #1, planszami i intro. To nowa treść kanału, a nie surowy fragment streama."""
+    if WYLACZONY:
+        return None
     from agency import claude, as_json
     import planer
     d = _rd()
