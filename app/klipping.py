@@ -1189,7 +1189,8 @@ async def _wybor_yt(b, n, dur_min):
             "(od włączenia do końca filmu i komentarza po), gra jeden mecz / rundę, prowadzi jedną rozmowę / historię / dyskusję, na IRL jedno miejsce "
             "albo jedna sytuacja. Nie tnij oglądania ani meczu na kawałki: jeśli oglądał film 25 minut, to jeden segment 25 min. "
             "Segment ma max 60 min: gdy jedna rzecz trwa dłużej (np. wielogodzinne granie w jedną grę), podziel ją na kilka segmentów "
-            "po 15–60 min w naturalnych miejscach (osobne mecze, rundy, misje, etapy, ważne wydarzenia w grze). "
+            "po 15–60 min w naturalnych miejscach (osobne mecze, misje, etapy, ważne wydarzenia w grze). GRY RUNDOWE (CS, Valorant, LoL itp.): "
+            "JEDEN MECZ = JEDEN SEGMENT od rozgrzewki/startu do wyniku (zwykle 25–50 min), NIGDY pojedyncze rundy; cięcie tylko gdy mecz > 60 min (np. na połowy). "
             "Pomiń jako segmenty: start i koniec streama, czekanie, przerwy, czytanie donejtów, reklamy i współprace sponsorskie. "
             + ("TYLKO OGLĄDANIE: granie w grę idzie do osobnego skrótu, więc tu wypisz WYŁĄCZNIE segmenty, w których "
                f"{who} ogląda i komentuje coś (film, odcinek, klip, filmik z YouTube/TikToka, mecz, wiadomości) albo prowadzi dłuższą rozmowę "
@@ -1221,13 +1222,15 @@ async def _wybor_yt(b, n, dur_min):
     sysm = __import__("skills").sk("hook", "caption", "trend", "slop")
 
     def one(k):
-        w = _window(trans, k["start"] - 240, k["end"] + 240)
+        w = _window(trans, k["start"] - 600, k["end"] + 1800)   # szerokie okno: gdy wstępny segment to tylko kawałek meczu, AI dociągnie do całości
         if len(w) > 90000:   # bardzo długi segment: środek skrócony, początek i koniec pełne (tam są granice)
             w = w[:45000] + "\n[…]\n" + w[-45000:]
         r = claude(f"Transkrypcja fragmentu streama {who}, każda linia: [sekunda] tekst (🔊 głośno, ⭐ klip widzów).\n\n{w}\n\n"
                    f"W tym fragmencie jest segment: {k['co']} (mniej więcej {k['start']:.0f}–{k['end']:.0f} s). Ustal jego DOKŁADNE granice: start chwilę "
                    "przed rozpoczęciem (zapowiedź, co włącza / w co gra / o czym mówi), koniec gdy ta rzecz i komentarz do niej się kończą. Całość, nie kawałek. "
-                   "Bez reklam i sponsorów na początku i końcu. Celuj w min 5 min, max 60 min.\n"
+                   "Gra: CAŁY MECZ od startu do wyniku (w CS zwykle 25–50 min), nie jedna runda ani akcja; okno sięga dalej niż wstępny segment, "
+                   "więc jeśli mecz trwa dłużej, przesuń koniec. Przestoje (śmierci, czekanie) wytniesz niżej, więc nie skracaj przez nie granic. "
+                   "Bez reklam i sponsorów na początku i końcu. Celuj w min 8 min, max 60 min.\n"
                    "Potem napisz tytuł YouTube po polsku " + STYL(who) + " " + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
                    (f"ZASADY z moich ocen (stosuj):\n{zas}\n" if zas else "") +
                    "opis YouTube (2–3 krótkie zdania + 3–5 hashtagów), napis na miniaturę (2–4 słowa, WERSALIKI) i hook na pierwsze 4 s (max 7 słów). "
