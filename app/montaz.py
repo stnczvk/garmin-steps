@@ -759,7 +759,7 @@ async def hook_klipy_wybor(req: Request):
               "Do każdego: tytul = TYTUŁ NA EKRANIE przez cały klip (u góry, jak w klipach z kampanii), 5–9 słów, konkret z liczbą albo "
               "ciekawością, pisany jak człowiek, bez emotek i bez myślników (np. „Zjadłem 4000 kcal i tak zareagowała waga”); "
               "hook = 2–5 słów, DOPEŁNIA to, co mówię (nie powtarza), ciekawość albo liczba; "
-              "opis TikTok i Instagram (z jednym naturalnym zdaniem, że cały odcinek jest na YouTube, kanał ŁysyVlog, link w bio), tytuł YouTube Shorts.\n"
+              "opis TikTok i Instagram (z jednym naturalnym zdaniem, że cały odcinek jest na YouTube, kanał Lysyzsilowni, link w bio), tytuł YouTube Shorts.\n"
               + OPIS_RULES +
               '\nOdpowiedz wyłącznie JSON: {"klipy": [{"temat": "...", "beats": [' + ('{"od": nr, "do": nr}' if zd else '{"start": s, "end": s}') +
               '], "tytul": "...", "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
