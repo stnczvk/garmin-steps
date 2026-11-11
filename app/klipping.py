@@ -1881,6 +1881,21 @@ async def hook_reklamy(req: Request):
     F = [x for x in (b.get("frames") or []) if isinstance(x, str) and len(x) > 1000][:6]
     st = next((x for x in _streamers(_rd()) if x["id"] == b.get("streamer")), {}) or {}
     reczne = [r for r in (st.get("blur") or []) if isinstance(r, list) and len(r) == 4]
+    C = [c for c in (b.get("kandydaci") or []) if isinstance(c, dict) and len(str(c.get("img") or "")) > 300 and len(c.get("rect") or []) == 4][:16]
+    if C:   # Mac znalazł stałe (nieruchome) elementy nakładki – AI tylko ocenia, które z nich to reklamy (pewniejsze niż zgadywanie współrzędnych)
+        pr = (f"To {len(C)} wycinków ze streama (po kolei: wycinek 1, wycinek 2, …): stałe elementy nakładki. Które z nich to REKLAMY: "
+              "baner/logo sponsora, bukmachera, kasyna, strony ze skrzynkami/skinami (np. Stake, Rainbet, S4Skins, Hellcase, Gamdom, Fortuna, STS), "
+              "reklama sprzętu lub marki (słuchawki, napoje, odzież), kod promocyjny, QR? NIE są reklamami: kamerka, HUD gry, czat, nick/nazwa kanału, "
+              "licznik subów, cel donejtów, zegar, ramka.\n"
+              'Odpowiedz tylko JSON: {"reklamy": [numery wycinków od 1]}')
+        try:
+            txt = await asyncio.to_thread(vision, pr, [c["img"] for c in C], max_tokens=300)
+            nums = (as_json(txt) or {}).get("reklamy") or []
+            out = [[round(float(v), 4) for v in C[i - 1]["rect"]] for i in nums if isinstance(i, int) and 1 <= i <= len(C)]
+            print(f"klipping reklamy {b.get('streamer')}: kandydatów {len(C)}, reklam {len(out)}", flush=True)
+            return {"rects": out + reczne}
+        except Exception as e:
+            print("klipping reklamy (kandydaci):", e, flush=True)
     if not F:
         return {"rects": reczne}
     prompt = (f"To {len(F)} kadrów z tego samego streama (po kolei: kadr 1, kadr 2, …). Zaznacz na KAŻDYM kadrze nakładki REKLAMOWE: "
