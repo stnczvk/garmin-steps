@@ -1236,7 +1236,8 @@ async def _wybor_yt(b, n, dur_min):
         ob = "\n".join(f"[{o['t']:.0f}] {o['co']}" for o in OB if k["start"] - 1500 <= o["t"] <= k["end"] + 1800)
         r = claude(f"Transkrypcja fragmentu streama {who}, każda linia: [sekunda] tekst (🔊 głośno, ⭐ klip widzów).\n\n{w}\n\n"
                    + (f"CO WIDAĆ NA EKRANIE (z kadrów, [sekunda] opis) – NAJPEWNIEJSZY sygnał granic: początek = pierwszy kadr z tym meczem / "
-                      f"tym filmem, koniec = ostatni kadr z nim (+ krótka reakcja), zanim pojawi się lobby, menu albo coś innego:\n{ob}\n\n" if ob else "") +
+                      f"tym filmem (w CS: kadr z wynikiem 0:0–1:1, nie późniejszy), koniec = ostatni kadr z nim, w CS kadr z końcowym wynikiem (+ krótka reakcja), "
+                      f"zanim pojawi się lobby, menu albo coś innego:\n{ob}\n\n" if ob else "") +
                    f"W tym fragmencie jest segment: {k['co']} (mniej więcej {k['start']:.0f}–{k['end']:.0f} s). Ustal jego DOKŁADNE granice: start chwilę "
                    "przed rozpoczęciem (zapowiedź, co włącza / w co gra / o czym mówi), koniec gdy ta rzecz i komentarz do niej się kończą. Całość, nie kawałek. "
                    "Gra: CAŁY JEDEN MECZ od pierwszej rundy do wyniku (w CS zwykle 25–50 min), nie jedna runda ani akcja. Okno sięga 25 min przed "
@@ -2013,24 +2014,31 @@ async def hook_reklamy(req: Request):
 
 @router.post("/api/mont-hook/klipping/obraz")
 async def hook_obraz(req: Request):
-    """Kadry ze streama (co 1–2 min) → krótki opis, co jest na ekranie. Dzięki temu granice meczu / oglądania są z obrazu, nie tylko z mowy."""
+    """Kadry ze streama (co 1–2 min) → krótki opis, co jest na ekranie, w stałym formacie (z wynikiem meczu, jeśli widać).
+    Granice meczu / oglądania są z obrazu, nie tylko z mowy."""
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=401)
     import asyncio
     from agency import vision, as_json
     b = await req.json()
-    F = [f for f in (b.get("frames") or []) if isinstance(f, dict) and len(str(f.get("img") or "")) > 1000][:24]
+    F = [f for f in (b.get("frames") or []) if isinstance(f, dict) and len(str(f.get("img") or "")) > 1000][:20]
     if not F:
         return {"obraz": []}
     who = b.get("who") or "streamer"
-    pr = (f"To {len(F)} kadrów ze streama {who}, po kolei w czasie. Dla KAŻDEGO kadru napisz krótko (max 8 słów), co jest na ekranie, "
-          "w stałym formacie, żeby było widać zmiany: „gra: <tytuł> – <stan>” (stan: mecz w trakcie / lobby / menu / ładowanie / wynik meczu / kupowanie), "
-          "„ogląda: <co, np. film YouTube o X / TikToki / stream Y / mecz piłki>” (jeśli widać tytuł lub temat, podaj go), "
-          "„rozmowa z czatem”, „IRL: <miejsce>”, „przerwa / ekran BRB”, „reklama / sponsor”. "
-          "Ten sam materiał na kolejnych kadrach opisuj TAK SAMO (ten sam tytuł), żeby było widać, gdzie się zaczyna i kończy.\n"
+    prev = [str(x) for x in (b.get("poprzednie") or [])][-6:]
+    pr = (f"To {len(F)} kadrów ze streama {who}, po kolei w czasie (co ok. minutę). Dla KAŻDEGO kadru jeden krótki opis w STAŁYM formacie:\n"
+          "„gra: <tytuł> – <stan>”, gdzie stan to: mecz <wynik, jeśli widać, np. 7:5> / lobby / menu / ładowanie / koniec meczu <wynik> / "
+          "rozgrzewka / kupowanie; dla CS zawsze odczytaj wynik rund z góry ekranu, jeśli jest widoczny;\n"
+          "„ogląda: <co, np. film YouTube „tytuł” / TikToki / stream X / mecz piłki>” – to, co leci na ekranie z cudzego materiału (także "
+          "nagrania z ludźmi, wywiady, filmy dokumentalne), NIE „IRL”;\n"
+          "„IRL: <miejsce>” – tylko gdy streamer sam nadaje na żywo z telefonu/kamery w terenie;\n"
+          "„rozmowa z czatem” (sama kamerka / pulpit), „przerwa / ekran BRB”.\n"
+          "Ten sam materiał na kolejnych kadrach opisuj IDENTYCZNIE (ten sam tytuł gry/filmu, bez opisywania szczegółów sceny), "
+          "żeby było widać, gdzie się zaczyna i kończy.\n"
+          + (("Poprzednie kadry były opisane tak (trzymaj się tych nazw): " + " | ".join(prev) + "\n") if prev else "") +
           'Odpowiedz tylko JSON: {"kadry": ["opis 1", "opis 2", ...]}')
     try:
-        txt = await asyncio.to_thread(vision, pr, [f["img"] for f in F], model="fast", max_tokens=1500)
+        txt = await asyncio.to_thread(vision, pr, [f["img"] for f in F], max_tokens=1500)
     except Exception as e:
         return {"obraz": [], "error": str(e)[:200]}
     L = (as_json(txt) or {}).get("kadry") or []
