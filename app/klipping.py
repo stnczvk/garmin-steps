@@ -1902,28 +1902,30 @@ async def hook_reklamy(req: Request):
         try:
             txt = await asyncio.to_thread(vision, pr, G, max_tokens=600)
             K = (as_json(txt) or {}).get("kadry") or []
-            cells = set()
+            cnt = {}
             for L in K:
-                for n in L or []:
+                for n in set(L or []):
                     if isinstance(n, int) and 1 <= n <= cols * rows:
-                        cells.add(n - 1)
-            if len(cells) > cols * rows * 0.35:   # pół ekranu „reklamą” = pomyłka
+                        cnt[n - 1] = cnt.get(n - 1, 0) + 1
+            need = 2 if len(G) >= 4 else 1   # nakładka, nie przypadkowa reklama w oglądanym filmie: min. na 2 kadrach
+            def brzeg(c):   # reklamy na nakładce są przy krawędziach; środek to zwykle gra / oglądany film
+                y, x = divmod(c, cols)
+                return y in (0, rows - 1) or x in (0, 1, cols - 2, cols - 1)
+            cells = {c for c, k in cnt.items() if k >= need and brzeg(c)}
+            if len(cells) > cols * rows * 0.2:   # więcej niż 1/5 ekranu „reklamą” = pomyłka, nic nie rozmywamy
+                print(f"klipping reklamy: za dużo komórek ({len(cells)}) – pomijam", flush=True)
                 cells = set()
-            seen, out = set(), []
-            for c in sorted(cells):
-                if c in seen:
-                    continue
-                st_, comp = [c], []
-                seen.add(c)
-                while st_:
-                    q = st_.pop(); comp.append(q)
-                    y, x = divmod(q, cols)
-                    for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
-                        nq = ny * cols + nx
-                        if 0 <= ny < rows and 0 <= nx < cols and nq in cells and nq not in seen:
-                            seen.add(nq); st_.append(nq)
-                ys, xs = [q // cols for q in comp], [q % cols for q in comp]
-                out.append([round(min(xs) / cols, 4), round(min(ys) / rows, 4), round((max(xs) + 1 - min(xs)) / cols, 4), round((max(ys) + 1 - min(ys)) / rows, 4)])
+            out = []   # prostokąty z ciągłych odcinków w wierszach (bez rozdmuchanych ramek wokół L-kształtów)
+            for y in range(rows):
+                x = 0
+                while x < cols:
+                    if y * cols + x in cells:
+                        x0 = x
+                        while x < cols and y * cols + x in cells:
+                            x += 1
+                        out.append([round(x0 / cols, 4), round(y / rows, 4), round((x - x0) / cols, 4), round(1 / rows, 4)])
+                    else:
+                        x += 1
             print(f"klipping reklamy {b.get('streamer')}: komórek {len(cells)}, obszarów {len(out)}", flush=True)
             return {"rects": out + reczne}
         except Exception as e:
