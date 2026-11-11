@@ -178,6 +178,8 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 .hvw:hover{outline:2px solid #a294d8;outline-offset:-2px}
 .gfil{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 8px}.gfil button{border:1px solid var(--line,#333);background:rgba(255,255,255,.04);color:inherit;border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
 .gfil button.on{background:rgba(139,124,199,.28);border-color:#8b7cc7}.gfil small{opacity:.6;margin-left:3px}.gj.zw .pv,.gj.zw .fl{display:none}
+.gone{display:none!important}
+.ytv{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}.ytv:first-child{border-top:0}.ytv img{width:150px;aspect-ratio:16/9;object-fit:cover;border-radius:10px}.ytv b{display:block;font-size:14px}.ytv small{opacity:.7}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -186,9 +188,8 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
 <div class="wrap">
  <div id="liveb"></div>
  <div class="top"><div><h1>Montażownia</h1><p>Filmy montowane automatycznie. Strażnik montażu sprawdza każdy film, zanim go wrzucisz.</p></div>
-  <div class="r"><button class="btn pri qb" id="food"><i style="--c:#ffc24b">🍽</i><span><span class="lg-only">Zmontuj </span>jedzenie</span></button><button class="btn pri qb" id="vlogb"><i style="--c:#ff6fa5">🎥</i><span><span class="lg-only">Zmontuj </span>vloga</span></button><button class="btn pri qb" id="przb"><i style="--c:#3ddc84">🍳</i><span><span class="lg-only">Zmontuj </span>przepis</span></button><button class="btn pri qb" id="cheatb"><i style="--c:#5ad1ff">🍔</i><span><span class="lg-only">Zmontuj cheat meal</span><span class="sm-only">cheat</span></span></button></div></div>
- <section class="glass" id="vyt" style="margin:0 0 14px;padding:14px 16px;border-radius:18px"></section>
- <div class="bar2"><div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ <span class="lg-only">Dashboard</span><span class="sm-only">Lista</span></button></div><div class="vt sec dash-only" id="sec"><button data-s="food" class="on">🍽 Jedzenie</button><button data-s="vlog">🎥 Vlog<em id="vbadge"></em></button><button data-s="cheat">🍔 <span class="lg-only">Cheat meal</span><span class="sm-only">Cheat</span><em id="cbadge"></em></button></div></div>
+  <div class="r"><button class="btn pri qb" id="food"><i style="--c:#ffc24b">🍽</i><span><span class="lg-only">Zmontuj </span>jedzenie</span></button><button class="btn pri qb gone" id="vlogb"><i style="--c:#ff6fa5">🎥</i><span><span class="lg-only">Zmontuj </span>vloga</span></button><button class="btn pri qb" id="przb"><i style="--c:#3ddc84">🍳</i><span><span class="lg-only">Zmontuj </span>przepis</span></button><button class="btn pri qb" id="cheatb"><i style="--c:#5ad1ff">🍔</i><span><span class="lg-only">Zmontuj cheat meal</span><span class="sm-only">cheat</span></span></button></div></div>
+ <div class="bar2"><div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ <span class="lg-only">Dashboard</span><span class="sm-only">Lista</span></button></div><div class="vt sec dash-only" id="sec"><button data-s="food" class="on">🍽 Jedzenie</button><button data-s="vlog">🎥 Vlog YT<em id="vbadge" class="gone"></em></button><button data-s="cheat">🍔 <span class="lg-only">Cheat meal</span><span class="sm-only">Cheat</span><em id="cbadge"></em></button></div></div>
  <div class="stage3d glass office-only"><canvas id="c3" aria-label="Warsztat twórcy – biuro Montażowni"></canvas><span class="h3d">przeciągnij · obróć</span><span class="wsst" id="wsst"></span></div>
  <section class="glass dash-only s-food" id="newp" hidden style="margin-bottom:14px">
   <h2>Nowy montaż: daily jedzenie</h2>
@@ -202,7 +203,7 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
   </div>
   <div class="row"><button class="btn pri" id="go" disabled>✂️ Zmontuj</button><button class="btn" id="cancel">Anuluj</button><span class="mut" id="up"></span></div>
  </section>
- <section class="glass dash-only s-vlog s-cheat" id="vnew" hidden style="margin-bottom:14px">
+ <section class="glass dash-only s-cheat" id="vnew" hidden style="margin-bottom:14px">
   <h2 id="vnh">Nowy montaż: vlog WNBF</h2>
   <div id="vform">
    <div class="nf" style="grid-template-columns:120px 160px minmax(0,1fr)"><label><span id="vepl">Odcinek nr</span><input id="vep" type="number" min="1"></label><label class="vdate">Data nagrania<input id="vd" type="date"></label><label class="ponly" hidden>Tytuł na początek filmu<input id="vt2" placeholder="np. Fit placuszki które mają tylko 500 kcal"></label>
@@ -220,7 +221,10 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
   <section class="glass list fold-s" data-fold="list"><h2 class="fh">📋 Montaże jedzenia <small id="jln"></small><span class="chev">▾</span></h2><div class="fb"><div id="jl"><p class="mut">Ładuję…</p></div></div></section>
   <section class="glass" id="det"><p class="mut">Wybierz film z listy.</p></section>
  </div>
- <section class="glass vlog dash-only s-vlog fold-s" id="vsec" data-fold="vjobs"><h2 class="fh">🎥 Zlecenia <small id="vmac"></small><span class="chev">▾</span></h2>
+ <section class="glass dash-only s-vlog" id="vyt" style="margin:0 0 14px;padding:14px 16px;border-radius:18px"></section>
+ <section class="glass dash-only s-vlog fold-s" id="ytsec" data-fold="ytv"><h2 class="fh">📺 Vlogi na YouTube <small>wrzuć gotowy film do CapCut/_YT_VLOGI</small><span class="chev">▾</span></h2>
+  <div class="fb"><div id="ytv"><p class="mut">Ładuję…</p></div></div></section>
+ <section class="glass vlog dash-only s-vlog fold-s gone" id="vsec" data-fold="vjobs"><h2 class="fh">🎥 Zlecenia <small id="vmac"></small><span class="chev">▾</span></h2>
   <div class="fb"><div id="vjobs"><p class="mut">Ładuję…</p></div></div></section>
 <section class="glass dash-only s-vlog fold-s" id="gsec" data-fold="graf"><h2 class="fh">🎨 Grafiki do vloga <small id="gmac"></small><span class="chev">▾</span></h2>
   <div class="fb"><div class="gtabs" id="gtabs"><button data-g="dni" class="on">Przejścia dni</button><button data-g="godzina">Godziny</button><button data-g="napis">Własny napis</button><button data-g="miniatura">Miniatura</button></div>
@@ -242,9 +246,9 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
   <div class="fb"><div class="row" style="margin:0 0 10px"><button class="btn pri" id="cheatb2">🍔 Nowy cheat meal</button></div><div id="cjobs"><p class="mut">Ładuję…</p></div></div></section>
  <section class="glass dash-only s-cheat fold-s" data-fold="cfilms"><h2 class="fh">🎞 Zmontowane<span class="lg-only">&nbsp;cheat meale</span> <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
   <div class="fb"><div id="cfilms" class="vft"><p class="mut">Ładuję…</p></div></div></section>
- <section class="glass dash-only s-vlog fold-s" data-fold="vfilms"><h2 class="fh">🎞 Zmontowane vlogi <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
+ <section class="glass dash-only s-vlog fold-s gone" data-fold="vfilms"><h2 class="fh">🎞 Zmontowane vlogi <small>podgląd 720p z CapCuta</small><span class="chev">▾</span></h2>
   <div class="fb"><div id="vfilms" class="vft"><p class="mut">Ładuję…</p></div><div id="vfmore"></div></div></section>
- <section class="glass dash-only s-vlog fold-s" data-fold="tools" data-closed="1"><h2 class="fh">🛡️ Strażnik i archiwista <small id="toolsum"></small><span class="chev">▾</span></h2>
+ <section class="glass dash-only s-vlog fold-s gone" data-fold="tools" data-closed="1"><h2 class="fh">🛡️ Strażnik i archiwista <small id="toolsum"></small><span class="chev">▾</span></h2>
   <div class="fb"><div id="wz" class="mut"></div><div id="arch" class="mut" style="margin-top:12px"></div></div></section>
 </div>
 <div class="msg" id="msg"></div>
@@ -259,6 +263,11 @@ try{SEL=localStorage.getItem('mont-sel')}catch(e){}
 const toast=t=>{const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.display='none',5000)};
 const ttl=j=>(j.title||[]).join(' · ')||j.id;
 const when=j=>{const m=j.id.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);return m?`${m[3]}.${m[2]} ${m[4]}:${m[5]}`:''};
+async function ytv(){const el=document.getElementById('ytv');if(!el)return;let P=[];try{P=(await (await fetch('/api/planer')).json()).items||[]}catch(e){return}
+ const V=P.filter(x=>x.series==='vlogyt').sort((a,b)=>b.when-a.when).slice(0,8),ST={draft:'⏳ do zatwierdzenia',approved:'📅 zaplanowany',publishing:'📤 publikuje się',published:'✅ opublikowany',error:'⚠️ błąd',skipped:'usunięty'};
+ el.innerHTML=V.length?V.map(v=>{const nm=v.src.slice(4),K=P.filter(x=>x.series==='klip'&&String(x.src).startsWith('vf:'+nm+' klip')&&x.status!=='skipped'),ok=K.filter(x=>['approved','published'].includes(x.status)).length;
+  return `<div class="ytv"><img src="/api/planer/${v.id}/thumb?v=${Math.round(v.when)}" alt=""><div><b>${(v.yt_title||v.label||'').replace(/</g,'&lt;')}</b><small>${ST[v.status]||v.status} · ${new Date(v.when*1000).toLocaleString('pl-PL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small><br><small>🎬 klipy promujące: ${K.length} (zatwierdzone ${ok}) · edycja, miniatura i „✂️ Popraw klipy” w Treściach → kalendarz</small></div></div>`}).join(''):'<p class="mut">Jeszcze nic. Wyeksportuj gotowy vlog z CapCuta do folderu <b>_YT_VLOGI</b>: Mac sam zrobi tytuł, opis z rozdziałami, 4 miniatury do wyboru i klipy na TikToka.</p>'}
+ytv();setInterval(ytv,60000);
 async function load(){
  try{D=await (await fetch('/api/mont/jobs')).json()}catch(e){D={ok:false,error:'Brak połączenia z centrum.',jobs:[]}}
  if(!D.ok&&!D.jobs.length){$('jl').innerHTML=`<p class="mut">${esc(D.error)}</p>`;return}
