@@ -1575,6 +1575,24 @@ def _do_planu(j, nm):
         return err
 
 
+@router.post("/api/klipping/job/{jid}/ponow")
+async def api_job_ponow(jid: str, req: Request):
+    """To samo źródło jeszcze raz (np. nagranie live, którego nie ma jako VOD) – nowy format, transkrypcja z pamięci Maca."""
+    b = await req.json()
+    with _lock:
+        d = _rd()
+        o = next((j for j in d["jobs"] if j["id"] == jid), None)
+        if not o:
+            return {"ok": False, "error": "nie ma zadania"}
+        j = _mk_job(d, {"mode": o.get("mode"), "streamer": o.get("streamer"), "n": o.get("n", 0), "auto": o.get("auto"),
+                        "format": b.get("format") or "yt", "campaign": (o.get("campaign") or {}).get("id")}, o["url"])
+        for k in ("rec", "vod", "title"):
+            if o.get(k):
+                j[k] = o[k]
+        _wr(d)
+    return {"ok": True, "id": j["id"]}
+
+
 @router.post("/api/klipping/job/{jid}/plan")
 def api_job_plan(jid: str):
     """Ręcznie: wszystkie klipy z tego streama, których nie ma w kalendarzu → do kalendarza."""
