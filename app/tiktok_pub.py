@@ -163,7 +163,7 @@ def publish(path, caption="", direct=None, opts=None):
     if not os.path.basename(path).startswith("tt_"):
         import subprocess, tempfile, json as _j
         try:
-            pr = _j.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,duration,color_transfer:stream_disposition=attached_pic:format=duration",
+            pr = _j.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,codec_name,pix_fmt,duration,color_transfer:stream_disposition=attached_pic:format=duration",
                                           "-of", "json", path], capture_output=True, text=True, timeout=30).stdout or "{}")
         except Exception:
             pr = {}
@@ -181,31 +181,36 @@ def publish(path, caption="", direct=None, opts=None):
         hdr = any(x.get("color_transfer") in ("arib-std-b67", "smpte2084") for x in sts)
         pad = (ad - vd + 0.1) if (vd and ad and ad - vd > 0.25) else 0.0
         tot = max(vd, ad, fd, 1.0)
-        vb = max(1500, min(8000, int(55 * 8 * 1024 / tot) - 160))   # kb/s, żeby zmieścić się w ~55 MB
-        out = os.path.join(tempfile.gettempdir(), f"tt_{secrets.token_hex(4)}.mp4")
-        tail = f",tpad=stop_mode=clone:stop_duration={pad:.2f}" if pad else ""
-        base = "scale='min(1080,iw)':-2,fps=30"
-        vfs = ([f"zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,{base}{tail}"] if hdr else []) + \
-              [f"{base},format=yuv420p{tail}"]
-        print(f"tiktok: przerabiam (hdr={hdr}, obraz {vd:.1f} s, dźwięk {ad:.1f} s, dociągnięcie {pad:.2f} s, {vb} kb/s)", flush=True)
-        ok = False
-        for vf in vfs:
-            cmd = ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:V:0", "-map", "0:a:0?", "-vf", vf,
-                   "-c:v", "libx264", "-preset", "veryfast", "-profile:v", "high", "-b:v", f"{vb}k", "-maxrate", f"{vb * 2}k", "-bufsize", f"{vb * 2}k",
-                   "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
-                   "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-movflags", "+faststart", out]
-            if subprocess.run(cmd, timeout=3600).returncode == 0 and os.path.getsize(out) > 1000:
-                ok = True
-                break
-        if ok:
-            try:
-                return publish(out, caption, direct, opts)
-            finally:
+        vs = next((x for x in sts if x.get("codec_type") == "video"), {})
+        trzeba = hdr or pad or vs.get("codec_name") != "h264" or vs.get("pix_fmt") not in ("yuv420p", "yuvj420p") or os.path.getsize(path) > 60 * 1024 * 1024
+        if not trzeba:   # zwykły plik H.264 (jak montaże z centrum) – wysyłamy oryginał, tak jak kiedyś, kiedy wszystko działało
+            print("tiktok: plik w porządku – wysyłam bez przeróbki", flush=True)
+        else:
+            vb = max(1500, min(8000, int(55 * 8 * 1024 / tot) - 160))   # kb/s, żeby zmieścić się w ~55 MB
+            out = os.path.join(tempfile.gettempdir(), f"tt_{secrets.token_hex(4)}.mp4")
+            tail = f",tpad=stop_mode=clone:stop_duration={pad:.2f}" if pad else ""
+            base = "scale='min(1080,iw)':-2"   # bez fps=30: przy nierównych znacznikach czasu fps dublował klatki = stop-klatka
+            vfs = ([f"zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,{base}{tail}"] if hdr else []) + \
+                  [f"{base},format=yuv420p{tail}"]
+            print(f"tiktok: przerabiam (hdr={hdr}, obraz {vd:.1f} s, dźwięk {ad:.1f} s, dociągnięcie {pad:.2f} s, {vb} kb/s)", flush=True)
+            ok = False
+            for vf in vfs:
+                cmd = ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:V:0", "-map", "0:a:0?", "-vf", vf,
+                       "-c:v", "libx264", "-preset", "veryfast", "-profile:v", "high", "-b:v", f"{vb}k", "-maxrate", f"{vb * 2}k", "-bufsize", f"{vb * 2}k",
+                       "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
+                       "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-movflags", "+faststart", out]
+                if subprocess.run(cmd, timeout=3600).returncode == 0 and os.path.getsize(out) > 1000:
+                    ok = True
+                    break
+            if ok:
                 try:
-                    os.unlink(out)
-                except Exception:
-                    pass
-        print("tiktok: przeróbka nie wyszła – wysyłam oryginał", flush=True)
+                    return publish(out, caption, direct, opts)
+                finally:
+                    try:
+                        os.unlink(out)
+                    except Exception:
+                        pass
+            print("tiktok: przeróbka nie wyszła – wysyłam oryginał", flush=True)
     size = os.path.getsize(path)
     cs, cnt = _chunks(size)
     src = {"source": "FILE_UPLOAD", "video_size": size, "chunk_size": cs, "total_chunk_count": cnt}
@@ -313,7 +318,7 @@ def tt_diag(req: Request, n: int = 1):
         try:   # ta sama przeróbka co przy wysyłce, tylko pierwsze 8 s
             t = os.path.join(tempfile.gettempdir(), "ttdiag.mp4")
             r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-t", "8", "-i", x["file"], "-map", "0:V:0", "-map", "0:a:0?", "-vf",
-                                "scale='min(1080,iw)':-2,fps=30,format=yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-b:v", "4000k",
+                                "scale='min(1080,iw)':-2,format=yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-b:v", "4000k",
                                 "-c:a", "aac", "-movflags", "+faststart", t], capture_output=True, text=True, timeout=300)
             o["przerobka"] = pr(t) if r.returncode == 0 else {"blad": r.stderr[-300:]}
             vf = subprocess.run(["ffmpeg", "-v", "error", "-i", t, "-vf", "mpdecimate", "-f", "null", "-", "-loglevel", "debug"],
