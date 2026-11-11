@@ -756,7 +756,46 @@ def load_summary(day):
 # ---------------------------------------------------------------------------
 # WIDEO
 # ---------------------------------------------------------------------------
-def base_filter(transfer):
+def auto_kolor(video, transfer, dur):
+    """Analiza kilku klatek: lekkie wyrównanie jasności i balansu bieli (gray-world, tylko połowa różnicy)."""
+    try:
+        from PIL import ImageStat
+        hdr = ""
+        if transfer in ("arib-std-b67", "smpte2084"):
+            hdr = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
+                   "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,")
+        rs, gs, bs = [], [], []
+        for frac in (0.2, 0.5, 0.8):
+            r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{dur*frac:.2f}", "-i", str(video), "-frames:v", "1",
+                                "-vf", f"scale=96:-2,{hdr}format=rgb24", "-f", "rawvideo", "-"],
+                               capture_output=True, timeout=60)
+            if not r.stdout:
+                continue
+            n = len(r.stdout) // 3
+            w = 96; h = n // w
+            img = Image.frombytes("RGB", (w, h), r.stdout[:w * h * 3])
+            m = ImageStat.Stat(img).mean
+            rs.append(m[0]); gs.append(m[1]); bs.append(m[2])
+        if not rs:
+            return ""
+        R, G, B = (sum(x) / len(x) / 255 for x in (rs, gs, bs))
+        Y = 0.2126 * R + 0.7152 * G + 0.0722 * B
+        cl = lambda v, a, b: max(a, min(b, v))
+        f = []
+        jas = cl((0.47 - Y) * 0.5, -0.05, 0.06) if abs(Y - 0.47) > 0.06 else 0.0
+        if jas:
+            f.append(f"eq=brightness={jas:.3f}")
+        gr = cl(1 + (G / max(R, 1e-3) - 1) * 0.5, 0.93, 1.06)   # mniej korygujemy czerwień – jedzenie ma być ciepłe
+        gb = cl(1 + (G / max(B, 1e-3) - 1) * 0.5, 0.92, 1.08)
+        if abs(gr - 1) > 0.015 or abs(gb - 1) > 0.015:
+            f.append(f"colorchannelmixer=rr={gr:.3f}:bb={gb:.3f}")
+        return ("," + ",".join(f)) if f else ""
+    except Exception as e:
+        print(f"auto_kolor: {e}", file=sys.stderr)
+        return ""
+
+
+def base_filter(transfer, auto=""):
     """Skalowanie do 1080x1920 (wypełnienie + przycięcie). HDR z iPhone'a -> SDR."""
     hdr = ""
     if transfer in ("arib-std-b67", "smpte2084"):
@@ -765,8 +804,8 @@ def base_filter(transfer):
     # najpierw 30 kl./s i 1080x1920, dopiero potem HDR→SDR – iPhone nagrywa 4K/60, a przeliczanie HDR na pełnych 4K/60
     # (liczby zmiennoprzecinkowe) było główną przyczyną ~40-minutowego montażu; obraz praktycznie bez różnicy
     return (f"fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,"
-            f"crop={W}:{H},setsar=1,{hdr}unsharp=5:5:{SHARPEN}:5:5:0"
-            + (",eq=contrast=1.05:saturation=1.16,colorbalance=rm=0.025:bm=-0.025:rh=0.015:bh=-0.02" if KOLORY else ""))
+            f"crop={W}:{H},setsar=1,{hdr}unsharp=5:5:{SHARPEN}:5:5:0{auto if KOLORY else ''}"
+            + (",eq=contrast=1.06:saturation=1.16,curves=all='0/0 0.8/0.79 1/0.96',colorbalance=rm=0.025:bm=-0.025:rh=0.015:bh=-0.02" if KOLORY else ""))
 
 
 def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0):
@@ -800,7 +839,7 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0):
     total = dur + extra
 
     inputs = ["-i", str(video)]
-    fc = pre + [f"[{vsrc}]" + (f"setpts=PTS/{speed}," if speed != 1.0 else "") + base_filter(transfer)
+    fc = pre + [f"[{vsrc}]" + (f"setpts=PTS/{speed}," if speed != 1.0 else "") + base_filter(transfer, auto_kolor(video, transfer, src_dur))
           + (f",tpad=stop_mode=clone:stop_duration={extra:.3f}" if extra > 0 else "")
           + "[v0]"]
     last, n = "v0", 1
