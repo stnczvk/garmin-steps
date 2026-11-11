@@ -7,7 +7,7 @@ import math, os, secrets, time, urllib.parse
 
 import httpx
 from fastapi import APIRouter, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 
 from social import _read, _write, cfg, base_url
 
@@ -163,11 +163,11 @@ def publish(path, caption="", direct=None, opts=None):
     if not os.path.basename(path).startswith("tt_"):
         import subprocess, tempfile, json as _j
         try:
-            pr = _j.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,duration,color_transfer:format=duration",
+            pr = _j.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,duration,color_transfer:stream_disposition=attached_pic:format=duration",
                                           "-of", "json", path], capture_output=True, text=True, timeout=30).stdout or "{}")
         except Exception:
             pr = {}
-        sts = pr.get("streams") or []
+        sts = [x for x in (pr.get("streams") or []) if not (x.get("disposition") or {}).get("attached_pic")]   # okładka w pliku to nie film
         fd = float((pr.get("format") or {}).get("duration") or dur or 0)
         def _d(t):
             for x in sts:
@@ -190,7 +190,7 @@ def publish(path, caption="", direct=None, opts=None):
         print(f"tiktok: przerabiam (hdr={hdr}, obraz {vd:.1f} s, dźwięk {ad:.1f} s, dociągnięcie {pad:.2f} s, {vb} kb/s)", flush=True)
         ok = False
         for vf in vfs:
-            cmd = ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:v:0", "-map", "0:a:0?", "-vf", vf,
+            cmd = ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:V:0", "-map", "0:a:0?", "-vf", vf,
                    "-c:v", "libx264", "-preset", "veryfast", "-profile:v", "high", "-b:v", f"{vb}k", "-maxrate", f"{vb * 2}k", "-bufsize", f"{vb * 2}k",
                    "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
                    "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-movflags", "+faststart", out]
@@ -292,3 +292,35 @@ def stats(handle):
     return {"followers": int(us.get("follower_count") or 0), "followers_label": "obserwujący",
             "media_count": int(us.get("video_count") or len(posts)), "likes_total": us.get("likes_count"),
             "views_28d": sum(p["views"] for p in posts if p["date"] >= cut), "daily": [], "posts": posts[:30], "source": "api"}
+
+
+@router.get("/api/mont-hook/tt-diag")
+def tt_diag(req: Request, n: int = 1):
+    """Diagnostyka „film na TikToku staje po sekundzie”: co jest w ostatnich plikach wysyłanych na TikToka i co wychodzi z przeróbki."""
+    import subprocess, tempfile, json as _j
+    from montaz import _tok
+    import planer
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    P = sorted([x for x in planer.plan() if "tiktok" in (x.get("platforms") or []) and x.get("file") and os.path.isfile(x["file"])],
+               key=lambda x: x.get("when", 0), reverse=True)[:max(1, min(3, n))]
+    pr = lambda f: _j.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries",
+                                             "stream=index,codec_type,codec_name,width,height,pix_fmt,r_frame_rate,avg_frame_rate,nb_frames,duration,color_transfer:stream_disposition=attached_pic:format=duration,size",
+                                             "-of", "json", f], capture_output=True, text=True, timeout=60).stdout or "{}")
+    out = []
+    for x in P:
+        o = {"id": x["id"], "label": x.get("label"), "status": x.get("status"), "file": os.path.basename(x["file"]), "zrodlo": pr(x["file"])}
+        try:   # ta sama przeróbka co przy wysyłce, tylko pierwsze 8 s
+            t = os.path.join(tempfile.gettempdir(), "ttdiag.mp4")
+            r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-t", "8", "-i", x["file"], "-map", "0:V:0", "-map", "0:a:0?", "-vf",
+                                "scale='min(1080,iw)':-2,fps=30,format=yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-b:v", "4000k",
+                                "-c:a", "aac", "-movflags", "+faststart", t], capture_output=True, text=True, timeout=300)
+            o["przerobka"] = pr(t) if r.returncode == 0 else {"blad": r.stderr[-300:]}
+            vf = subprocess.run(["ffmpeg", "-v", "error", "-i", t, "-vf", "mpdecimate", "-f", "null", "-", "-loglevel", "debug"],
+                                capture_output=True, text=True, timeout=120).stderr
+            o["unikalne_klatki_8s"] = vf.count(" keep ")
+            os.unlink(t)
+        except Exception as e:
+            o["przerobka"] = {"blad": str(e)[:200]}
+        out.append(o)
+    return {"pliki": out}
