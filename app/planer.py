@@ -534,7 +534,7 @@ def hook_vlogyt_klipy_reset(req: Request, name: str = ""):
     P = plan()
     res = {"ok": True}
     srcs = []
-    for typ, ile0, key in (("klip", 5, ""), ("mem", 4, "_mem")):
+    for typ, ile0, key in (("klip", 5, ""), ("mem", 5, "_mem")):
         K = [x for x in P if str(x.get("src", "")).startswith(f"vf:{nm} {typ} ")]
         dr = [x["src"] for x in K if x.get("status") in ("draft", "error", "skipped")]   # usunięte ręcznie też (inaczej blokują nowe pliki o tej nazwie)
         zost = [x for x in K if x["src"] not in dr]

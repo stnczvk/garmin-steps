@@ -732,7 +732,7 @@ async def hook_memy_wybor(req: Request):
     import asyncio
     b = await req.json()
     zd, name = (b.get("zdania") or "")[:70000], b.get("name") or ""
-    ile = max(0, min(5, int(b.get("ile") if b.get("ile") is not None else 4)))
+    ile = max(0, min(5, int(b.get("ile") if b.get("ile") is not None else 5)))
     if not ile or not zd:
         return {"memy": []}
     extra = ("\nTe memy z tego vloga już są – zrób INNE: " + " | ".join(map(str, b["zostaja"]))[:600] + "\n") if b.get("zostaja") else ""
@@ -740,7 +740,8 @@ async def hook_memy_wybor(req: Request):
         extra += "\nMOJE UWAGI: " + str(b["uwagi"])[:600] + "\n"
     prompt = (f"To transkrypcja vloga „{name}” (kanał Lysyzsilowni: natural bodybuilding, redukcja, jedzenie, trening, codzienność). "
               "Każda linia to jedno zdanie: [numer | start | długość] tekst.\n\n" + zd + "\n" + extra +
-              f"\nZrób {ile} MEMÓW wideo na TikToka/Reels. Mem = na górze tekst sytuacji, a pod nim moja krótka wypowiedź z vloga jako puenta, "
+              f"\nZrób DO {ile} MEMÓW wideo na TikToka/Reels – TYLKO takie, które naprawdę bawią albo zaskakują (inaczej z tych fragmentów zrobię zwykłe klipy); "
+              "jeśli dobrych puent jest mniej, zwróć mniej, jeśli nie ma żadnej, pustą listę. Mem = na górze tekst sytuacji, a pod nim moja krótka wypowiedź z vloga jako puenta, "
               "która ją zabawnie „odpowiada” (np. sytuacja: „Kiedy ziomek pyta, jak ci idzie redukcja” → puenta: „Dzisiaj zjadłem 4000 kcal”; "
               "„Mama: na obiad jest tylko sałatka. Ja:” → „Na obiad mamy 4 pizze”).\n"
               "Zasady: puenta = 1–2 CAŁE zdania (od, do: numery zdań), razem 3–10 s, sama w sobie zrozumiała, z kontrastem, liczbą albo emocją; "
