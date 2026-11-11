@@ -782,10 +782,6 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
     <button data-v="tresci" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></i><span>Treści</span></button>
     <button data-v="montazownia" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.4L20 18M8.6 16.6L20 6"/></svg></i><span>Montażownia</span></button>
     <button data-v="stats" data-sub="tresci"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki prywatne</span></button>
-    <button data-hub="klip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5l4 2.5-4 2.5z"/><path d="M2 8v8M22 8v8"/></svg></i><span>Klipping</span><em class="hubb"></em></button>
-    <button data-v="klipping" data-sub="klip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5l4 2.5-4 2.5z"/><path d="M2 8v8M22 8v8"/></svg></i><span>Filmy ze streamów</span></button>
-    <button data-v="kalendarz-strimy" data-sub="klip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></i><span>Kalendarz</span></button>
-    <button data-v="stats-strimy" data-sub="klip"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
     <button data-hub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Kanały YT</span><em class="hubb"></em></button>
     <button data-v="agencja" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
     <button data-v="stats-ps" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
@@ -909,7 +905,6 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
       <button data-g="" aria-pressed="true">Wszystkie</button>
       <button data-g="pozaskala" aria-pressed="false">🎬 PozaSkala</button>
       <button data-g="prywatne" aria-pressed="false">👤 Prywatne</button>
-      <button data-g="strimy" aria-pressed="false">🎮 Strimy</button>
     </div></div>
   </div>
   <div id="msg"></div>
@@ -1311,7 +1306,7 @@ async function loadSettings() {
   if ($('#grp') && c.groups) {   // wybór grupy: PozaSkala, Prywatne, Strimy w Pigułce, Zdrowie 50+ …
     const cur = $('#grp').value;
     // w „Kanały YT” tylko kanały AI (PozaSkala, Zdrowie 50+), w Social Twoje konta (Prywatne, Strimy w Pigułce)
-    const fam = (group || cur) === 'pozaskala' || (group || cur) === 'zdrowie' ? ['pozaskala', 'zdrowie'] : ['prywatne', 'strimy'];
+    const fam = (group || cur) === 'pozaskala' || (group || cur) === 'zdrowie' ? ['pozaskala', 'zdrowie'] : ['prywatne'];
     $('#grp').innerHTML = Object.entries(c.groups).filter(([k]) => fam.includes(k)).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
     $('#grp').value = fam.includes(group) ? group : fam[0];
   }
