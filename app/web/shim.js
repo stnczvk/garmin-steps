@@ -294,7 +294,7 @@
     let tr = true, kc = null, nazwa = "Redukcja";
     try { tr = isTrainDay(d); kc = kcalGoal(d); nazwa = MODE === "masa" ? "Masa" : "Redukcja"; } catch (e) {}
     kc = kc ? Math.round(kc / 100) * 100 : (tr ? 2100 : 2000);
-    return [`${nazwa} dzień ${n}`, `${kc} kcal`, tr ? "dzień treningowy" : "dzień nietreningowy"];
+    return [`Dzień ${n}`, `Tyle jem na ${nazwa === "Masa" ? "masie" : "redukcji"}`, "przy 163 cm"];
   }
   function mzDayN(t) { const m = /dzień\s+(\d+)/i.exec(t[0] || ""); return m ? +m[1] : 0; }
   function mzMeals(d) { try { const it = food[d] || []; return MEALS.filter(m => it.some(x => x.meal === m)); } catch (e) { return []; } }

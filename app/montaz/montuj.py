@@ -64,6 +64,7 @@ KARTY_Z_DZIENNIKA = False # karta posiłku rysowana z danych dziennika (zamiast 
 KOLORY = True              # delikatna korekcja kolorów (kontrast, nasycenie, ciepło) – jedzenie apetyczniej
 EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy liczniku
 PASEK_POSTEPU = False      # cienki żółty pasek na górze, rośnie przez cały film
+HOOK_NA_START = True       # pod tytułem 3 s najlepszego dania dnia (największy posiłek), potem dzień po kolei
 KONIEC_SECONDS = 0         # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
 
 PODSUMOWANIE_SECONDS = 4.0 # karta z kaloriami i makro dnia na końcu (z dziennika)
@@ -808,8 +809,9 @@ def base_filter(transfer, auto=""):
             + (",eq=contrast=1.06:saturation=1.16,curves=all='0/0 0.8/0.79 1/0.96',colorbalance=rm=0.025:bm=-0.025:rh=0.015:bh=-0.02" if KOLORY else ""))
 
 
-def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0):
+def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0, mute=False):
     dur, has_audio, transfer = probe(video)
+    has_audio = has_audio and not mute
     src_dur = dur
     pre = []                                   # filtry wycinające fragmenty (jeśli są)
     vsrc, asrc = "0:v", "0:a"
@@ -1144,12 +1146,26 @@ def main():
 
         segments, total, cap_words, hide, adds, sfx_at = [], 0.0, [], [], [], []
         licz = (summary or {}).get("licznik") or {}
+        teaser = None
+        if HOOK_NA_START and len(plan) > 1:
+            # najbardziej „apetyczne” = największy posiłek wg dziennika, bez danych – ostatni klip (zwykle obiad/kolacja)
+            best = max(range(len(plan)), key=lambda i: licz.get(plan[i][0].name, 0)) if licz else len(plan) - 1
+            if best > 0:
+                v = plan[best][0]
+                kp = plan[best][2] or [(0.0, probe(v)[0])]
+                a, b = kp[-1]
+                b = max(a, b - 0.3)                    # końcówka ujęcia = zwykle gotowe danie na talerzu
+                a = max(a, b - TITLE_SECONDS)
+                seg, d, *_ = render_segment(v, [], title_png, work, 999, [(a, b)],
+                                            tail=max(0.0, TITLE_SECONDS - (b - a)), mute=True)
+                segments.append(seg); total += d; teaser = best
+                print(f"[hook] start: {v.name} {a:.1f}-{b:.1f}s", flush=True)
         for i, (video, shots, keep) in enumerate(plan):
             prepared = prepared_all[i]
             tail = ((PODSUMOWANIE_SECONDS if summary else 0.0) + (KONIEC_SECONDS if koniec_png else 0.0)) \
                 if i == len(plan) - 1 else 0.0
             seg, d, speed, keep, src_dur, card_at = render_segment(
-                video, prepared, title_png if i == 0 else None, work, i, keep, tail)
+                video, prepared, title_png if i == 0 and teaser is None else None, work, i, keep, tail)
             segments.append(seg)
             for a, b, w in map_words(trans.get(video.name, {}).get("words", []), keep, speed, src_dur):
                 cap_words.append((total + a, total + b, w))

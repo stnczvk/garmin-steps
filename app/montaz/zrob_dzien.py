@@ -132,10 +132,8 @@ def title_for(plan, day_date, rep=None):
     if info and not info["trening"] and zrodlo.startswith("planer") and not trening:
         zrodlo = "grafik + brak treningu w dzienniku"
     rep.append(f"Dzień treningowy: {'TAK' if trening else 'NIE'} (źródło: {zrodlo})")
-    lines = [f"{plan['nazwa']} dzień {n}"]
-    if kcal:
-        lines.append(f"{kcal} kcal")
-    lines.append("dzień treningowy" if trening else "dzień nietreningowy")
+    # hook zamiast kcal w tytule (kcal i makro są w podsumowaniu na końcu)
+    lines = [f"Dzień {n}", "Tyle jem na " + ("masie" if str(plan['nazwa']).lower().startswith("mas") else "redukcji"), "przy 163 cm"]
     return n, lines
 
 
