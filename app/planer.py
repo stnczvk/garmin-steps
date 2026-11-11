@@ -564,6 +564,33 @@ def hook_vlogyt_ulozenie(req: Request, name: str = ""):
     return {"ok": True, "ulozone": n}
 
 
+def nauka_klipu(it, dobry):
+    """Twoje decyzje (zatwierdzony = dobry, usunięty = zły) przy klipach i memach z vloga → przykłady dla AI przy kolejnych vlogach."""
+    from montaz import VFILM
+    m = re.match(r"vf:(.+ (klip|mem) \d+)$", str(it.get("src") or ""))
+    if not m:
+        return
+    f = VFILM / (m.group(1) + ".meta.json")
+    d = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
+    wpis = {"typ": m.group(2), "ocena": "dobry" if dobry else "zły", "tytul": (d.get("tytul") or it.get("label") or "")[:120],
+            "tekst": (d.get("tekst") or "")[:220], "src": it["src"], "at": time.time()}
+    L = [x for x in _read("klipy_nauka.json", []) if x.get("src") != it["src"]] + [wpis]
+    _write("klipy_nauka.json", L[-120:])
+
+
+def klipy_przyklady(typ):
+    """Ostatnie dobre i złe przykłady (dla promptu)."""
+    L = [x for x in _read("klipy_nauka.json", []) if x.get("typ") == typ]
+    dob = [x for x in L if x["ocena"] == "dobry"][-8:]
+    zle = [x for x in L if x["ocena"] == "zły"][-8:]
+    if not dob and not zle:
+        return ""
+    f = lambda x: f"„{x['tytul']}” → „{x['tekst'][:140]}”"
+    return ("\nMOJE WCZEŚNIEJSZE DECYZJE (ucz się mojego gustu – rób więcej takich jak DOBRE, unikaj takich jak ZŁE):\n"
+            + ("DOBRE (zatwierdziłem):\n" + "\n".join("- " + f(x) for x in dob) + "\n" if dob else "")
+            + ("ZŁE (usunąłem):\n" + "\n".join("- " + f(x) for x in zle) + "\n" if zle else ""))
+
+
 @router.post("/api/mont-hook/klip-meta")
 async def hook_klip_meta(req: Request, name: str = ""):
     """Mac zapisuje przy klipie z vloga jego napisy (słowa z czasami) i tytuł – do ręcznej poprawki w planerze."""
@@ -1068,7 +1095,12 @@ async def api_act(pid: str, action: str, req: Request):
             it["status"] = "draft"
         elif action == "skip":
             it["status"] = "skipped"
-        elif action == "retry" and it["status"] == "error":
+        if action in ("approve", "skip"):
+            try:
+                nauka_klipu(it, action == "approve")
+            except Exception as e:
+                print("nauka klipów:", e, flush=True)
+        if action == "retry" and it["status"] == "error":
             it["status"] = "approved"
             it["when"] = min(it["when"], time.time())
         save(P)

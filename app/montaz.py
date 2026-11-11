@@ -735,7 +735,9 @@ async def hook_memy_wybor(req: Request):
     ile = max(0, min(5, int(b.get("ile") if b.get("ile") is not None else 5)))
     if not ile or not zd:
         return {"memy": []}
-    extra = ("\nTe memy z tego vloga już są – zrób INNE: " + " | ".join(map(str, b["zostaja"]))[:600] + "\n") if b.get("zostaja") else ""
+    import planer as _pl
+    extra = _pl.klipy_przyklady("mem")
+    extra += ("\nTe memy z tego vloga już są – zrób INNE: " + " | ".join(map(str, b["zostaja"]))[:600] + "\n") if b.get("zostaja") else ""
     if b.get("uwagi"):
         extra += "\nMOJE UWAGI: " + str(b["uwagi"])[:600] + "\n"
     prompt = (f"To transkrypcja vloga „{name}” (kanał Lysyzsilowni: natural bodybuilding, redukcja, jedzenie, trening, codzienność). "
@@ -778,7 +780,8 @@ async def hook_klipy_wybor(req: Request):
     zd = b.get("zdania") or ""   # numerowane zdania: AI wybiera numery, Mac zamienia je na dokładne czasy (bez urwanych zdań)
     tr, name, dur = (zd or b.get("transkrypcja") or "")[:70000], b.get("name") or "", float(b.get("dur") or 0)
     ile = max(1, min(5, int(b.get("ile") or 5)))
-    extra = ""
+    import planer as _pl
+    extra = _pl.klipy_przyklady("klip")
     if b.get("zostaja"):
         extra += "\nTe klipy z tego vloga już są (zatwierdzone) – zrób o CZYMŚ INNYM: " + " | ".join(map(str, b["zostaja"]))[:800] + "\n"
     if b.get("uwagi"):
