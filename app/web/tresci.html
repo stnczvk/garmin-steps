@@ -386,7 +386,7 @@ async function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie'
   ${p.series==='vlogyt'?`<div class="fl w"><label>Miniatura YouTube <small style="opacity:.6">(kliknij, żeby wybrać)</small></label><div id="tgrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><small style="opacity:.6">Ładuję…</small></div>
    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><label class="ib" style="cursor:pointer">📤 Wgraj własną<input type="file" id="town" accept="image/*" hidden></label><button class="ib" id="tnew" type="button">🔄 Nowe propozycje</button></div></div>`:''}
   ${film&&all.includes('tiktok')?`<div class="fl w" data-pf="tiktok"><label>Opis na TikToka</label><textarea id="et" rows="3">${esc(p.tiktok)}</textarea></div>`:''}</div>
- <div class="ac"><button class="ib del" data-a="skip">Usuń z planu</button><span class="sp"></span>${['klip','vlogyt'].includes(p.series)?'<button class="ib" id="kpop" title="Mac zrobi od nowa niezatwierdzone klipy z tego vloga">✂️ Popraw klipy</button>':''}<button class="ib" data-a="now">Opublikuj teraz</button>
+ <div class="ac"><button class="ib del" data-a="skip">Usuń z planu</button><span class="sp"></span>${p.series==='klip'&&/ (klip|mem) \d+$/.test(p.psrc||'')?'<button class="ib" id="knap" title="Popraw błędy w napisach albo tytuł – Mac zrobi ten klip jeszcze raz">✏️ Napisy</button>':''}${['klip','vlogyt'].includes(p.series)?'<button class="ib" id="kpop" title="Mac zrobi od nowa niezatwierdzone klipy z tego vloga">✂️ Popraw klipy</button>':''}<button class="ib" data-a="now">Opublikuj teraz</button>
   ${p.status==='approved'?'<button class="ib" data-a="unapprove">Cofnij zatwierdzenie</button><button class="ib pri" data-a="save">Zapisz</button>':p.status==='error'?'<button class="ib" data-a="save">Zapisz</button><button class="ib pri" data-a="retry">Ponów</button>':'<button class="ib" data-a="save">Zapisz</button><button class="ib pri" data-a="approve">Zatwierdź</button>'}</div>`;
  $('mb').classList.add('on');
  const vis=()=>{const on=[...document.querySelectorAll('#epl input:checked')].map(i=>i.value);document.querySelectorAll('#md [data-pf]').forEach(e=>e.hidden=!on.includes(e.dataset.pf))};vis();$('epl').onchange=vis;
@@ -397,6 +397,17 @@ async function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie'
  if($('town'))$('town').onchange=async()=>{const f=$('town').files[0];if(!f)return;toast('Wysyłam…');
   const r=await (await fetch(`/api/planer/${p.id}/thumb-own`,{method:'POST',body:f})).json().catch(()=>({ok:false}));if(r.ok===false)return toast(r.error||'Nie udało się');toast('Twoja miniatura ustawiona');tgrid()};
  if($('tnew'))$('tnew').onclick=async()=>{const r=await api(`/api/planer/${p.id}/thumb-nowe`,{});if(r.ok===false)return toast(r.error||'Nie udało się');toast('Mac zrobi 4 nowe propozycje (kilka minut)')};
+ if($('knap'))$('knap').onclick=async()=>{const r=await (await fetch(`/api/planer/${p.id}/napisy`)).json().catch(()=>({ok:false}));if(r.ok===false)return toast(r.error||'Nie udało się');
+  const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML=`<div style="background:#1b1830;border-radius:18px;padding:16px;width:min(560px,100%);max-height:90vh;overflow:auto;color:#fff">
+   <b>✏️ Popraw napisy</b><p style="opacity:.7;font-size:13px;margin:6px 0 10px">Popraw tylko błędne słowa, kolejność zostaw. Mac zrobi ten klip jeszcze raz (kilka minut).</p>
+   <label style="font-size:13px;opacity:.8">${r.typ==='mem'?'Tekst memu (u góry)':'Tytuł na ekranie'}</label><input id="nT" style="width:100%;margin:4px 0 10px;padding:10px;border-radius:10px;border:1px solid #444;background:#0f0d1c;color:#fff">
+   <label style="font-size:13px;opacity:.8">Napisy</label><textarea id="nX" rows="9" style="width:100%;margin-top:4px;padding:10px;border-radius:10px;border:1px solid #444;background:#0f0d1c;color:#fff"></textarea>
+   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="ib" id="nC">Anuluj</button><button class="ib" id="nS" style="background:#8b7cc7;color:#fff">Zapisz i zrób od nowa</button></div></div>`;
+  document.body.appendChild(ov);ov.querySelector('#nT').value=r.tytul;ov.querySelector('#nX').value=r.tekst;
+  ov.querySelector('#nC').onclick=()=>ov.remove();
+  ov.querySelector('#nS').onclick=async()=>{const q=await api(`/api/planer/${p.id}/napisy`,{tekst:ov.querySelector('#nX').value,tytul:ov.querySelector('#nT').value});
+   if(q.ok===false)return toast(q.error||'Nie udało się');ov.remove();closeM();toast('Mac zrobi ten klip z poprawionymi napisami (kilka minut)')}};
  if($('kpop'))$('kpop').onclick=async()=>{const u=prompt('Co poprawić w klipach? (np. mniej o jedzeniu, mocniejsze hooki, krótsze) – możesz zostawić puste','');if(u===null)return;
   const r=await api('/api/planer/klipy-popraw',{psrc:p.psrc,uwagi:u});if(r.ok===false)return toast(r.error||'Nie udało się');
   closeM();toast('Mac zrobi nowe klipy – niezatwierdzone podmienią się same (kilkanaście minut)')};

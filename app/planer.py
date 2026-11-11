@@ -564,6 +564,48 @@ def hook_vlogyt_ulozenie(req: Request, name: str = ""):
     return {"ok": True, "ulozone": n}
 
 
+@router.post("/api/mont-hook/klip-meta")
+async def hook_klip_meta(req: Request, name: str = ""):
+    """Mac zapisuje przy klipie z vloga jego napisy (słowa z czasami) i tytuł – do ręcznej poprawki w planerze."""
+    from montaz import _tok, VFILM
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:120]
+    VFILM.mkdir(parents=True, exist_ok=True)
+    (VFILM / (nm + ".meta.json")).write_text(json.dumps(await req.json(), ensure_ascii=False), encoding="utf-8")
+    return {"ok": True}
+
+
+@router.get("/api/planer/{pid}/napisy")
+def api_napisy_get(pid: str):
+    from montaz import VFILM
+    it = next((x for x in plan() if x["id"] == pid), None)
+    m = re.match(r"vf:(.+ (?:klip|mem) \d+)$", str((it or {}).get("src") or ""))
+    f = VFILM / ((m.group(1) if m else "") + ".meta.json")
+    if not m or not f.is_file():
+        return {"ok": False, "error": "brak napisów do edycji (klip zrobiony starszą wersją)"}
+    d = json.loads(f.read_text(encoding="utf-8"))
+    return {"ok": True, "tekst": d.get("tekst") or "", "tytul": d.get("tytul") or "", "typ": d.get("typ") or "klip"}
+
+
+@router.post("/api/planer/{pid}/napisy")
+async def api_napisy_set(pid: str, req: Request):
+    """Poprawione napisy / tytuł → Mac renderuje ten jeden klip jeszcze raz i podmienia plik w planie."""
+    b = await req.json()
+    it = next((x for x in plan() if x["id"] == pid), None)
+    m = re.match(r"vf:(.+) ((?:klip|mem) \d+)$", str((it or {}).get("src") or ""))
+    if not m:
+        return {"ok": False, "error": "to nie klip z vloga"}
+    if it["status"] in ("published", "publishing"):
+        return {"ok": False, "error": "klip jest już opublikowany"}
+    with _lock:
+        Q = _read("klipy_popraw.json", [])
+        Q.append({"name": m.group(1), "typ": "napisy", "klip": m.group(2), "tekst": str(b.get("tekst") or "")[:5000],
+                  "tytul": str(b.get("tytul") or "")[:150], "at": time.time()})
+        _write("klipy_popraw.json", Q[-30:])
+    return {"ok": True}
+
+
 @router.post("/api/planer/klipy-popraw")
 async def api_klipy_popraw(req: Request):
     """Guzik „✂️ Popraw klipy”: Mac robi od nowa niezatwierdzone klipy z tego vloga (z Twoimi uwagami)."""
