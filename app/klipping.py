@@ -1222,14 +1222,19 @@ async def _wybor_yt(b, n, dur_min):
     sysm = __import__("skills").sk("hook", "caption", "trend", "slop")
 
     def one(k):
-        w = _window(trans, k["start"] - 600, k["end"] + 1800)   # szerokie okno: gdy wstępny segment to tylko kawałek meczu, AI dociągnie do całości
+        w = _window(trans, k["start"] - 1500, k["end"] + 1800)   # szerokie okno: gdy wstępny segment to tylko kawałek meczu, AI dociągnie do całości
         if len(w) > 90000:   # bardzo długi segment: środek skrócony, początek i koniec pełne (tam są granice)
             w = w[:45000] + "\n[…]\n" + w[-45000:]
         r = claude(f"Transkrypcja fragmentu streama {who}, każda linia: [sekunda] tekst (🔊 głośno, ⭐ klip widzów).\n\n{w}\n\n"
                    f"W tym fragmencie jest segment: {k['co']} (mniej więcej {k['start']:.0f}–{k['end']:.0f} s). Ustal jego DOKŁADNE granice: start chwilę "
                    "przed rozpoczęciem (zapowiedź, co włącza / w co gra / o czym mówi), koniec gdy ta rzecz i komentarz do niej się kończą. Całość, nie kawałek. "
-                   "Gra: CAŁY MECZ od startu do wyniku (w CS zwykle 25–50 min), nie jedna runda ani akcja; okno sięga dalej niż wstępny segment, "
-                   "więc jeśli mecz trwa dłużej, przesuń koniec. Przestoje (śmierci, czekanie) wytniesz niżej, więc nie skracaj przez nie granic. "
+                   "Gra: CAŁY JEDEN MECZ od pierwszej rundy do wyniku (w CS zwykle 25–50 min), nie jedna runda ani akcja. Okno sięga 25 min przed "
+                   "i 30 min za wstępnym segmentem, więc znajdź prawdziwy początek i koniec. SYGNAŁY w CS: start = akceptowanie meczu, ładowanie mapy, "
+                   "rozgrzewka, „pistolówka”, „pierwsza runda”, wybór mapy/strony (zacznij tuż przed pierwszą rundą, nie od 5.–6. rundy); "
+                   "koniec = „GG”, „wygraliśmy/przegraliśmy”, wynik typu 13:x / 16:x, „jeszcze jeden?”, szukanie następnej gry. "
+                   "Koniec stawiasz zaraz po wyniku i krótkiej reakcji: BEZ lobby, kolejki i przerwy po meczu, i NIGDY nie wchodź w następny mecz "
+                   "(gdy w oknie są dwa mecze, wybierz ten, który obejmuje wstępny segment, w całości). "
+                   "Przestoje w trakcie (śmierci, czekanie) wytniesz niżej, więc nie skracaj przez nie granic. "
                    "Bez reklam i sponsorów na początku i końcu. Celuj w min 8 min, max 60 min.\n"
                    "Potem napisz tytuł YouTube po polsku " + STYL(who) + " " + (f"Styl tytułów dla tego kanału: {hint}. " if hint else "") +
                    (f"ZASADY z moich ocen (stosuj):\n{zas}\n" if zas else "") +
