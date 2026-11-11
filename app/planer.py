@@ -896,6 +896,22 @@ def sprzatanie_plikow():
                 freed += os.path.getsize(f); os.unlink(f)
         except Exception:
             pass
+    import glob as _g
+    for d_, dni in ((ROOT / "podglady", 3), (ROOT / "vlog_upload", 2)):   # lekkie podglądy i porzucone wysyłki vlogów
+        if d_.is_dir():
+            for q in d_.iterdir():
+                try:
+                    if time.time() - q.stat().st_mtime > (0.5 if free < 15e9 else dni) * 86400:
+                        sz = sum(f.stat().st_size for f in ([q] if q.is_file() else q.rglob("*")) if f.is_file())
+                        (q.unlink() if q.is_file() else shutil.rmtree(q, ignore_errors=True)); freed += sz
+                except Exception:
+                    pass
+    for q in _g.glob("/tmp/tt_*.mp4") + _g.glob("/tmp/tmp*.mp4"):   # resztki po wysyłce na TikToka
+        try:
+            if time.time() - os.path.getmtime(q) > 3600:
+                freed += os.path.getsize(q); os.unlink(q)
+        except Exception:
+            pass
     if freed > 50_000_000:
         print(f"planer: posprzątane pliki opublikowanych postów, {freed / 1e9:.1f} GB (wolne było {free / 1e9:.1f} GB)", flush=True)
 
