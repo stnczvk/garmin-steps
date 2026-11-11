@@ -48,7 +48,7 @@ W, H, FPS = 1080, 1920, 30
 TITLE_SECONDS = 3.0        # jak długo tytuł jest na ekranie na początku
 TITLE_FONT_SIZE = 78
 TITLE_TOP = 230            # odległość tytułu od górnej krawędzi (px)
-YELLOW = (255, 214, 0)
+YELLOW = (229, 35, 47)   # akcent marki: czerwony (dawniej żółty, nazwa zostaje)
 
 NAPISY = True              # napisy z mowy (słowo, które właśnie mówisz, świeci na żółto)
 NAPISY_Y = 1300            # środek napisów (px od góry)
@@ -157,7 +157,7 @@ def draw_title_png(lines, out):
         bar.alpha_composite(sh.filter(ImageFilter.GaussianBlur(14)))
         d = ImageDraw.Draw(bar)
         d.rounded_rectangle([40, 40, 40 + bw, 40 + bh], 18, fill=YELLOW if "kcal" in line.lower() else (255, 255, 255))
-        d.text((40 + px - bb[0], 40 + py - bb[1]), line, font=f, fill=(17, 17, 17))
+        d.text((40 + px - bb[0], 40 + py - bb[1]), line, font=f, fill=(255, 255, 255) if "kcal" in line.lower() else (17, 17, 17))
         bar = bar.rotate(-1.2 if i % 2 == 0 else 1.0, resample=Image.BICUBIC, expand=True)
         img.alpha_composite(bar, ((W - bar.width) // 2, y - 40))
         y += bh + 16
@@ -716,7 +716,7 @@ def draw_koniec_png(nxt, out):
     fc_ = font(44, 800)
     cw_ = d.textlength(c, font=fc_)
     d.rounded_rectangle([W / 2 - cw_ / 2 - 42, 1060, W / 2 + cw_ / 2 + 42, 1150], 45, fill=YELLOW)
-    d.text((W / 2, 1106), c, font=fc_, fill=(17, 17, 17), anchor="mm")
+    d.text((W / 2, 1106), c, font=fc_, fill=(255, 255, 255), anchor="mm")
     img.save(out)
 
 
@@ -899,7 +899,7 @@ def finalize(segments, total, workdir, music, out_path, captions=None, summary_p
             fc.append(f"[{last}][q{n}]overlay=0:0:enable='gte(t,{st:.3f})'[c{n}]")
         last, n = f"c{n}", n + 1
     if PASEK_POSTEPU:
-        inputs += ["-f", "lavfi", "-i", f"color=c=0xFFD600:s={W}x10:r={FPS}:d={total + 1:.3f}"]
+        inputs += ["-f", "lavfi", "-i", f"color=c=0xE5232F:s={W}x10:r={FPS}:d={total + 1:.3f}"]
         fc.append(f"[{last}]drawbox=x=0:y=0:w=iw:h=10:color=black@0.35:t=fill[pb{n}]")
         fc.append(f"[pb{n}][{n}:v]overlay=x='-w+w*t/{total:.3f}':y=0:shortest=1[c{n}]")
         last, n = f"c{n}", n + 1

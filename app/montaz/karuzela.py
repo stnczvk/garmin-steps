@@ -26,7 +26,7 @@ sys.path.insert(0, str(HERE))
 from montuj import FONT_PATH  # noqa: E402
 
 W, H = 1080, 1350
-YEL = (255, 214, 0)
+YEL = (229, 35, 47)   # akcent marki: czerwony
 INK = (17, 17, 17)
 
 
@@ -212,7 +212,7 @@ def center_text(d, y, text, f, fill=(255, 255, 255)):
     d.text(((W - tw) / 2, y), text, font=f, fill=fill)
 
 
-def pill(d, x, y, text, f, fill=YEL, fg=INK):
+def pill(d, x, y, text, f, fill=YEL, fg=(255, 255, 255)):
     tw = d.textlength(text, font=f)
     hgt = f.size * 1.75
     d.rounded_rectangle([x, y, x + tw + 52, y + hgt], radius=hgt / 2, fill=fill)

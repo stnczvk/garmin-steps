@@ -10,7 +10,7 @@ type ObrazProps = Size & {src: string; style: 'karta' | 'naklejka'; imgW: number
 
 const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
 
-const YEL = 'rgb(255,214,0)';
+const YEL = 'rgb(229,35,47)'; // akcent marki: czerwony
 
 // tytuł: linijki na białych / żółtych paskach (jak w przepisach), wskakują po kolei, lekko przechylone
 const Tytul: React.FC<TytulProps> = ({lines, size, top, font}) => {
@@ -32,7 +32,7 @@ const Tytul: React.FC<TytulProps> = ({lines, size, top, font}) => {
           return (
             <div key={i} style={{
               fontFamily: 'T', fontWeight: 800, fontSize: big ? size : Math.round(size * 0.78), lineHeight: 1.12,
-              color: '#111', background: kcal ? YEL : '#fff', padding: big ? '12px 34px 16px' : '8px 28px 12px',
+              color: kcal ? '#fff' : '#111', background: kcal ? YEL : '#fff', padding: big ? '12px 34px 16px' : '8px 28px 12px',
               borderRadius: 18, whiteSpace: 'nowrap', boxShadow: '0 16px 44px rgba(0,0,0,0.45)',
               opacity: Math.min(1, s * 1.6) * o, transform: `scale(${(0.55 + 0.45 * s) * (0.9 + 0.1 * o)}) rotate(${rot}deg)`,
             }}>{l}</div>
@@ -78,7 +78,7 @@ const Podsumowanie: React.FC<PodsProps> = ({font, label, kcal, goal, p, c, fat, 
           PODSUMOWANIE DNIA</div>
         <div style={{display: 'flex', gap: 14, opacity: sp(4), transform: `translateY(${(1 - sp(4)) * 30}px)`}}>
           <div style={{background: '#fff', color: '#111', fontWeight: 800, fontSize: 44, padding: '6px 24px 10px', borderRadius: 14}}>{label}</div>
-          <div style={{background: train ? YEL : 'rgba(255,255,255,0.16)', color: train ? '#111' : '#fff', fontWeight: 700, fontSize: 34,
+          <div style={{background: train ? YEL : 'rgba(255,255,255,0.16)', color: '#fff', fontWeight: 700, fontSize: 34,
             padding: '12px 22px', borderRadius: 14}}>{train ? 'TRENING ✓' : 'BEZ TRENINGU'}</div>
         </div>
         <div style={{display: 'flex', alignItems: 'baseline', gap: 16, marginTop: 10, transform: `scale(${0.7 + 0.3 * kc})`, opacity: Math.min(1, kc * 1.5)}}>
@@ -116,7 +116,7 @@ const Podsumowanie: React.FC<PodsProps> = ({font, label, kcal, goal, p, c, fat, 
             );
           })}
         </div>
-        <div style={{marginTop: 26, background: YEL, color: '#111', fontWeight: 800, fontSize: 38, padding: '16px 36px', borderRadius: 999,
+        <div style={{marginTop: 26, background: YEL, color: '#fff', fontWeight: 800, fontSize: 38, padding: '16px 36px', borderRadius: 999,
           opacity: ctaS, transform: `scale(${0.8 + 0.2 * ctaS})`}}>{cta}</div>
       </AbsoluteFill>
     </AbsoluteFill>
@@ -162,7 +162,7 @@ const Koniec: React.FC<KoniecProps> = ({font, next}) => {
         <div style={{background: '#fff', color: '#111', fontWeight: 900, fontSize: 100, padding: '10px 42px 16px', borderRadius: 22,
           opacity: Math.min(1, b * 1.6), transform: `scale(${0.55 + 0.45 * b}) rotate(${-1.5 * b}deg)`}}>
           {next ? `Dzień ${next}` : 'Kolejny dzień'}</div>
-        <div style={{marginTop: 30, background: YEL, color: '#111', fontWeight: 800, fontSize: 44, padding: '18px 42px', borderRadius: 999,
+        <div style={{marginTop: 30, background: YEL, color: '#fff', fontWeight: 800, fontSize: 44, padding: '18px 42px', borderRadius: 999,
           opacity: c, transform: `scale(${(0.8 + 0.2 * c) * pulse})`}}>Obserwuj, żeby nie przegapić</div>
       </AbsoluteFill>
     </AbsoluteFill>
