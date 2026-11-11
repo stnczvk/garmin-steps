@@ -747,6 +747,8 @@ async def hook_klipy_wybor(req: Request):
               "(np. ile zjadłem na cheat mealu i co na to waga, jak wyglądał trening, plan na redukcję).\n"
               "Zasady (jak u dobrych twórców):\n"
               "- pierwszy beat = najmocniejsze zdanie z liczbą, zaskoczeniem albo emocją (hook w pierwszych 2 s), żadnego „cześć”, „dzisiaj”, wstępu;\n"
+              "- NIGDY powitań i zapowiedzi kanału („witam”, „witam widzów”, „w tym odcinku”, „zapraszam”) ani zdań urwanych w pół myśli; "
+              "każdy beat musi mieć sens sam w sobie, a cały klip trwa min. 20 s;\n"
               + ("- beat = CIĄG CAŁYCH ZDAŃ podany numerami: od (pierwsze zdanie) do (ostatnie zdanie, włącznie); zdania wybieraj tak, żeby myśl była "
                  "skończona i zrozumiała bez reszty filmu; w linii masz start i długość zdania – beat 3–10 s, 3–6 beatów, "
                  "SUMA DŁUGOŚCI 20–45 s (policz!);\n" if zd else
