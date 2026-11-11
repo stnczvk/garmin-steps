@@ -1926,6 +1926,14 @@ async def hook_reklamy(req: Request):
                         out.append([round(x0 / cols, 4), round(y / rows, 4), round((x - x0) / cols, 4), round(1 / rows, 4)])
                     else:
                         x += 1
+            M = []   # te same odcinki w kolejnych wierszach → jeden prostokąt
+            for r in out:
+                pr_ = next((m for m in M if abs(m[0] - r[0]) < 1e-6 and abs(m[2] - r[2]) < 1e-6 and abs(m[1] + m[3] - r[1]) < 1e-6), None)
+                if pr_:
+                    pr_[3] = round(pr_[3] + r[3], 4)
+                else:
+                    M.append(list(r))
+            out = M
             print(f"klipping reklamy {b.get('streamer')}: komórek {len(cells)}, obszarów {len(out)}", flush=True)
             return {"rects": out + reczne}
         except Exception as e:
