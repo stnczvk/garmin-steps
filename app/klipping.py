@@ -586,7 +586,10 @@ def rec_tick():
             _rec_stop(r["rid"])
             r["state"] = "done"; r["end"] = r.get("last", time.time())
             zmiana = True
-            if r["end"] - r["start"] < 20 * 60:
+            if r.get("skip_job"):   # w międzyczasie przyszedł pełny VOD tego streama
+                r["state"] = "zastapiony"
+                shutil.rmtree(_recdir(r["rid"]), ignore_errors=True)
+            elif r["end"] - r["start"] < 20 * 60:
                 r["state"] = "short"
                 shutil.rmtree(_recdir(r["rid"]), ignore_errors=True)
             else:
@@ -626,6 +629,10 @@ def rec_tick():
                 r["got"] = sorted(set(r.get("got", [])) | set((old.get(rid) or {}).get("got", [])))
                 if (old.get(rid) or {}).get("vod") and not r.get("vod"):
                     r["vod"] = old[rid]["vod"]
+                if (old.get(rid) or {}).get("skip_job"):
+                    r["skip_job"] = True
+                if (old.get(rid) or {}).get("state") == "zastapiony":
+                    r["state"] = "zastapiony"
             for st, r in nowe:
                 j = _mk_job(d2, {"mode": "reakcje", "streamer": st["id"], "n": 0, "auto": True}, "rec:" + r["rid"])
                 j["title"] = r.get("title") or ""; j["found"] = True; j["rec"] = r["rid"]
@@ -643,24 +650,42 @@ def rec_tick():
 
 
 def _rec_vod(sid, v):
-    """VOD tego samego streama, który już nagraliśmy na żywo → bez drugiego zadania (link VOD tylko do klipów widzów)."""
+    """VOD streama, który nagrywaliśmy na żywo. Nagranie ma ≥80% VOD → VOD pomijamy (link tylko do klipów widzów).
+    Nagranie częściowe (np. zaczęte w trakcie streama) → wygrywa pełny VOD, a zadanie z nagrania znika (bez dubli)."""
+    import shutil
     d = _rd()
     a, b = float(v.get("ts") or 0), float(v.get("ts") or 0) + float(v.get("dur") or 0)
     for r in (d.get("rec") or {}).values():
-        if r["sid"] == sid and r["state"] in ("rec", "done") and min(b, r.get("last", r["start"])) - max(a, r["start"]) > 0.5 * max(1, b - a):
-            with _lock:
-                d2 = _rd()
-                rr = (d2.get("rec") or {}).get(r["rid"])
-                if rr:
-                    rr["vod"] = v["url"]
-                jj = next((j for j in d2["jobs"] if j["id"] == r.get("job")), None)
+        if r["sid"] != sid or r["state"] not in ("rec", "done"):
+            continue
+        ov = min(b, r.get("last", r["start"])) - max(a, r["start"])
+        if ov < 120:
+            continue
+        with _lock:
+            d2 = _rd()
+            rr = (d2.get("rec") or {}).get(r["rid"]) or {}
+            jj = next((j for j in d2["jobs"] if j["id"] == r.get("job")), None)
+            if ov >= 0.8 * max(1, b - a) or (jj and jj["state"] not in ("queued",)):
+                rr["vod"] = v["url"]
                 if jj and jj["state"] == "queued":
                     jj["vod"] = v["url"]
                 seen = d2.setdefault("seen_vods", [])
                 if v["vid"] not in seen:
                     seen.append(v["vid"])
                 _wr(d2)
-            return True
+                return True
+            # częściowe nagranie → zostaje pełny VOD
+            if jj:
+                d2["jobs"] = [j for j in d2["jobs"] if j["id"] != jj["id"]]
+            if rr:
+                if rr.get("state") == "rec":
+                    rr["skip_job"] = True
+                else:
+                    rr["state"] = "zastapiony"
+                    shutil.rmtree(_recdir(rr["rid"]), ignore_errors=True)
+            _wr(d2)
+            print("klipping rec: nagranie częściowe", r["rid"], "→ zostaje pełny VOD", v["url"], flush=True)
+        return False
     return False
 
 

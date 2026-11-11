@@ -108,7 +108,7 @@ function zw(j,i){return j.id in ZW?ZW[j.id]:i>0}   // domyślnie rozwinięty tyl
 document.addEventListener('click',e=>{const t=e.target.closest('[data-zw]');if(!t)return;const id=t.dataset.zw,J=(S.jobs||[]).filter(j=>!ST||j.streamer===ST),i=J.findIndex(j=>j.id===id);
  ZW[id]=!zw(J[i],i);try{localStorage.kzw=JSON.stringify(ZW)}catch(e){}jobs()});
 function jobs(){const J=(S.jobs||[]).filter(j=>!ST||j.streamer===ST);
- $('jobs').innerHTML=J.length?'<h2>W trakcie i gotowe</h2>'+J.map((j,i)=>`<div class="j${zw(j,i)?' zw':''}"><div class="row" style="justify-content:space-between"><div data-zw="${j.id}" style="cursor:pointer;flex:1"><b>${zw(j,i)?'▸':'▾'} ${esc(j.title||j.url)}</b>
+ $('jobs').innerHTML=J.length?'<h2>W trakcie i gotowe</h2>'+J.map((j,i)=>`<div class="j${zw(j,i)?' zw':''}"><div class="row" style="justify-content:space-between"><div data-zw="${j.id}" style="cursor:pointer;flex:1"><b>${zw(j,i)?'▸':'▾'} ${esc(j.title||j.url)}</b> <small class="mut">${(j.url||'').startsWith('rec:')?'🔴 z nagrania live':'📼 z VOD'}</small>
   <div class="st ${j.state==='error'?'err':j.state==='done'?'ok':''}">${j.state==='done'?'✅ Gotowe – '+j.clips.length+' klipów':j.state==='error'?'❌ '+esc(j.error||'błąd'):'⏳ '+esc(j.step||'')}${j.campaign?' · '+esc(j.campaign.name):''}</div></div>
   <div class="row" style="gap:6px">${j.state==='done'&&j.clips.length&&j.streamer?`<button class="btn" data-plan="${j.id}" title="Klipy, których nie ma w kalendarzu, dodaj do kalendarza">📅 Do kalendarza</button>`:''}<button class="btn" data-del="${j.id}">Usuń</button></div></div>
   ${j.plan_err?`<div class="st err">Nie dodało się do kalendarza: ${esc(j.plan_err)}</div>`:''}
