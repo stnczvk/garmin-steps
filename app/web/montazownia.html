@@ -275,7 +275,8 @@ async function ytg(id){const g=document.getElementById('ytg_'+id);if(!g)return;l
   <div class="yta"><label class="btn" style="cursor:pointer">📤 Wgraj własną<input type="file" accept="image/*" hidden data-yto="${id}"></label><button class="btn" data-ytn="${id}">🔄 Nowe propozycje</button></div>`}
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-ytt],[data-ytk],[data-yta],[data-ytp],[data-ytn]');if(!b)return;e.preventDefault();
  const P=(u,body)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.json()).catch(()=>({ok:false,error:'Brak połączenia'}));
- if(b.dataset.ytt){const g=document.getElementById('ytg_'+b.dataset.ytt);g.hidden=!g.hidden;if(!g.hidden)ytg(b.dataset.ytt);return}
+ if(b.dataset.ytt){const id=b.dataset.ytt,g=document.getElementById('ytg_'+id);g.hidden=!g.hidden;if(!g.hidden){ytg(id);
+   const iv=setInterval(()=>{const gg=document.getElementById('ytg_'+id);if(!gg||gg.hidden){clearInterval(iv);return}ytg(id)},15000)}return}
  if(b.dataset.ytp){const r=await P(`/api/planer/${b.dataset.ytp}/thumb-pick`,{n:b.dataset.n});if(r.ok===false)return alert(r.error);ytg(b.dataset.ytp);document.querySelectorAll('.ytv img:not([data-ytp])').forEach(i=>i.src=i.src.split('?')[0]+'?v='+Date.now());return}
  if(b.dataset.ytn){const r=await P(`/api/planer/${b.dataset.ytn}/thumb-nowe`);alert(r.ok===false?r.error:'Mac zrobi 4 nowe propozycje (kilka minut)');return}
  if(b.dataset.ytk){const u=prompt('Co poprawić w klipach? (możesz zostawić puste)','');if(u===null)return;const r=await P('/api/planer/klipy-popraw',{psrc:b.dataset.ytk,uwagi:u});alert(r.ok===false?r.error:'Mac zrobi nowe klipy – niezatwierdzone podmienią się same');return}

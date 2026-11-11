@@ -393,6 +393,8 @@ async function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie'
  const tgrid=async()=>{if(!$('tgrid'))return;let L=[];try{L=(await (await fetch(`/api/planer/${p.id}/thumbs`)).json()).thumbs||[]}catch(e){}
   $('tgrid').innerHTML=L.length?L.map(t=>`<img data-tn="${t.n}" src="/api/planer/${p.id}/thumbv/${t.n}?v=${t.t}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;cursor:pointer;outline:${t.on?'3px solid #ffd600':'1px solid rgba(255,255,255,.12)'};outline-offset:2px" alt="">`).join(''):'<small style="opacity:.6">Brak propozycji – kliknij „Nowe propozycje”</small>'};
  tgrid();
+ if($('tgrid')){const sig=()=>[...$('tgrid').querySelectorAll('img')].map(i=>i.src).join('|');   // nowe propozycje pojawiają się same
+  const iv=setInterval(async()=>{if(!document.body.contains($('tgrid'))){clearInterval(iv);return}const b=sig();await tgrid();if(sig()!==b&&b)toast('Są nowe propozycje miniatur')},15000)}
  if($('tgrid'))$('tgrid').onclick=async e=>{const i=e.target.closest('[data-tn]');if(!i)return;const r=await api(`/api/planer/${p.id}/thumb-pick`,{n:i.dataset.tn});if(r.ok===false)return toast(r.error||'Nie udało się');toast('Miniatura wybrana');tgrid()};
  if($('town'))$('town').onchange=async()=>{const f=$('town').files[0];if(!f)return;toast('Wysyłam…');
   const r=await (await fetch(`/api/planer/${p.id}/thumb-own`,{method:'POST',body:f})).json().catch(()=>({ok:false}));if(r.ok===false)return toast(r.error||'Nie udało się');toast('Twoja miniatura ustawiona');tgrid()};
