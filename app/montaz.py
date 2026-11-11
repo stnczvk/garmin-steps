@@ -754,11 +754,13 @@ async def hook_klipy_wybor(req: Request):
               "- w środku coś, co trzyma dalej (pytanie, zwrot akcji, „ale…”); ostatni beat = puenta (wynik, liczba, reakcja);\n"
               "- beaty w kolejności, która ma sens dla widza (nie musi być chronologiczna), bez powtarzania tej samej myśli;\n"
               "- każdy klip o czymś innym.\n"
-              "Do każdego: hook = napis na ekran na pierwsze 3 s, 2–5 słów, DOPEŁNIA to, co mówię (nie powtarza), ciekawość albo liczba; "
+              "Do każdego: tytul = TYTUŁ NA EKRANIE przez cały klip (u góry, jak w klipach z kampanii), 5–9 słów, konkret z liczbą albo "
+              "ciekawością, pisany jak człowiek, bez emotek i bez myślników (np. „Zjadłem 4000 kcal i tak zareagowała waga”); "
+              "hook = 2–5 słów, DOPEŁNIA to, co mówię (nie powtarza), ciekawość albo liczba; "
               "opis TikTok i Instagram (z jednym naturalnym zdaniem, że cały odcinek jest na YouTube, kanał ŁysyVlog, link w bio), tytuł YouTube Shorts.\n"
               + OPIS_RULES +
               '\nOdpowiedz wyłącznie JSON: {"klipy": [{"temat": "...", "beats": [' + ('{"od": nr, "do": nr}' if zd else '{"start": s, "end": s}') +
-              '], "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
+              '], "tytul": "...", "hook": "...", "tiktok": "...", "instagram": "...", "yt_title": "..."}]}')
     try:
         txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=4000, system=__import__("skills").sk("hook", "reel", "caption", "trend", "slop")))
     except Exception as e:
@@ -777,6 +779,7 @@ async def hook_klipy_wybor(req: Request):
                     B.append({"od": o, "do": d_})
             if B:
                 out.append({"beats": B[:7], "temat": str(k.get("temat") or "")[:80], "hook": human(str(k.get("hook") or "")),
+                            "tytul": human(str(k.get("tytul") or k.get("hook") or ""))[:90],
                             "tiktok": human(str(k.get("tiktok") or "")), "instagram": human(str(k.get("instagram") or "")),
                             "yt_title": human(str(k.get("yt_title") or ""))})
             continue
