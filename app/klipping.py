@@ -1881,6 +1881,44 @@ async def hook_reklamy(req: Request):
     F = [x for x in (b.get("frames") or []) if isinstance(x, str) and len(x) > 1000][:6]
     st = next((x for x in _streamers(_rd()) if x["id"] == b.get("streamer")), {}) or {}
     reczne = [r for r in (st.get("blur") or []) if isinstance(r, list) and len(r) == 4]
+    G = [x for x in (b.get("siatka") or []) if isinstance(x, str) and len(x) > 1000][:8]
+    if G:   # kadry z narysowaną siatką 8×6 (numery 1–48) – AI wskazuje komórki z reklamami (pewniejsze niż współrzędne)
+        cols, rows = int(b.get("cols") or 8), int(b.get("rows") or 6)
+        pr = (f"To {len(G)} kadrów z tego samego streama. Na każdym jest siatka {cols}×{rows} z numerami komórek 1–{cols * rows} "
+              "(wiersze od góry, w wierszu od lewej). Dla KAŻDEGO kadru podaj numery komórek, w których jest choćby część nakładki REKLAMOWEJ: "
+              "baner/logo sponsora, bukmachera, kasyna, strony ze skrzynkami/skinami (Stake, Rainbet, S4Skins, Hellcase, Gamdom, Fortuna, STS…), "
+              "reklama sprzętu/marki/napoju (np. słuchawki, DZIK), kod promocyjny, QR. NIE zaznaczaj: twarzy i kamerki, gry i jej HUD, czatu, "
+              "nicku/Twittera/nazwy kanału, licznika subów, celu donejtów, alertów, zegara. Jeśli nie ma reklam, pusta lista.\n"
+              'Odpowiedz tylko JSON: {"kadry": [[numery], [numery], ...]}')
+        try:
+            txt = await asyncio.to_thread(vision, pr, G, max_tokens=600)
+            K = (as_json(txt) or {}).get("kadry") or []
+            cells = set()
+            for L in K:
+                for n in L or []:
+                    if isinstance(n, int) and 1 <= n <= cols * rows:
+                        cells.add(n - 1)
+            if len(cells) > cols * rows * 0.35:   # pół ekranu „reklamą” = pomyłka
+                cells = set()
+            seen, out = set(), []
+            for c in sorted(cells):
+                if c in seen:
+                    continue
+                st_, comp = [c], []
+                seen.add(c)
+                while st_:
+                    q = st_.pop(); comp.append(q)
+                    y, x = divmod(q, cols)
+                    for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                        nq = ny * cols + nx
+                        if 0 <= ny < rows and 0 <= nx < cols and nq in cells and nq not in seen:
+                            seen.add(nq); st_.append(nq)
+                ys, xs = [q // cols for q in comp], [q % cols for q in comp]
+                out.append([round(min(xs) / cols, 4), round(min(ys) / rows, 4), round((max(xs) + 1 - min(xs)) / cols, 4), round((max(ys) + 1 - min(ys)) / rows, 4)])
+            print(f"klipping reklamy {b.get('streamer')}: komórek {len(cells)}, obszarów {len(out)}", flush=True)
+            return {"rects": out + reczne}
+        except Exception as e:
+            print("klipping reklamy (siatka):", e, flush=True)
     C = [c for c in (b.get("kandydaci") or []) if isinstance(c, dict) and len(str(c.get("img") or "")) > 300 and len(c.get("rect") or []) == 4][:16]
     if C:   # Mac znalazł stałe (nieruchome) elementy nakładki – AI tylko ocenia, które z nich to reklamy (pewniejsze niż zgadywanie współrzędnych)
         pr = (f"To {len(C)} wycinków ze streama (po kolei: wycinek 1, wycinek 2, …): stałe elementy nakładki. Które z nich to REKLAMY: "
