@@ -367,6 +367,51 @@ def summary_slide(bg, summ):
     return im
 
 
+def najladniejszy(shots, out):
+    """AI patrzy na stop-klatki posiłków i wybiera najbardziej apetyczny na okładkę. None = brak AI."""
+    import base64, io, os, urllib.request
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    names = sorted(shots)
+    if not key or len(names) < 2:
+        return None
+    cache = out / "okladka_ai.json"
+    sig = []
+    for c in names:
+        b = io.BytesIO(); shots[c].convert("RGB").resize((270, int(270 * shots[c].height / shots[c].width))).save(b, "JPEG", quality=60)
+        sig.append(len(b.getvalue()))
+    try:
+        cc = json.loads(cache.read_text(encoding="utf-8"))
+        if cc.get("names") == names and cc.get("sig") == sig and cc.get("wybor") in shots:
+            return cc["wybor"]
+    except Exception:
+        pass
+    content = []
+    for j, c in enumerate(names):
+        b = io.BytesIO(); shots[c].convert("RGB").resize((360, int(360 * shots[c].height / shots[c].width))).save(b, "JPEG", quality=80)
+        content += [{"type": "text", "text": f"Zdjęcie {j}:"},
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                                 "data": base64.b64encode(b.getvalue()).decode()}}]
+    content.append({"type": "text", "text": "To posiłki z jednego dnia. Które zdjęcie najlepiej nada się na okładkę karuzeli na "
+                    "Instagramie: najbardziej apetyczne, ładne danie, ostre, dobre światło i kolory? "
+                    'Odpowiedz tylko JSON: {"zdjecie": NUMER, "dlaczego": "krótko"}'})
+    try:
+        req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(
+            {"model": os.environ.get("MODEL_DEFAULT", "claude-sonnet-5"), "max_tokens": 200,
+             "messages": [{"role": "user", "content": content}]}).encode(),
+            headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            res = json.loads(r.read().decode())
+        txt = "".join(x.get("text", "") for x in res.get("content", []) if x.get("type") == "text")
+        o = json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+        c = names[int(o["zdjecie"])]
+        print(f"karuzela: okładka AI – {c} ({o.get('dlaczego', '')})")
+        cache.write_text(json.dumps({"names": names, "sig": sig, "wybor": c}), encoding="utf-8")
+        return c
+    except Exception as e:
+        print(f"karuzela: wybór okładki przez AI pominięty ({e.__class__.__name__})")
+        return None
+
+
 def main():
     day, out = Path(sys.argv[1]), Path(sys.argv[2])
     try:
@@ -423,9 +468,10 @@ def main():
         if im is not None:
             shots[c] = im
     slides = []
-    # 1. okładka: najbardziej kaloryczny posiłek – stop-klatka bez filtrów (naturalne światło),
+    # 1. okładka: najładniejszy posiłek wg AI (bez AI – najbardziej kaloryczny) – stop-klatka bez filtrów (naturalne światło),
     #    tekst na półprzezroczystym panelu zamiast przyciemniania/rozmywania całego zdjęcia
-    top = max((c for c in meals if c in shots), key=lambda c: karty[c].get("kcal", 0), default=None)
+    top = najladniejszy(shots, out) or \
+        max((c for c in meals if c in shots), key=lambda c: karty[c].get("kcal", 0), default=None)
     bg = cover(shots[top]) if top else Image.new("RGB", (W, H), (20, 20, 24))
     s = bg.copy().convert("RGBA")
     ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
