@@ -968,11 +968,11 @@ def przygotuj_glos(n, work):
         return None
     src = lista[n % len(lista)]
     out = work / "glos_hook.wav"
-    cisza = "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.08"
+    cisza = "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.2"   # łagodnie – ciche końcówki słów zostają
     try:
         run(["ffmpeg", "-y", "-i", str(src), "-vn", "-af",
              f"{cisza},areverse,{cisza},areverse,loudnorm=I=-14:TP=-1.5,aresample=44100",
-             "-ac", "2", "-t", "5", str(out)])
+             "-ac", "2", "-t", "8", str(out)])
         dur = probe(out)[0]
         return (out, dur, src.name, src) if dur > 0.3 else None
     except (SystemExit, Exception) as e:
@@ -1397,7 +1397,7 @@ def main():
         teaser = None
         if HOOK_NA_START:
             nr = int(m_n.group(1)) if m_n else 0
-            dl = min(4.5, max(TITLE_SECONDS, glos[1] + 0.45)) if glos else TITLE_SECONDS
+            dl = min(7.0, max(TITLE_SECONDS, glos[1] + 0.5)) if glos else TITLE_SECONDS   # wstęp tak długi jak zdanie
             hk = wybierz_hook(plan, day, nr, licz, dl)
             if hk:
                 v, a, b, src = hk
