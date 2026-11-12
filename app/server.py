@@ -923,6 +923,14 @@ async def montaz_pose_add(req: Request, name: str = ""):
     return {"ok": True, "name": fn}
 
 
+@app.get("/api/montaz/media/{kind}/{name}")
+def montaz_media(kind: str, name: str):
+    d = {"pose": POZY, "voice": GLOS}.get(kind)
+    if not d or not re.match(r"^(poza|glos)_[\w-]+\.\w{2,4}$", name) or not (d / name).is_file():
+        raise HTTPException(404)
+    return FileResponse(d / name)
+
+
 @app.delete("/api/montaz/pose/{name}")
 def montaz_pose_del(name: str):
     if re.match(r"^poza_[\w-]+\.(mov|mp4|m4v)$", name):
