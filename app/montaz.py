@@ -358,10 +358,17 @@ def _env():
     for f in (DZ / ".env",):
         try:
             for line in f.read_text().splitlines():
+                for k in ("GROQ_API_KEY", "ANTHROPIC_API_KEY", "MODEL_DEFAULT"):
+                    if line.startswith(k + "=") and line.split("=", 1)[1].strip() and not env.get(k):
+                        env[k] = line.split("=", 1)[1].strip()
                 if line.startswith("GROQ_API_KEY="):
                     env["GROQ_API_KEY"] = line.split("=", 1)[1].strip()
         except Exception:
             pass
+    # jak w Dzienniku: hook na start (pozowanie/siłownia, Twój głos) i słownik poprawek napisów
+    env["MONTAZ_POZY"] = str(DZ / "montaz" / "pozowanie")
+    env["MONTAZ_GLOS"] = str(DZ / "montaz" / "glos")
+    env["MONTAZ_SLOWNIK"] = str(DZ / "montaz" / "slownik.json")
     env["MONTAZ_MUSIC"] = str(DZ / "montaz" / "muzyka_tlo.mp3")
     env["MONTAZ_FONT"] = str(DZ / "montaz" / "Montserrat.ttf")
     env["DZ_HOME"] = str(DZ)
@@ -370,15 +377,14 @@ def _env():
 
 @router.get("/api/mont-suggest")
 def suggest(d: str = ""):
-    """Podpowiedź tytułu jak w Dzienniku: „Redukcja dzień N” / opis / dzień (nie)treningowy."""
+    """Podpowiedź tytułu jak w Dzienniku: „Dzień N” / „Tyle jem na redukcji” / „przy 163 cm” (kcal są w podsumowaniu na końcu)."""
     try:
         day = date.fromisoformat(d) if d else datetime.now(ZoneInfo("Europe/Warsaw")).date()
     except ValueError:
         day = datetime.now(ZoneInfo("Europe/Warsaw")).date()
     n = (day - date.fromisoformat(START_DAY)).days + 1
-    train = day.weekday() in (0, 2, 5)
     return {"date": day.isoformat(), "n": n, "dziennik": DZ_URL,
-            "title": [f"Redukcja dzień {n}", "2100 kcal" if train else "2000 kcal", "dzień treningowy" if train else "dzień nietreningowy"]}
+            "title": [f"Dzień {n}", "Tyle jem na redukcji", "przy 163 cm"]}
 
 
 @router.post("/api/mont-new")
