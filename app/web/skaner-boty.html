@@ -56,7 +56,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <div class="top"><h1>Strategy Lab<small id="sub">Boty paper-tradingowe · wirtualne 20 USDT każdy</small></h1></div>
- <h2 style="margin:4px 0 10px">Strategie klasyczne <small>BTC, ETH, SOL, XAU · świece 1h</small></h2>
+ <h2 style="margin:4px 0 10px">Strategie klasyczne <small>BTC, ETH, SOL, XAU · świece 1h · skalpy SCALP_*: SOL, ETH, XAU · świece 5m</small></h2>
  <div class="bots" id="bots"></div>
  <h2 style="margin:4px 0 10px">Sygnały skanera — warianty wejścia <small>każdy sygnał (real + shadow) grany 4 sposobami · świece 1m</small></h2>
  <div class="bots" id="sbots"></div>
@@ -72,7 +72,7 @@ const esc=x=>String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fmt=(v,d=2)=>v==null||isNaN(v)?'–':(+v).toLocaleString('pl',{maximumFractionDigits:d});
 const cls=v=>v>0?'pos':v<0?'neg':'';
 const COL=['#9FB3FF','#3DDC84','#FFB86B','#E58CFF','#5EE6E6','#FF8FA3','#F5E663','#B8B8C8'];
-const DESC={SQUEEZE_BREAK:'Własna: ściśnięcie zmienności → wybicie z wolumenem w kierunku trendu',EMA_TREND:'Trend: EMA20/50 + filtr EMA200',DONCHIAN:'Wybicie kanału 20 świec (Turtle)',RSI2_REVERT:'Powrót do średniej: RSI(2) z trendem',TS_MOMENTUM:'Momentum: kierunek zmiany z 48h',SCAN_LIMIT:'Limit na entry, SL/TP z sygnału (jak teraz)',SCAN_WIDE:'Limit na entry, SL min. 1× ATR(1h), to samo R:R',SCAN_DEEP:'Limit w połowie drogi entry→SL',SCAN_MARKET:'Wejście rynkowe od razu (porównanie)',SCAN_SHORT_ONLY:'Jak SCAN_LIMIT, tylko sygnały SHORT',SCAN_TREND_D1:'Jak SCAN_LIMIT, tylko zgodnie z trendem dziennym (EMA50 1D)'};
+const DESC={SQUEEZE_BREAK:'Własna: ściśnięcie zmienności → wybicie z wolumenem w kierunku trendu',EMA_TREND:'Trend: EMA20/50 + filtr EMA200',DONCHIAN:'Wybicie kanału 20 świec (Turtle)',RSI2_REVERT:'Powrót do średniej: RSI(2) z trendem',TS_MOMENTUM:'Momentum: kierunek zmiany z 48h',SCALP_REVERT:'Skalp 5m: odbicie od wstęgi Bollingera (SOL/ETH/XAU)',SCALP_MOMO:'Skalp 5m: przecięcie EMA5/20 z wolumenem (SOL/ETH/XAU)',SCAN_LIMIT:'Limit na entry, SL/TP z sygnału (jak teraz)',SCAN_WIDE:'Limit na entry, SL min. 1× ATR(1h), to samo R:R',SCAN_DEEP:'Limit w połowie drogi entry→SL',SCAN_MARKET:'Wejście rynkowe od razu (porównanie)',SCAN_SHORT_ONLY:'Jak SCAN_LIMIT, tylko sygnały SHORT',SCAN_TREND_D1:'Jak SCAN_LIMIT, tylko zgodnie z trendem dziennym (EMA50 1D)'};
 let D=null;
 function chart(bots,start){const cv=$('eq'),w=$('eqw'),dpr=devicePixelRatio||1,r=w.getBoundingClientRect();cv.width=r.width*dpr;cv.height=r.height*dpr;
  const x=cv.getContext('2d');x.scale(dpr,dpr);const W=r.width,H=r.height,P={l:44,r:10,t:10,b:20};
