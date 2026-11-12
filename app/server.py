@@ -1245,6 +1245,8 @@ async def _mz_fix_ai(d, day, rows, tr, comment, prompt):
         except Exception:
             old = []
         old = [o for o in old if o["z"].lower() not in {s["z"].lower() for s in subs}] + subs
+        if zf.exists():
+            shutil.copy2(zf, day / "napisy_zamiany_przed_poprawka.json")
         zf.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
         _slownik_add(subs)
     # nagłówek „# POPRAWKI” – przy ponownym montażu cięcia zostają (nie są liczone od nowa)
@@ -1276,6 +1278,11 @@ async def _mz_fix_ai(d, day, rows, tr, comment, prompt):
         return JSONResponse({"error": "AI nie znalazło nic do zmiany. Napisz dokładniej, np. który klip i co się powtarza."}, status_code=400)
     if len(out) <= 2:
         return JSONResponse({"error": "Po zmianach nie zostałby żaden klip."}, status_code=400)
+    try:   # kopia cięć sprzed poprawki – „Cofnij poprawkę” w centrum je przywraca
+        if (day / "kolejnosc.txt").exists():
+            shutil.copy2(day / "kolejnosc.txt", day / "kolejnosc_przed_poprawka.txt")
+    except Exception:
+        pass
     (day / "kolejnosc.txt").write_text("\n".join(out) + "\n", encoding="utf-8")
     hist = []
     try:
