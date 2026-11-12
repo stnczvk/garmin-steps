@@ -45,7 +45,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 # ---------------------------------------------------------------------------
 W, H, FPS = 1080, 1920, 30
 
-TITLE_SECONDS = 3.0        # jak długo tytuł jest na ekranie na początku
+TITLE_SECONDS = 3.5        # jak długo tytuł jest na ekranie na początku
 TITLE_FONT_SIZE = 78
 TITLE_TOP = 230            # odległość tytułu od górnej krawędzi (px)
 YELLOW = (229, 35, 47)   # akcent marki: czerwony (dawniej żółty, nazwa zostaje)
@@ -1343,7 +1343,7 @@ def main():
         m_n0 = re.search(r"dzie[nń]\s*(\d+)", " ".join(title), re.I)
         glos = przygotuj_glos(int(m_n0.group(1)) if m_n0 else 0, work) if HOOK_NA_START else None
         if glos:   # tytuł zostaje na ekranie, dopóki mówisz zdanie
-            globals()["TITLE_SECONDS"] = min(7.0, max(TITLE_SECONDS, glos[1] + 0.5))
+            globals()["TITLE_SECONDS"] = min(7.5, max(TITLE_SECONDS, glos[1] + 1.2))   # + chwila na doczytanie
             nowy = tytul_z_glosu(title, tekst_glosu(glos))
             if nowy != title:
                 print(f"[hook] tytuł z głosu: {' / '.join(nowy)}", flush=True)
@@ -1398,7 +1398,7 @@ def main():
         teaser = None
         if HOOK_NA_START:
             nr = int(m_n.group(1)) if m_n else 0
-            dl = min(7.0, max(TITLE_SECONDS, glos[1] + 0.5)) if glos else TITLE_SECONDS   # wstęp tak długi jak zdanie
+            dl = TITLE_SECONDS   # wstęp tak długi jak zdanie
             hk = wybierz_hook(plan, day, nr, licz, dl)
             if hk:
                 v, a, b, src = hk
