@@ -20,7 +20,7 @@ _states = {}          # state OAuth -> (dostawca, grupa, czas)
 
 CFG_KEYS = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "IG_APP_ID", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_PROFILES", "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"]
 SECRET_KEYS = {"GOOGLE_CLIENT_SECRET", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_CLIENT_SECRET"}
-GROUPS = {"pozaskala": "PozaSkala", "prywatne": "Prywatne", "strimy": "Strimy w Pigułce", "zdrowie": "Zdrowie 50+"}
+GROUPS = {"pozaskala": "PozaSkala", "prywatne": "Prywatne", "zdrowie": "Zdrowie 50+"}   # Strimy w Pigułce usunięte (11.2026)
 
 
 def _read(name, default):
@@ -82,7 +82,27 @@ def redirects(req: Request):
 
 # ---------------------------------------------------------------- konta
 def _accounts():
-    return _read("tokens.json", {})
+    return {k: a for k, a in _read("tokens.json", {}).items() if a.get("group") != "strimy"}
+
+
+def _usun_strimy():
+    """Jednorazowo: konta kanału Strimy w Pigułce (projekt wyłączony) znikają z tokenów i statystyk."""
+    try:
+        with _lock:
+            t = _read("tokens.json", {})
+            out = [k for k, a in t.items() if a.get("group") == "strimy"]
+            g = _read("groups.json", {})
+            out += [k for k, v in g.items() if v == "strimy"]
+            if not out:
+                return
+            _write("tokens.json", {k: a for k, a in t.items() if k not in out})   # TikTok zostaje w groups.json jako „strimy” = ukryty
+            c = _read("cache.json", {})
+            for k in out:
+                c.get("accounts", {}).pop(k, None)
+            _write("cache.json", c)
+        print("social: usunięte konta Strimy w Pigułce:", out, flush=True)
+    except Exception as e:
+        print("social: usuwanie Strimy:", e, flush=True)
 
 
 def _save_account(key, acc):
@@ -95,7 +115,8 @@ def _save_account(key, acc):
 def _tiktok():
     g = _read("groups.json", {})
     return [("tt:" + h, {"platform": "tiktok", "name": "@" + h, "group": g.get("tt:" + h, "prywatne"), "handle": h})
-            for h in [x.strip().lstrip("@") for x in cfg("TIKTOK_PROFILES").split(",") if x.strip()]]
+            for h in [x.strip().lstrip("@") for x in cfg("TIKTOK_PROFILES").split(",") if x.strip()]
+            if g.get("tt:" + h) != "strimy"]
 
 
 @router.get("/api/social/accounts")
@@ -559,3 +580,6 @@ def _scheduler():
 
 
 threading.Thread(target=_scheduler, daemon=True).start()
+
+
+_usun_strimy()
