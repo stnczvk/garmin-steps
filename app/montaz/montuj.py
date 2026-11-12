@@ -851,14 +851,14 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
         except Exception:
             pass
     def ja():
-        # ile razy z rzędu (dni przed tym) było pozowanie – po HOOK_MAX_POZ z rzędu wchodzi klip z siłowni
-        z_rzedu = 0
-        for k in range(n - 1, n - 15, -1):
-            if hist.get(str(k)) == "pozowanie":
-                z_rzedu += 1
-            else:
-                break
-        silka = bool(silka_l) and (not pozy_l or z_rzedu >= HOOK_MAX_POZ)
+        # mieszanie: losowo (stałe dla danego dnia), ok. 1/3 siłownia; ten sam rodzaj najwyżej 2 razy z rzędu
+        import random
+        ost = [hist.get(str(k)) for k in (n - 1, n - 2)]
+        if ost[0] and ost[0] == ost[1] and ost[0] in ("pozowanie", "silownia"):
+            chce_silke = ost[0] == "pozowanie"
+        else:
+            chce_silke = random.Random(n * 7919).random() < 0.38
+        silka = bool(silka_l) and (not pozy_l or chce_silke)
         L = silka_l if silka else pozy_l
         src = "silownia" if silka else "pozowanie"
         uzyte = sum(1 for k, v in hist.items() if v == src and int(k) < n)
