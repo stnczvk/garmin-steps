@@ -205,7 +205,7 @@ def _karu_run(d, *extra):
     py = DZ / "venv" / "bin" / "python"
     tool = DZ / "src" / "app" / "montaz" / "karuzela.py"
     r = subprocess.run([str(py if py.exists() else "python3"), str(tool), str(day), str(d / "gotowe" / "karuzela"), *extra],
-                       capture_output=True, text=True, timeout=1500, cwd=str(tool.parent))
+                       capture_output=True, text=True, timeout=1500, cwd=str(tool.parent), env=_env())
     if r.returncode != 0:
         raise RuntimeError((r.stderr or r.stdout)[-300:])
     return r.stdout
