@@ -154,6 +154,11 @@ def job(jid: str):
     if day and (day / "transkrypcja.txt").exists():
         st["transkrypcja"] = (day / "transkrypcja.txt").read_text(encoding="utf-8")[:4000]
     st["check"] = _rd("mont_checks.json", {}).get(jid)
+    try:
+        st["poprawiony"] = bool(day) and (day / "kolejnosc.txt").read_text(encoding="utf-8").startswith("# POPRAWKI –") \
+            and "cofnięte" not in (day / "kolejnosc.txt").read_text(encoding="utf-8").splitlines()[0]
+    except Exception:
+        st["poprawiony"] = False
     return st
 
 
@@ -304,7 +309,7 @@ def _dz_call(method, path, **kw):
 
 @router.post("/api/mont/{jid}/{action}")
 async def act(jid: str, action: str, req: Request):
-    if not _job(jid) or action not in ("redo", "fix", "check", "start"):
+    if not _job(jid) or action not in ("redo", "fix", "check", "start", "cofnij"):
         return JSONResponse({"error": "nie ma"}, status_code=404)
     if action == "check":
         C = _rd("mont_checks.json", {})
@@ -317,6 +322,25 @@ async def act(jid: str, action: str, req: Request):
             planer.drop([f"food:{jid}", f"karu:{jid}"])
         except Exception as e:
             print("planer drop", e, flush=True)
+    if action == "cofnij":     # cofnięcie przypadkowej poprawki: cięcia sprzed niej (albo od nowa automatycznie)
+        day = next(_job(jid).glob("dzien_*"))
+        ko, kp = day / "kolejnosc.txt", day / "kolejnosc_przed_poprawka.txt"
+        if kp.exists():
+            t = kp.read_text(encoding="utf-8").splitlines()
+            if t and t[0].startswith(("# AUTO", "# RĘCZNY")):
+                t[0] = "# POPRAWKI – cofnięte, cięcia sprzed poprawki"
+            ko.write_text("\n".join(t) + "\n", encoding="utf-8")
+            kp.unlink()
+        elif ko.exists() and ko.read_text(encoding="utf-8").startswith("# POPRAWKI"):
+            ko.unlink()                     # brak kopii (stara poprawka) – cięcia policzą się od nowa
+        zp = day / "napisy_zamiany_przed_poprawka.json"
+        if zp.exists():
+            zp.replace(day / "napisy_zamiany.json")
+        L = _rd("mont_lessons.json", [])   # przypadkowa uwaga nie uczy montażu
+        for k in range(len(L) - 1, -1, -1):
+            if L[k].get("kind") == "jedzenie" and L[k].get("ep") == jid:
+                L.pop(k); _wr("mont_lessons.json", L); break
+        action = "redo"
     if action in ("redo", "start"):
         C = _rd("mont_checks.json", {})
         C.pop(jid, None)
