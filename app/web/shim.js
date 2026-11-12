@@ -367,6 +367,7 @@
         <div class="note">Karty posiłków z dziennika: ${meals.length ? mzEsc(meals.join(", ")) : "<b>brak posiłków w tym dniu</b> – film będzie bez kart"}.</div>
         <div class="note">Muzyka w tle: ${info.music ? "jest ✓" : "<b>brak</b> – film będzie bez muzyki"} · <label class="techlink" style="cursor:pointer">${info.music ? "zmień" : "wgraj mp3"}<input type="file" accept="audio/*" data-mz="music" hidden></label></div>
         <div class="note">Pozowanie na start (co drugi dzień): ${(info.poses || []).length ? `${info.poses.length} nagr. ${info.poses.map((p, i) => `<button class="x" data-mz="rmpose" data-n="${mzEsc(p)}" aria-label="Usuń nagranie" title="Usuń nagranie ${i + 1}" style="display:inline;padding:0 4px">${i + 1}×</button>`).join("")}` : "<b>brak</b> – na start zawsze najładniejsze danie"} · <label class="techlink" style="cursor:pointer">dodaj<input type="file" accept="video/*" multiple data-mz="pose" hidden></label></div>
+        <div class="note">Twój głos na start (zdanie z tytułem, rotacja): ${(info.voices || []).length ? `${info.voices.length} nagr. ${info.voices.map((p, i) => `<button class="x" data-mz="rmvoice" data-n="${mzEsc(p)}" aria-label="Usuń nagranie" title="Usuń nagranie ${i + 1}" style="display:inline;padding:0 4px">${i + 1}×</button>`).join("")}` : "<b>brak</b> – start bez głosu"} · <label class="techlink" style="cursor:pointer">dodaj<input type="file" accept="audio/*,video/*" multiple data-mz="voice" hidden></label></div>
         ${mz.files.length ? `<div class="stack" style="gap:0"><span class="label">Klipy do filmu: ${mz.files.length} · ${mzMB(mz.files.reduce((a, f) => a + f.size, 0))}</span>${mz.files.map((f, i) => `<div class="mzrow"><video class="mzthumb" src="${mzUrl(f)}#t=0.1" muted playsinline preload="metadata"></video><span class="mzname"><b>Klip ${i + 1}</b><span class="note">${mzEsc(f.name)} · ${mzMB(f.size)}</span></span><button class="x" data-mz="rmclip" data-i="${i}" aria-label="Usuń klip">×</button></div>`).join("")}</div>` : ""}
         <label class="btn ghost" style="cursor:pointer;text-align:center">${mz.files.length ? "+ Dodaj kolejne klipy" : "Wybierz klipy z galerii"}<input type="file" accept="video/*" multiple data-mz="clips" hidden></label>
         ${mz.files.length ? `<button class="btn" data-mz="go" ${info.groq && info.ffmpeg ? "" : "disabled"}>Montaż film</button>` : `<span class="note">Każdy posiłek = osobny klip, mów co jesz („na obiad…”). Pomyłkę powtórz od początku zdania – pierwsze podejście się wytnie. Kolejność ułoży się wg godziny nagrania.</span>`}`;
@@ -456,7 +457,16 @@
       mz.err = ""; t.value = ""; mzPaint();
     }
     if (t.dataset && t.dataset.mz === "start" && t.value) { try { mz.info = await req("POST", "/montaz/settings", { start: t.value }); } catch (e) {} delete mz.titles[mzDate()]; mzPaint(); }
-    if (t.dataset && t.dataset.mz === "pose" && t.files.length) {
+    if (t.dataset && (t.dataset.mz === "pose" || t.dataset.mz === "voice") && t.files.length) {
+      const fs = [...t.files], vo = t.dataset.mz === "voice"; mz.err = "";
+      for (let i = 0; i < fs.length; i++) {
+        mz.up = { label: vo ? "głos" : "pozowanie", i: i + 1, n: fs.length, pct: 0 }; mzPaint();
+        try { await mzPut(`/api/montaz/${vo ? "voice" : "pose"}?name=${encodeURIComponent(fs[i].name)}`, fs[i], (p, g, tt) => { mz.up.pct = p; mz.up.got = g; mz.up.tot = tt; mzPaint(); }); } catch (e) { mz.err = e.message; break; }
+      }
+      try { mz.info = await req("GET", "/montaz/info"); } catch (e) {}
+      mz.up = null; t.value = ""; mzPaint();
+    }
+    if (false) {
       const fs = [...t.files]; mz.err = "";
       for (let i = 0; i < fs.length; i++) {
         mz.up = { label: "pozowanie", i: i + 1, n: fs.length, pct: 0 }; mzPaint();
@@ -513,6 +523,7 @@
       if (o) mzPaint(); return;
     }
     if (a === "listtog") { try { localStorage.setItem("dz-mz-list", mzListOpen() ? "0" : "1") } catch (e) {} mzPaint(); return; }
+    if (a === "rmvoice") { if (!confirm("Usunąć to nagranie głosu?")) return; try { mz.info = await req("DELETE", "/montaz/voice/" + encodeURIComponent(b.dataset.n)); } catch (e) { mz.err = e.message; } mzPaint(); return; }
     if (a === "rmpose") { if (!confirm("Usunąć to nagranie z pozowania?")) return; try { mz.info = await req("DELETE", "/montaz/pose/" + encodeURIComponent(b.dataset.n)); } catch (e) { mz.err = e.message; } mzPaint(); return; }
     if (a === "rmclip") { const f = mz.files[+b.dataset.i]; if (f && mzUrls.has(f)) { URL.revokeObjectURL(mzUrls.get(f)); mzUrls.delete(f); } mz.files.splice(+b.dataset.i, 1); mzPaint(); return; }
     if (a === "new") { mz.job = null; mz.pick = null; mz.blob = null; mz.err = ""; mzPaint(); }

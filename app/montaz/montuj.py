@@ -66,6 +66,7 @@ EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy l
 PASEK_POSTEPU = False      # cienki żółty pasek na górze, rośnie przez cały film
 HOOK_NA_START = True       # pod tytułem: dni parzyste pozowanie, nieparzyste najładniejsze danie (wybiera AI), potem dzień po kolei
 HOOK_POZA_SECONDS = 3.0    # ile sekund pozowania na starcie
+HOOK_TLO_GLOS = 0.25       # dźwięk siłowni pod Twoim głosem (0-1)
 KONIEC_SECONDS = 0         # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
 
 PODSUMOWANIE_SECONDS = 4.0 # karta z kaloriami i makro dnia na końcu (z dziennika)
@@ -804,7 +805,7 @@ def _klatka_jpg(video, t, hdr):
     return r.stdout
 
 
-def wybierz_hook(plan, day, n, licz):
+def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
     """Hook pod tytułem: dni parzyste – nagranie z pozowania (rotacja), nieparzyste – najładniejszy posiłek wg AI.
     Zwraca (plik, start, koniec, źródło) albo None (tytuł zostaje na pierwszym klipie)."""
     import base64, urllib.request
@@ -813,8 +814,9 @@ def wybierz_hook(plan, day, n, licz):
     if lista and n % 2 == 0:
         v = lista[(n // 2) % len(lista)]
         dur = probe(v)[0]
-        a = max(0.0, dur / 2 - HOOK_POZA_SECONDS / 2)
-        return v, a, min(dur, a + HOOK_POZA_SECONDS), "pozowanie"
+        dl = max(dl, HOOK_POZA_SECONDS)
+        a = max(0.0, dur / 2 - dl / 2)
+        return v, a, min(dur, a + dl), "pozowanie"
     if len(plan) < 2:
         return None
     # kandydaci: 3 klatki z końcowej części każdego klipu (tam zwykle gotowe danie)
@@ -873,11 +875,41 @@ def wybierz_hook(plan, day, n, licz):
     else:   # bez AI: największy posiłek wg dziennika, a bez danych ostatni klip
         i = max(range(len(plan)), key=lambda x: licz.get(plan[x][0].name, 0)) if licz else len(plan) - 1
         a, b = (plan[i][2] or [(0.0, probe(plan[i][0])[0])])[-1]
-        t = b - 0.3 - TITLE_SECONDS / 2
+        t = b - 0.3 - dl / 2
     if i == 0:
         return None          # najlepsze jest pierwsze ujęcie – nie dublujemy, tytuł leci na nim
-    s0 = min(max(a, t - TITLE_SECONDS / 2), max(a, b - TITLE_SECONDS))
-    return plan[i][0], s0, min(b, s0 + TITLE_SECONDS), "jedzenie"
+    s0 = min(max(a, t - dl / 2), max(a, b - dl))
+    return plan[i][0], s0, min(b, s0 + dl), "jedzenie"
+
+
+def przygotuj_glos(n, work):
+    """Twoje nagranie zdania z tytułem (rotacja po dniach): bez ciszy na początku/końcu, wyrównana głośność.
+    Zwraca (plik wav, długość) albo None."""
+    gd = Path(os.environ.get("MONTAZ_GLOS", "") or "/nonexistent")
+    lista = sorted(f for f in gd.glob("glos_*") if not f.name.endswith(".part")) if gd.is_dir() else []
+    if not lista:
+        return None
+    src = lista[n % len(lista)]
+    out = work / "glos_hook.wav"
+    cisza = "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.08"
+    try:
+        run(["ffmpeg", "-y", "-i", str(src), "-vn", "-af",
+             f"{cisza},areverse,{cisza},areverse,loudnorm=I=-14:TP=-1.5,aresample=44100",
+             "-ac", "2", "-t", "5", str(out)])
+        dur = probe(out)[0]
+        return (out, dur, src.name) if dur > 0.3 else None
+    except Exception as e:
+        print(f"[hook] głos pominięty ({e.__class__.__name__})", flush=True)
+        return None
+
+
+def dolej_glos(seg, glos, tlo, work):
+    """Głos na wierzch hooka; oryginalny dźwięk ujęcia (siłownia) zostaje cicho w tle (tlo = głośność, 0 = cisza)."""
+    out = work / "seg_hook_glos.mp4"
+    run(["ffmpeg", "-y", "-i", str(seg), "-i", str(glos), "-filter_complex",
+         f"[0:a]volume={tlo}[t];[1:a]adelay=150|150,apad[g];[t][g]amix=inputs=2:duration=first:normalize=0[a]",
+         "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "44100", str(out)])
+    return out
 
 
 def base_filter(transfer, auto=""):
@@ -1232,11 +1264,18 @@ def main():
         licz = (summary or {}).get("licznik") or {}
         teaser = None
         if HOOK_NA_START:
-            hk = wybierz_hook(plan, day, int(m_n.group(1)) if m_n else 0, licz)
+            nr = int(m_n.group(1)) if m_n else 0
+            glos = przygotuj_glos(nr, work)
+            dl = min(4.5, max(TITLE_SECONDS, glos[1] + 0.45)) if glos else TITLE_SECONDS
+            hk = wybierz_hook(plan, day, nr, licz, dl)
             if hk:
                 v, a, b, src = hk
+                ja = src == "pozowanie"     # siłownia/pozowanie: oryginalny dźwięk zostaje; jedzenie: Twój głos z klipu wyciszony
                 seg, d, *_ = render_segment(v, [], title_png, work, 999, [(a, b)],
-                                            tail=max(0.0, TITLE_SECONDS - (b - a)), mute=True)
+                                            tail=max(0.0, dl - (b - a)), mute=not ja)
+                if glos:
+                    seg = dolej_glos(seg, glos[0], HOOK_TLO_GLOS if ja else 0.0, work)
+                    print(f"[hook] głos: {glos[2]} ({glos[1]:.1f}s)", flush=True)
                 segments.append(seg); total += d; teaser = src
                 print(f"[hook] start: {v.name} {a:.1f}-{b:.1f}s ({src})", flush=True)
         for i, (video, shots, keep) in enumerate(plan):

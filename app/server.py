@@ -775,6 +775,7 @@ MZ_ID = re.compile(r"^[0-9]{8}-[0-9]{6}-[a-z0-9]{4}$")
 MZ_KIND = {"clip": {".mov", ".mp4", ".m4v"}, "card": {".png", ".jpg", ".jpeg"}}
 
 
+GLOS = MZ_DIR / "glos"                # Twoje nagrania zdania z tytułem – głos pod hookiem (rotacja)
 POZY = MZ_DIR / "pozowanie"           # nagrania z pozowania – hook na start daily (co drugi dzień)
 SLOWNIK = MZ_DIR / "slownik.json"      # poprawki słów zapamiętane na stałe (uczą się z uwag w aplikacji)
 
@@ -814,6 +815,7 @@ def _mz_env():
     env["DZ_DB"] = str(DB_PATH)
     env["MONTAZ_SLOWNIK"] = str(SLOWNIK)
     env["MONTAZ_POZY"] = str(POZY)
+    env["MONTAZ_GLOS"] = str(GLOS)
     return env
 
 
@@ -869,7 +871,37 @@ def montaz_info():
     return {"groq": bool(env.get("GROQ_API_KEY")), "music": (MZ_DIR / "muzyka_tlo.mp3").is_file(),
             "start": kv_get("mz_start") or "2026-09-08", "last": last,
             "ffmpeg": shutil.which("ffmpeg") is not None,
+            "voices": sorted(f.name for f in GLOS.iterdir() if f.suffix.lower() in GLOS_EXT) if GLOS.is_dir() else [],
             "poses": sorted(f.name for f in POZY.iterdir() if f.suffix.lower() in (".mov", ".mp4", ".m4v")) if POZY.is_dir() else []}
+
+
+GLOS_EXT = (".m4a", ".mp3", ".wav", ".aac", ".mov", ".mp4", ".m4v", ".caf", ".ogg", ".webm")
+
+
+@app.put("/api/montaz/voice")
+async def montaz_voice_add(req: Request, name: str = ""):
+    ext = Path(name).suffix.lower() or ".m4a"
+    if ext not in GLOS_EXT:
+        return JSONResponse({"error": "To nie jest nagranie głosu."}, status_code=400)
+    GLOS.mkdir(parents=True, exist_ok=True)
+    fn = f"glos_{datetime.now(TZ).strftime('%Y%m%d-%H%M%S')}_{secrets.token_hex(2)}{ext}"
+    tmp, n = GLOS / (fn + ".part"), 0
+    with tmp.open("wb") as f:
+        async for chunk in req.stream():
+            n += len(chunk)
+            if n > 200 * 1024 * 1024:
+                f.close(); tmp.unlink(missing_ok=True)
+                return JSONResponse({"error": "Plik za duży (max 200 MB)."}, status_code=413)
+            f.write(chunk)
+    tmp.replace(GLOS / fn)
+    return {"ok": True, "name": fn}
+
+
+@app.delete("/api/montaz/voice/{name}")
+def montaz_voice_del(name: str):
+    if re.match(r"^glos_[\w-]+\.\w{2,4}$", name):
+        (GLOS / name).unlink(missing_ok=True)
+    return montaz_info()
 
 
 @app.put("/api/montaz/pose")
