@@ -641,59 +641,6 @@ def g_etsy_manager():
     top = (f or w or I or [{"msg": ""}])[0]["msg"]
     return st, f"sklep {R.get('score')}/100 · {len(f)} pilne, {len(w)} do poprawy" + (f" · {top[:70]}" if top else ""), None
 
-def g_klip_scan():
-    d = _read("klipping.json", {})
-    if not d.get("scanned"):
-        return IDLE, "kampanie jeszcze nie sprawdzane – kliknij „Szukaj teraz” w Klippingu", None
-    age = time.time() - d["scanned"]
-    C = d.get("campaigns", [])
-    top = C[0] if C else None
-    msg = f"{len(C)} kampanii, sprawdzone {_ago(d['scanned'])}" + (f" · najlepsza ${top['rate']:.2f}/1000 ({top['name'][:30]})" if top else "")
-    return (WARN if age > 26 * 3600 or not C else OK), msg, None
-
-
-def g_klip_jobs():
-    J = _read("klipping.json", {}).get("jobs", [])
-    stuck = [j for j in J if j.get("state") == "working" and time.time() - j.get("at", 0) > 5400]
-    err = [j for j in J if j.get("state") == "error" and time.time() - j.get("at", 0) < 86400]
-    wait = [j for j in J if j.get("state") == "queued" and time.time() - j.get("created", 0) > 900]
-    if stuck:
-        return WARN, f"zadanie stoi od {_ago(stuck[0].get('at', 0))}: {stuck[0].get('step', '')}", None
-    if wait:
-        return WARN, f"{len(wait)} zadań czeka na Maca ponad 15 min – czy Mac jest włączony?", None
-    if err:
-        return WARN, f"błąd w ostatnich 24 h: {err[-1].get('error', '')[:90]}", None
-    done = [j for j in J if j.get("state") == "done"]
-    return OK, (f"ostatnie: {len(done[-1]['clips'])} klipów, {_ago(done[-1].get('at', 0))}" if done else "brak zadań"), None
-
-
-def g_strimy():
-    """Kanał Strimy w Pigułce: konta podłączone, publikacje bez błędów, coś zaplanowane na najbliższe dni."""
-    P = [x for x in _read("posts_plan.json", []) if x.get("group") == "strimy"]
-    if not P:
-        return IDLE, "jeszcze nic nie zaplanowane – zrób pierwsze filmy w Klippingu", None
-    acc = _read("tokens.json", {})
-    miss = [p for p in ("youtube", "instagram") if not any(a.get("group") == "strimy" and a.get("platform") == p for a in acc.values())]
-    err = [x for x in P if x.get("status") == "error" and time.time() - (x.get("when") or 0) < 3 * 86400]
-    nxt = sorted(x["when"] for x in P if x.get("status") == "approved" and x["when"] > time.time())
-    pub = [x for x in P if x.get("status") == "published"]
-    if miss:
-        return FAIL, "brak połączonego konta: " + ", ".join(miss) + " – Klipping → Połącz", None
-    if err:
-        return FAIL, f"{len(err)} publikacji z błędem: {str(err[-1].get('error', ''))[:90]}", None
-    al = [x for x in P if any(((x.get("stats") or {}).get(p) or {}).get("alert") for p in ("yt", "ig"))]
-    if al:
-        st = al[-1]["stats"]
-        return FAIL, f"{len(al)} filmów z problemem (blokada/zgłoszenie?): " + ((st.get("yt") or {}).get("alert") or (st.get("ig") or {}).get("alert") or "")[:80], None
-    if not nxt:
-        return WARN, "nic nie jest zaplanowane – wrzuć nowy stream w Klippingu", None
-    if nxt[0] - time.time() > 36 * 3600:
-        return WARN, f"najbliższa publikacja dopiero {_ago(nxt[0])} – kolejka się kończy", None
-    views = sum(((x.get("stats") or {}).get(p) or {}).get("views", 0) for x in pub for p in ("yt", "ig"))
-    return OK, f"{len(nxt)} w kolejce, najbliższa za {int((nxt[0] - time.time()) // 3600)} h · opublikowane: {len(pub)}, razem {views:,} wyśw.".replace(",", " "), None
-
-
-# ---------------------------------------------------------------- lista strażników
 G = [
     ("vps", "Serwer", "infra", "🖥️", "Dysk, pamięć i obciążenie VPS", g_vps),
     ("ssl", "Certyfikat HTTPS", "infra", "🔐", "Czy certyfikat centrum nie wygasa", g_ssl),
@@ -727,12 +674,9 @@ G = [
     ("etsyp", "Personalizacje", "etsy", "✍️", "Czy zamówienia z personalizacją są wysłane na czas (48 h)", g_etsy_pers),
     ("etsyt", "Ruch w sklepie", "etsy", "👀", "Wyświetlenia i sprzedaż z ostatnich 7 dni", g_etsy_traffic),
     ("etsyj", "Zmiany w ofertach", "etsy", "🔧", "Czy ostatnia podmiana / wystawianie z centrum przeszło bez błędów", g_etsy_job),
-    # strażnik kampanii Whop (g_klip_scan) wyłączony – kampanie wstrzymane (11.2026)
-    ("kstrim", "Kanał Strimy w Pigułce", "klip", "📺", "Czy konta są podłączone, publikacje idą bez błędów i kolejka się nie kończy", g_strimy),
-    ("kjob", "Klipy z linków", "klip", "✂️", "Czy zadania „link → klipy” idą bez zawieszeń i błędów", g_klip_jobs),
     ("etsym", "Menedżer sklepu", "etsy", "🧭", "Codzienny audyt: tytuły, tagi, zdjęcia, film, wygasanie, konwersja, sezon (co 6 h)", g_etsy_manager),
 ]
-AREAS = {"infra": "Infrastruktura", "pozaskala": "PozaSkala", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy", "klip": "Klipping"}
+AREAS = {"infra": "Infrastruktura", "pozaskala": "PozaSkala", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy"}
 
 
 def run_all(push=True):
