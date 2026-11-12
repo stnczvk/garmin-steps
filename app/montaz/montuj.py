@@ -873,7 +873,7 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
     kand = []
     for i, (v, _, keep) in enumerate(plan):
         dur, _, tr = probe(v)
-        kp = keep or [(0.0, dur)]
+        kp = [(max(0.0, x), min(dur, y)) for x, y in (keep or [(0.0, dur)]) if min(dur, y) - max(0.0, x) > 0.5] or [(0.0, dur)]
         a, b = kp[-1]
         hdr = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,"
                "zscale=t=bt709:m=bt709:r=tv,format=yuv420p,") if tr in ("arib-std-b67", "smpte2084") else ""
@@ -934,10 +934,13 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
         i, t, a, b, _ = kand[wyb]
     else:   # bez AI: największy posiłek wg dziennika, a bez danych ostatni klip
         i = max(range(len(plan)), key=lambda x: licz.get(plan[x][0].name, 0)) if licz else len(plan) - 1
-        a, b = (plan[i][2] or [(0.0, probe(plan[i][0])[0])])[-1]
+        dd = probe(plan[i][0])[0]
+        a, b = ([(max(0.0, x), min(dd, y)) for x, y in (plan[i][2] or []) if min(dd, y) - max(0.0, x) > 0.5] or [(0.0, dd)])[-1]
         t = b - 0.3 - dl / 2
     zapisz("jedzenie")
     s0 = min(max(a, t - dl / 2), max(a, b - dl))
+    if min(b, s0 + dl) - s0 < 0.5:
+        return None
     if i == 0 and s0 < 1.0:
         return None          # najlepszy kadr to sam początek filmu – tytuł i tak leci na nim
     return plan[i][0], s0, min(b, s0 + dl), "jedzenie"
@@ -1332,8 +1335,13 @@ def main():
             if hk:
                 v, a, b, src = hk
                 ja = src in ("pozowanie", "silownia")    # siłownia/pozowanie: oryginalny dźwięk zostaje; jedzenie: Twój głos z klipu wyciszony
-                seg, d, *_ = render_segment(v, [], title_png, work, 999, [(a, b)],
-                                            tail=max(0.0, dl - (b - a)), mute=not ja)
+                try:
+                    seg, d, *_ = render_segment(v, [], title_png, work, 999, [(a, b)],
+                                                tail=max(0.0, dl - (b - a)), mute=not ja)
+                except (SystemExit, Exception) as e:
+                    print(f"[hook] wstęp pominięty ({e})", flush=True)
+                    seg = None
+            if hk and seg is not None:
                 if glos:
                     seg = dolej_glos(seg, glos[0], HOOK_TLO_GLOS if ja else 0.0, work)
                     print(f"[hook] głos: {glos[2]} ({glos[1]:.1f}s)", flush=True)
