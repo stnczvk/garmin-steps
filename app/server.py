@@ -872,7 +872,8 @@ def montaz_info():
             "start": kv_get("mz_start") or "2026-09-08", "last": last,
             "ffmpeg": shutil.which("ffmpeg") is not None,
             "voices": sorted(f.name for f in GLOS.iterdir() if f.suffix.lower() in GLOS_EXT) if GLOS.is_dir() else [],
-            "poses": sorted(f.name for f in POZY.iterdir() if f.suffix.lower() in (".mov", ".mp4", ".m4v")) if POZY.is_dir() else []}
+            "poses": sorted((f.name for f in POZY.iterdir() if f.suffix.lower() in (".mov", ".mp4", ".m4v")),
+                            key=lambda x: x.split("_", 1)[-1]) if POZY.is_dir() else []}
 
 
 GLOS_EXT = (".m4a", ".mp3", ".wav", ".aac", ".mov", ".mp4", ".m4v", ".caf", ".ogg", ".webm")
@@ -926,15 +927,24 @@ async def montaz_pose_add(req: Request, name: str = ""):
 @app.get("/api/montaz/media/{kind}/{name}")
 def montaz_media(kind: str, name: str):
     d = {"pose": POZY, "voice": GLOS}.get(kind)
-    if not d or not re.match(r"^(poza|glos)_[\w-]+\.\w{2,4}$", name) or not (d / name).is_file():
+    if not d or not re.match(r"^(poza|silka|glos)_[\w-]+\.\w{2,4}$", name) or not (d / name).is_file():
         raise HTTPException(404)
     return FileResponse(d / name)
 
 
 @app.delete("/api/montaz/pose/{name}")
 def montaz_pose_del(name: str):
-    if re.match(r"^poza_[\w-]+\.(mov|mp4|m4v)$", name):
+    if re.match(r"^(poza|silka)_[\w-]+\.(mov|mp4|m4v)$", name):
         (POZY / name).unlink(missing_ok=True)
+    return montaz_info()
+
+
+@app.post("/api/montaz/pose/{name}/kind")
+def montaz_pose_kind(name: str):
+    """Przełącza nagranie: pozowanie <-> siłownia (prefiks nazwy pliku)."""
+    m = re.match(r"^(poza|silka)_([\w-]+\.(mov|mp4|m4v))$", name)
+    if m and (POZY / name).is_file():
+        (POZY / name).rename(POZY / (("silka_" if m.group(1) == "poza" else "poza_") + m.group(2)))
     return montaz_info()
 
 

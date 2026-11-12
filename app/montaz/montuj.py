@@ -66,6 +66,7 @@ EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy l
 PASEK_POSTEPU = False      # cienki żółty pasek na górze, rośnie przez cały film
 HOOK_NA_START = True       # pod tytułem: dni parzyste pozowanie, nieparzyste najładniejsze danie (wybiera AI), potem dzień po kolei
 HOOK_POZA_SECONDS = 3.0    # ile sekund pozowania na starcie
+HOOK_MAX_POZ = 4           # po tylu pozowaniach z rzędu na starcie wchodzi klip z siłowni
 HOOK_MIN_OCENA = 6         # danie poniżej tej oceny AI (1-10) -> na start siłownia/pozowanie
 HOOK_TLO_GLOS = 0.25       # dźwięk siłowni pod Twoim głosem (0-1)
 KONIEC_SECONDS = 0         # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
@@ -806,20 +807,66 @@ def _klatka_jpg(video, t, hdr):
     return r.stdout
 
 
+def okno_bez_ruchu(v, dl):
+    """Fragment pozowania, który zaczyna się i kończy w momencie bez ruchu (trzymana poza), a nie w połowie przejścia."""
+    from PIL import ImageChops, ImageStat
+    dur = probe(v)[0]
+    if dur <= dl + 0.2:
+        return 0.0, dur
+    try:
+        r = subprocess.run(["ffmpeg", "-v", "error", "-i", str(v), "-vf", "fps=10,scale=32:56,format=gray",
+                            "-f", "rawvideo", "-"], capture_output=True, timeout=180)
+        fr = [Image.frombytes("L", (32, 56), r.stdout[k:k + 32 * 56]) for k in range(0, len(r.stdout) - 32 * 56 + 1, 32 * 56)]
+        d = [0.0] + [ImageStat.Stat(ImageChops.difference(fr[k], fr[k - 1])).mean[0] for k in range(1, len(fr))]
+        sm = [sum(d[max(0, k - 2):k + 3]) / len(d[max(0, k - 2):k + 3]) for k in range(len(d))]
+        L = int(round(dl * 10))
+        best = min(range(0, max(1, len(sm) - L)), key=lambda s0: sm[s0] + 1.3 * sm[min(len(sm) - 1, s0 + L - 1)]
+                   + 0.02 * abs(s0 + L / 2 - len(sm) / 2))   # lekko wolimy środek nagrania
+        a = best / 10
+        return a, min(dur, a + dl)
+    except Exception:
+        a = max(0.0, dur / 2 - dl / 2)
+        return a, min(dur, a + dl)
+
+
 def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
-    """Hook pod tytułem: dni parzyste – nagranie z pozowania (rotacja), nieparzyste – najładniejszy posiłek wg AI.
+    """Hook pod tytułem: najładniejszy posiłek wg AI; gdy żaden nie jest ładny – pozowanie,
+    a po HOOK_MAX_POZ pozowaniach z rzędu klip z siłowni.
     Zwraca (plik, start, koniec, źródło) albo None (tytuł zostaje na pierwszym klipie)."""
     import base64, urllib.request
     pozy = Path(os.environ.get("MONTAZ_POZY", "") or "/nonexistent")
-    lista = sorted(f for f in pozy.glob("*") if f.suffix.lower() in VIDEO_EXT) if pozy.is_dir() else []
-    def poza():
-        v = lista[(n // 2) % len(lista)]
-        dur = probe(v)[0]
-        d2 = max(dl, HOOK_POZA_SECONDS)
-        a = max(0.0, dur / 2 - d2 / 2)
-        return v, a, min(dur, a + d2), "pozowanie"
-    if lista and n % 2 == 0:
-        return poza()
+    wszystkie = sorted(f for f in pozy.glob("*") if f.suffix.lower() in VIDEO_EXT) if pozy.is_dir() else []
+    pozy_l = [f for f in wszystkie if not f.name.startswith("silka_")]
+    silka_l = [f for f in wszystkie if f.name.startswith("silka_")]
+    hist_f = pozy / "historia_hookow.json"
+    try:
+        hist = json.loads(hist_f.read_text(encoding="utf-8"))
+    except Exception:
+        hist = {}
+    def zapisz(src):
+        try:
+            hist[str(n)] = src
+            hist_f.write_text(json.dumps(dict(sorted(hist.items(), key=lambda x: int(x[0]))[-60:])), encoding="utf-8")
+        except Exception:
+            pass
+    def ja():
+        # ile razy z rzędu (dni przed tym) było pozowanie – po HOOK_MAX_POZ z rzędu wchodzi klip z siłowni
+        z_rzedu = 0
+        for k in range(n - 1, n - 15, -1):
+            if hist.get(str(k)) == "pozowanie":
+                z_rzedu += 1
+            else:
+                break
+        silka = bool(silka_l) and (not pozy_l or z_rzedu >= HOOK_MAX_POZ)
+        L = silka_l if silka else pozy_l
+        src = "silownia" if silka else "pozowanie"
+        uzyte = sum(1 for k, v in hist.items() if v == src and int(k) < n)
+        v = L[uzyte % len(L)]
+        a, b = okno_bez_ruchu(v, max(dl, HOOK_POZA_SECONDS))
+        zapisz(src)
+        return v, a, b, src
+    if len(plan) < 2:
+        return ja() if wszystkie else None
     if len(plan) < 2:
         return None
     # kandydaci: 3 klatki z końcowej części każdego klipu (tam zwykle gotowe danie)
@@ -880,15 +927,16 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
         slabe = ocena is not None and float(ocena) < HOOK_MIN_OCENA
     except Exception:
         slabe = False
-    if slabe and lista:      # nic ładnego do pokazania – zamiast jedzenia siłownia/pozowanie
-        print(f"[hook] jedzenie za słabe ({ocena}/10) – na start siłownia/pozowanie", flush=True)
-        return poza()
+    if slabe and wszystkie:      # nic ładnego do pokazania – zamiast jedzenia pozowanie (albo siłownia)
+        print(f"[hook] jedzenie za słabe ({ocena}/10) – na start pozowanie/siłownia", flush=True)
+        return ja()
     if wyb is not None and wyb < len(kand):
         i, t, a, b, _ = kand[wyb]
     else:   # bez AI: największy posiłek wg dziennika, a bez danych ostatni klip
         i = max(range(len(plan)), key=lambda x: licz.get(plan[x][0].name, 0)) if licz else len(plan) - 1
         a, b = (plan[i][2] or [(0.0, probe(plan[i][0])[0])])[-1]
         t = b - 0.3 - dl / 2
+    zapisz("jedzenie")
     if i == 0:
         return None          # najlepsze jest pierwsze ujęcie – nie dublujemy, tytuł leci na nim
     s0 = min(max(a, t - dl / 2), max(a, b - dl))
@@ -1283,7 +1331,7 @@ def main():
             hk = wybierz_hook(plan, day, nr, licz, dl)
             if hk:
                 v, a, b, src = hk
-                ja = src == "pozowanie"     # siłownia/pozowanie: oryginalny dźwięk zostaje; jedzenie: Twój głos z klipu wyciszony
+                ja = src in ("pozowanie", "silownia")    # siłownia/pozowanie: oryginalny dźwięk zostaje; jedzenie: Twój głos z klipu wyciszony
                 seg, d, *_ = render_segment(v, [], title_png, work, 999, [(a, b)],
                                             tail=max(0.0, dl - (b - a)), mute=not ja)
                 if glos:
