@@ -408,7 +408,7 @@ def suggest(d: str = ""):
         day = datetime.now(ZoneInfo("Europe/Warsaw")).date()
     n = (day - date.fromisoformat(START_DAY)).days + 1
     return {"date": day.isoformat(), "n": n, "dziennik": DZ_URL,
-            "title": [f"Dzień {n}", "Tyle jem na redukcji", "przy 163 cm"]}
+            "title": [f"Dzień {n}", "Tyle jem na redukcji", "przy 163 cm wzrostu"]}
 
 
 @router.post("/api/mont-new")
