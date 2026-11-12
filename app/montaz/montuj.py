@@ -808,7 +808,7 @@ def _klatka_jpg(video, t, hdr):
     return r.stdout
 
 
-def okno_bez_ruchu(v, dl):
+def okno_bez_ruchu(v, dl, wariant=0):
     """Fragment pozowania, który zaczyna się i kończy w momencie bez ruchu (trzymana poza), a nie w połowie przejścia."""
     from PIL import ImageChops, ImageStat
     dur = probe(v)[0]
@@ -821,9 +821,15 @@ def okno_bez_ruchu(v, dl):
         d = [0.0] + [ImageStat.Stat(ImageChops.difference(fr[k], fr[k - 1])).mean[0] for k in range(1, len(fr))]
         sm = [sum(d[max(0, k - 2):k + 3]) / len(d[max(0, k - 2):k + 3]) for k in range(len(d))]
         L = int(round(dl * 10))
-        best = min(range(0, max(1, len(sm) - L)), key=lambda s0: sm[s0] + 1.3 * sm[min(len(sm) - 1, s0 + L - 1)]
-                   + 0.02 * abs(s0 + L / 2 - len(sm) / 2))   # lekko wolimy środek nagrania
-        a = best / 10
+        koszt = lambda s0: sm[s0] + 1.3 * sm[min(len(sm) - 1, s0 + L - 1)] + 0.02 * abs(s0 + L / 2 - len(sm) / 2)
+        okna = []          # najlepsze okna, które na siebie nie nachodzą – przy kolejnym użyciu nagrania inna poza
+        for s0 in sorted(range(0, max(1, len(sm) - L)), key=koszt):
+            if all(abs(s0 - o) >= L * 0.8 for o in okna):
+                okna.append(s0)
+            if len(okna) >= 6:
+                break
+        dobre = [o for o in okna if koszt(o) <= koszt(okna[0]) * 2.5 + 1.0] or okna[:1]
+        a = dobre[wariant % len(dobre)] / 10
         return a, min(dur, a + dl)
     except Exception:
         a = max(0.0, dur / 2 - dl / 2)
@@ -863,7 +869,7 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
         src = "silownia" if silka else "pozowanie"
         uzyte = sum(1 for k, v in hist.items() if v == src and int(k) < n)
         v = L[uzyte % len(L)]
-        a, b = okno_bez_ruchu(v, max(dl, HOOK_POZA_SECONDS))
+        a, b = okno_bez_ruchu(v, max(dl, HOOK_POZA_SECONDS), uzyte // len(L))
         zapisz(src)
         return v, a, b, src
     if not HOOK_JEDZENIE and wszystkie:      # wstęp zawsze z Tobą: pozowanie, co 5. dzień siłownia
