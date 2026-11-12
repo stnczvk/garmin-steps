@@ -1003,8 +1003,14 @@ def tekst_glosu(glos):
 
 def tytul_z_glosu(title, tekst):
     """„Dzień N” + to, co mówisz w nagraniu, w 2 wyrównanych linijkach (tylko gdy tytuł jest domyślny)."""
-    if not tekst or len(title) < 2 or not title[1].lower().startswith("tyle jem") or len(tekst) > 70:
+    if not tekst or len(title) < 2 or len(tekst) > 70:
         return title
+    # tylko domyślny tytuł (nowy „Tyle jem…” albo stary „… dzień N / 2100 kcal / dzień treningowy”) – własny zostaje
+    dom = lambda l: bool(re.match(r"^(tyle jem|\d[\d\s]*kcal$|dzień (nie)?treningowy$|przy \d+ ?cm$)", l.strip().lower()))
+    if not all(dom(l) for l in title[1:]):
+        return title
+    m = re.search(r"dzie[nń]\s*(\d+)", title[0], re.I)
+    title = [f"Dzień {m.group(1)}" if m else title[0]] + title[1:]
     w = tekst.split()
     for n_l in (2, 3):        # linijki do ~22 znaków, żeby paski mieściły się na ekranie
         lines, cur = [], []
