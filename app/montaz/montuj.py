@@ -937,9 +937,9 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
         a, b = (plan[i][2] or [(0.0, probe(plan[i][0])[0])])[-1]
         t = b - 0.3 - dl / 2
     zapisz("jedzenie")
-    if i == 0:
-        return None          # najlepsze jest pierwsze ujęcie – nie dublujemy, tytuł leci na nim
     s0 = min(max(a, t - dl / 2), max(a, b - dl))
+    if i == 0 and s0 < 1.0:
+        return None          # najlepszy kadr to sam początek filmu – tytuł i tak leci na nim
     return plan[i][0], s0, min(b, s0 + dl), "jedzenie"
 
 
