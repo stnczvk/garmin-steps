@@ -151,6 +151,7 @@ def draw_title_png(lines, out):
     shade.putalpha(grad.resize((W, 700)))
     img.alpha_composite(shade)
     y = TITLE_TOP
+    ai = next((k for k, x in enumerate(lines) if k > 0 and re.search(r"kcal|\d ?cm", x, re.I)), len(lines) - 1 if len(lines) > 1 else -1)
     for i, line in enumerate(lines):
         fs = TITLE_FONT_SIZE if i == 0 else int(TITLE_FONT_SIZE * 0.78)
         f = font(fs, 800)
@@ -165,8 +166,8 @@ def draw_title_png(lines, out):
         ImageDraw.Draw(sh).rounded_rectangle([40, 52, 40 + bw, 52 + bh], 18, fill=(0, 0, 0, 110))
         bar.alpha_composite(sh.filter(ImageFilter.GaussianBlur(14)))
         d = ImageDraw.Draw(bar)
-        d.rounded_rectangle([40, 40, 40 + bw, 40 + bh], 18, fill=YELLOW if "kcal" in line.lower() else (255, 255, 255))
-        d.text((40 + px - bb[0], 40 + py - bb[1]), line, font=f, fill=(255, 255, 255) if "kcal" in line.lower() else (17, 17, 17))
+        d.rounded_rectangle([40, 40, 40 + bw, 40 + bh], 18, fill=YELLOW if i == ai else (255, 255, 255))
+        d.text((40 + px - bb[0], 40 + py - bb[1]), line, font=f, fill=(255, 255, 255) if i == ai else (17, 17, 17))
         bar = bar.rotate(-1.2 if i % 2 == 0 else 1.0, resample=Image.BICUBIC, expand=True)
         img.alpha_composite(bar, ((W - bar.width) // 2, y - 40))
         y += bh + 16

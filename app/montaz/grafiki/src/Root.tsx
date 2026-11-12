@@ -25,7 +25,8 @@ const Tytul: React.FC<TytulProps> = ({lines, size, top, font}) => {
       <div style={{position: 'absolute', top, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16}}>
         {lines.map((l, i) => {
           const s = spring({frame: f - 2 - i * 5, fps, config: {damping: 11, stiffness: 170, mass: 0.8}});
-          const kcal = /kcal/i.test(l);
+          const ai = lines.findIndex((x, k) => k > 0 && /kcal|\d ?cm/i.test(x));
+          const kcal = i === (ai >= 0 ? ai : (lines.length > 1 ? lines.length - 1 : -1));   // czerwony akcent: linijka z kcal/cm, inaczej ostatnia
           const big = i === 0;
           const rot = (i % 2 ? 1.6 : -1.6) * (1 - s) + (i % 2 ? 1 : -1.2);
           const o = interpolate(f, [durationInFrames - 9 + i, durationInFrames - 2 + i], [1, 0], clamp);
