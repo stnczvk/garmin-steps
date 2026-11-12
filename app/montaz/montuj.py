@@ -66,6 +66,7 @@ EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy l
 PASEK_POSTEPU = False      # cienki żółty pasek na górze, rośnie przez cały film
 HOOK_NA_START = True       # pod tytułem: dni parzyste pozowanie, nieparzyste najładniejsze danie (wybiera AI), potem dzień po kolei
 HOOK_POZA_SECONDS = 3.0    # ile sekund pozowania na starcie
+HOOK_MIN_OCENA = 6         # danie poniżej tej oceny AI (1-10) -> na start siłownia/pozowanie
 HOOK_TLO_GLOS = 0.25       # dźwięk siłowni pod Twoim głosem (0-1)
 KONIEC_SECONDS = 0         # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
 
@@ -811,12 +812,14 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
     import base64, urllib.request
     pozy = Path(os.environ.get("MONTAZ_POZY", "") or "/nonexistent")
     lista = sorted(f for f in pozy.glob("*") if f.suffix.lower() in VIDEO_EXT) if pozy.is_dir() else []
-    if lista and n % 2 == 0:
+    def poza():
         v = lista[(n // 2) % len(lista)]
         dur = probe(v)[0]
-        dl = max(dl, HOOK_POZA_SECONDS)
-        a = max(0.0, dur / 2 - dl / 2)
-        return v, a, min(dur, a + dl), "pozowanie"
+        d2 = max(dl, HOOK_POZA_SECONDS)
+        a = max(0.0, dur / 2 - d2 / 2)
+        return v, a, min(dur, a + d2), "pozowanie"
+    if lista and n % 2 == 0:
+        return poza()
     if len(plan) < 2:
         return None
     # kandydaci: 3 klatki z końcowej części każdego klipu (tam zwykle gotowe danie)
@@ -831,13 +834,13 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
             t = a + (b - a) * f
             kand.append((i, t, a, b, _klatka_jpg(v, t, hdr)))
     kand = [k for k in kand if k[4]]
-    wyb = None
+    wyb, ocena = None, None
     cache = day / "hook.json"
     sig = [p[0].name for p in plan]
     try:
         c = json.loads(cache.read_text(encoding="utf-8"))
         if c.get("sig") == sig:
-            wyb = int(c["nr"])
+            wyb = int(c["nr"]); ocena = c.get("ocena")
     except Exception:
         pass
     key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
@@ -851,7 +854,9 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
             "To kadry z filmu „co jem w ciągu dnia na redukcji” (TikTok). Wybierz JEDEN kadr, który najlepiej zatrzyma "
             "scrollowanie jako pierwsza klatka: najbardziej apetyczne, gotowe danie, dobrze widoczne, ostre, ładne kolory "
             "i światło. Odrzuć kadry rozmazane, ciemne, z samym opakowaniem, gotowaniem bez efektu albo bez jedzenia. "
-            'Odpowiedz tylko JSON: {"kadr": NUMER, "dlaczego": "krótko"}'})
+            "Oceń też uczciwie ten najlepszy kadr w skali 1-10 (10 = danie jak z reklamy, 5 = zwykłe, nic specjalnego, "
+            "1 = nieapetyczne albo nic nie widać). "
+            'Odpowiedz tylko JSON: {"kadr": NUMER, "ocena": LICZBA, "dlaczego": "krótko"}'})
         body = {"model": os.environ.get("MODEL_DEFAULT", "claude-sonnet-5"), "max_tokens": 200,
                 "messages": [{"role": "user", "content": content}]}
         try:
@@ -863,13 +868,21 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
             txt = "".join(x.get("text", "") for x in res.get("content", []) if x.get("type") == "text")
             o = json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
             wyb = int(o["kadr"])
+            ocena = o.get("ocena")
             if not 0 <= wyb < len(kand):
                 wyb = None
             else:
-                print(f"[hook] AI: kadr {wyb} – {o.get('dlaczego', '')}", flush=True)
-                cache.write_text(json.dumps({"sig": sig, "nr": wyb}), encoding="utf-8")
+                print(f"[hook] AI: kadr {wyb}, ocena {ocena}/10 – {o.get('dlaczego', '')}", flush=True)
+                cache.write_text(json.dumps({"sig": sig, "nr": wyb, "ocena": ocena}), encoding="utf-8")
         except Exception as e:
             print(f"[hook] AI pominięte ({e.__class__.__name__})", flush=True)
+    try:
+        slabe = ocena is not None and float(ocena) < HOOK_MIN_OCENA
+    except Exception:
+        slabe = False
+    if slabe and lista:      # nic ładnego do pokazania – zamiast jedzenia siłownia/pozowanie
+        print(f"[hook] jedzenie za słabe ({ocena}/10) – na start siłownia/pozowanie", flush=True)
+        return poza()
     if wyb is not None and wyb < len(kand):
         i, t, a, b, _ = kand[wyb]
     else:   # bez AI: największy posiłek wg dziennika, a bez danych ostatni klip
