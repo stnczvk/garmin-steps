@@ -152,8 +152,11 @@ def draw_title_png(lines, out):
     img.alpha_composite(shade)
     y = TITLE_TOP
     for i, line in enumerate(lines):
-        f = font(TITLE_FONT_SIZE if i == 0 else int(TITLE_FONT_SIZE * 0.78), 800)
+        fs = TITLE_FONT_SIZE if i == 0 else int(TITLE_FONT_SIZE * 0.78)
+        f = font(fs, 800)
         bb = ImageDraw.Draw(img).textbbox((0, 0), line, font=f)
+        while bb[2] - bb[0] > W - 160 and fs > 36:      # za długa linijka – mniejsza czcionka
+            fs -= 3; f = font(fs, 800); bb = ImageDraw.Draw(img).textbbox((0, 0), line, font=f)
         tw, th = bb[2] - bb[0], bb[3] - bb[1]
         px, py = (34, 18) if i == 0 else (28, 14)
         bw, bh = tw + 2 * px, th + 2 * py
@@ -959,7 +962,7 @@ def przygotuj_glos(n, work):
     """Twoje nagranie zdania z tytułem (rotacja po dniach): bez ciszy na początku/końcu, wyrównana głośność.
     Zwraca (plik wav, długość) albo None."""
     gd = Path(os.environ.get("MONTAZ_GLOS", "") or "/nonexistent")
-    lista = sorted(f for f in gd.glob("glos_*") if not f.name.endswith(".part")) if gd.is_dir() else []
+    lista = sorted(f for f in gd.glob("glos_*") if not f.name.endswith((".part", ".txt"))) if gd.is_dir() else []
     if not lista:
         return None
     src = lista[n % len(lista)]
@@ -970,10 +973,51 @@ def przygotuj_glos(n, work):
              f"{cisza},areverse,{cisza},areverse,loudnorm=I=-14:TP=-1.5,aresample=44100",
              "-ac", "2", "-t", "5", str(out)])
         dur = probe(out)[0]
-        return (out, dur, src.name) if dur > 0.3 else None
-    except Exception as e:
+        return (out, dur, src.name, src) if dur > 0.3 else None
+    except (SystemExit, Exception) as e:
         print(f"[hook] głos pominięty ({e.__class__.__name__})", flush=True)
         return None
+
+
+def tekst_glosu(glos):
+    """Co mówisz w nagraniu głosu (Whisper/Groq) – zapamiętane obok nagrania, liczone raz."""
+    out, _, _, src = glos
+    cache = src.with_name(src.name + ".txt")
+    if cache.exists():
+        return cache.read_text(encoding="utf-8").strip()
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        import transkrybuj
+        mp3 = out.with_suffix(".mp3")
+        run(["ffmpeg", "-y", "-i", str(out), "-ac", "1", "-b:a", "96k", str(mp3)])
+        res = transkrybuj.transcribe(mp3, transkrybuj.api_key())
+        t = re.sub(r"\s+", " ", (res or {}).get("text", "")).strip().rstrip(".!")
+        t = re.sub(r"(\d+)\s*(centymetr\w*)", r"\1 cm", t, flags=re.I)
+        if t:
+            cache.write_text(t, encoding="utf-8")
+        return t
+    except (SystemExit, Exception) as e:
+        print(f"[hook] tekst głosu nieznany ({e})", flush=True)
+        return ""
+
+
+def tytul_z_glosu(title, tekst):
+    """„Dzień N” + to, co mówisz w nagraniu, w 2 wyrównanych linijkach (tylko gdy tytuł jest domyślny)."""
+    if not tekst or len(title) < 2 or not title[1].lower().startswith("tyle jem") or len(tekst) > 70:
+        return title
+    w = tekst.split()
+    for n_l in (2, 3):        # linijki do ~22 znaków, żeby paski mieściły się na ekranie
+        lines, cur = [], []
+        cel = len(tekst) / n_l
+        for x in w:
+            if cur and (len(" ".join(cur + [x])) > 22 or (len(" ".join(cur)) >= cel and len(lines) < n_l - 1)):
+                lines.append(" ".join(cur)); cur = []
+            cur.append(x)
+        lines.append(" ".join(cur))
+        if len(lines) <= n_l and all(len(l) <= 24 for l in lines):
+            break
+    lines[0] = lines[0][:1].upper() + lines[0][1:]
+    return [title[0]] + lines
 
 
 def dolej_glos(seg, glos, tlo, work):
@@ -1288,6 +1332,13 @@ def main():
 
     work = Path(tempfile.mkdtemp(prefix="montuj_"))
     try:
+        m_n0 = re.search(r"dzie[nń]\s*(\d+)", " ".join(title), re.I)
+        glos = przygotuj_glos(int(m_n0.group(1)) if m_n0 else 0, work) if HOOK_NA_START else None
+        if glos:
+            nowy = tytul_z_glosu(title, tekst_glosu(glos))
+            if nowy != title:
+                print(f"[hook] tytuł z głosu: {' / '.join(nowy)}", flush=True)
+                title = nowy
         title_png = work / "tytul.png"
         draw_title_png(title, title_png)
         draw_pill("FOLLOW", "check", work / "follow.png")
@@ -1338,7 +1389,6 @@ def main():
         teaser = None
         if HOOK_NA_START:
             nr = int(m_n.group(1)) if m_n else 0
-            glos = przygotuj_glos(nr, work)
             dl = min(4.5, max(TITLE_SECONDS, glos[1] + 0.45)) if glos else TITLE_SECONDS
             hk = wybierz_hook(plan, day, nr, licz, dl)
             if hk:

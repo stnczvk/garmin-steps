@@ -902,6 +902,7 @@ async def montaz_voice_add(req: Request, name: str = ""):
 def montaz_voice_del(name: str):
     if re.match(r"^glos_[\w-]+\.\w{2,4}$", name):
         (GLOS / name).unlink(missing_ok=True)
+        (GLOS / (name + ".txt")).unlink(missing_ok=True)
     return montaz_info()
 
 
