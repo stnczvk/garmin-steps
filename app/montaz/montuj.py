@@ -66,6 +66,7 @@ EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy l
 PASEK_POSTEPU = False      # cienki żółty pasek na górze, rośnie przez cały film
 HOOK_NA_START = True       # pod tytułem: dni parzyste pozowanie, nieparzyste najładniejsze danie (wybiera AI), potem dzień po kolei
 HOOK_POZA_SECONDS = 3.0    # ile sekund pozowania na starcie
+HOOK_JEDZENIE = False      # True = najpierw ładne jedzenie na wstępie; False = zawsze pozowanie/siłownia
 HOOK_MAX_POZ = 4           # po tylu pozowaniach z rzędu na starcie wchodzi klip z siłowni
 HOOK_MIN_OCENA = 6         # danie poniżej tej oceny AI (1-10) -> na start siłownia/pozowanie
 HOOK_TLO_GLOS = 0.25       # dźwięk siłowni pod Twoim głosem (0-1)
@@ -865,6 +866,8 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
         a, b = okno_bez_ruchu(v, max(dl, HOOK_POZA_SECONDS))
         zapisz(src)
         return v, a, b, src
+    if not HOOK_JEDZENIE and wszystkie:      # wstęp zawsze z Tobą: pozowanie, co 5. dzień siłownia
+        return ja()
     if len(plan) < 2:
         return ja() if wszystkie else None
     if len(plan) < 2:
