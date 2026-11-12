@@ -396,6 +396,7 @@ def _env():
     env["MONTAZ_MUSIC"] = str(DZ / "montaz" / "muzyka_tlo.mp3")
     env["MONTAZ_FONT"] = str(DZ / "montaz" / "Montserrat.ttf")
     env["DZ_HOME"] = str(DZ)
+    env["DZ_DB"] = str(DZ / "dziennik.db")      # bez tego montaż z centrum nie miał podsumowania dnia (karta końcowa)
     return env
 
 
