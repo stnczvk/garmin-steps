@@ -64,7 +64,8 @@ KARTY_Z_DZIENNIKA = False # karta posiłku rysowana z danych dziennika (zamiast 
 KOLORY = True              # delikatna korekcja kolorów (kontrast, nasycenie, ciepło) – jedzenie apetyczniej
 EFEKTY_DZWIEKOWE = True    # „whoosh” przy karcie posiłku, „pyk” przy liczniku
 PASEK_POSTEPU = False      # cienki żółty pasek na górze, rośnie przez cały film
-HOOK_NA_START = True       # pod tytułem 3 s najlepszego dania dnia (największy posiłek), potem dzień po kolei
+HOOK_NA_START = True       # pod tytułem: dni parzyste pozowanie, nieparzyste najładniejsze danie (wybiera AI), potem dzień po kolei
+HOOK_POZA_SECONDS = 3.0    # ile sekund pozowania na starcie
 KONIEC_SECONDS = 0         # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
 
 PODSUMOWANIE_SECONDS = 4.0 # karta z kaloriami i makro dnia na końcu (z dziennika)
@@ -796,6 +797,89 @@ def auto_kolor(video, transfer, dur):
         return ""
 
 
+def _klatka_jpg(video, t, hdr):
+    r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(0.0, t):.2f}", "-i", str(video), "-frames:v", "1",
+                        "-vf", f"scale=360:-2,{hdr}format=yuvj420p", "-q:v", "5", "-f", "mjpeg", "-"],
+                       capture_output=True, timeout=60)
+    return r.stdout
+
+
+def wybierz_hook(plan, day, n, licz):
+    """Hook pod tytułem: dni parzyste – nagranie z pozowania (rotacja), nieparzyste – najładniejszy posiłek wg AI.
+    Zwraca (plik, start, koniec, źródło) albo None (tytuł zostaje na pierwszym klipie)."""
+    import base64, urllib.request
+    pozy = Path(os.environ.get("MONTAZ_POZY", "") or "/nonexistent")
+    lista = sorted(f for f in pozy.glob("*") if f.suffix.lower() in VIDEO_EXT) if pozy.is_dir() else []
+    if lista and n % 2 == 0:
+        v = lista[(n // 2) % len(lista)]
+        dur = probe(v)[0]
+        a = max(0.0, dur / 2 - HOOK_POZA_SECONDS / 2)
+        return v, a, min(dur, a + HOOK_POZA_SECONDS), "pozowanie"
+    if len(plan) < 2:
+        return None
+    # kandydaci: 3 klatki z końcowej części każdego klipu (tam zwykle gotowe danie)
+    kand = []
+    for i, (v, _, keep) in enumerate(plan):
+        dur, _, tr = probe(v)
+        kp = keep or [(0.0, dur)]
+        a, b = kp[-1]
+        hdr = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,"
+               "zscale=t=bt709:m=bt709:r=tv,format=yuv420p,") if tr in ("arib-std-b67", "smpte2084") else ""
+        for f in (0.35, 0.65, 0.92):
+            t = a + (b - a) * f
+            kand.append((i, t, a, b, _klatka_jpg(v, t, hdr)))
+    kand = [k for k in kand if k[4]]
+    wyb = None
+    cache = day / "hook.json"
+    sig = [p[0].name for p in plan]
+    try:
+        c = json.loads(cache.read_text(encoding="utf-8"))
+        if c.get("sig") == sig:
+            wyb = int(c["nr"])
+    except Exception:
+        pass
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if wyb is None and key and kand:
+        content = []
+        for j, k in enumerate(kand):
+            content += [{"type": "text", "text": f"Kadr {j}:"},
+                        {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                                     "data": base64.b64encode(k[4]).decode()}}]
+        content.append({"type": "text", "text":
+            "To kadry z filmu „co jem w ciągu dnia na redukcji” (TikTok). Wybierz JEDEN kadr, który najlepiej zatrzyma "
+            "scrollowanie jako pierwsza klatka: najbardziej apetyczne, gotowe danie, dobrze widoczne, ostre, ładne kolory "
+            "i światło. Odrzuć kadry rozmazane, ciemne, z samym opakowaniem, gotowaniem bez efektu albo bez jedzenia. "
+            'Odpowiedz tylko JSON: {"kadr": NUMER, "dlaczego": "krótko"}'})
+        body = {"model": os.environ.get("MODEL_DEFAULT", "claude-sonnet-5"), "max_tokens": 200,
+                "messages": [{"role": "user", "content": content}]}
+        try:
+            req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=json.dumps(body).encode(),
+                                         headers={"x-api-key": key, "anthropic-version": "2023-06-01",
+                                                  "content-type": "application/json"})
+            with urllib.request.urlopen(req, timeout=120) as r:
+                res = json.loads(r.read().decode())
+            txt = "".join(x.get("text", "") for x in res.get("content", []) if x.get("type") == "text")
+            o = json.loads(txt[txt.find("{"):txt.rfind("}") + 1])
+            wyb = int(o["kadr"])
+            if not 0 <= wyb < len(kand):
+                wyb = None
+            else:
+                print(f"[hook] AI: kadr {wyb} – {o.get('dlaczego', '')}", flush=True)
+                cache.write_text(json.dumps({"sig": sig, "nr": wyb}), encoding="utf-8")
+        except Exception as e:
+            print(f"[hook] AI pominięte ({e.__class__.__name__})", flush=True)
+    if wyb is not None and wyb < len(kand):
+        i, t, a, b, _ = kand[wyb]
+    else:   # bez AI: największy posiłek wg dziennika, a bez danych ostatni klip
+        i = max(range(len(plan)), key=lambda x: licz.get(plan[x][0].name, 0)) if licz else len(plan) - 1
+        a, b = (plan[i][2] or [(0.0, probe(plan[i][0])[0])])[-1]
+        t = b - 0.3 - TITLE_SECONDS / 2
+    if i == 0:
+        return None          # najlepsze jest pierwsze ujęcie – nie dublujemy, tytuł leci na nim
+    s0 = min(max(a, t - TITLE_SECONDS / 2), max(a, b - TITLE_SECONDS))
+    return plan[i][0], s0, min(b, s0 + TITLE_SECONDS), "jedzenie"
+
+
 def base_filter(transfer, auto=""):
     """Skalowanie do 1080x1920 (wypełnienie + przycięcie). HDR z iPhone'a -> SDR."""
     hdr = ""
@@ -1147,19 +1231,14 @@ def main():
         segments, total, cap_words, hide, adds, sfx_at = [], 0.0, [], [], [], []
         licz = (summary or {}).get("licznik") or {}
         teaser = None
-        if HOOK_NA_START and len(plan) > 1:
-            # najbardziej „apetyczne” = największy posiłek wg dziennika, bez danych – ostatni klip (zwykle obiad/kolacja)
-            best = max(range(len(plan)), key=lambda i: licz.get(plan[i][0].name, 0)) if licz else len(plan) - 1
-            if best > 0:
-                v = plan[best][0]
-                kp = plan[best][2] or [(0.0, probe(v)[0])]
-                a, b = kp[-1]
-                b = max(a, b - 0.3)                    # końcówka ujęcia = zwykle gotowe danie na talerzu
-                a = max(a, b - TITLE_SECONDS)
+        if HOOK_NA_START:
+            hk = wybierz_hook(plan, day, int(m_n.group(1)) if m_n else 0, licz)
+            if hk:
+                v, a, b, src = hk
                 seg, d, *_ = render_segment(v, [], title_png, work, 999, [(a, b)],
                                             tail=max(0.0, TITLE_SECONDS - (b - a)), mute=True)
-                segments.append(seg); total += d; teaser = best
-                print(f"[hook] start: {v.name} {a:.1f}-{b:.1f}s", flush=True)
+                segments.append(seg); total += d; teaser = src
+                print(f"[hook] start: {v.name} {a:.1f}-{b:.1f}s ({src})", flush=True)
         for i, (video, shots, keep) in enumerate(plan):
             prepared = prepared_all[i]
             tail = ((PODSUMOWANIE_SECONDS if summary else 0.0) + (KONIEC_SECONDS if koniec_png else 0.0)) \
