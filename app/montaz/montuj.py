@@ -968,10 +968,12 @@ def przygotuj_glos(n, work):
         return None
     src = lista[n % len(lista)]
     out = work / "glos_hook.wav"
-    cisza = "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.2"   # łagodnie – ciche końcówki słów zostają
+    # początek: tniemy do pierwszego słowa (szum/stuki przed nim też), koniec: łagodnie – ciche „wzrostu” zostaje
+    poczatek = "silenceremove=start_periods=1:start_threshold=-32dB:start_silence=0.08:detection=peak"
+    koniec = "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.25"
     try:
         run(["ffmpeg", "-y", "-i", str(src), "-vn", "-af",
-             f"{cisza},areverse,{cisza},areverse,loudnorm=I=-14:TP=-1.5,aresample=44100",
+             f"highpass=f=110,highpass=f=110,highpass=f=110,{poczatek},areverse,{koniec},areverse,afade=t=in:d=0.04,loudnorm=I=-14:TP=-1.5,aresample=44100",
              "-ac", "2", "-t", "8", str(out)])
         dur = probe(out)[0]
         return (out, dur, src.name, src) if dur > 0.3 else None
@@ -1013,6 +1015,7 @@ def tytul_z_glosu(title, tekst):
     m = re.search(r"dzie[nń]\s*(\d+)", title[0], re.I)
     title = [f"Dzień {m.group(1)}" if m else title[0]] + title[1:]
     tekst = re.sub(r"(\d+ ?cm)(?! wzrostu)", r"\1 wzrostu", tekst)     # „163 cm wzrostu”
+    tekst = re.sub(r"\b(redukcji|masie)\s+(?!przy\b)\w+\s+(\d+ ?cm)", r"\1 przy \2", tekst, flags=re.I)   # „pest 163 cm” -> „przy 163 cm”
     w = tekst.split()
     for n_l in (2, 3):        # linijki do ~22 znaków, żeby paski mieściły się na ekranie
         lines, cur = [], []
@@ -1032,7 +1035,7 @@ def dolej_glos(seg, glos, tlo, work):
     """Głos na wierzch hooka; oryginalny dźwięk ujęcia (siłownia) zostaje cicho w tle (tlo = głośność, 0 = cisza)."""
     out = work / "seg_hook_glos.mp4"
     run(["ffmpeg", "-y", "-i", str(seg), "-i", str(glos), "-filter_complex",
-         f"[0:a]volume={tlo}[t];[1:a]adelay=150|150,apad[g];[t][g]amix=inputs=2:duration=first:normalize=0[a]",
+         f"[0:a]volume={tlo}[t];[1:a]adelay=60|60,apad[g];[t][g]amix=inputs=2:duration=first:normalize=0[a]",
          "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "44100", str(out)])
     return out
 
@@ -1411,7 +1414,7 @@ def main():
                     seg = None
             if hk and seg is not None:
                 if glos:
-                    seg = dolej_glos(seg, glos[0], HOOK_TLO_GLOS if ja else 0.0, work)
+                    seg = dolej_glos(seg, glos[0], HOOK_TLO_GLOS if src == "silownia" else 0.0, work)   # przy formie bez tła (muzyka/basy z sali)
                     print(f"[hook] głos: {glos[2]} ({glos[1]:.1f}s)", flush=True)
                 segments.append(seg); total += d; teaser = src
                 print(f"[hook] start: {v.name} {a:.1f}-{b:.1f}s ({src})", flush=True)
