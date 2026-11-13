@@ -1014,6 +1014,7 @@ def sprzatanie_plikow():
 
 
 def _loop():
+    """Skan folderów i sprzątanie – mogą trwać długo, dlatego publikacje mają osobną pętlę (_pub_loop)."""
     time.sleep(45)
     try:
         _clean_once()
@@ -1028,6 +1029,13 @@ def _loop():
             sprzatanie_plikow()
         except Exception as e:
             print("planer sprzątanie", e, flush=True)
+        time.sleep(60)
+
+
+def _pub_loop():
+    """Publikacje o czasie – co 30 s, niezależnie od skanu (wcześniej długi skan potrafił opóźnić post o godziny)."""
+    time.sleep(50)
+    while True:
         try:
             now = time.time()
             for it in plan():
@@ -1038,9 +1046,10 @@ def _loop():
                     threading.Thread(target=pre_tiktok, args=(it["id"],), daemon=True).start()
         except Exception as e:
             print("planer pub", e, flush=True)
-        time.sleep(60)
+        time.sleep(30)
 
 
+threading.Thread(target=_pub_loop, daemon=True).start()
 threading.Thread(target=_loop, daemon=True).start()
 
 
