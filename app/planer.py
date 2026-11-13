@@ -916,7 +916,7 @@ def publish(pid):
         pass
 
 
-TT_LEAD = 30 * 60   # TikTok przetwarza film w skrzynce nawet ~40 min, więc wysyłamy go wcześniej
+TT_LEAD = 2 * 3600   # TikTok potrafi przetwarzać film w skrzynce ponad godzinę – wysyłamy 2 h wcześniej, o czasie przychodzi przypomnienie
 _pre = set()
 
 
