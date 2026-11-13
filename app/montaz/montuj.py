@@ -977,7 +977,8 @@ def przygotuj_glos(n, work):
     except Exception:
         mx = 0.0
     poczatek = f"silenceremove=start_periods=1:start_threshold={mx - 15:.0f}dB:start_silence=0.08:detection=peak"
-    koniec = "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.25"
+    # koniec względem głośności nagrania (ciche nagranie = ciche „wzrostu”) i z zapasem 0,4 s
+    koniec = f"silenceremove=start_periods=1:start_threshold={mx - 45:.0f}dB:start_silence=0.4"
     try:
         run(["ffmpeg", "-y", "-i", str(src), "-vn", "-af",
              f"{hp},{poczatek},areverse,{koniec},areverse,afade=t=in:d=0.04,volume={-2 - mx:.1f}dB,"
