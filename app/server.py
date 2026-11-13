@@ -899,6 +899,20 @@ async def montaz_voice_add(req: Request, name: str = ""):
     return {"ok": True, "name": fn}
 
 
+@app.post("/api/montaz/voice/{name}/text")
+async def montaz_voice_text(name: str, req: Request):
+    """Ręczna poprawka tekstu nagrania głosu – z niego powstaje tytuł na wstępie."""
+    if not re.match(r"^glos_[\w-]+\.\w{2,4}$", name) or not (GLOS / name).is_file():
+        raise HTTPException(404)
+    t = re.sub(r"\s+", " ", str((await req.json()).get("text", ""))).strip()[:120]
+    f = GLOS / (name + ".txt")
+    if t:
+        f.write_text(t, encoding="utf-8")
+    else:
+        f.unlink(missing_ok=True)
+    return montaz_info()
+
+
 @app.delete("/api/montaz/voice/{name}")
 def montaz_voice_del(name: str):
     if re.match(r"^glos_[\w-]+\.\w{2,4}$", name):

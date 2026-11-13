@@ -1038,7 +1038,9 @@ def tekst_glosu(glos):
 
 def tytul_z_glosu(title, tekst):
     """„Dzień N” + to, co mówisz w nagraniu, w 2 wyrównanych linijkach (tylko gdy tytuł jest domyślny)."""
-    if not tekst or len(title) < 2 or len(tekst) > 70:
+    tekst = re.sub(r"[\(\[][^\)\]]*[\)\]]", "", tekst or "").strip(" .,!")   # bez „(śmiech)”, „[muzyka]” itp.
+    if not tekst or len(title) < 2 or len(tekst) > 90:
+        print(f"[hook] tytuł bez zmian (tekst głosu: {tekst!r})", flush=True)
         return title
     # tylko domyślny tytuł (nowy „Tyle jem…” albo stary „… dzień N / 2100 kcal / dzień treningowy”) – własny zostaje
     dom = lambda l: bool(re.match(r"^(tyle jem|\d[\d\s]*kcal$|dzień (nie)?treningowy$|przy \d+ ?cm( wzrostu)?$)", l.strip().lower()))
