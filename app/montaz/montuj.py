@@ -1036,6 +1036,41 @@ def tekst_glosu(glos):
         return ""
 
 
+_LICZ = [  # rdzenie polskich liczebników (każdy przypadek), od najdłuższych
+    ("dziewięćset", 900), ("osiemset", 800), ("siedemset", 700), ("sześćset", 600), ("pięćset", 500),
+    ("czterysta", 400), ("czterech set", 400), ("trzysta", 300), ("trzystu", 300), ("dwieście", 200), ("dwustu", 200),
+    ("stu", 100), ("sto", 100),
+    ("dziewięćdziesi", 90), ("osiemdziesi", 80), ("siedemdziesi", 70), ("sześćdziesi", 60), ("pięćdziesi", 50),
+    ("czterdzie", 40), ("trzydzie", 30), ("dwudzie", 20), ("dwadzieścia", 20),
+    ("dziewiętna", 19), ("osiemna", 18), ("siedemna", 17), ("szesna", 16), ("piętna", 15), ("czterna", 14),
+    ("trzyna", 13), ("dwana", 12), ("jedena", 11), ("dziesię", 10), ("dziesi", 10),
+    ("dziewię", 9), ("ośmi", 8), ("osiem", 8), ("siedm", 7), ("siedem", 7), ("sześ", 6), ("pięci", 5), ("pięć", 5),
+    ("czter", 4), ("trzy", 3), ("trzech", 3), ("dw", 2), ("jedn", 1)]
+
+
+def _slowo_liczba(w):
+    w = w.lower()
+    for rdzen, v in _LICZ:
+        if w.startswith(rdzen):
+            return v
+    return None
+
+
+def liczby_slowne(t):
+    """„przy stu sześćdziesięciu trzech centymetrach” -> „przy 163 cm” (rozpoznawanie mowy pisze liczby słownie)."""
+    w, out, k = t.split(), [], 0
+    while k < len(w):
+        j, suma = k, 0
+        while j < len(w) and _slowo_liczba(w[j].strip(",.")) is not None:
+            suma += _slowo_liczba(w[j].strip(",.")); j += 1
+        if j > k and (j - k >= 2 or (j < len(w) and re.match(r"(?i)centymetr|cm|kilo|kg|kcal|kalori|dni|dzień", w[j]))):
+            out.append(str(suma)); k = j
+        else:
+            out.append(w[k]); k += 1
+    t = " ".join(out)
+    return re.sub(r"(?i)(\d+)\s*centymetr\w*", r"\1 cm", t)
+
+
 def tytul_z_glosu(title, tekst):
     """„Dzień N” + to, co mówisz w nagraniu, w 2 wyrównanych linijkach (tylko gdy tytuł jest domyślny)."""
     tekst = re.sub(r"[\(\[][^\)\]]*[\)\]]", "", tekst or "").strip(" .,!")   # bez „(śmiech)”, „[muzyka]” itp.
@@ -1048,8 +1083,11 @@ def tytul_z_glosu(title, tekst):
         return title
     m = re.search(r"dzie[nń]\s*(\d+)", title[0], re.I)
     title = [f"Dzień {m.group(1)}" if m else title[0]] + title[1:]
+    tekst = liczby_slowne(tekst)
     tekst = re.sub(r"(\d+ ?cm)(?! wzrostu)", r"\1 wzrostu", tekst)     # „163 cm wzrostu”
-    w = tekst.split()
+    tekst = re.sub(r"(\d+) (cm|kg|kcal|zł)", "\\1\u00a0\\2", tekst)     # „163 cm” nigdy nie rozdzielone
+    tekst = re.sub(r"\b(przy|na|w|i|z|o|do) ", "\\1\u00a0", tekst)          # krótkie słowo nie zostaje samo na końcu linijki
+    w = tekst.split(" ")
     for n_l in (2, 3):        # linijki do ~22 znaków, żeby paski mieściły się na ekranie
         lines, cur = [], []
         cel = len(tekst) / n_l
@@ -1060,6 +1098,7 @@ def tytul_z_glosu(title, tekst):
         lines.append(" ".join(cur))
         if len(lines) <= n_l and all(len(l) <= 24 for l in lines):
             break
+    lines = [l.replace("\u00a0", " ") for l in lines]
     lines[0] = lines[0][:1].upper() + lines[0][1:]
     return [title[0]] + lines
 
