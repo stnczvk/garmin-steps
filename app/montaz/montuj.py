@@ -969,11 +969,19 @@ def przygotuj_glos(n, work):
     src = lista[n % len(lista)]
     out = work / "glos_hook.wav"
     # początek: tniemy do pierwszego słowa (szum/stuki przed nim też), koniec: łagodnie – ciche „wzrostu” zostaje
-    poczatek = "silenceremove=start_periods=1:start_threshold=-32dB:start_silence=0.08:detection=peak"
+    hp = "highpass=f=110,highpass=f=110,highpass=f=110"
+    try:    # próg względem najgłośniejszego miejsca nagrania (Twój głos) – szum i basy przed słowami są dużo ciszej
+        vd = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(src), "-vn", "-af", f"{hp},volumedetect", "-f", "null", "-"],
+                            capture_output=True, text=True, timeout=120).stderr
+        mx = float(re.search(r"max_volume:\s*(-?[\d.]+) dB", vd).group(1))
+    except Exception:
+        mx = 0.0
+    poczatek = f"silenceremove=start_periods=1:start_threshold={mx - 15:.0f}dB:start_silence=0.08:detection=peak"
     koniec = "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.25"
     try:
         run(["ffmpeg", "-y", "-i", str(src), "-vn", "-af",
-             f"highpass=f=110,highpass=f=110,highpass=f=110,{poczatek},areverse,{koniec},areverse,afade=t=in:d=0.04,loudnorm=I=-14:TP=-1.5,aresample=44100",
+             f"{hp},{poczatek},areverse,{koniec},areverse,afade=t=in:d=0.04,volume={-2 - mx:.1f}dB,"
+             "acompressor=threshold=-18dB:ratio=3:attack=5:release=120:makeup=3,alimiter=limit=0.89,aresample=44100",
              "-ac", "2", "-t", "8", str(out)])
         dur = probe(out)[0]
         return (out, dur, src.name, src) if dur > 0.3 else None
