@@ -872,6 +872,7 @@ def montaz_info():
             "start": kv_get("mz_start") or "2026-09-08", "last": last,
             "ffmpeg": shutil.which("ffmpeg") is not None,
             "voices": sorted(f.name for f in GLOS.iterdir() if f.suffix.lower() in GLOS_EXT) if GLOS.is_dir() else [],
+            "voice_txt": {f.name[:-4]: f.read_text(encoding="utf-8").strip() for f in GLOS.glob("glos_*.txt")} if GLOS.is_dir() else {},
             "poses": sorted((f.name for f in POZY.iterdir() if f.suffix.lower() in (".mov", ".mp4", ".m4v")),
                             key=lambda x: x.split("_", 1)[-1]) if POZY.is_dir() else []}
 
