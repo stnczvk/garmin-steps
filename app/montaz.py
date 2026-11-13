@@ -724,7 +724,7 @@ async def hook_vlogyt_pakiet(req: Request):
     prompt = (f"To transkrypcja vloga na YouTube „{name}” ({dur / 60:.0f} min), kanał ŁysyVlog. Autor: Bartłomiej z Lublina, natural bodybuilding, "
               "redukcja, jedzenie, trening, codzienne życie. Każda linia: [sekunda] tekst.\n\n" + tr +
               "\n\nPrzygotuj publikację na YouTube:\n"
-              "- yt_title: do 70 znaków, schemat „luźna, śmieszna fraza z konkretem z odcinka | ŁysyVlog #N” (N = numer odcinka z nazwy „{name}”, "
+              f"- yt_title: do 70 znaków, schemat „luźna, śmieszna fraza z konkretem z odcinka | ŁysyVlog #N” (N = numer odcinka z nazwy „{name}”, "
               "jeśli go nie ma – sam „| ŁysyVlog”). Fraza zaczyna się wielką literą, mówi o czym jest odcinek, z humorem i potocznie jak autor "
               "(celowe „chcem” itp. są okej), np. „Kilka dni diety, jem co chcem | ŁysyVlog #1”, „Siłownia o 6 rano to był błąd | ŁysyVlog #3”; "
               "bez clickbaitu, bez emotek;\n"
