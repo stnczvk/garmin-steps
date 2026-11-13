@@ -84,6 +84,7 @@ NAKLEJKI = False           # naklejki FOLLOW / LIKE na końcu (prosty montaż: w
 
 MUSIC_VOLUME = 0.07        # głośność muzyki (0-1) - cicho, żeby był słychać Twój głos
 MUSIC_DUCKING = True       # muzyka dodatkowo przycicha, kiedy mówisz
+GLOSNOSC_LUFS = -16.0      # wspólna głośność mowy: każdy klip i głos na wstępie wyrównane do tego poziomu
 CLIP_SOUND_VOLUME = 1.0    # Twój głos / dźwięk z klipów (1.0 = pełna głośność)
 
 SPEEDUP = 1.2              # przyspieszenie dłuższych klipów
@@ -1039,11 +1040,34 @@ def tytul_z_glosu(title, tekst):
     return [title[0]] + lines
 
 
+_LUFS = {}
+
+
+def lufs(path):
+    """Zmierzona głośność nagrania (LUFS, jak w TikToku/YouTube). None = cisza/brak dźwięku."""
+    k = str(path)
+    if k not in _LUFS:
+        try:
+            r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", k, "-vn", "-af", "ebur128", "-f", "null", "-"],
+                               capture_output=True, text=True, timeout=300).stderr
+            v = float(re.findall(r"I:\s*(-?[\d.]+) LUFS", r)[-1])
+            _LUFS[k] = v if v > -60 else None
+        except Exception:
+            _LUFS[k] = None
+    return _LUFS[k]
+
+
+def wyrownaj_db(path, maks_plus=14.0):
+    """Ile dB dodać/odjąć, żeby nagranie miało GLOSNOSC_LUFS (z limitem, żeby nie pompować szumu)."""
+    v = lufs(path)
+    return 0.0 if v is None else max(-12.0, min(maks_plus, GLOSNOSC_LUFS - v))
+
+
 def dolej_glos(seg, glos, tlo, work):
     """Głos na wierzch hooka; oryginalny dźwięk ujęcia (siłownia) zostaje cicho w tle (tlo = głośność, 0 = cisza)."""
     out = work / "seg_hook_glos.mp4"
     run(["ffmpeg", "-y", "-i", str(seg), "-i", str(glos), "-filter_complex",
-         f"[0:a]volume={tlo}[t];[1:a]adelay=60|60,apad[g];[t][g]amix=inputs=2:duration=first:normalize=0[a]",
+         f"[0:a]volume={tlo}[t];[1:a]volume={wyrownaj_db(glos):.1f}dB,adelay=60|60,apad[g];[t][g]amix=inputs=2:duration=first:normalize=0[a]",
          "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "44100", str(out)])
     return out
 
@@ -1134,7 +1158,7 @@ def render_segment(video, shots, title_png, workdir, idx, keep=None, tail=0.0, m
     # audio: dźwięk klipu (albo cisza), zawsze stereo 44.1k - żeby dało się skleić
     if has_audio and CLIP_SOUND_VOLUME > 0:
         tempo = f"atempo={speed}," if speed != 1.0 else ""   # szybciej, ale bez zmiany wysokości głosu
-        fc.append(f"[{asrc}]{tempo}volume={CLIP_SOUND_VOLUME},aformat=sample_rates=44100:"
+        fc.append(f"[{asrc}]{tempo}volume={CLIP_SOUND_VOLUME},volume={wyrownaj_db(video):.1f}dB,aformat=sample_rates=44100:"
                   f"channel_layouts=stereo,apad[a]")
         amap = "[a]"
     else:
