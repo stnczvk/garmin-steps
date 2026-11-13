@@ -874,7 +874,8 @@ def publish(pid):
         res["tiktok"]["told"] = True
         try:
             from extra import push_all
-            push_all("🎵 TikTok: czas publikacji", f"„{it['label']}” czeka w skrzynce TikToka – opublikuj teraz", "/#home")
+            push_all("🎵 TikTok: czas publikacji", f"„{it['label']}” czeka w skrzynce TikToka – stuknij, skopiuj opis i opublikuj",
+                     f"/tt-opis/{it['id']}")
         except Exception:
             pass
     for p in it["platforms"]:
@@ -918,6 +919,28 @@ def publish(pid):
 
 TT_LEAD = 2 * 3600   # TikTok potrafi przetwarzać film w skrzynce ponad godzinę – wysyłamy 2 h wcześniej, o czasie przychodzi przypomnienie
 _pre = set()
+
+
+@router.get("/tt-opis/{pid}")
+def tt_opis(pid: str):
+    """Strona z powiadomienia: gotowy opis TikToka do skopiowania jednym stuknięciem (skrzynka TikToka nie przyjmuje opisu z API)."""
+    import html
+    from fastapi.responses import HTMLResponse
+    it = next((x for x in plan() if x["id"] == pid), None)
+    if not it:
+        return HTMLResponse("<p>Nie ma takiego posta.</p>", status_code=404)
+    cap = (it.get("tiktok") or it.get("caption") or "").strip()
+    return HTMLResponse(f"""<!doctype html><html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Opis TikTok</title>
+<style>body{{font:16px -apple-system,system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:20px}}
+h1{{font-size:18px}}pre{{white-space:pre-wrap;background:#1d1d1f;padding:14px;border-radius:12px;font:inherit}}
+button,a{{display:block;width:100%;box-sizing:border-box;margin-top:12px;padding:16px;border:0;border-radius:12px;
+font:600 17px inherit;text-align:center;text-decoration:none}}button{{background:#E5232F;color:#fff}}a{{background:#2c2c2e;color:#fff}}</style></head>
+<body><h1>{html.escape(it.get('label') or 'TikTok')}</h1><pre id="c">{html.escape(cap)}</pre>
+<button id="b">📋 Kopiuj opis</button><a href="https://www.tiktok.com/">Otwórz TikToka</a>
+<script>document.getElementById('b').onclick=async()=>{{try{{await navigator.clipboard.writeText(document.getElementById('c').textContent);
+document.getElementById('b').textContent='✓ Skopiowane – wklej w TikToku'}}catch(e){{document.getElementById('b').textContent='Zaznacz tekst i skopiuj ręcznie'}}}}</script>
+</body></html>""")
 
 
 def pre_tiktok(pid):
