@@ -1353,9 +1353,13 @@ def main():
     try:
         m_n0 = re.search(r"dzie[nń]\s*(\d+)", " ".join(title), re.I)
         glos = przygotuj_glos(int(m_n0.group(1)) if m_n0 else 0, work) if HOOK_NA_START else None
+        # „przy 163 cm” -> „przy 163 cm wzrostu” (starszy domyślny tytuł), także gdy przepisanie głosu się nie uda
+        title = [re.sub(r"^(przy \d+ ?cm)$", r"\1 wzrostu", l.strip(), flags=re.I) for l in title]
         if glos:   # tytuł zostaje na ekranie, dopóki mówisz zdanie
             globals()["TITLE_SECONDS"] = min(7.5, max(TITLE_SECONDS, glos[1] + 0.5))   # + chwila na doczytanie
-            nowy = tytul_z_glosu(title, tekst_glosu(glos))
+            tg = tekst_glosu(glos)
+            print(f"[hook] tekst głosu: {tg!r}", flush=True)
+            nowy = tytul_z_glosu(title, tg)
             if nowy != title:
                 print(f"[hook] tytuł z głosu: {' / '.join(nowy)}", flush=True)
                 title = nowy
