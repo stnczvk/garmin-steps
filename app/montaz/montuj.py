@@ -967,7 +967,29 @@ def przygotuj_glos(n, work):
     lista = sorted(f for f in gd.glob("glos_*") if not f.name.endswith((".part", ".txt"))) if gd.is_dir() else []
     if not lista:
         return None
-    src = lista[n % len(lista)]
+    # rotacja po historii: ten sam dzień = to samo nagranie (ponowny montaż), nowy dzień = najdawniej użyte,
+    # nigdy to samo co dzień wcześniej (dawniej n % liczba nagrań – po dodaniu nagrania potrafiło się powtórzyć)
+    hf = gd / "historia_glosu.json"
+    try:
+        hist = json.loads(hf.read_text(encoding="utf-8"))
+    except Exception:
+        hist = {}
+    nazwy = [f.name for f in lista]
+    if hist.get(str(n)) in nazwy:
+        src = gd / hist[str(n)]
+    else:
+        ostatnio = {}
+        for k, v in hist.items():
+            if v in nazwy and int(k) < n:
+                ostatnio[v] = max(ostatnio.get(v, -1), int(k))
+        wczoraj = hist.get(str(n - 1))
+        kand = [x for x in nazwy if x != wczoraj] or nazwy
+        src = gd / min(kand, key=lambda x: (ostatnio.get(x, -1), nazwy.index(x)))
+        try:
+            hist[str(n)] = src.name
+            hf.write_text(json.dumps(dict(sorted(hist.items(), key=lambda x: int(x[0]))[-90:])), encoding="utf-8")
+        except Exception:
+            pass
     out = work / "glos_hook.wav"
     # początek: tniemy do pierwszego słowa (szum/stuki przed nim też), koniec: łagodnie – ciche „wzrostu” zostaje
     hp = "highpass=f=110,highpass=f=110,highpass=f=110"
