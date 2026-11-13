@@ -1023,7 +1023,6 @@ def tytul_z_glosu(title, tekst):
     m = re.search(r"dzie[nń]\s*(\d+)", title[0], re.I)
     title = [f"Dzień {m.group(1)}" if m else title[0]] + title[1:]
     tekst = re.sub(r"(\d+ ?cm)(?! wzrostu)", r"\1 wzrostu", tekst)     # „163 cm wzrostu”
-    tekst = re.sub(r"\b(redukcji|masie)\s+(?!przy\b)\w+\s+(\d+ ?cm)", r"\1 przy \2", tekst, flags=re.I)   # „pest 163 cm” -> „przy 163 cm”
     w = tekst.split()
     for n_l in (2, 3):        # linijki do ~22 znaków, żeby paski mieściły się na ekranie
         lines, cur = [], []
