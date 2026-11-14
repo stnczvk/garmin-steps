@@ -139,6 +139,20 @@ body:not(.zd) #c-zdrowie{display:none}
  <script>if(document.body.classList.contains("zd")){document.querySelector(".nzd").hidden=true;document.querySelector(".izd").hidden=false;document.getElementById("upd").hidden=true}</script>
  <div id="msg"></div>
  <div class="sum" id="sum"></div>
+ <div class="card" id="c-stat" style="margin-bottom:12px"><h2><span>📊 Statystyki kanału</span><small style="color:var(--faint);font-weight:400">ostatnie 28 dni</small></h2><div id="kstat" style="color:var(--soft);font-size:13px">Ładuję…</div></div>
+ <script>
+ (async()=>{const g=document.body.classList.contains("zd")?"zdrowie":"pozaskala",el=document.getElementById("kstat");
+  const e=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),n=x=>x==null?"–":Number(x).toLocaleString("pl-PL");
+  try{const d=await(await fetch("/api/social/summary")).json();const A=Object.values(d.accounts||{}).filter(a=>a.group===g);
+   if(!A.length){el.textContent="Brak podpiętych kont tego kanału (Konta i ustawienia).";return}
+   const cut=new Date(Date.now()-28*864e5).toISOString().slice(0,10);
+   el.innerHTML=A.map(a=>{const P=(a.posts||[]).filter(p=>p.date>=cut).sort((x,y)=>(y.views||0)-(x.views||0)).slice(0,3);
+    return `<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;margin:4px 0 8px"><b style="color:var(--ink)">${e(a.name)}</b><span>${e(a.platform)}</span>
+     <span>Obserwujący: <b style="color:var(--ink)">${n(a.followers)}</b></span><span>Wyświetlenia 28 dni: <b style="color:var(--ink)">${n(a.views_28d)}</b></span></div>`
+     +(P.length?`<div style="font-size:12.5px">${P.map(p=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid var(--line)"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e(p.title||p.caption||"film")}</span><b style="color:var(--ink)">${n(p.views)}</b></div>`).join("")}</div>`:"")
+     +(a.error?`<div style="color:#f87171;font-size:12px">${e(a.error)}</div>`:"")}).join("")}
+  catch(x){el.textContent="Nie udało się pobrać statystyk."}})();
+ </script>
  <div class="kpis" hidden>
   <div class="kpi"><small>Aktywne workflow</small><b id="k1">–</b><span id="k1s"></span></div>
   <div class="kpi"><small>Uruchomienia 24h</small><b id="k2">–</b><span id="k2s"></span></div>
