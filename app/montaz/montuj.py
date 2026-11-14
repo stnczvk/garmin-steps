@@ -69,6 +69,7 @@ HOOK_POZA_SECONDS = 3.0    # ile sekund pozowania na starcie
 HOOK_JEDZENIE = False      # True = najpierw ładne jedzenie na wstępie; False = zawsze pozowanie/siłownia
 HOOK_MAX_POZ = 4           # po tylu pozowaniach z rzędu na starcie wchodzi klip z siłowni
 HOOK_MIN_OCENA = 6         # danie poniżej tej oceny AI (1-10) -> na start siłownia/pozowanie
+HOOK_GLOS_DB = -3.0       # głos na wstępie trochę ciszej niż reszta filmu (skompresowany głos brzmi głośniej)
 HOOK_TLO_GLOS = 0.25       # dźwięk siłowni pod Twoim głosem (0-1)
 KONIEC_SECONDS = 0         # karta końcowa „Jutro dzień N + Obserwuj” (0 = bez)
 
@@ -1135,7 +1136,7 @@ def dolej_glos(seg, glos, tlo, work):
     """Głos na wierzch hooka; oryginalny dźwięk ujęcia (siłownia) zostaje cicho w tle (tlo = głośność, 0 = cisza)."""
     out = work / "seg_hook_glos.mp4"
     run(["ffmpeg", "-y", "-i", str(seg), "-i", str(glos), "-filter_complex",
-         f"[0:a]volume={tlo}[t];[1:a]volume={wyrownaj_db(glos):.1f}dB,adelay=60|60,apad[g];[t][g]amix=inputs=2:duration=first:normalize=0[a]",
+         f"[0:a]volume={tlo}[t];[1:a]volume={wyrownaj_db(glos) + HOOK_GLOS_DB:.1f}dB,adelay=60|60,apad[g];[t][g]amix=inputs=2:duration=first:normalize=0[a]",
          "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "44100", str(out)])
     return out
 
