@@ -147,20 +147,8 @@ body:not(.zd) #c-zdrowie{display:none}
  </div>
  <div class="now" id="now"></div>
  <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="long">🎬 Długie</button><button data-t="wf">⚙️ Zarządzaj</button><button data-t="stat">📊 Statystyki</button></div>
- <div class="card pt-stat" id="c-stat" style="margin-bottom:12px"><h2><span>📊 Statystyki kanału</span><small style="color:var(--faint);font-weight:400">ostatnie 28 dni</small></h2><div id="kstat" style="color:var(--soft);font-size:13px">Ładuję…</div></div>
- <script>
- (async()=>{const g=document.body.classList.contains("zd")?"zdrowie":"pozaskala",el=document.getElementById("kstat");
-  const e=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),n=x=>x==null?"–":Number(x).toLocaleString("pl-PL");
-  try{const d=await(await fetch("/api/social/summary")).json();const A=Object.values(d.accounts||{}).filter(a=>a.group===g);
-   if(!A.length){el.textContent="Brak podpiętych kont tego kanału (Konta i ustawienia).";return}
-   const cut=new Date(Date.now()-28*864e5).toISOString().slice(0,10);
-   el.innerHTML=A.map(a=>{const P=(a.posts||[]).filter(p=>p.date>=cut).sort((x,y)=>(y.views||0)-(x.views||0)).slice(0,3);
-    return `<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;margin:4px 0 8px"><b style="color:var(--ink)">${e(a.name)}</b><span>${e(a.platform)}</span>
-     <span>Obserwujący: <b style="color:var(--ink)">${n(a.followers)}</b></span><span>Wyświetlenia 28 dni: <b style="color:var(--ink)">${n(a.views_28d)}</b></span></div>`
-     +(P.length?`<div style="font-size:12.5px">${P.map(p=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid var(--line)"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e(p.title||p.caption||"film")}</span><b style="color:var(--ink)">${n(p.views)}</b></div>`).join("")}</div>`:"")
-     +(a.error?`<div style="color:#f87171;font-size:12px">${e(a.error)}</div>`:"")}).join("")}
-  catch(x){el.textContent="Nie udało się pobrać statystyk."}})();
- </script>
+ <div class="pt-stat" id="c-stat"><iframe id="statf" title="Statystyki kanału" style="width:100%;height:calc(100vh - 140px);min-height:600px;border:0;border-radius:16px;background:transparent" loading="lazy"></iframe></div>
+ <script>document.getElementById("statf").src="/?embed=stats&g="+(document.body.classList.contains("zd")?"zdrowie":"pozaskala");</script>
  <div class="card pt-today" id="c-today"><h2><span>📅 Dziś według harmonogramu</span><small id="tdd" class="mono" style="color:var(--faint);font-weight:400"></small></h2><div id="today"></div></div>
  <div class="card pt-long" id="c-long"><h2><span>🎬 Długie filmy YouTube – „What If?” ze stickmanem</span><button class="btn" id="dlRun">Zrób teraz</button></h2>
   <div class="dlc" id="dlCfg"></div><div id="dlList"><div class="empty">Ładuję…</div></div></div>

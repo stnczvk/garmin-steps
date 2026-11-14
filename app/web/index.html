@@ -876,6 +876,8 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
 
 
 <div class="s-dim" id="sdim"></div>
+<script>(function(){const q=new URLSearchParams(location.search);if(q.get('embed')==='stats'){document.documentElement.classList.add('emb');document.addEventListener('DOMContentLoaded',()=>document.body.classList.add('embed'))}})()</script>
+<style>html.emb .side,html.emb .head,html.emb .tbar,html.emb .subt,html.emb .intro-r,html.emb #settings,html.emb .s-dim,html.emb .burger{display:none!important}html.emb body{--sw:0px!important;--hh:0px!important}html.emb #app{margin-left:0!important;padding-top:8px!important}</style>
 <header class="head" id="head">
   <div class="head-in">
     <button class="burger" id="burger" aria-label="Menu">☰</button>
@@ -1633,6 +1635,8 @@ addEventListener('message', e => { if (e.origin !== location.origin || !e.data) 
 document.body.classList.add('lg');
 // #powiadomienia=ID (kliknięcie w push) – otwiera konkretne powiadomienie
 function route() {
+  const q = new URLSearchParams(location.search);
+  if (q.get('embed') === 'stats') { setView(({zdrowie: 'stats-zd', pozaskala: 'stats-ps', prywatne: 'stats'})[q.get('g')] || 'stats-ps'); return; }
   const [v, id] = location.hash.slice(1).split('=');
   setView(v);
   if (v === 'powiadomienia' && id) {
