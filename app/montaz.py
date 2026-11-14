@@ -1061,16 +1061,22 @@ def check(jid):
                          "Dostajesz raport automatycznych cięć i transkrypcję klipów. Sprawdź: czy nie zostały powtórzone zdania, "
                          "czy nie wycięto czegoś ważnego, czy kolejność posiłków ma sens, czy są przekleństwa/pomyłki.\n\n"
                          f"Tytuł: {' / '.join(st.get('title') or [])}\nDługość: {dur:.0f} s\n{_btxt(base)}\n\nRAPORT:\n{rap}\n\nTRANSKRYPCJA:\n{tr}\n\n"
-                         f"MOJE WCZEŚNIEJSZE POPRAWKI DO INNYCH FILMÓW (tylko jako przykłady RODZAJÓW błędów, np. powtórzone zdanie albo wycięta liczba; "
-                         f"ich treść dotyczy innych dni – nie wymagaj, żeby ten film mówił o tym samym, i nie porównuj z nimi treści):\n{_lessons('jedzenie') or 'brak'}\n\n"
+                         "Oceniaj WYŁĄCZNIE ten film na podstawie powyższej transkrypcji i raportu – nie zakładaj, co autor powinien był powiedzieć.\n\n"
                          "WAŻNE: transkrypcja jest automatyczna i często przekręca słowa i nazwy (np. sos, potrawy, marki) – takich przekręceń NIE zgłaszaj jako błędów. "
                          "Zgłaszaj tylko realne problemy montażu.\n\n"
                          'Odpowiedz JSON: {"ok": true/false, "review": "2-3 zdania oceny po polsku", '
-                         '"fix": "jeśli coś trzeba poprawić – polecenie dla montażysty po polsku (np. wytnij w klipie 2 drugie podejście do zdania o obiedzie), inaczej pusty"}',
+                         '"fix": "jeśli coś trzeba poprawić – polecenie dla montażysty po polsku (np. wytnij w klipie 2 drugie podejście do zdania o obiedzie), inaczej pusty", '
+                         '"cytat": "dokładne słowa z TRANSKRYPCJI albo RAPORTU, których dotyczy problem (skopiuj, nie parafrazuj); pusty, gdy ok"}',
                          max_tokens=500)
             j = as_json(txt) or {}
             res["review"] = str(j.get("review", ""))[:600]
             res["fix"] = str(j.get("fix", ""))[:600]
+            # uwaga musi dotyczyć tego filmu: cytat musi naprawdę być w transkrypcji/raporcie – inaczej to zmyślenie strażnika
+            norm = lambda x: re.sub(r"[^\wąćęłńóśźż ]", "", re.sub(r"\s+", " ", str(x).lower())).strip()
+            cyt = norm(j.get("cytat", ""))
+            if res["fix"] and (len(cyt) < 4 or cyt not in norm(tr + " " + rap)):
+                res["review"] = (res["review"] + " (uwaga strażnika pominięta – nie dotyczyła tego, co jest w filmie)")[:600]
+                res["fix"] = ""
             if j.get("ok") is False and res["fix"]:
                 res["ok"] = False
     except Exception as e:
