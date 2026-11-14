@@ -209,5 +209,37 @@ def _watch():
         time.sleep(60)
 
 
+def _wstrzymaj_once():
+    """Jednorazowo (11.2026): PozaSkala wstrzymana – wyłączone workflow n8n (generator, montaż, publikacja, analityka)
+    i harmonogram długich filmów. Kanał i filmy zostają; Zdrowie 50+ działa dalej. Włączenie z powrotem: w n8n i w ustawieniach kanału."""
+    from social import _read, _write
+    flag = _read("pozaskala_pauza.json", {})
+    if flag.get("done"):
+        return
+    time.sleep(60)
+    off = []
+    try:
+        key = os.environ.get("N8N_API_KEY", "")
+        base = os.environ.get("N8N_URL", "http://127.0.0.1:5678").rstrip("/")
+        if key:
+            h = {"X-N8N-API-KEY": key, "accept": "application/json"}
+            wf = httpx.get(f"{base}/api/v1/workflows", params={"limit": 100}, headers=h, timeout=15).json()
+            for w in wf.get("data", []):
+                if w.get("active") and re.search(r"generator|publisher|monta|analytics|kolejk", w.get("name", ""), re.I):
+                    r = httpx.post(f"{base}/api/v1/workflows/{w['id']}/deactivate", headers=h, timeout=15)
+                    off.append(f"{w.get('name')} ({r.status_code})")
+        import dlugi
+        S = dlugi._state()
+        S["cfg"] = {**dlugi.cfg(), "enabled": False}
+        dlugi._save(S)
+        off.append("harmonogram długich filmów")
+        _write("pozaskala_pauza.json", {"done": True, "at": time.time(), "off": off})
+        print("PozaSkala wstrzymana:", off, flush=True)
+    except Exception as e:
+        print("PozaSkala pauza:", e, flush=True)
+
+
+threading.Thread(target=_wstrzymaj_once, daemon=True).start()
+
 if os.environ.get("N8N_API_KEY"):
     threading.Thread(target=_watch, daemon=True).start()
