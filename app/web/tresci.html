@@ -455,7 +455,7 @@ function openIdea(i){i=i||{};const isNew=!i.id;
  if($('dl'))$('dl').onclick=async()=>{if(!confirm('Usunąć ten pomysł?'))return;await api('/api/tresci/idea/'+i.id+'/delete',{});closeM();load()};
 }
 // ---------- godziny publikacji (domyślne dla nowych postów z Montażowni) ----------
-const HRN={jedzenie:['🍽','Daily jedzenie'],karuzela:['🖼','Karuzela jedzenia'],vlog:['🎥','Vlog'],cheat:['🍔','Cheat meal'],przepis:['🥣','Przepis'],vlogyt:['▶️','Vlog YT'],klip:['✂️','Klipy z vloga']};
+const HRN={jedzenie:['🍽','Daily jedzenie'],karuzela:['🖼','Karuzela jedzenia'],cheat:['🍔','Cheat meal'],przepis:['🥣','Przepis'],vlogyt:['▶️','Vlog YT'],klip:['✂️','Klipy z vloga']};
 async function hrs(){let r;try{r=await (await fetch('/api/planer')).json()}catch(e){}const h=(r&&r.cfg&&r.cfg.hours)||{};
  $('hrs').innerHTML=Object.entries(HRN).map(([k,[ic,n]])=>`<label class="hr"><span>${ic} ${n}</span><input type="time" data-h="${k}" value="${esc(h[k]||'')}"><i>✓</i></label>`).join('');
  $('hrs').querySelectorAll('input').forEach(i=>i.onchange=async()=>{if(!/^\d{1,2}:\d{2}$/.test(i.value))return;const r=await api('/api/planer-cfg',{hours:{[i.dataset.h]:i.value}});
