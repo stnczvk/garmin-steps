@@ -249,11 +249,14 @@ def publish(path, caption="", direct=None, opts=None):
                 "Content-Type": "video/mp4", "Content-Length": str(ln), "Content-Range": f"bytes {start}-{start + ln - 1}/{size}"})
             if u.status_code >= 300:
                 raise RuntimeError(f"TikTok (wysyłka pliku): {u.status_code} {u.text[:150]}")
+            print(f"tiktok: kawałek {i + 1}/{cnt} {start}-{start + ln - 1}/{size} → {u.status_code} {u.headers.get('content-range', '')}", flush=True)
     t0 = time.time()
     while time.time() - t0 < 600:
         s = httpx.post(f"{API}/post/publish/status/fetch/", headers=h, json={"publish_id": pid}, timeout=30)
         st = (s.json().get("data") or {}) if s.status_code < 300 else {}
         v = st.get("status")
+        if st.get("uploaded_bytes") is not None:
+            print(f"tiktok status: {v} wysłane {st.get('uploaded_bytes')}/{size} B", flush=True)
         if v == "SEND_TO_USER_INBOX":
             return pid, f"w skrzynce TikToka ({dur:.0f} s) – otwórz aplikację i opublikuj"
         if v == "PUBLISH_COMPLETE":
