@@ -352,7 +352,7 @@ def ai_fix_words(trans, day):
     except Exception:
         known = []
     # słownik i wersja polecenia w hashu – po nowej poprawce napisy liczą się od nowa, a nie z pamięci
-    h = hashlib.sha1(json.dumps([clips, known[-80:], "v2"], ensure_ascii=False).encode()).hexdigest()[:12]
+    h = hashlib.sha1(json.dumps([clips, known[-80:], "v3"], ensure_ascii=False).encode()).hexdigest()[:12]
     cf = day / "napisy_poprawki.json"
     fixes = None
     try:
@@ -369,7 +369,9 @@ def ai_fix_words(trans, day):
                   "biorąc pod uwagę sens zdania. Poprawiaj też złe końcówki (przypadek), które rozpoznawanie myli z podobnie brzmiącymi, "
                   "patrząc na sens: miejsce → „na górze”, „na dole”, „w środku” (np. „na górze są borówki”), kierunek → „na górę” "
                   "(np. „idę na górę”); tak samo „w lodówce/do lodówki”, „na talerzu/na talerz”. "
-                  "Nie zmieniaj poprawnych słów, liczb ani stylu mówienia. Jedno słowo może "
+                  "Nie zmieniaj poprawnych słów, liczb ani stylu mówienia. NIGDY nie zamieniaj prawdziwego słowa na inne prawdziwe słowo "
+                  "tylko dlatego, że wg Ciebie lepiej pasuje (np. „na trzy” zostaje „na trzy”, nie „na to”) – autor mówi po swojemu. "
+                  "Liczebników (trzy, dwa, pięć…) i cyfr nie ruszaj wcale. Gdy nie masz pewności – zostaw słowo. Jedno słowo może "
                   "zostać zastąpione krótką frazą, jeśli rozpoznawanie skleiło słowa.\n"
                   'Odpowiedz wyłącznie JSON-em: {"NAZWA_KLIPU": {"NUMER_SŁOWA": "poprawione"}} – tylko zmienione słowa.\n\n'
                   + "\n".join(f"### {n}\n" + " ".join(f"{i}:{w}" for i, w in enumerate(ws)) for n, ws in clips.items()))
@@ -396,6 +398,9 @@ def ai_fix_words(trans, day):
                 i = int(i)
             except ValueError:
                 continue
+            stare = re.sub(r"[^\wąćęłńóśźż]", "", ws[i]["word"].lower()) if 0 <= i < len(ws) else ""
+            if stare and (re.search(r"\d", stare) or _slowo_liczba(stare) is not None):
+                continue      # liczb i liczebników AI nie poprawia („na trzy” ≠ „na to”)
             if 0 <= i < len(ws) and str(new).strip() and str(new).strip() != ws[i]["word"]:
                 ws[i]["word"] = str(new).strip(); n += 1
     print(f"Poprawki napisów (AI): {n} słów", flush=True)
