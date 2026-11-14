@@ -895,6 +895,12 @@ def publish(pid):
                 continue
             mid = pub_instagram(it) if p == "instagram" else pub_youtube(it) if p == "youtube" else None
             res[p] = {"ok": True, "id": mid, "at": time.time()}
+            with _lock:   # wynik zapisany od razu – restart w trakcie nie wrzuci tej platformy drugi raz
+                P2 = plan()
+                x2 = next((x for x in P2 if x["id"] == pid), None)
+                if x2:
+                    x2["results"] = {**(x2.get("results") or {}), p: res[p]}
+                    save(P2)
         except Exception as e:
             res[p] = {"ok": False, "error": str(e)[:250]}
             errs.append(f"{p}: {str(e)[:150]}")
@@ -1057,6 +1063,22 @@ def _loop():
 
 def _pub_loop():
     """Publikacje o czasie – co 30 s, niezależnie od skanu (wcześniej długi skan potrafił opóźnić post o godziny)."""
+    try:   # publikacja przerwana restartem serwera (np. social-update w trakcie) – nie wisi w „publikuję…” w nieskończoność
+        with _lock:
+            P = plan()
+            ile = 0
+            for x in P:
+                if x.get("status") == "publishing":
+                    zostalo = [p for p in x.get("platforms", []) if not (x.get("results") or {}).get(p, {}).get("ok")]
+                    x["status"] = "error" if zostalo else "published"
+                    x["step"] = (f"przerwane restartem serwera – sprawdź {', '.join(zostalo)} i kliknij Ponów, jeśli posta tam nie ma"
+                                 if zostalo else "opublikowane")
+                    ile += 1
+            if ile:
+                save(P)
+                print(f"planer: {ile} przerwanych publikacji po restarcie", flush=True)
+    except Exception as e:
+        print("planer: przerwane publikacje", e, flush=True)
     time.sleep(50)
     while True:
         try:
