@@ -943,6 +943,7 @@ def tt_opis(pid: str):
     if not it:
         return HTMLResponse("<p>Nie ma takiego posta.</p>", status_code=404)
     cap = (it.get("tiktok") or it.get("caption") or "").strip()
+    pobierz = ('<a href="/api/planer/' + it["id"] + '/download" style="background:#2c2c2e">⬇ 1. Pobierz film</a>') if it.get("kind") == "film" else ""
     return HTMLResponse(f"""<!doctype html><html lang="pl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Opis TikTok</title>
 <style>body{{font:16px -apple-system,system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:20px}}
@@ -950,7 +951,7 @@ h1{{font-size:18px}}pre{{white-space:pre-wrap;background:#1d1d1f;padding:14px;bo
 button,a{{display:block;width:100%;box-sizing:border-box;margin-top:12px;padding:16px;border:0;border-radius:12px;
 font:600 17px inherit;text-align:center;text-decoration:none}}button{{background:#E5232F;color:#fff}}a{{background:#2c2c2e;color:#fff}}</style></head>
 <body><h1>{html.escape(it.get('label') or 'TikTok')}</h1><pre id="c">{html.escape(cap)}</pre>
-{f'<a href="/api/planer/{it["id"]}/download" style="background:#2c2c2e">⬇ 1. Pobierz film</a>' if it.get("kind") == "film" else ""}
+{pobierz}
 <button id="b">📋 2. Kopiuj opis</button><a href="https://www.tiktok.com/">3. Otwórz TikToka</a>
 <script>document.getElementById('b').onclick=async()=>{{try{{await navigator.clipboard.writeText(document.getElementById('c').textContent);
 document.getElementById('b').textContent='✓ Skopiowane – wklej w TikToku'}}catch(e){{document.getElementById('b').textContent='Zaznacz tekst i skopiuj ręcznie'}}}}</script>
