@@ -220,7 +220,9 @@ def word_restarts(words, max_gap=14):
             # zwykła mowa też powtarza zwroty ("i na", "z jabłkiem") – restart musi być blisko,
             # a dopasowane słowa nie mogą być same krótkie/spójniki
             content = sum(1 for q in range(k) if ws[i + q][0] not in COMMON and len(ws[i + q][0]) >= 3)
-            close = j - i <= 6
+            # restart = pierwsze podejście urwane po 0–2 słowach; dłuższy kawałek między to wyliczanie
+            # („na trzech mamy dżem malinowy i na trzech masło orzechowe”), a nie powtórka
+            close = j - i - k <= 2
             ok = (k >= 3 and content >= 2 and j - i - k <= 2) or (k >= 2 and close and content >= 1) or (broken and close)
             if ok and ws[j][1] - ws[i][1] >= 0.4 and len(ws[i][0]) + len(ws[i + 1][0]) >= 3:
                 best = j            # szukamy dalej – przy kilku podejściach zostaje ostatnie
