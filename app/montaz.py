@@ -1534,8 +1534,15 @@ async def mont_opis(req: Request):
         except Exception:
             _tt = rd('title.json', 300)
         dn = re.search(r"dzie[nń]\D{0,3}(\d+)", _tt, re.I)
+        try:   # kcal TYLKO z dziennika – bez danych AI nie może wymyślać liczby
+            _kc = int(float((json.loads(rd("podsumowanie.json", 20000) or "{}").get("kcal") or 0)))
+        except Exception:
+            _kc = 0
         ctx = (f"Seria: Daily jedzenie – film „co jem w ciągu dnia na redukcji” (posiłki z kartami kcal i makro).\n"
-               + (f"TYTUŁ SERII (obowiązkowo): opis na TikToku i pierwsza linijka na Instagramie ZACZYNAJĄ SIĘ dokładnie od „Redukcja dzień {dn.group(1)} – <kcal z podsumowania> kcal”, potem reszta.\n" if dn else "")
+               + ((f"TYTUŁ SERII (obowiązkowo): opis na TikToku i pierwsza linijka na Instagramie ZACZYNAJĄ SIĘ dokładnie od „Redukcja dzień {dn.group(1)}, {_kc} kcal”, potem reszta.\n"
+                   if _kc else f"TYTUŁ SERII (obowiązkowo): opis na TikToku i pierwsza linijka na Instagramie ZACZYNAJĄ SIĘ od „Redukcja dzień {dn.group(1)}”. "
+                   "Dziennik nie ma jeszcze kalorii z tego dnia – NIE podawaj żadnej liczby kcal ani makro w opisie.\n") if dn else "")
+               + ("" if _kc else "Nie wpisuj żadnych liczb kcal/makro, których nie ma w danych poniżej.\n")
                + 
                f"Tytuł na filmie: {rd('title.json', 300)}\nPodsumowanie dnia (dane z dziennika): {rd('podsumowanie.json')}\n"
                f"Co mówię w filmie / raport montażu: {rd('raport.txt', 2000)}")
