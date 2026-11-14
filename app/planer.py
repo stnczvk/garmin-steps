@@ -882,6 +882,12 @@ def publish(pid):
         if res.get(p, {}).get("ok"):
             continue
         try:
+            if p == "tiktok" and TT_RECZNIE and not res.get(p, {}).get("pre"):
+                from extra import push_all
+                push_all("🎵 TikTok: czas publikacji", f"„{it['label']}” – stuknij: pobierz film, skopiuj opis i wrzuć na TikToka",
+                         f"/tt-opis/{it['id']}")
+                res[p] = {"ok": True, "at": time.time(), "note": "ręcznie – powiadomienie z filmem i opisem"}
+                continue
             if p == "tiktok":
                 import tiktok_pub
                 mid, note = tiktok_pub.publish(it["file"], (it.get("tiktok") or it.get("caption") or "").strip(), opts=it.get("tt") or {})
@@ -923,6 +929,7 @@ def publish(pid):
         pass
 
 
+TT_RECZNIE = True   # TikTok przez API psuł filmy (stawały po kilku s) – o czasie powiadomienie: pobierz film + skopiuj opis, wrzucasz sam
 TT_LEAD = 2 * 3600   # TikTok potrafi przetwarzać film w skrzynce ponad godzinę – wysyłamy 2 h wcześniej, o czasie przychodzi przypomnienie
 _pre = set()
 
@@ -943,7 +950,8 @@ h1{{font-size:18px}}pre{{white-space:pre-wrap;background:#1d1d1f;padding:14px;bo
 button,a{{display:block;width:100%;box-sizing:border-box;margin-top:12px;padding:16px;border:0;border-radius:12px;
 font:600 17px inherit;text-align:center;text-decoration:none}}button{{background:#E5232F;color:#fff}}a{{background:#2c2c2e;color:#fff}}</style></head>
 <body><h1>{html.escape(it.get('label') or 'TikTok')}</h1><pre id="c">{html.escape(cap)}</pre>
-<button id="b">📋 Kopiuj opis</button><a href="https://www.tiktok.com/">Otwórz TikToka</a>
+{f'<a href="/api/planer/{it["id"]}/download" style="background:#2c2c2e">⬇ 1. Pobierz film</a>' if it.get("kind") == "film" else ""}
+<button id="b">📋 2. Kopiuj opis</button><a href="https://www.tiktok.com/">3. Otwórz TikToka</a>
 <script>document.getElementById('b').onclick=async()=>{{try{{await navigator.clipboard.writeText(document.getElementById('c').textContent);
 document.getElementById('b').textContent='✓ Skopiowane – wklej w TikToku'}}catch(e){{document.getElementById('b').textContent='Zaznacz tekst i skopiuj ręcznie'}}}}</script>
 </body></html>""")
@@ -1086,7 +1094,7 @@ def _pub_loop():
             for it in plan():
                 if it["status"] == "approved" and (it["when"] <= now or (it.get("series") == "vlogyt" and it["when"] - VLOG_LEAD <= now)):
                     threading.Thread(target=publish, args=(it["id"],), daemon=True).start()
-                elif (it["status"] == "approved" and "tiktok" in it["platforms"] and it["when"] - TT_LEAD <= now
+                elif (not TT_RECZNIE and it["status"] == "approved" and "tiktok" in it["platforms"] and it["when"] - TT_LEAD <= now
                       and not (it.get("results") or {}).get("tiktok", {}).get("ok") and it.get("file")):
                     threading.Thread(target=pre_tiktok, args=(it["id"],), daemon=True).start()
         except Exception as e:
