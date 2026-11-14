@@ -182,7 +182,9 @@ def publish(path, caption="", direct=None, opts=None):
         pad = (ad - vd + 0.1) if (vd and ad and ad - vd > 0.25) else 0.0
         tot = max(vd, ad, fd, 1.0)
         vs = next((x for x in sts if x.get("codec_type") == "video"), {})
-        trzeba = hdr or pad or vs.get("codec_name") != "h264" or vs.get("pix_fmt") not in ("yuv420p", "yuvj420p") or os.path.getsize(path) > 60 * 1024 * 1024
+        # zawsze przerabiamy: filmy prosto z ffmpeg (montaż, klipy z vloga) mają w MP4 listę edycji i przesunięcia klatek B –
+        # TikTok przy wysyłce przez API potrafi wtedy „zagrać” tylko pierwszą sekundę (ręcznie z telefonu działa, bo aplikacja koduje po swojemu)
+        trzeba = True
         if not trzeba:   # zwykły plik H.264 (jak montaże z centrum) – wysyłamy oryginał, tak jak kiedyś, kiedy wszystko działało
             print("tiktok: plik w porządku – wysyłam bez przeróbki", flush=True)
         else:
@@ -196,9 +198,12 @@ def publish(path, caption="", direct=None, opts=None):
             ok = False
             for vf in vfs:
                 cmd = ["nice", "-n", "10", "ffmpeg", "-y", "-v", "error", "-i", path, "-map", "0:V:0", "-map", "0:a:0?", "-vf", vf,
-                       "-c:v", "libx264", "-preset", "veryfast", "-profile:v", "high", "-b:v", f"{vb}k", "-maxrate", f"{vb * 2}k", "-bufsize", f"{vb * 2}k",
+                       "-c:v", "libx264", "-preset", "veryfast", "-profile:v", "high", "-level:v", "4.1", "-bf", "0", "-g", "60",
+                       "-b:v", f"{vb}k", "-maxrate", f"{vb * 2}k", "-bufsize", f"{vb * 2}k",
                        "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
-                       "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-movflags", "+faststart", out]
+                       "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-af", "aresample=async=1:first_pts=0",
+                       "-map_metadata", "-1", "-map_chapters", "-1", "-avoid_negative_ts", "make_zero", "-use_editlist", "0",
+                       "-movflags", "+faststart", out]
                 if subprocess.run(cmd, timeout=3600).returncode == 0 and os.path.getsize(out) > 1000:
                     ok = True
                     break
