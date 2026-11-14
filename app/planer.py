@@ -1238,6 +1238,16 @@ def api_prev(pid: str, i: int = 0):
         return FileResponse(lite(f), media_type="video/mp4")
     return FileResponse(f, media_type="image/jpeg")
 
+@router.get("/api/planer/{pid}/download")
+def api_download(pid: str):
+    """Pełny plik filmu z planera – do ręcznego wrzucenia (np. na TikToka)."""
+    it = next((x for x in plan() if x["id"] == pid), None)
+    if not it or it.get("kind") != "film" or not it.get("file") or not os.path.isfile(it["file"]):
+        return JSONResponse({"error": "nie ma pliku"}, status_code=404)
+    nm = re.sub(r"[^\w.-]+", "_", (it.get("label") or "film"))[:60] + os.path.splitext(it["file"])[1]
+    return FileResponse(it["file"], media_type="video/mp4", filename=nm)
+
+
 # ---------- własne posty (wgrane z telefonu/komputera w Treściach) ----------
 UPD = SOCIAL_ROOT / "posty_wlasne"
 
