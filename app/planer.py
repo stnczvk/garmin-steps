@@ -17,7 +17,7 @@ router = APIRouter()
 TZ = ZoneInfo("Europe/Warsaw")
 IG = "https://graph.instagram.com"
 PLAN, CFG = "posts_plan.json", "posts_cfg.json"
-DEF = {"hours": {"jedzenie": "18:00", "karuzela": "09:00", "vlog": "20:00", "cheat": "19:00", "przepis": "17:00", "klip": "18:30", "vlogyt": "17:00", "strimy_film": "17:00", "strimy_short": "12:30", "strimy_short2": "20:30"},
+DEF = {"hours": {"jedzenie": "18:00", "karuzela": "09:00", "vlog": "20:00", "cheat": "19:00", "przepis": "17:00", "klip": "19:30", "vlogyt": "17:00", "strimy_film": "17:00", "strimy_short": "12:30", "strimy_short2": "20:30"},
        "platforms": {"film": ["instagram", "youtube"], "karuzela": ["instagram"]}, "auto": True}
 _lock = threading.RLock()
 
@@ -1180,7 +1180,23 @@ async def api_cfg(req: Request):
     b = await req.json()
     c = _read(CFG, {})
     h = b.get("hours") or {}
+    stare = cfg()["hours"]
     c["hours"] = {**(c.get("hours") or {}), **{k: v for k, v in h.items() if re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", str(v))}}
+    try:   # zmiana godziny serii → zaplanowane (nieprzypięte) posty z tej serii o starej godzinie przesuwają się na nową
+        zmiany = {k: v for k, v in c["hours"].items() if stare.get(k) and stare[k] != v}
+        if zmiany:
+            with _lock:
+                P = plan()
+                for x in P:
+                    nowa = zmiany.get(x.get("series"))
+                    if nowa and x.get("status") in ("draft", "approved") and not x.get("pin") and x.get("when", 0) > time.time():
+                        d = datetime.fromtimestamp(x["when"], TZ)
+                        if d.strftime("%H:%M") == stare[x["series"]]:
+                            hh, mm = map(int, nowa.split(":"))
+                            x["when"] = d.replace(hour=hh, minute=mm).timestamp()
+                save(P)
+    except Exception as e:
+        print("planer: przesuwanie godzin", e, flush=True)
     if "auto" in b:
         c["auto"] = bool(b["auto"])
     _write(CFG, c)
