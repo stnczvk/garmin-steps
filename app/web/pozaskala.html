@@ -113,7 +113,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 .ptabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line);margin:4px 0 12px;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .ptabs button{flex:1;border:0;background:transparent;color:var(--soft);font:600 13px Geist,system-ui;padding:9px 6px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .ptabs button.on{background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.06));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
-body:not(.t-long) .pt-long,body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-lanes,body:not(.t-hist) .pt-hist,body:not(.t-wf) .pt-wf{display:none!important}
+body:not(.t-long) .pt-long,body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-lanes,body:not(.t-hist) .pt-hist,body:not(.t-wf) .pt-wf,body:not(.t-stat) .pt-stat{display:none!important}
 .grid2{display:block!important;margin-top:0}.grid2>.card{margin-top:0}
 .fold .tg i{display:none}.fold.closed .body{display:block!important}
 .lanes{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
@@ -125,7 +125,7 @@ body:not(.t-long) .pt-long,body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-l
 .dli .h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.dli b{font-size:14px}.dli small{color:var(--faint)}
 .dli video{width:100%;max-width:640px;border-radius:12px;background:#000;aspect-ratio:16/9}
 .st{font:600 11.5px Geist,system-ui;padding:3px 8px;border-radius:8px;background:var(--v3-s3,#242536)}.st.ok{color:var(--ok);background:rgba(61,220,132,.12)}.st.wr{color:var(--warn);background:rgba(255,194,75,.12)}.st.bad{color:var(--bad);background:rgba(255,107,122,.12)}
-body.zd .wrap>*:not(#c-zdrowie):not(h1){display:none!important}body.zd #c-zdrowie{display:block!important}
+body.zd .wrap>*:not(#c-zdrowie):not(h1):not(#ptabs):not(#c-stat):not(script){display:none!important}body.zd.t-long #c-zdrowie{display:block!important}body.zd #ptabs button:not([data-t=long]):not([data-t=stat]){display:none}
 body:not(.zd) #c-zdrowie{display:none}
 </style>
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
@@ -139,7 +139,7 @@ body:not(.zd) #c-zdrowie{display:none}
  <script>if(document.body.classList.contains("zd")){document.querySelector(".nzd").hidden=true;document.querySelector(".izd").hidden=false;document.getElementById("upd").hidden=true}</script>
  <div id="msg"></div>
  <div class="sum" id="sum"></div>
- <div class="card" id="c-stat" style="margin-bottom:12px"><h2><span>📊 Statystyki kanału</span><small style="color:var(--faint);font-weight:400">ostatnie 28 dni</small></h2><div id="kstat" style="color:var(--soft);font-size:13px">Ładuję…</div></div>
+ <div class="card pt-stat" id="c-stat" style="margin-bottom:12px"><h2><span>📊 Statystyki kanału</span><small style="color:var(--faint);font-weight:400">ostatnie 28 dni</small></h2><div id="kstat" style="color:var(--soft);font-size:13px">Ładuję…</div></div>
  <script>
  (async()=>{const g=document.body.classList.contains("zd")?"zdrowie":"pozaskala",el=document.getElementById("kstat");
   const e=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),n=x=>x==null?"–":Number(x).toLocaleString("pl-PL");
@@ -160,7 +160,7 @@ body:not(.zd) #c-zdrowie{display:none}
   <div class="kpi"><small>Następny start</small><b id="k4">–</b><span id="k4s"></span></div>
  </div>
  <div class="now" id="now"></div>
- <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="long">🎬 Długie</button><button data-t="wf">⚙️ Zarządzaj</button></div>
+ <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="long">🎬 Długie</button><button data-t="wf">⚙️ Zarządzaj</button><button data-t="stat">📊 Statystyki</button></div>
  <div class="card pt-today" id="c-today"><h2><span>📅 Dziś według harmonogramu</span><small id="tdd" class="mono" style="color:var(--faint);font-weight:400"></small></h2><div id="today"></div></div>
  <div class="card pt-long" id="c-long"><h2><span>🎬 Długie filmy YouTube – „What If?” ze stickmanem</span><button class="btn" id="dlRun">Zrób teraz</button></h2>
   <div class="dlc" id="dlCfg"></div><div id="dlList"><div class="empty">Ładuję…</div></div></div>
@@ -397,9 +397,10 @@ for(const [A,P] of [['/api/dlugi','dl'],['/api/zdrowie','zd']]){const b=$(P+'Run
 const dlAll=()=>{dlLoad('/api/dlugi','dl');if($('zdRun'))dlLoad('/api/zdrowie','zd')};dlAll();setInterval(dlAll,30000);
 
 // zakładki strony (zapamiętane)
-(function(){let t='today';try{t=localStorage.getItem('pz-tab')||'today'}catch(e){}
- window.setTab=x=>{t=x;['today','lanes','hist','wf','long'].forEach(k=>document.body.classList.toggle('t-'+k,k===x));
-  document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===x));try{localStorage.setItem('pz-tab',x)}catch(e){}};
+(function(){const zd=document.body.classList.contains('zd'),K=zd?'pz-tab-zd':'pz-tab';let t=zd?'long':'today';try{t=localStorage.getItem(K)||t}catch(e){}
+ if(zd&&!['long','stat'].includes(t))t='long';
+ window.setTab=x=>{t=x;['today','lanes','hist','wf','long','stat'].forEach(k=>document.body.classList.toggle('t-'+k,k===x));
+  document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===x));try{localStorage.setItem(K,x)}catch(e){}};
  document.querySelectorAll('#ptabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));setTab(t)})();
 function summary(){const el=$('sum');if(!state||!state.ok){el.innerHTML='';return}
  const W=state.workflows,E=state.executions,day=Date.now()-864e5,e24=E.filter(e=>new Date(e.startedAt)>day),er=e24.filter(e=>['error','crashed'].includes(e.status)).length,n=nextStart();
