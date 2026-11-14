@@ -139,6 +139,14 @@ body:not(.zd) #c-zdrowie{display:none}
  <script>if(document.body.classList.contains("zd")){document.querySelector(".nzd").hidden=true;document.querySelector(".izd").hidden=false;document.getElementById("upd").hidden=true}</script>
  <div id="msg"></div>
  <div class="sum" id="sum"></div>
+ <div class="kpis" hidden>
+  <div class="kpi"><small>Aktywne workflow</small><b id="k1">–</b><span id="k1s"></span></div>
+  <div class="kpi"><small>Uruchomienia 24h</small><b id="k2">–</b><span id="k2s"></span></div>
+  <div class="kpi"><small>Błędy 24h</small><b id="k3">–</b><span id="k3s"></span></div>
+  <div class="kpi"><small>Następny start</small><b id="k4">–</b><span id="k4s"></span></div>
+ </div>
+ <div class="now" id="now"></div>
+ <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="long">🎬 Długie</button><button data-t="wf">⚙️ Zarządzaj</button><button data-t="stat">📊 Statystyki</button></div>
  <div class="card pt-stat" id="c-stat" style="margin-bottom:12px"><h2><span>📊 Statystyki kanału</span><small style="color:var(--faint);font-weight:400">ostatnie 28 dni</small></h2><div id="kstat" style="color:var(--soft);font-size:13px">Ładuję…</div></div>
  <script>
  (async()=>{const g=document.body.classList.contains("zd")?"zdrowie":"pozaskala",el=document.getElementById("kstat");
@@ -153,14 +161,6 @@ body:not(.zd) #c-zdrowie{display:none}
      +(a.error?`<div style="color:#f87171;font-size:12px">${e(a.error)}</div>`:"")}).join("")}
   catch(x){el.textContent="Nie udało się pobrać statystyk."}})();
  </script>
- <div class="kpis" hidden>
-  <div class="kpi"><small>Aktywne workflow</small><b id="k1">–</b><span id="k1s"></span></div>
-  <div class="kpi"><small>Uruchomienia 24h</small><b id="k2">–</b><span id="k2s"></span></div>
-  <div class="kpi"><small>Błędy 24h</small><b id="k3">–</b><span id="k3s"></span></div>
-  <div class="kpi"><small>Następny start</small><b id="k4">–</b><span id="k4s"></span></div>
- </div>
- <div class="now" id="now"></div>
- <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="long">🎬 Długie</button><button data-t="wf">⚙️ Zarządzaj</button><button data-t="stat">📊 Statystyki</button></div>
  <div class="card pt-today" id="c-today"><h2><span>📅 Dziś według harmonogramu</span><small id="tdd" class="mono" style="color:var(--faint);font-weight:400"></small></h2><div id="today"></div></div>
  <div class="card pt-long" id="c-long"><h2><span>🎬 Długie filmy YouTube – „What If?” ze stickmanem</span><button class="btn" id="dlRun">Zrób teraz</button></h2>
   <div class="dlc" id="dlCfg"></div><div id="dlList"><div class="empty">Ładuję…</div></div></div>
