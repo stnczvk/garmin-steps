@@ -1080,6 +1080,10 @@ def liczby_slowne(t):
 def tytul_z_glosu(title, tekst):
     """„Dzień N” + to, co mówisz w nagraniu, w 2 wyrównanych linijkach (tylko gdy tytuł jest domyślny)."""
     tekst = re.sub(r"[\(\[][^\)\]]*[\)\]]", "", tekst or "").strip(" .,!")   # bez „(śmiech)”, „[muzyka]” itp.
+    # Whisper lubi dopisać zmyślone zakończenie („Dziękuję za obejrzenie”, „Napisy stworzone przez…”) – zostaje tylko zdanie z tytułem
+    tekst = re.sub(r"(?i)[.!?…]?\s*(dzięki|dziękuję|napisy|subskryb|zapraszam|do zobaczenia|amara).*$", "", tekst).strip(" .,!")
+    if len(tekst) > 90 and re.search(r"[.!?]", tekst):
+        tekst = re.split(r"[.!?]", tekst)[0].strip(" .,!")
     if not tekst or len(title) < 2 or len(tekst) > 90:
         print(f"[hook] tytuł bez zmian (tekst głosu: {tekst!r})", flush=True)
         return title
