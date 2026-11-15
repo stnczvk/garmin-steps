@@ -125,7 +125,7 @@ body:not(.t-long) .pt-long,body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-l
 .dli .h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.dli b{font-size:14px}.dli small{color:var(--faint)}
 .dli video{width:100%;max-width:640px;border-radius:12px;background:#000;aspect-ratio:16/9}
 .st{font:600 11.5px Geist,system-ui;padding:3px 8px;border-radius:8px;background:var(--v3-s3,#242536)}.st.ok{color:var(--ok);background:rgba(61,220,132,.12)}.st.wr{color:var(--warn);background:rgba(255,194,75,.12)}.st.bad{color:var(--bad);background:rgba(255,107,122,.12)}
-body.zd .wrap>*:not(#c-zdrowie):not(h1):not(#ptabs):not(#c-stat):not(script){display:none!important}body.zd.t-long #c-zdrowie{display:block!important}body.zd #ptabs button:not([data-t=long]):not([data-t=stat]){display:none}
+body.zd .wrap>*:not(#c-zdrowie):not(h1):not(#ptabs):not(#c-stat):not(script){display:none!important}body.zd.t-long #c-zdrowie{display:block!important}body.zd #ptabs{display:none!important}
 body:not(.zd) #c-zdrowie{display:none}
 </style>
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
@@ -146,9 +146,7 @@ body:not(.zd) #c-zdrowie{display:none}
   <div class="kpi"><small>Następny start</small><b id="k4">–</b><span id="k4s"></span></div>
  </div>
  <div class="now" id="now"></div>
- <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="long">🎬 Długie</button><button data-t="wf">⚙️ Zarządzaj</button><button data-t="stat">📊 Statystyki</button></div>
- <div class="pt-stat" id="c-stat"><iframe id="statf" title="Statystyki kanału" style="width:100%;height:calc(100vh - 140px);min-height:600px;border:0;border-radius:16px;background:transparent" loading="lazy"></iframe></div>
- <script>document.getElementById("statf").src="/?embed=stats&g="+(document.body.classList.contains("zd")?"zdrowie":"pozaskala");</script>
+ <div class="ptabs" id="ptabs"><button data-t="today" class="on">📅 Dziś</button><button data-t="lanes">🧩 Etapy</button><button data-t="hist">🕘 Historia</button><button data-t="long">🎬 Długie</button><button data-t="wf">⚙️ Zarządzaj</button></div>
  <div class="card pt-today" id="c-today"><h2><span>📅 Dziś według harmonogramu</span><small id="tdd" class="mono" style="color:var(--faint);font-weight:400"></small></h2><div id="today"></div></div>
  <div class="card pt-long" id="c-long"><h2><span>🎬 Długie filmy YouTube – „What If?” ze stickmanem</span><button class="btn" id="dlRun">Zrób teraz</button></h2>
   <div class="dlc" id="dlCfg"></div><div id="dlList"><div class="empty">Ładuję…</div></div></div>
@@ -386,7 +384,7 @@ const dlAll=()=>{dlLoad('/api/dlugi','dl');if($('zdRun'))dlLoad('/api/zdrowie','
 
 // zakładki strony (zapamiętane)
 (function(){const zd=document.body.classList.contains('zd'),K=zd?'pz-tab-zd':'pz-tab';let t=zd?'long':'today';try{t=localStorage.getItem(K)||t}catch(e){}
- if(zd&&!['long','stat'].includes(t))t='long';
+ if(zd&&!['long'].includes(t))t='long';
  window.setTab=x=>{t=x;['today','lanes','hist','wf','long','stat'].forEach(k=>document.body.classList.toggle('t-'+k,k===x));
   document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===x));try{localStorage.setItem(K,x)}catch(e){}};
  document.querySelectorAll('#ptabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));setTab(t)})();
