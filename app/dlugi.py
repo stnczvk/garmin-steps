@@ -625,3 +625,35 @@ def api_file(vid: str, name: str):
         return JSONResponse({"error": "nie"}, status_code=404)
     f = WORK / vid / name
     return FileResponse(f) if f.exists() else JSONResponse({"error": "nie ma"}, status_code=404)
+
+
+# ---------------------------------------------------------------- podgląd nowej postaci (historie firm)
+STYLE_BIZ = ("2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, two dot eyes, "
+             "a RED NECKTIE always on as his signature), wearing {outfit}; thick clean black outlines, simple flat background, "
+             "clean flat business infographic elements (bar charts, line charts, coins, price tags) drawn in the same style, "
+             "bold readable shapes, horizontal 16:9, no text, no letters, no logos, no brand names, no watermark")
+
+if CH == "pozaskala":
+    @router.post("/api/mont-hook/postac-biz")
+    async def postac_biz(req: Request):
+        """Podgląd stickmana do historii firm w kilku strojach (bez logo) – wywoływane z Maca tokenem montażu."""
+        import montaz
+        if not montaz._tok(req):
+            return JSONResponse({"error": "brak dostępu"}, status_code=403)
+        b = await req.json()
+        out = []
+        for i, w in enumerate((b.get("warianty") or [])[:4]):
+            f = WORK / f"_postac_{i}.png"
+            WORK.mkdir(parents=True, exist_ok=True)
+            global STYLE
+            stare = STYLE
+            try:
+                STYLE = STYLE_BIZ.format(outfit=w["stroj"])
+                import asyncio
+                await asyncio.to_thread(image, w["scena"], f, b.get("quality", "medium"))
+            except Exception as e:
+                out.append({"error": str(e)[:200]}); continue
+            finally:
+                STYLE = stare
+            out.append({"b64": base64.b64encode(f.read_bytes()).decode()})
+        return {"ok": True, "obrazy": out}
