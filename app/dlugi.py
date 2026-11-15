@@ -369,8 +369,9 @@ def check(f):
         probs.append("brak obrazu")
     if not any(s.get("codec_type") == "audio" for s in st):
         probs.append("brak dźwięku")
-    if d < 240 or d > 900:
-        probs.append(f"długość {d / 60:.1f} min (powinno 4–15)")
+    lo, hi = (600, 1800) if CH == "historia" else (240, 900)
+    if d < lo or d > hi:
+        probs.append(f"długość {d / 60:.1f} min (powinno {lo // 60}–{hi // 60})")
     out = subprocess.run(["nice", "-n", "15", "ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-vf", "blackdetect=d=1:pix_th=0.10",
                           "-af", "silencedetect=noise=-45dB:d=2.5", "-f", "null", "-"], capture_output=True, text=True).stderr
     if re.search(r"black_start:([\d.]+)", out):
@@ -689,6 +690,26 @@ def api_action(vid: str, action: str):
         return {"ok": False}
     if action == "publish":
         threading.Thread(target=publish, args=(vid,), daemon=True).start()
+        return {"ok": True}
+    if action == "finish":
+        d = WORK / vid
+        if not (d / "final.mp4").exists() or not (d / "script.json").exists() or _busy.get("run"):
+            return {"ok": False, "error": "brak gotowego filmu"}
+        sc = json.loads((d / "script.json").read_text())
+        w = [len(ch["narration"].split()) for ch in sc["chapters"]]
+        tot = dur(d / "final.mp4")
+        cds = [tot * x / max(1, sum(w)) for x in w]
+        _upd(vid, status="working", step="kontrola i zwiastuny")
+
+        def _go():
+            _busy["run"] = True
+            try:
+                finish(vid, d, sc, cds, cfg())
+            except Exception as e:
+                _upd(vid, status="error", step=str(e)[:200])
+            finally:
+                _busy.pop("run", None)
+        threading.Thread(target=_go, daemon=True).start()
         return {"ok": True}
     if action == "reject":
         _upd(vid, status="rejected", step="odrzucony")
