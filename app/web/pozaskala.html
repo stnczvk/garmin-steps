@@ -127,12 +127,13 @@ body:not(.t-long) .pt-long,body:not(.t-today) .pt-today,body:not(.t-lanes) .pt-l
 .st{font:600 11.5px Geist,system-ui;padding:3px 8px;border-radius:8px;background:var(--v3-s3,#242536)}.st.ok{color:var(--ok);background:rgba(61,220,132,.12)}.st.wr{color:var(--warn);background:rgba(255,194,75,.12)}.st.bad{color:var(--bad);background:rgba(255,107,122,.12)}
 body.zd .wrap>*:not(#c-zdrowie):not(h1):not(#ptabs):not(#c-stat):not(script){display:none!important}body.zd.t-long #c-zdrowie{display:block!important}body.zd #ptabs{display:none!important}
 body:not(.zd) #c-zdrowie{display:none}
+body.rt .wrap>*:not(#c-long):not(h1):not(script){display:none!important}body.rt #c-long{display:block!important}
 </style>
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
 <body class="lg">
-<script>const CHN=new URLSearchParams(location.search).get("ch");if(CHN==="zdrowie"||CHN==="historia")document.body.classList.add("zd")</script>
+<script>const CHN=new URLSearchParams(location.search).get("ch");if(CHN==="zdrowie"||CHN==="historia")document.body.classList.add("zd");else document.body.classList.add("rt")</script>
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <h1><span class="nzd">Red Tie Stories</span><span class="izd" hidden>Zdrowie 50+</span> <small id="upd">łączę z n8n…</small></h1>
