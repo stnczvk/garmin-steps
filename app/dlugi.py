@@ -691,9 +691,9 @@ if CH == "pozaskala":
             global STYLE
             stare = STYLE
             try:
-                STYLE = STYLE_BIZ.format(outfit=w["stroj"])
+                STYLE = w["styl"] if w.get("styl") else STYLE_BIZ.format(outfit=w["stroj"])
                 import asyncio
-                await asyncio.to_thread(image, w["scena"], f, b.get("quality", "medium"))
+                await asyncio.to_thread(image, w["scena"], f, b.get("quality", "medium"), w.get("size", "1536x1024"))
             except Exception as e:
                 out.append({"error": str(e)[:200]}); continue
             finally:
