@@ -1,4 +1,4 @@
-"""PozaSkala – długie filmy na YouTube (seria „What If?” ze stickmanem, 6–8 min, 16:9).
+"""PozaSkala – długie filmy na YouTube (od 11.2026 historie firm ze stickmanem w czerwonym krawacie, 8–10 min, 16:9).
 
 Robione w centrum (bez n8n): scenariusz (AI) → lektor (OpenAI TTS, po rozdziale) → kadry (OpenAI obrazy, tania
 jakość – płaski styl 2D jej nie potrzebuje) → montaż FFmpeg (ruch kamery na każdym kadrze) → kontrola techniczna →
@@ -29,7 +29,7 @@ if CH == "zdrowie":
              "warm calm flat background (soft beige, sage green, light blue), simple clean medical/anatomy icons drawn in the same flat style "
              "when needed (muscles, heart, bones, brain), bold readable shapes, horizontal 16:9, no text, no watermark, never photoreal, never gory")
 else:
-    F, WORK, API, GROUP, TAGLINE, PUSH = "dlugie.json", DIR / "dlugie", "/api/dlugi", "pozaskala", "#WhatIf #Stickman #shorts", "/#pozaskala"
+    F, WORK, API, GROUP, TAGLINE, PUSH = "dlugie.json", DIR / "dlugie", "/api/dlugi", "pozaskala", "#Business #Stickman #shorts", "/#pozaskala"
     DEF = {"enabled": True, "days": [1, 4], "hour": 9, "img_quality": "low", "voice": "alloy", "auto_publish": False, "us_hour": 14, "shorts": 2}
     STYLE = ("2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, two dot eyes, red baseball cap always on), "
              "thick clean black outlines, simple flat pastel background, bold readable shapes, correct relative proportions, "
@@ -83,9 +83,51 @@ def _key():
 def script(used):
     if CH == "zdrowie":
         return script_zdrowie(used)
-    if len(used) % 2 == 1:
-        return script_humor(used)
-    return script_whatif(used)
+    return script_firmy(used)      # od 11.2026 PozaSkala = historie firm (What If / humor zostają w kodzie, nieużywane)
+
+
+FIRMY_RODZAJE = [
+    ("downfall", "why a once-giant company collapsed or shrank (e.g. Blockbuster, Kodak, Sears, Toys R Us, Nokia)"),
+    ("money machine", "how a well-known company really makes its money, the surprising business model (e.g. Costco memberships, McDonald's real estate)"),
+    ("rise", "how a company went from tiny beginnings to giant, the key decisions (e.g. Nike, LEGO comeback, Zara, Red Bull)"),
+    ("rivalry", "a famous business rivalry and who really won (e.g. Coke vs Pepsi, Adidas vs Puma, Boeing vs Airbus)"),
+    ("scandal", "a well-documented corporate scandal or disaster explained simply (e.g. Enron, Theranos, Dieselgate, Wells Fargo fake accounts)"),
+    ("why now", "an everyday business trend people notice right now and why it happens (e.g. why everything is a subscription, shrinkflation, self-checkout)"),
+]
+
+
+def script_firmy(used):
+    """PozaSkala – historie firm: Stick (stickman z czerwonym krawatem) w stroju pasującym do firmy z odcinka, bez logo."""
+    rodz, opis = FIRMY_RODZAJE[len(used) % len(FIRMY_RODZAJE)]
+    p = f"""Write ONE long-form YouTube episode (EN, 8-10 minutes) for a business-stories channel aimed at viewers in the US/UK/Canada/Australia,
+starring Stick (a stick figure with a red necktie) who walks the viewer through the story like a smart, funny friend.
+This episode's type: {rodz} – {opis}.
+Pick ONE real, well-known company or trend that fits this type and that people search for. Do NOT repeat these titles: {"; ".join(used[-60:]) or "none"}.
+
+Rules: only well-documented facts (company reports, major news coverage); round numbers and say "about" when unsure; no investment advice,
+no defamation (describe proven events, use "according to" for allegations). Strong storytelling: a cold-open hook in the first 15 s
+(the surprising twist or number), then 6-7 chapters with tension, a mid-video re-hook, and a clear lesson at the end.
+Short spoken sentences (max 16 words), clear American English B1-B2, light humour, no filler, no "in this video".
+
+Return ONLY JSON:
+""" + JSON_SPEC.format(title="max 60 chars, curiosity: How X..., Why X..., The Fall of X..., X vs Y",
+                       tags="incl. #Business #Stickman",
+                       thumb="Stick with a strong emotional face in the key moment, one big simple object or chart, bold composition",
+                       scene="what Stick does + a simple object or a clean flat chart; NEVER logos, brand names or any text") + """
+Also add "outfit": "Stick's outfit for this episode that hints at the company/industry by colours and style only (e.g. warehouse vest,
+pilot uniform, fast-food cap and apron, lab coat, business suit), ALWAYS keeping his red necktie, never logos, names or text".
+The sum of all narration must be 1300-1600 words."""
+    r = _chk(as_json(claude(p, SMART, 7000, system=sk("reel", "hook"))))
+    r = _wydluz(r, 1350, "220-260")
+    fx = as_json(claude("You are a strict fact-checker for a general-audience business history video. Below is the script JSON. "
+                        "Fix any claim that is wrong, exaggerated or not well documented; round uncertain numbers and add 'about'; "
+                        "turn unproven accusations into 'according to reports'. Keep style, length, structure, scenes and outfit the same. "
+                        "Return ONLY the corrected JSON.\n\n" + json.dumps(r, ensure_ascii=False), SMART, 8000))
+    try:
+        r = {**r, **_chk(fx)} if fx else r
+    except Exception:
+        pass
+    return r
 
 
 def _chk(r):
@@ -216,11 +258,11 @@ def tts(text, out, voice):
     out.write_bytes(r.content)
 
 
-def image(prompt, out, quality, size="1536x1024"):
+def image(prompt, out, quality, size="1536x1024", style=None):
     for a in range(3):
         try:
             r = httpx.post("https://api.openai.com/v1/images/generations", headers=_key(), timeout=300,
-                           json={"model": os.environ.get("DLUGI_IMG_MODEL", "gpt-image-2.5-flare"), "prompt": prompt + ". " + STYLE,
+                           json={"model": os.environ.get("DLUGI_IMG_MODEL", "gpt-image-2.5-flare"), "prompt": prompt + ". " + (style or STYLE),
                                  "size": size, "quality": quality, "n": 1})
             j = r.json()
             if r.status_code < 300 and j.get("data"):
@@ -311,6 +353,7 @@ def produce(why="harmonogram"):
     try:
         sc = script(used)
         (d / "script.json").write_text(json.dumps(sc, ensure_ascii=False, indent=1))
+        st = STYLE_BIZ.format(outfit=sc.get("outfit") or "a simple dark business suit") if CH == "pozaskala" else None
         n_img = sum(len(ch["scenes"]) for ch in sc["chapters"])
         _upd(vid, title=sc["title"], step=f"lektor + {n_img} kadrów")
         jobs = []
@@ -318,8 +361,8 @@ def produce(why="harmonogram"):
             for ci, ch in enumerate(sc["chapters"]):
                 jobs.append(ex.submit(tts, ch["narration"], d / f"a{ci}.mp3", c["voice"]))
                 for si, s in enumerate(ch["scenes"]):
-                    jobs.append(ex.submit(image, s, d / f"i{ci}_{si}.png", c["img_quality"]))
-            jobs.append(ex.submit(image, sc.get("thumbnail_prompt") or sc["title"], d / "thumb.png", "medium"))
+                    jobs.append(ex.submit(image, s, d / f"i{ci}_{si}.png", c["img_quality"], "1536x1024", st))
+            jobs.append(ex.submit(image, sc.get("thumbnail_prompt") or sc["title"], d / "thumb.png", "medium", "1536x1024", st))
             for j in jobs:
                 j.result()
         _upd(vid, step="montaż (FFmpeg)")
