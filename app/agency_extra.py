@@ -202,7 +202,9 @@ def _loop():
         try:
             now = datetime.now(TZ)
             today = now.date().isoformat()
-            if ai_ready() and now.weekday() == 6 and now.hour == 18 and done.get("planner") != today:
+            from agency import settings
+            shorts = settings().get("shorts")   # stary pipeline shortów PozaSkali (n8n) – wstrzymany, kanał robi długie filmy
+            if shorts and ai_ready() and now.weekday() == 6 and now.hour == 18 and done.get("planner") != today:
                 done["planner"] = today
                 _write("agency_extra_done.json", done)
                 planner()
@@ -210,7 +212,7 @@ def _loop():
                 done["spokes"] = today
                 _write("agency_extra_done.json", done)
                 spokesman()
-            if ai_ready() and now.weekday() == 2 and now.hour == 18 and done.get("recycle") != today:
+            if shorts and ai_ready() and now.weekday() == 2 and now.hour == 18 and done.get("recycle") != today:
                 done["recycle"] = today
                 _write("agency_extra_done.json", done)
                 recycle()

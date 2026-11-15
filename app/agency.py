@@ -46,7 +46,7 @@ człowiek/auto/Everest/Ziemia) → FIRST ESCALATION → BIG REVEAL (jedyna scena
 Filary (pillar): cosmic_scale, earth_scale, animal_scale, mega_scale.
 Kategorie (category): space, ocean, geology, biology, physics, technology, human_body, extreme_weather."""
 
-DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True, "inbox_auto": True, "ab": True, "daily_limit": 1.0}
+DEFAULT = {"autopilot": True, "min_score": 7, "queue_target": 6, "research_hour": 6, "inbox": True, "inbox_auto": True, "ab": True, "daily_limit": 1.0, "shorts": False}
 
 
 # ---------- stan ----------
@@ -1022,6 +1022,8 @@ def hook_next(req: Request):
         return JSONResponse({"error": "token"}, status_code=401)
     if not settings()["autopilot"]:
         return {"ok": False, "reason": "autopilot wyłączony"}
+    if not settings().get("shorts"):
+        return {"ok": False, "reason": "shorty PozaSkali wstrzymane"}
     p = next_topic()
     return {"ok": True, **p} if p else {"ok": False, "reason": "brak tematów"}
 
@@ -1113,7 +1115,7 @@ async def topic_action(tid: str, req: Request):
 async def set_settings(req: Request):
     b = await req.json()
     s = settings()
-    for k in ("autopilot", "min_score", "queue_target", "inbox", "inbox_auto", "ab", "daily_limit"):
+    for k in ("autopilot", "min_score", "queue_target", "inbox", "inbox_auto", "ab", "daily_limit", "shorts"):
         if k in b:
             s[k] = type(DEFAULT[k])(b[k])
     s["daily_limit"] = max(0.1, min(float(s.get("daily_limit", 1.0)), 50.0))
@@ -1288,7 +1290,7 @@ def _loop():
             s = settings()
             now = datetime.now(TZ)
             q = [x for x in topics() if x["status"] == "queued"]
-            if s["autopilot"] and ai_ready() and done != now.date() and (now.hour == s["research_hour"] or len(q) < 2):
+            if s["autopilot"] and s.get("shorts") and ai_ready() and done != now.date() and (now.hour == s["research_hour"] or len(q) < 2):
                 done = now.date()  # najwyżej raz dziennie z harmonogramu (next-topic sam dopełnia kolejkę)
                 if len(q) < s["queue_target"]:
                     if research(max(4, s["queue_target"] - len(q) + 2)):
@@ -1299,7 +1301,7 @@ def _loop():
             if now.hour == 3 and now.minute >= 20 and done_bk != now.date():
                 done_bk = now.date()
                 backup()
-            if ai_ready() and s["autopilot"] and now.weekday() in (0, 3) and now.hour == 5 and done_tr != now.date():
+            if ai_ready() and s["autopilot"] and s.get("shorts") and now.weekday() in (0, 3) and now.hour == 5 and done_tr != now.date():
                 done_tr = now.date()
                 trends()
             if ai_ready() and now.weekday() == 0 and now.hour == 8 and done_priv != now.date():
