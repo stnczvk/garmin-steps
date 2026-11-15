@@ -295,11 +295,11 @@ def render(d, chapters):
         for si in range(n):
             img, clip = d / f"i{ci}_{si}.png", d / f"c{ci}_{si}.mp4"
             fr = int(per * fps)
-            z = f"z='min(zoom+{0.12 / fr:.6f},1.12)'" if (si % 2 == 0) else f"z='if(eq(on,0),1.12,max(zoom-{0.12 / fr:.6f},1.0))'"
-            vf = (f"scale=2880:1620:force_original_aspect_ratio=increase,crop=2880:1620,"
-                  f"zoompan={z}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={fr}:s=1920x1080:fps={fps},format=yuv420p")
-            subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-loop", "1", "-i", str(img), "-vf", vf, "-t", f"{per:.3f}", "-r", str(fps),
-                            "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", str(clip)], check=True, capture_output=True)
+            # bez zoompan – przy powolnym zbliżeniu ffmpeg zaokrągla pozycję kadru do pikseli i obraz drga („trzęsienie”)
+            vf = "scale=1920:1080:force_original_aspect_ratio=increase:flags=lanczos,crop=1920:1080,format=yuv420p"
+            subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-loop", "1", "-framerate", str(fps), "-i", str(img), "-vf", vf, "-t", f"{per:.3f}",
+                            "-r", str(fps), "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage", "-crf", "22", str(clip)],
+                           check=True, capture_output=True)
             clips.append(clip)
         lst = d / f"l{ci}.txt"
         lst.write_text("".join(f"file '{c.name}'\n" for c in clips))
