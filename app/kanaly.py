@@ -20,6 +20,9 @@ def api_kal(days: int = 35):
     z = sys.modules.get("dlugi_zdrowie")
     if z:
         mods.append(("zdrowie", z))
+    h = sys.modules.get("dlugi_historia")
+    if h:
+        mods.append(("historia", h))
     now, end = time.time(), time.time() + days * 86400
     E = []
     for ch, m in mods:

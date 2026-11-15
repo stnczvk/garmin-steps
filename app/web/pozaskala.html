@@ -132,11 +132,11 @@ body:not(.zd) #c-zdrowie{display:none}
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
 <body class="lg">
-<script>if(new URLSearchParams(location.search).get("ch")==="zdrowie")document.body.classList.add("zd")</script>
+<script>const CHN=new URLSearchParams(location.search).get("ch");if(CHN==="zdrowie"||CHN==="historia")document.body.classList.add("zd")</script>
 <div class="lg-bg" aria-hidden="true"></div>
 <div class="wrap">
  <h1><span class="nzd">Red Tie Stories</span><span class="izd" hidden>Zdrowie 50+</span> <small id="upd">łączę z n8n…</small></h1>
- <script>if(document.body.classList.contains("zd")){document.querySelector(".nzd").hidden=true;document.querySelector(".izd").hidden=false;document.getElementById("upd").hidden=true}</script>
+ <script>if(document.body.classList.contains("zd")){document.querySelector(".nzd").hidden=true;document.querySelector(".izd").hidden=false;if(CHN==="historia"){document.querySelector(".izd").textContent="Historia";document.title="Historia";addEventListener("DOMContentLoaded",()=>{document.querySelector("#c-zdrowie h2 span").textContent="📜 Kanał historyczny – spokojne filmy o jednym temacie (EN, ~20 min)"})}document.getElementById("upd").hidden=true}</script>
  <div id="msg"></div>
  <div class="sum" id="sum"></div>
  <div class="kpis" hidden>
@@ -379,8 +379,9 @@ async function dlLoad(API,P){API=API||'/api/dlugi';P=P||'dl';const $p=x=>$(P+x);
   <small>${esc(x.step||'')}</small>${x.status==='review'?`<video src="${API}/${x.id}/final.mp4" controls preload="none" poster="${API}/${x.id}/thumb.png"></video><div class="h"><button class="btn pri" data-dp="${x.id}">Publikuj na YouTube</button><button class="btn" data-dr="${x.id}">Odrzuć</button></div>`:''}${x.yt?`<a href="https://youtu.be/${x.yt}" target="_blank" rel="noopener">Zobacz na YouTube →</a>`:''}</div>`}).join(''):'<div class="empty">Pierwszy film powstanie w najbliższy wtorek albo piątek – albo kliknij „Zrób teraz” (ok. 10–20 min).</div>';
  $p('List').querySelectorAll('[data-dp]').forEach(b=>b.onclick=async()=>{b.disabled=true;await fetch(`${API}/${b.dataset.dp}/publish`,{method:'POST'});setTimeout(()=>dlLoad(API,P),1500)});
  $p('List').querySelectorAll('[data-dr]').forEach(b=>b.onclick=async()=>{if(!confirm('Odrzucić ten film?'))return;await fetch(`${API}/${b.dataset.dr}/reject`,{method:'POST'});dlLoad(API,P)})}
-for(const [A,P] of [['/api/dlugi','dl'],['/api/zdrowie','zd']]){const b=$(P+'Run');if(b)b.onclick=async()=>{b.disabled=true;await fetch(A+'/run',{method:'POST'});setTimeout(()=>dlLoad(A,P),1500)}}
-const dlAll=()=>{dlLoad('/api/dlugi','dl');if($('zdRun'))dlLoad('/api/zdrowie','zd')};dlAll();setInterval(dlAll,30000);
+const ZDA=CHN==="historia"?'/api/historia':'/api/zdrowie';
+for(const [A,P] of [['/api/dlugi','dl'],[ZDA,'zd']]){const b=$(P+'Run');if(b)b.onclick=async()=>{b.disabled=true;await fetch(A+'/run',{method:'POST'});setTimeout(()=>dlLoad(A,P),1500)}}
+const dlAll=()=>{dlLoad('/api/dlugi','dl');if($('zdRun'))dlLoad(ZDA,'zd')};dlAll();setInterval(dlAll,30000);
 
 // zakładki strony (zapamiętane)
 (function(){const zd=document.body.classList.contains('zd'),K=zd?'pz-tab-zd':'pz-tab';let t=zd?'long':'today';try{t=localStorage.getItem(K)||t}catch(e){}

@@ -20,8 +20,14 @@ from skills import sk
 router = APIRouter()
 # Ten sam moduł obsługuje dwa kanały: „dlugi” = PozaSkala (What If? + nauka z humorem), „dlugi_zdrowie” = kanał o zdrowiu 50+
 # (ładowany drugi raz pod inną nazwą przez zdrowie.py – osobny stan, katalog, adresy API i konto YouTube).
-CH = "zdrowie" if __name__.endswith("zdrowie") else "pozaskala"
-if CH == "zdrowie":
+CH = "zdrowie" if __name__.endswith("zdrowie") else "historia" if __name__.endswith("historia") else "pozaskala"
+if CH == "historia":
+    F, WORK, API, GROUP, TAGLINE, PUSH = "historia_dlugie.json", DIR / "historia_dlugie", "/api/historia", "historia", "#History #shorts", "/#historia"
+    DEF = {"enabled": False, "days": [3], "hour": 9, "img_quality": "low", "voice": "fable", "auto_publish": False, "us_hour": 18, "shorts": 4}
+    STYLE = ("detailed hand-painted storybook illustration, soft watercolor and ink like an old history book, warm muted earthy palette, "
+             "historically accurate clothing, tools and architecture for the period, cinematic calm composition, gentle light, "
+             "horizontal 16:9, no text, no letters, no modern objects, no watermark, never gory")
+elif CH == "zdrowie":
     F, WORK, API, GROUP, TAGLINE, PUSH = "zdrowie_dlugie.json", DIR / "zdrowie_dlugie", "/api/zdrowie", "zdrowie", "#Health #Over50 #shorts", "/#zdrowie"
     DEF = {"enabled": False, "days": [2], "hour": 9, "img_quality": "low", "voice": "onyx", "auto_publish": False, "us_hour": 10, "shorts": 5}
     STYLE = ("2D flat vector cartoon, the stick figure character Walt (a friendly 60-year-old stick figure: black stick body, round white head, "
@@ -84,7 +90,42 @@ def _key():
 def script(used):
     if CH == "zdrowie":
         return script_zdrowie(used)
+    if CH == "historia":
+        return script_historia(used)
     return script_firmy(used)      # od 11.2026 PozaSkala = historie firm (What If / humor zostają w kodzie, nieużywane)
+
+
+def script_historia(used):
+    """Kanał historyczny: jedno wąskie wydarzenie, miejsce albo codzienne życie w dawnych czasach, opowiedziane spokojnie i szczegółowo (~20 min)."""
+    p = f"""Write ONE long-form YouTube documentary episode (EN, about 20 minutes) for a calm, detailed history channel
+for viewers in the US/UK/Canada/Australia (many listen while relaxing or falling asleep).
+Topic: ONE narrow, specific subject told in rich detail – a single event, place, mystery or "what daily life was like" for one kind of person
+in one period (e.g. What a Roman soldier ate on the march, The night the Mary Celeste was found, How medieval peasants survived winter,
+Life inside a Viking longhouse, The last day of Pompeii hour by hour). Avoid broad overviews. Do NOT repeat these titles: {"; ".join(used[-60:]) or "none"}.
+
+Rules: only well-established history (say "historians believe" / "according to" when sources are uncertain), no invented quotes or names,
+no gore. Narration: calm, warm, immersive second person and sensory details (sounds, smells, cold, light), steady pace, clear American English B2,
+no hype, no "smash the like button". Structure: a gentle hook in the first 20 s (the most intriguing detail), 8 chapters that move through
+time or through the day, and a quiet reflective ending.
+
+Return ONLY JSON:
+""" + JSON_SPEC.format(title="max 60 chars, specific and intriguing (e.g. What Medieval Peasants Ate in Winter)",
+                       tags="incl. #History #SleepHistory",
+                       thumb="one striking, atmospheric period scene with a single clear focal subject, warm light",
+                       scene="a calm, detailed period scene (people, place, objects) matching the narration") \
+        .replace('"narration":"150-230 words"', '"narration":"360-430 words"').replace("7-9 visual scene descriptions", "6 visual scene descriptions") + """
+The sum of all narration must be 2900-3400 words."""
+    r = _chk(as_json(claude(p, SMART, 12000, system=sk("reel", "hook"))))
+    r = _wydluz(r, 2900, "380-430")
+    fx = as_json(claude("You are a strict history fact-checker for a general-audience documentary. Below is the script JSON. "
+                        "Fix anything wrong, anachronistic or presented as certain when historians disagree (add 'historians believe'); "
+                        "remove invented quotes and named people you are not sure existed. Keep style, length, structure and scenes the same. "
+                        "Return ONLY the corrected JSON.\n\n" + json.dumps(r, ensure_ascii=False), SMART, 14000))
+    try:
+        r = {**r, **_chk(fx)} if fx else r
+    except Exception:
+        pass
+    return r
 
 
 FIRMY_RODZAJE = [
