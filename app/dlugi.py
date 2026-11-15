@@ -37,6 +37,7 @@ else:
 LOG = "dlugi" if CH == "pozaskala" else "zdrowie"
 US = ZoneInfo("America/New_York")
 _busy = {}
+_START = time.time()
 
 
 def _account():
@@ -415,7 +416,8 @@ def recover():
     """Po restarcie serwera (np. aktualizacja apki) film „w trakcie” nie ma już wątku, który go robi.
     Gotowy final.mp4 → dokończ (zwiastuny, publikacja); bez niego → usuń wpis, harmonogram zrobi film od nowa."""
     S = _state()
-    for it in [x for x in S["items"] if x.get("status") == "working"]:
+    # tylko filmy zaczęte PRZED startem serwera – film puszczony „Zrób teraz” w pierwszych 2 min po starcie to nie sierota
+    for it in [x for x in S["items"] if x.get("status") == "working" and x.get("at", 0) < _START and x["id"] not in _busy.get("ids", set())]:
         d = WORK / it["id"]
         try:
             sc = json.loads((d / "script.json").read_text()) if (d / "script.json").exists() else None
