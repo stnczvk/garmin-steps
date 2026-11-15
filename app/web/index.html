@@ -785,7 +785,7 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
     <button data-hub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Kanały YT</span><em class="hubb"></em></button>
     <button data-v="agencja" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></i><span>Agencja AI</span></button>
     <button data-v="kalendarz-yt" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></i><span>Kalendarz YT</span></button>
-    <button data-v="pozaskala" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Poza Skalą</span></button>
+    <button data-v="pozaskala" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg></i><span>Red Tie Stories</span></button>
     <button data-v="zdrowie" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></i><span>Zdrowie 50+</span></button>
     <button data-v="stats-ps" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
     <button data-v="etsy"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
@@ -851,7 +851,7 @@ body.has-subt .subt{display:block}
 </style>
 <script>
 addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav'),bar=document.getElementById('subt');if(!nav||!bar)return;
- const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats-strimy": "Statystyki", "stats": "Statystyki", "stats-ps": "Statystyki", "stats-zd": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Poza Skalą", "zdrowie": "Zdrowie 50+", "kalendarz-yt": "Kalendarz", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
+ const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats-strimy": "Statystyki", "stats": "Statystyki", "stats-ps": "Statystyki", "stats-zd": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Red Tie Stories", "zdrowie": "Zdrowie 50+", "kalendarz-yt": "Kalendarz", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
  const H=()=>[...nav.querySelectorAll('button[data-hub]')];
  let last={};try{last=JSON.parse(localStorage.getItem('hub-last')||'{}')}catch(e){}
  const subs=g=>[...nav.querySelectorAll(`button[data-sub="${g}"]`)];
@@ -905,7 +905,7 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
     <div class="seg big" role="group" aria-label="Grupa kont" id="tabs">
       <span class="pill"></span>
       <button data-g="" aria-pressed="true">Wszystkie</button>
-      <button data-g="pozaskala" aria-pressed="false">🎬 PozaSkala</button>
+      <button data-g="pozaskala" aria-pressed="false">👔 Red Tie Stories</button>
       <button data-g="prywatne" aria-pressed="false">👤 Prywatne</button>
       <button data-g="zdrowie" aria-pressed="false">🩺 Zdrowie 50+</button>
     </div></div>
@@ -1844,13 +1844,13 @@ function renderIns() {
   const show = group !== 'prywatne';
   box.hidden = !show; wrap.classList.toggle('solo', !show);
   if (!show) return;
-  if (!ins) { box.innerHTML = `<div class="card-h"><h2>Co działa · PozaSkala</h2></div><div class="cpad"><div class="p-note">${insLoading ? 'Analizuję posty…' : 'Brak danych.'}</div></div>`; return; }
-  if (!ins.ok) { box.innerHTML = `<div class="card-h"><h2>Co działa · PozaSkala</h2></div><div class="cpad"><div class="p-note">${esc(ins.msg)}</div></div>`; return; }
+  if (!ins) { box.innerHTML = `<div class="card-h"><h2>Co działa · Red Tie Stories</h2></div><div class="cpad"><div class="p-note">${insLoading ? 'Analizuję posty…' : 'Brak danych.'}</div></div>`; return; }
+  if (!ins.ok) { box.innerHTML = `<div class="card-h"><h2>Co działa · Red Tie Stories</h2></div><div class="cpad"><div class="p-note">${esc(ins.msg)}</div></div>`; return; }
   const mx = Math.max(...ins.formats.map(f => f.rel), ...ins.lengths.map(l => l.rel), 1.2) * 1.1;
   const bar = (r, pc, i) => `<span class="bar" style="--mid:${(1 / mx * 100).toFixed(1)}%"><i style="width:${(r / mx * 100).toFixed(1)}%;--pc:${pc};--d:${i * 70}ms"></i></span><span class="x num ${r >= 1.15 ? 'up' : r <= .85 ? 'down' : ''}">${x1(r)}×</span>`;
   const it = x => `<div class="tbi" data-k="${esc(x.key)}" data-id="${esc(x.id)}" style="--pc:var(--${VAR[x.platform]})">${thumbHtml(x)}<span>${esc(x.title || 'Bez opisu')}</span><b class="num">${x1(x.rel)}×</b></div>`;
   const aiTxt = ins.ai ? ins.ai.split('\n').map(l => l.replace(/^[•\-*]\s*/, '').trim()).filter(Boolean) : [];
-  box.innerHTML = `<div class="card-h"><h2>Co działa · PozaSkala</h2><small>${ins.n} postów · wynik względem zwykłych wyświetleń konta</small></div>
+  box.innerHTML = `<div class="card-h"><h2>Co działa · Red Tie Stories</h2><small>${ins.n} postów · wynik względem zwykłych wyświetleń konta</small></div>
     <div class="cpad">
       ${ins.ai_available ? `<div class="ai ${insLoading ? 'load' : ''}"><div class="ah"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg>Wnioski AI
         <button id="ai-re" ${insLoading ? 'disabled' : ''}>Odśwież</button></div>${insLoading ? '<p>…………………………</p><p>……………………</p>' : aiTxt.length ? aiTxt.map(l => `<p>${esc(l)}</p>`).join('') : '<p class="faint">Kliknij „Odśwież”, żeby AI porównało najlepsze i najsłabsze posty.</p>'}</div>` : ''}
