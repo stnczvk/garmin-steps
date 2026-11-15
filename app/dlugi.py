@@ -35,7 +35,7 @@ elif CH == "zdrowie":
              "warm calm flat background (soft beige, sage green, light blue), simple clean medical/anatomy icons drawn in the same flat style "
              "when needed (muscles, heart, bones, brain), bold readable shapes, horizontal 16:9, no text, no watermark, never photoreal, never gory")
 else:
-    F, WORK, API, GROUP, TAGLINE, PUSH = "dlugie.json", DIR / "dlugie", "/api/dlugi", "pozaskala", "#Business #Stickman #shorts", "/#pozaskala"
+    F, WORK, API, GROUP, TAGLINE, PUSH = "dlugie.json", DIR / "dlugie", "/api/dlugi", "pozaskala", "#Business #Animation #shorts", "/#pozaskala"
     DEF = {"enabled": True, "days": [1, 4], "hour": 9, "img_quality": "low", "voice": "alloy", "auto_publish": False, "us_hour": 14, "shorts": 2}
     STYLE = ("2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, two dot eyes, red baseball cap always on), "
              "thick clean black outlines, simple flat pastel background, bold readable shapes, correct relative proportions, "
@@ -136,15 +136,15 @@ FIRMY_RODZAJE = [
     ("scandal", "a well-documented corporate scandal or disaster explained simply (e.g. Enron, Theranos, Dieselgate, Wells Fargo fake accounts)"),
     ("why now", "an everyday business trend people notice right now and why it happens (e.g. why everything is a subscription, shrinkflation, self-checkout)"),
     ("vintage ad", "the story behind one famous old advertisement or ad campaign and what it did to the company (e.g. Apple 1984, Wendy's Where's the Beef, "
-                   "the Marlboro Man, Got Milk?) – describe the ad in words and redraw scenes in Stick's own style, never copy the original ad's images or slogans' artwork"),
+                   "the Marlboro Man, Got Milk?) – describe the ad in words and redraw scenes in Max's blocky style, never copy the original ad's images or slogans' artwork"),
 ]
 
 
 def script_firmy(used):
-    """PozaSkala – historie firm: Stick (stickman z czerwonym krawatem) w stroju pasującym do firmy z odcinka, bez logo."""
+    """PozaSkala – historie firm: Max (blokowa postać z czerwonym krawatem) w stroju pasującym do firmy z odcinka, bez logo."""
     rodz, opis = FIRMY_RODZAJE[len(used) % len(FIRMY_RODZAJE)]
     p = f"""Write ONE long-form YouTube episode (EN, 8-10 minutes) for a business-stories channel aimed at viewers in the US/UK/Canada/Australia,
-starring Stick (a stick figure with a red necktie) who walks the viewer through the story like a smart, funny friend.
+starring Max (a blocky cube-headed character in a voxel block world, with a red necktie) who walks the viewer through the story like a smart, funny friend.
 This episode's type: {rodz} – {opis}.
 Pick ONE real, well-known company or trend that fits this type and that people search for. Do NOT repeat these titles: {"; ".join(used[-60:]) or "none"}.
 
@@ -155,10 +155,10 @@ Short spoken sentences (max 16 words), clear American English B1-B2, light humou
 
 Return ONLY JSON:
 """ + JSON_SPEC.format(title="max 60 chars, curiosity: How X..., Why X..., The Fall of X..., X vs Y",
-                       tags="incl. #Business #Stickman",
-                       thumb="Stick with a strong emotional face in the key moment, one big simple object or chart, bold composition",
-                       scene="what Stick does + a simple object or a clean flat chart; NEVER logos, brand names or any text") + """
-Also add "outfit": "Stick's outfit for this episode that hints at the company/industry by colours and style only (e.g. warehouse vest,
+                       tags="incl. #Business #Animation",
+                       thumb="Max with a strong emotional face in the key moment, one big simple object or chart, bold composition",
+                       scene="what Max does in a blocky voxel world + a simple object or a chart made of blocks; NEVER logos, brand names or any text") + """
+Also add "outfit": "Max's outfit for this episode that hints at the company/industry by colours and style only (e.g. warehouse vest,
 pilot uniform, fast-food cap and apron, lab coat, business suit), ALWAYS keeping his red necktie, never logos, names or text".
 The sum of all narration must be 1300-1600 words."""
     r = _chk(as_json(claude(p, SMART, 7000, system=sk("reel", "hook"))))
@@ -737,10 +737,10 @@ def api_file(vid: str, name: str):
 
 
 # ---------------------------------------------------------------- podgląd nowej postaci (historie firm)
-STYLE_BIZ = ("2D flat vector cartoon, the stick figure character Stick (black stick body, round white head, two dot eyes, "
-             "a RED NECKTIE always on as his signature), wearing {outfit}; thick clean black outlines, simple flat background, "
-             "clean flat business infographic elements (bar charts, line charts, coins, price tags) drawn in the same style, "
-             "bold readable shapes, horizontal 16:9, no text, no letters, no logos, no brand names, no watermark")
+STYLE_BIZ = ("3D voxel art render, blocky cube-shaped world and characters made of cubes like a sandbox block-building game, "
+             "the main character Max: a blocky cube-headed man with a square head, simple pixel face, short brown hair and a RED NECKTIE always on "
+             "as his signature, wearing {outfit}; soft warm cinematic lighting, colorful, depth of field, simple charts and coins also made of blocks, "
+             "horizontal 16:9, no text, no letters, no logos, no real brand names, no watermark, original generic characters")
 
 if CH == "pozaskala":
     @router.post("/api/mont-hook/postac-biz")
