@@ -96,8 +96,8 @@ def script(used):
 
 
 def script_historia(used):
-    """Kanał historyczny: jedno wąskie wydarzenie, miejsce albo codzienne życie w dawnych czasach, opowiedziane spokojnie i szczegółowo (~20 min)."""
-    p = f"""Write ONE long-form YouTube documentary episode (EN, about 20 minutes) for a calm, detailed history channel
+    """Kanał historyczny: jedno wąskie wydarzenie, miejsce albo codzienne życie w dawnych czasach, opowiedziane spokojnie i szczegółowo (~12–14 min, limit 15 min dla niezweryfikowanego kanału)."""
+    p = f"""Write ONE long-form YouTube documentary episode (EN, about 12-13 minutes) for a calm, detailed history channel
 for viewers in the US/UK/Canada/Australia (many listen while relaxing or falling asleep).
 Topic: ONE narrow, specific subject told in rich detail – a single event, place, mystery or "what daily life was like" for one kind of person
 in one period (e.g. What a Roman soldier ate on the march, The night the Mary Celeste was found, How medieval peasants survived winter,
@@ -105,7 +105,7 @@ Life inside a Viking longhouse, The last day of Pompeii hour by hour). Avoid bro
 
 Rules: only well-established history (say "historians believe" / "according to" when sources are uncertain), no invented quotes or names,
 no gore. Narration: calm, warm, immersive second person and sensory details (sounds, smells, cold, light), steady pace, clear American English B2,
-no hype, no "smash the like button". Structure: a gentle hook in the first 20 s (the most intriguing detail), 8 chapters that move through
+no hype, no "smash the like button". Structure: a gentle hook in the first 20 s (the most intriguing detail), 6 chapters that move through
 time or through the day, and a quiet reflective ending.
 
 Return ONLY JSON:
@@ -113,10 +113,10 @@ Return ONLY JSON:
                        tags="incl. #History #SleepHistory",
                        thumb="one striking, atmospheric period scene with a single clear focal subject, warm light",
                        scene="a calm, detailed period scene (people, place, objects) matching the narration") \
-        .replace('"narration":"150-230 words"', '"narration":"360-430 words"').replace("7-9 visual scene descriptions", "6 visual scene descriptions") + """
-The sum of all narration must be 2900-3400 words."""
+        .replace('"narration":"150-230 words"', '"narration":"280-320 words"').replace("7-9 visual scene descriptions", "6 visual scene descriptions") + """
+The sum of all narration must be 1700-1900 words (NEVER more than 1950 – the video must stay under 15 minutes)."""
     r = _chk(as_json(claude(p, SMART, 12000, system=sk("reel", "hook"))))
-    r = _wydluz(r, 2900, "380-430")
+    r = _wydluz(r, 1700, "290-320")
     fx = as_json(claude("You are a strict history fact-checker for a general-audience documentary. Below is the script JSON. "
                         "Fix anything wrong, anachronistic or presented as certain when historians disagree (add 'historians believe'); "
                         "remove invented quotes and named people you are not sure existed. Keep style, length, structure and scenes the same. "
@@ -369,7 +369,7 @@ def check(f):
         probs.append("brak obrazu")
     if not any(s.get("codec_type") == "audio" for s in st):
         probs.append("brak dźwięku")
-    lo, hi = (600, 1800) if CH == "historia" else (240, 900)
+    lo, hi = (480, 899) if CH == "historia" else (240, 899)
     if d < lo or d > hi:
         probs.append(f"długość {d / 60:.1f} min (powinno {lo // 60}–{hi // 60})")
     out = subprocess.run(["nice", "-n", "15", "ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-vf", "blackdetect=d=1:pix_th=0.10",
