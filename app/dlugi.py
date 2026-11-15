@@ -93,6 +93,8 @@ FIRMY_RODZAJE = [
     ("rivalry", "a famous business rivalry and who really won (e.g. Coke vs Pepsi, Adidas vs Puma, Boeing vs Airbus)"),
     ("scandal", "a well-documented corporate scandal or disaster explained simply (e.g. Enron, Theranos, Dieselgate, Wells Fargo fake accounts)"),
     ("why now", "an everyday business trend people notice right now and why it happens (e.g. why everything is a subscription, shrinkflation, self-checkout)"),
+    ("vintage ad", "the story behind one famous old advertisement or ad campaign and what it did to the company (e.g. Apple 1984, Wendy's Where's the Beef, "
+                   "the Marlboro Man, Got Milk?) – describe the ad in words and redraw scenes in Stick's own style, never copy the original ad's images or slogans' artwork"),
 ]
 
 
