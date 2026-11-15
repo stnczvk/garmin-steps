@@ -334,7 +334,7 @@ function renderPanel(i){const d=DEPTS[i];$('panel').style.setProperty('--c',d.co
   const SP=A.spokes||{};h+=`<div class="sec"><h3>Rzecznik – co mówią widzowie<button class="btn" id="go-sp">${A.busy.spokes?'Czyta…':'Podsumuj teraz'}</button></h3>${SP.summary?`<p style="font-size:13px;line-height:1.5">${esc(SP.summary)}</p><small class="mut">${SP.n} komentarzy · ${ago(SP.at)} temu</small>`:'<p class="mut">W czwartki 18:00 – najczęstsze pytania z komentarzy i 2–3 tematy od widzów (💬) do kolejki.</p>'}</div>`;
   const dr=A.inbox.filter(x=>x.status==='draft');
   h+=`<div class="sec"><h3>Do zatwierdzenia (${dr.length})<button class="btn" id="go-inb">${A.busy.inbox?'Czyta…':'Sprawdź komentarze'}</button></h3>`+
-   (dr.map(x=>`<div class="cm"><small class="mut">${x.platform==='instagram'?'IG':'YT'} · ${esc(x.author)} · ${esc(x.video)}</small><p>„${esc(x.text)}”</p>${x.why?`<small class="warn">${esc(x.why)}</small>`:''}
+   (dr.map(x=>`<div class="cm"><small class="mut">${x.platform==='instagram'?'IG':'YT'}${x.kanal?' '+esc(x.kanal):''} · ${esc(x.author)} · ${esc(x.video)}</small><p>„${esc(x.text)}”</p>${x.why?`<small class="warn">${esc(x.why)}</small>`:''}
     <textarea data-c="${esc(x.id)}">${esc(x.reply)}</textarea><div class="btns"><button class="btn" data-send="${esc(x.id)}">Wyślij</button><button class="btn" data-skip="${esc(x.id)}">Pomiń</button></div></div>`).join('')||'<p class="mut">Brak nowych komentarzy do odpowiedzi. Sprawdza co 30 min.</p>')+
    (A.inbox.some(x=>x.status==='sent')?`<h3>Wysłane</h3>`+A.inbox.filter(x=>x.status==='sent').slice(0,8).map(x=>`<div class="tp used"><div><b>${esc(x.reply)}</b><small>do ${esc(x.author)}: „${esc(x.text.slice(0,80))}”</small></div></div>`).join(''):'')+'</div>';
  }

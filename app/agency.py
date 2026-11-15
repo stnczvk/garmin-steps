@@ -555,11 +555,18 @@ def _pz_account(platform):
     return None, None
 
 
-def _reply_text(video, comment):
-    return claude(f"""Jesteś autorem kanału „Poza Skala” (Shorts/Reels o niewyobrażalnej skali rzeczy, EN). Komentarz pod filmem „{video}”:
+PERSONY = {
+    "pozaskala": "autorem kanału „Red Tie Stories” (historie słynnych firm, ich wzloty i upadki, stare reklamy; EN). Ton rzeczowy, lekko z humorem, możesz dorzucić ciekawostkę biznesową",
+    "zdrowie": "autorem kanału „Zdrowie 50+” (spokojne filmy o zdrowiu dla osób po 50-tce; EN). Ton ciepły i życzliwy. NIGDY nie dawaj porad medycznych ani dawek – przy pytaniach o własne objawy lub leki zachęć do rozmowy z lekarzem",
+    "historia": "autorem kanału „History Slowly Told” (spokojne, szczegółowe filmy o jednym wąskim temacie z historii; EN). Ton spokojny i ciekawy, możesz dorzucić prawdziwy, sprawdzony fakt historyczny",
+}
+
+
+def _reply_text(video, comment, grp="pozaskala"):
+    return claude(f"""Jesteś {PERSONY.get(grp, PERSONY["pozaskala"])}. Komentarz pod filmem „{video}”:
 "{comment[:500]}"
 Napisz krótką (max 2 zdania), naturalną odpowiedź ZAWSZE PO ANGIELSKU (kanał jest anglojęzyczny), nawet gdy komentarz jest w innym języku: podziękuj, odpowiedz rzeczowo na pytanie albo dorzuć ciekawy fakt,
-czasem zadaj pytanie, żeby rozkręcić dyskusję. Bez linków, bez emoji-spamu, bez proszenia o suba.
+czasem zadaj pytanie, żeby rozkręcić dyskusję. Bez linków, bez emoji-spamu, bez proszenia o suba. Nie wymyślaj faktów – jeśli nie jesteś pewien, nie podawaj liczb ani dat.
 Jeśli to spam, hejt, coś obraźliwego, prowokacja polityczna albo nie ma na co odpowiedzieć – odpowiedz dokładnie: SKIP""", FAST, 150, system=sk('slop')).strip()
 
 
@@ -576,7 +583,10 @@ def _send(item, text):
             r = http("POST", f"https://graph.instagram.com/{item['id']}/replies", timeout=30,
                      params={"message": text, "access_token": tok})
         else:
-            _, acc = _pz_youtube()
+            from social import _accounts
+            acc = _accounts().get(item.get("acc")) if item.get("acc") else None
+            if not acc:
+                _, acc = _pz_youtube()
             tok = _google_access(acc)
             stage = "wysyłka"
             r = http("POST", "https://www.googleapis.com/youtube/v3/comments", params={"part": "snippet"}, timeout=30,
@@ -599,26 +609,35 @@ def _send(item, text):
 
 
 def _yt_new_comments(I, done):
-    from social import _google_access
-    key, acc = _pz_youtube()
-    if not acc:
-        return []
-    h = {"Authorization": "Bearer " + _google_access(acc)}
-    th = http("GET", "https://www.googleapis.com/youtube/v3/commentThreads", headers=h, timeout=30, params={
-        "part": "snippet", "allThreadsRelatedToChannelId": acc["channel_id"], "maxResults": 40, "order": "time"}).json()
-    if "error" in th:
-        raise RuntimeError("YouTube: " + th["error"].get("message", "")[:150])
-    titles = {p["id"]: p.get("title") for p in (_read("cache.json", {}).get("accounts", {}).get(key) or {}).get("posts", [])}
-    out = []
-    for t in th.get("items", []):
-        sn = t["snippet"]
-        c = sn["topLevelComment"]["snippet"]
-        if t["id"] in done or sn.get("totalReplyCount", 0) or c.get("authorChannelId", {}).get("value") == acc["channel_id"]:
-            continue
-        if time.time() - datetime.fromisoformat(c["publishedAt"].replace("Z", "+00:00")).timestamp() > 7 * 86400:
-            continue
-        out.append({"id": t["id"], "platform": "youtube", "video": titles.get(sn.get("videoId"), ""),
-                    "author": c.get("authorDisplayName"), "text": c.get("textOriginal", "")})
+    from social import _google_access, _accounts
+    accs = [(k, a) for k, a in _accounts().items() if a.get("platform") == "youtube" and a.get("refresh_token")
+            and a.get("group") in PERSONY]
+    out, errs = [], []
+    cache = _read("cache.json", {}).get("accounts", {})
+    for key, acc in accs:
+        try:
+            h = {"Authorization": "Bearer " + _google_access(acc)}
+            th = http("GET", "https://www.googleapis.com/youtube/v3/commentThreads", headers=h, timeout=30, params={
+                "part": "snippet", "allThreadsRelatedToChannelId": acc["channel_id"], "maxResults": 40, "order": "time"}).json()
+        except Exception as e:
+            errs.append(f"YouTube {acc.get('name')}: {str(e)[:100]}"); continue
+        if "error" in th:
+            errs.append(f"YouTube {acc.get('name')}: " + th["error"].get("message", "")[:120]); continue
+        titles = {p["id"]: p.get("title") for p in (cache.get(key) or {}).get("posts", [])}
+        for t in th.get("items", []):
+            sn = t["snippet"]
+            c = sn["topLevelComment"]["snippet"]
+            if t["id"] in done or sn.get("totalReplyCount", 0) or c.get("authorChannelId", {}).get("value") == acc["channel_id"]:
+                continue
+            if time.time() - datetime.fromisoformat(c["publishedAt"].replace("Z", "+00:00")).timestamp() > 7 * 86400:
+                continue
+            out.append({"id": t["id"], "platform": "youtube", "video": titles.get(sn.get("videoId"), ""),
+                        "author": c.get("authorDisplayName"), "text": c.get("textOriginal", ""),
+                        "acc": key, "grp": acc.get("group"), "kanal": acc.get("name")})
+    if errs:
+        if not out:
+            raise RuntimeError("; ".join(errs)[:150])
+        I["_warn"] = "; ".join(errs)[:150]
     return out
 
 
@@ -692,7 +711,7 @@ def inbox():
                     it["why"] = why
         for c in new[:20]:
             try:
-                txt = _reply_text(c["video"], c["text"])
+                txt = _reply_text(c["video"], c["text"], c.get("grp", "pozaskala"))
             except Exception as e:
                 errs.append(f"AI (odpowiedź na komentarz): {str(e)[:110]}")
                 break
