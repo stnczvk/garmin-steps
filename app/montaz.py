@@ -307,6 +307,29 @@ def _dz_call(method, path, **kw):
     return r
 
 
+@router.get("/api/mont/{jid}/napisy")
+def napisy_get(jid: str):
+    try:
+        return _dz_call("GET", f"/api/montaz/{jid}/napisy").json()
+    except Exception as e:
+        return {"klipy": [], "error": str(e)[:200]}
+
+
+@router.post("/api/mont/{jid}/napisy")
+async def napisy_set(jid: str, req: Request):
+    try:
+        r = _dz_call("POST", f"/api/montaz/{jid}/napisy", json=await req.json())
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+    j = r.json() if r.content else {}
+    if r.status_code >= 300:
+        return {"ok": False, "error": j.get("error") or f"błąd {r.status_code}"}
+    C = _rd("mont_checks.json", {})
+    C.pop(jid, None)
+    _wr("mont_checks.json", C)
+    return {"ok": True, "zmiany": j.get("zmiany")}
+
+
 @router.post("/api/mont/{jid}/{action}")
 async def act(jid: str, action: str, req: Request):
     if not _job(jid) or action not in ("redo", "fix", "check", "start", "cofnij"):

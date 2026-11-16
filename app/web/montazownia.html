@@ -317,6 +317,8 @@ async function detail(id,force){
    ${c.review?`<p style="margin-top:6px">${esc(c.review)}</p>`:''}
    <details class="fixd" ${c.fix?'open':''}><summary>✂️ Coś poprawić?</summary><textarea id="fx" placeholder="Co poprawić? (np. wytnij drugie podejście w klipie 2)">${esc(c.fix||'')}</textarea>
    <div class="row"><button class="btn pri" id="fixb" ${act?'':'disabled title="Dopisz DZIENNIK_PASS do .env"'}>✂️ Popraw montaż</button><button class="btn" id="chk">🔁 Sprawdź jeszcze raz</button></div></details>
+   <details class="fixd" id="napd"><summary>📝 Popraw napisy ręcznie</summary><div id="napk" class="mut" style="margin-top:6px">Ładuję napisy z filmu…</div>
+   <div class="row"><button class="btn pri" id="napb" ${act?'':'disabled'}>💾 Zapisz napisy i zmontuj</button></div></details>
    ${act?'':'<p class="mut" style="margin-top:6px">Żeby centrum mogło poprawiać i ponawiać montaż, dopisz do /root/social/.env linię <code>DZIENNIK_PASS=…</code> (hasło do dziennika) i zrób social-update.</p>'}</div>`}
  if(j.state==='done')setTimeout(()=>karuLoad(j.id),0);
  $('det').innerHTML=`<h2>${esc(ttl(j))}</h2>
@@ -332,6 +334,11 @@ async function detail(id,force){
  $('kdel')&&($('kdel').onclick=()=>{SEL=null;mclean({job:j.id})});
  $('cofnij')&&($('cofnij').onclick=async()=>{if(!confirm('Cofnąć ostatnią poprawkę i zmontować film jeszcze raz?'))return;const r=await post('cofnij');toast(r.ok!==false?'Cofnięte – film montuje się ponownie.':'Nie wyszło: '+r.error);J=null;load()});
  $('redo')&&($('redo').onclick=async()=>{const r=await post('redo');toast(r.ok?'Montaż ruszył od nowa.':'Nie wyszło: '+r.error);J=null;load()});
+ $('napd')&&($('napd').ontoggle=async()=>{if(!$('napd').open||$('napd').dataset.ok)return;let r;try{r=await (await fetch(`/api/mont/${j.id}/napisy`)).json()}catch(e){r={error:'Brak połączenia'}}
+  if(!(r.klipy||[]).length){$('napk').textContent=r.error||'Brak napisów';return}$('napd').dataset.ok=1;
+  $('napk').innerHTML='<p style="margin:0 0 8px">Popraw słowa tak, jak mają być na filmie – cięcia zostają bez zmian.</p>'+r.klipy.map((k,i)=>`<label style="display:block;font-size:12px;opacity:.7;margin-top:8px">Klip ${i+1}</label><textarea data-nk="${esc(k.klip)}" data-old="${esc(k.tekst)}" rows="3" style="width:100%">${esc(k.tekst)}</textarea>`).join('')});
+ $('napb')&&($('napb').onclick=async()=>{const K={};document.querySelectorAll('#napk [data-nk]').forEach(t=>{if(t.value.trim()!==t.dataset.old.trim())K[t.dataset.nk]=t.value.trim()});
+  if(!Object.keys(K).length)return toast('Nie zmieniłeś żadnych napisów.');const r=await post('napisy',{klipy:K});toast(r.ok?`Zapisane (${r.zmiany} zmian) – film montuje się ponownie.`:'Nie wyszło: '+r.error);if(r.ok){J=null;load()}});
  $('fixb')&&($('fixb').onclick=async()=>{const t=$('fx').value.trim();if(!t)return toast('Wpisz, co poprawić.');const r=await post('fix',{comment:t});toast(r.ok?'Poprawka wysłana – film montuje się ponownie.':'Nie wyszło: '+r.error);J=null;load()});
  $('chk')&&($('chk').onclick=async e=>{e.target.disabled=true;e.target.textContent='Sprawdzam…';await post('check');J=null;load()});
 }
