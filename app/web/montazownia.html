@@ -549,7 +549,7 @@ const VST=['Pobieranie z centrum','Przygotowanie klipów','Transkrypcja i cięci
 function vstage(j){if(j.state==='done')return 4;if(j.state==='ask')return 2;const st=(j.step||'')+' '+(j.lines||[]).slice(-6).join(' ');
  const m=[...(j.lines||[])].reverse().find(l=>/^[123]\/3/.test(l));if(m)return +m[0];if(/Pobieram|otwiera|przejął|CapCut na czas/i.test(st))return 0;return 0}
 const dur=t=>{const s=Math.max(0,Math.round(Date.now()/1000-t));return s<60?s+' s':Math.floor(s/60)+' min '+String(s%60).padStart(2,'0')+' s'};
-let MP=null;async function mpLoad(){try{MP=await (await fetch('/api/mac-praca')).json()}catch(e){}liveRender.h=null;liveRender()}
+var MP=null;async function mpLoad(){try{MP=await (await fetch('/api/mac-praca')).json()}catch(e){}liveRender.h=null;liveRender()}
 mpLoad();setInterval(mpLoad,10000);
 function liveRender(){const box=$('liveb');if(!box)return;const out=[];
  for(const j of (V&&V.jobs||[]).filter(j=>['queued','uploading','claimed','working','ask'].includes(j.state))){
