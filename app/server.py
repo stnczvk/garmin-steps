@@ -1184,10 +1184,20 @@ async def montaz_fix(jid: str, req: Request):
         tr = json.loads((day / "transkrypcja.json").read_text(encoding="utf-8"))
     except Exception:
         tr = {}
+    try:   # AI widzi napisy TAKIE, JAKIE SĄ NA FILMIE (po automatycznej poprawce), żeby zamiana „z” trafiła w to, co widać
+        fx = json.loads((day / "napisy_poprawki.json").read_text(encoding="utf-8")).get("fixes") or {}
+    except Exception:
+        fx = {}
     parts = []
     for i, r in enumerate(rows, 1):
         t = tr.get(r["clip"], {})
-        words = " ".join(f'{w["word"]}[{w["start"]:.2f}-{w["end"]:.2f}]' for w in t.get("words", []))
+        ws = [dict(w) for w in t.get("words", [])]
+        for k, v in (fx.get(r["clip"]) or {}).items():
+            try:
+                ws[int(k)]["word"] = str(v)
+            except Exception:
+                pass
+        words = " ".join(f'{w["word"]}[{w["start"]:.2f}-{w["end"]:.2f}]' for w in ws)
         parts.append(f"Klip {i}: {r['clip']} (długość {t.get('duration', 0):.1f} s)\nObecne cięcia: {' '.join(r['opts']) or 'brak'}\n"
                      f"Fragmenty mowy: " + " | ".join(f"[{c['start']:.2f}-{c['end']:.2f}] {c['text']}" for c in t.get("chunks", []) if not c.get("szum")) +
                      f"\nSłowa: {words or '(brak mowy)'}")
