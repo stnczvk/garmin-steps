@@ -792,6 +792,9 @@ async def hook_memy_wybor(req: Request):
     import planer as _pl
     extra = _pl.klipy_przyklady("mem")
     extra += ("\nTe memy z tego vloga już są – zrób INNE: " + " | ".join(map(str, b["zostaja"]))[:600] + "\n") if b.get("zostaja") else ""
+    uzyte = _uzyte_teksty(name)
+    if uzyte:
+        extra += "\nTE ZDANIA SĄ JUŻ UŻYTE w zatwierdzonych klipach/memach – nie bierz ich na puentę:\n- " + "\n- ".join(t[:200] for t in uzyte)[:2000] + "\n"
     if b.get("uwagi"):
         extra += "\nMOJE UWAGI: " + str(b["uwagi"])[:600] + "\n"
     prompt = (f"To transkrypcja vloga „{name}” (kanał Lysyzsilowni: natural bodybuilding, redukcja, jedzenie, trening, codzienność). "
@@ -816,10 +819,65 @@ async def hook_memy_wybor(req: Request):
             o, d_ = int(m["od"]), int(m["do"])
         except Exception:
             continue
+        _t = " ".join(_zdania_map(zd).get(n, "") for n in range(o, d_ + 1))
+        if any(_podobne(_t, u) > 0.5 for u in uzyte):
+            continue
         if 0 <= o <= d_ <= o + 2 and str(m.get("sytuacja") or "").strip():
             out.append({"od": o, "do": d_, "sytuacja": human(str(m["sytuacja"]))[:120], "tiktok": human(str(m.get("tiktok") or "")),
                         "instagram": human(str(m.get("instagram") or "")), "yt_title": human(str(m.get("yt_title") or "")), "hook": human(str(m["sytuacja"]))[:80]})
     return {"memy": out[:ile]}
+
+
+def _uzyte_teksty(name):
+    """Co mówię w klipach i memach z tego vloga, które już są zatwierdzone/opublikowane – żeby nowe ich nie powtarzały."""
+    import planer as _pl
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100]
+    out = []
+    for x in _pl.plan():
+        src = str(x.get("src", ""))
+        if not (src.startswith(f"vf:{nm} klip ") or src.startswith(f"vf:{nm} mem ")) or x.get("status") not in ("approved", "publishing", "published"):
+            continue
+        try:
+            out.append(json.loads((VFILM / (re.sub(r"[^\w .()#-]+", "_", src[3:])[:120] + ".meta.json")).read_text(encoding="utf-8")).get("tekst") or "")
+        except Exception:
+            out.append(x.get("label") or "")
+    return [t for t in out if t]
+
+
+def _slowa(t):
+    return {w for w in re.findall(r"[a-ząćęłńóśźż0-9]{3,}", (t or "").lower())}
+
+
+def _podobne(a, b):
+    A, B = _slowa(a), _slowa(b)
+    return len(A & B) / max(1, min(len(A), len(B))) if A and B else 0.0
+
+
+def _zdania_map(zd):
+    M = {}
+    for l in (zd or "").split("\n"):
+        m = re.match(r"\s*\[(\d+)\s*\|[^\]]*\]\s*(.*)", l)
+        if m:
+            M[int(m.group(1))] = m.group(2)
+    return M
+
+
+def _ocena_klipow(name, kand, claude, as_json):
+    """Drugie AI sprawdza każdy kandydat jak widz bez kontekstu: czy to jedna zrozumiała historia z puentą. Słabe odpadają."""
+    if not kand:
+        return []
+    lista = "\n\n".join(f"### {i}\nTytuł: {k['tytul']}\nCo mówię: {k['_tekst'][:900]}" for i, k in enumerate(kand))
+    try:
+        j = as_json(claude(f"Oceń kandydatów na krótkie klipy (TikTok/Reels) wycięte z vloga „{name}”. Oceniasz jak widz, który NIE widział vloga.\n\n{lista}\n\n"
+                           "Dla każdego daj ocenę 1–10: 8–10 = jedna jasna rzecz, zrozumiała bez reszty filmu, mocny początek i domknięty koniec (puenta, wynik, reakcja); "
+                           "5–7 = zrozumiałe, ale słabe; 1–4 = przypadkowy fragment, urwany wątek, odniesienia do czegoś, czego widz nie zna („to”, „tamto”, „jak mówiłem”), "
+                           "tytuł nie pasuje do tego, co mówię. Bądź surowy.\n"
+                           'Odpowiedz wyłącznie JSON: {"oceny": [{"nr": 0, "ocena": 7, "dlaczego": "..."}]}', max_tokens=1500)) or {}
+        oc = {int(x["nr"]): int(x["ocena"]) for x in (j.get("oceny") or []) if str(x.get("nr", "")).isdigit()}
+    except Exception:
+        return kand
+    dobre = [k for i, k in enumerate(kand) if oc.get(i, 10) >= 7]
+    return dobre or sorted([k for i, k in enumerate(kand) if oc.get(i, 0) >= 5], key=lambda k: -oc.get(kand.index(k), 0))[:1]
 
 
 @router.post("/api/mont-hook/klipy-wybor")
@@ -838,11 +896,15 @@ async def hook_klipy_wybor(req: Request):
     extra = _pl.klipy_przyklady("klip")
     if b.get("zostaja"):
         extra += "\nTe klipy z tego vloga już są (zatwierdzone) – zrób o CZYMŚ INNYM: " + " | ".join(map(str, b["zostaja"]))[:800] + "\n"
+    uzyte = _uzyte_teksty(name)
+    if uzyte:
+        extra += ("\nTE MOMENTY SĄ JUŻ UŻYTE w zatwierdzonych klipach/memach – NIE wybieraj tych zdań ani tego samego wątku:\n- "
+                  + "\n- ".join(t[:300] for t in uzyte)[:3000] + "\n")
     if b.get("uwagi"):
         extra += "\nMOJE UWAGI DO POPRZEDNICH KLIPÓW (popraw to koniecznie): " + str(b["uwagi"])[:800] + "\n"
     prompt = (f"To transkrypcja vloga z YouTube „{name}” ({dur / 60:.0f} min), kanał ŁysyVlog. Autor: Bartłomiej, natural bodybuilding, "
               "redukcja, jedzenie, trening, codzienne życie. " + ("Każda linia to jedno zdanie: [numer | start | długość] tekst. " if zd else "Każda linia: [sekunda] tekst. ") + "\n\n" + tr + "\n" + extra +
-              f"\n\nZrób {'1' if ile == 1 else ('2–' + str(ile) if ile <= 3 else '3–' + str(ile))} PIONOWYCH KLIPÓW na TikToka/Reels/Shorts, które PROMUJĄ cały odcinek. "
+              f"\n\nZrób {min(7, ile + 2)} PIONOWYCH KLIPÓW (część odrzucę, więc daj też zapasowe) na TikToka/Reels/Shorts, które PROMUJĄ cały odcinek. "
               + ("Klip to jeden ciągły, samodzielny fragment o JEDNEJ rzeczy (np. ile zjadłem na cheat mealu i co na to waga), który ogląda się "
                  "jak skończona mini historia bez reszty filmu.\n" if zd else
                  "Klip to krótka historia zmontowana z kilku momentów (beatów), które opowiadają JEDNĄ rzecz.\n") +
@@ -882,7 +944,11 @@ async def hook_klipy_wybor(req: Request):
                 if 0 <= o <= d_ <= o + 30:
                     B.append({"od": o, "do": d_})
             if B:
-                out.append({"beats": B[:7], "temat": str(k.get("temat") or "")[:80], "hook": human(str(k.get("hook") or "")),
+                zm = _zdania_map(zd)
+                tekst = " ".join(zm.get(n, "") for bb in B for n in range(bb["od"], bb["do"] + 1))
+                if any(_podobne(tekst, u) > 0.45 for u in uzyte) or any(_podobne(tekst, o.get("_tekst", "")) > 0.45 for o in out):
+                    continue   # ten sam moment co zatwierdzony klip albo inny nowy
+                out.append({"_tekst": tekst, "beats": B[:7], "temat": str(k.get("temat") or "")[:80], "hook": human(str(k.get("hook") or "")),
                             "tytul": human(str(k.get("tytul") or k.get("hook") or ""))[:90],
                             "tiktok": human(str(k.get("tiktok") or "")), "instagram": human(str(k.get("instagram") or "")),
                             "yt_title": human(str(k.get("yt_title") or ""))})
@@ -907,6 +973,10 @@ async def hook_klipy_wybor(req: Request):
         out.append({"start": B[0]["start"], "end": B[-1]["end"], "beats": B[:7], "temat": str(k.get("temat") or "")[:80],
                     "hook": human(str(k.get("hook") or "")), "tiktok": human(str(k.get("tiktok") or "")),
                     "instagram": human(str(k.get("instagram") or "")), "yt_title": human(str(k.get("yt_title") or ""))})
+    if zd and out:
+        out = await asyncio.to_thread(_ocena_klipow, name, [dict(o, tytul=o.get("tytul", "")) for o in out], claude, as_json)
+    for o in out:
+        o.pop("_tekst", None)
     return {"klipy": out[:ile]}
 
 
