@@ -1546,6 +1546,13 @@ async def mont_opis(req: Request):
                + 
                f"Tytuł na filmie: {rd('title.json', 300)}\nPodsumowanie dnia (dane z dziennika): {rd('podsumowanie.json')}\n"
                f"Co mówię w filmie / raport montażu: {rd('raport.txt', 2000)}")
+        _pyt = ["Który posiłek z tego dnia zjadłbyś najchętniej?", "Co byś zmienił w tym dniu jedzenia?",
+                "Zgadniesz, który posiłek miał najwięcej białka?", "Jaki posiłek mam pokazać jutro?",
+                "Ile posiłków dziennie jesz na redukcji?", "Który posiłek był według ciebie najsłabszy?"]
+        _q = _pyt[int(dn.group(1)) % len(_pyt)] if dn else _pyt[0]
+        if kind != "karuzela":
+            ctx += (f"\nOSTATNIE ZDANIE opisu (TikTok i Instagram, przed hashtagami) to pytanie do widzów, żeby pisali komentarze – "
+                    f"użyj tego pytania, możesz lekko zmienić słowa, ale bez myślnika: „{_q}”")
         if kind == "karuzela":
             ctx = ("KARUZELA na Instagram (osobny post, NIE film): slajd 1 okładka „Co zjadłem w jeden dzień na redukcji?”, potem po 1 zdjęciu "
                    "każdego posiłku z kartą kcal i wszystkimi produktami, plansza z makro dnia, na końcu pytanie „Który posiłek wybierasz?”.\n"
