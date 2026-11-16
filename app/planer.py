@@ -450,6 +450,39 @@ def api_opis_nowy(pid: str):
     return {"ok": True, "yt_desc": d}
 
 
+@router.post("/api/planer/{pid}/propozycje")
+def api_propozycje(pid: str):
+    """Vlog YT: 3 tytuły i 3 opisy do wyboru (nic się nie zapisuje, dopóki nie wybierzesz i nie klikniesz Zapisz)."""
+    from agency import claude, as_json
+    from montaz import vlog_prompt, human
+    it, nm, V = _vyt(pid)
+    if not it:
+        return {"ok": False, "error": "to nie vlog YT"}
+    trf = V / (nm + ".tr.json")
+    if trf.exists():
+        t = json.loads(trf.read_text(encoding="utf-8"))
+        baza = vlog_prompt(t["tr"], nm, t.get("dur") or 0)
+    else:
+        teraz = "\n".join(l for l in (it.get("yt_desc") or it.get("caption") or "").split("\n") if l.strip() not in {v.strip() for v in VLOG_LINKI.split("\n") if v.strip()})
+        baza = (f"Vlog na YouTube „{nm}”, kanał ŁysyVlog (Bartłomiej – redukcja, jedzenie, trening; odcinek obejmuje zwykle kilka dni). "
+                f"Obecny tytuł: {it.get('yt_title') or ''}\nObecny opis (fakty, liczby, rozdziały i hashtagi zachowaj):\n{teraz[:4000]}\n\n"
+                "Zasady tytułu: do 70 znaków, „luźna, śmieszna fraza z konkretem z odcinka | ŁysyVlog #N”, potocznie jak autor, bez clickbaitu i emotek. "
+                "Zasady opisu: pisze sam autor w pierwszej osobie (nigdy „z Bartkiem”), pierwsze zdanie pełne, od wielkiej litery, z frazą do wyszukania; "
+                "1–2 zdania o odcinku i jedno łatwe pytanie do widzów; potem rozdziały i w ostatniej linii hashtagi; bez linków.")
+    try:
+        j = as_json(claude(baza + "\n\nZAMIAST pojedynczej odpowiedzi daj PROPOZYCJE DO WYBORU: 3 różne tytuły (różne podejścia: śmieszny, konkretny, "
+                           "z ciekawością) i 3 różne opisy (różne pierwsze zdanie i pytanie; rozdziały i hashtagi w każdym takie same). "
+                           'Odpowiedz wyłącznie JSON: {"tytuly": ["...", "...", "..."], "opisy": ["...", "...", "..."]}', max_tokens=5000,
+                           system=__import__("skills").sk("hook", "caption", "seo", "slop"))) or {}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:150]}
+    T = [human(str(x))[:100] for x in (j.get("tytuly") or []) if str(x).strip()][:3]
+    O = [vlog_opis(human(str(x)).strip()) for x in (j.get("opisy") or []) if len(str(x).strip()) > 40][:3]
+    if not T and not O:
+        return {"ok": False, "error": "AI nie zwróciło propozycji – spróbuj jeszcze raz"}
+    return {"ok": True, "tytuly": T, "opisy": O}
+
+
 @router.post("/api/planer/{pid}/thumb-nowe")
 def api_thumb_nowe(pid: str):
     it, nm, V = _vyt(pid)
