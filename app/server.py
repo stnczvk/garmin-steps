@@ -1263,6 +1263,40 @@ async def _mz_fix_ai(d, day, rows, tr, comment, prompt):
     # poprawki słów w napisach – zapamiętane dla tego dnia, montaż podmienia je w napisach
     subs = [{"z": str(x.get("z", "")).strip(), "na": str(x.get("na", "")).strip()} for x in (ans.get("napisy") or [])
             if isinstance(x, dict) and str(x.get("z", "")).strip() and str(x.get("na", "")).strip()]
+    subs = [x for x in subs if x["z"].lower() != x["na"].lower()]
+    # pewniak bez AI: fraza w cudzysłowie z uwagi („do tego pomidor luzem”) → szukamy w napisach z filmu podobnego miejsca i podmieniamy
+    try:
+        import difflib
+        fx = json.loads((day / "napisy_poprawki.json").read_text(encoding="utf-8")).get("fixes") or {}
+    except Exception:
+        fx = {}
+    nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", str(w).lower())
+    for fr in re.findall(r"[„\"'“‚]([^„\"'”“‚’]{3,80})[”\"'’]", comment):
+        cel = [w for w in fr.split() if nrm(w)]
+        if not cel or len(cel) > 12:
+            continue
+        best = None
+        for clip, t in tr.items():
+            ws = [dict(w) for w in t.get("words", [])]
+            for k, v in (fx.get(clip) or {}).items():
+                try:
+                    ws[int(k)]["word"] = str(v)
+                except Exception:
+                    pass
+            W = [w["word"] for w in ws]
+            for n in [len(cel), len(cel) + 1, len(cel) - 1]:   # najpierw ta sama liczba słów
+                for i in range(0, max(0, len(W) - n + 1)):
+                    okno = W[i:i + n]
+                    a, b = " ".join(nrm(x) for x in okno), " ".join(nrm(x) for x in cel)
+                    if a == b:
+                        continue
+                    if n < 1:
+                        continue
+                    r = difflib.SequenceMatcher(None, a, b).ratio() - 0.12 * abs(n - len(cel))
+                    if r >= 0.6 and (not best or r > best[0]):
+                        best = (r, " ".join(okno))
+        if best and not any(x["z"].lower() == best[1].lower() for x in subs):
+            subs.append({"z": best[1], "na": " ".join(cel)})
     if subs:
         zf = day / "napisy_zamiany.json"
         try:
