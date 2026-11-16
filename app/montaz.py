@@ -777,6 +777,31 @@ async def hook_vlogyt_pakiet(req: Request):
                        for x in (j.get("thumbs") or []) if isinstance(x, dict) and str(x.get("t", "")).replace(".", "", 1).isdigit()][:4]}
 
 
+@router.post("/api/mont-hook/kadr-wybor")
+async def hook_kadr_wybor(req: Request):
+    """Mac: kilka kadrów z okolicy momentu + napis miniatury → AI (z obrazem) wybiera kadr, który pokazuje to, o czym jest napis."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    from agency import vision, as_json
+    import asyncio
+    b = await req.json()
+    imgs = [str(x) for x in (b.get("kadry") or [])][:12]
+    if not imgs:
+        return {"nr": 0}
+    p = (f"To kolejne kadry (numerowane od 0, w kolejności) z vloga fitness na YouTube. Napis na miniaturze: „{b.get('napis') or ''}”.\n"
+         "Wybierz JEDEN kadr na miniaturę: musi POKAZYWAĆ to, o czym jest napis (napis o jedzeniu/posiłku/cheat mealu → wyraźnie widać to jedzenie; "
+         "o siłowni/treningu → siłownia albo ćwiczenie; o wadze → waga; o kardio/krokach → ruch, bieżnia, spacer). "
+         "Poza tym: ostry, dobrze oświetlony, bez rozmycia ruchu i przejść; jeśli jest twarz – oczy otwarte, wyrazista mina. "
+         "pasuje=false, jeśli ŻADEN kadr nie pokazuje tematu napisu.\n"
+         'Odpowiedz wyłącznie JSON: {"nr": 0, "pasuje": true}')
+    try:
+        j = as_json(await asyncio.to_thread(vision, p, imgs, max_tokens=200)) or {}
+        n = int(j.get("nr") or 0)
+    except Exception as e:
+        return {"nr": -1, "error": str(e)[:120]}
+    return {"nr": n if 0 <= n < len(imgs) else 0, "pasuje": bool(j.get("pasuje", True))}
+
+
 @router.post("/api/mont-hook/memy-wybor")
 async def hook_memy_wybor(req: Request):
     """Memy z vloga: krótka puenta (całe zdania po numerach) + sytuacja memowa na górze („Kiedy ziomek pyta, jak ci idzie redukcja”)."""
