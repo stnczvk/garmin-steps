@@ -372,7 +372,7 @@ async function openPost(p){if(!p)return;const st={draft:'czeka na zatwierdzenie'
   <div class="kv"><span>Status</span><b>${p.ext?'zaplanowany w YT Studio':st}</b><span>Platformy</span><b>${(p.platforms||[]).map(x=>PL[x]||x).join(', ')||'–'}</b><span>${p.status==='published'?'Opublikowano':'Publikacja'}</span><b>${dt.toLocaleString('pl-PL',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}</b>
   ${p.views!=null?`<span>Wyświetlenia</span><b>${(p.views||0).toLocaleString('pl-PL')} ${relB(p.rel,p.fresh)}</b>`:''}</div>
   ${p.movable?`<div class="fl"><label>Przesuń na dzień</label><input type="date" id="pd" value="${ds(dt)}" min="${ds(now)}"></div>`:''}
-  <div class="ac">${p.url?`<a class="ib" href="${esc(p.url)}" target="_blank" rel="noopener">Otwórz post ↗</a>`:''}<span class="sp"></span>${p.movable?`<button class="ib pri" id="pds">Zapisz datę</button>`:''}</div>`;
+  <div class="ac">${p.url?`<a class="ib" href="${esc(p.url)}" target="_blank" rel="noopener">Otwórz post ↗</a>`:''}${p.src==='plan'&&p.kind==='film'&&p.file_ok?`<a class="ib" href="/api/planer/${p.id}/download" download style="text-decoration:none">⬇ Pobierz</a>`:''}<span class="sp"></span>${p.movable?`<button class="ib pri" id="pds">Zapisz datę</button>`:''}</div>`;
   $('mb').classList.add('on');
   if($('pds'))$('pds').onclick=async()=>{const r=await api('/api/tresci/move',{kind:p.src==='pub'?'yt':'post',id:p.id,day:$('pd').value});if(!r.ok)return toast(r.error||'Nie udało się');closeM();toast('Zapisane');load()};
   return}

@@ -1,6 +1,6 @@
 """Zakładka „Treści”: kalendarz miesięczny (pomysły + posty z planera + opublikowane), przeciąganie między dniami,
 karty pomysłów z AI (hook, plan ujęć, CTA) i wyniki postów względem Twojej normy (mediana wyświetleń konta)."""
-import secrets, statistics, threading, time
+import os, secrets, statistics, threading, time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -83,7 +83,8 @@ def api_get(month: str = "", group: str = ""):
                       "movable": x["status"] in ("draft", "approved", "error"),
                       "caption": x.get("caption") or "", "yt_title": x.get("yt_title") or "", "tiktok": x.get("tiktok") or "",
                       "step": x.get("step") or "", "n_files": len(x.get("files") or []),
-                      "series": x.get("series") or "", "psrc": x.get("src") or ""})
+                      "series": x.get("series") or "", "psrc": x.get("src") or "",
+                      "file_ok": bool(x.get("kind") == "film" and x.get("file") and os.path.isfile(x["file"]))})
     for r in R:
         if r["id"] in used or not (a <= r["t"] <= b):
             continue
