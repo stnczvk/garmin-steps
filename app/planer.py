@@ -1017,7 +1017,7 @@ def sprzatanie_plikow():
     _last_disk = time.time()
     P = plan()
     potrzebne = {x.get("file") for x in P if x.get("status") not in ("published", "skipped") and x.get("file")}
-    wiek = 0 if free < 15e9 else 12 * 3600
+    wiek = 0 if free < 15e9 else 7 * 86400   # opublikowane filmy zostają tydzień – do pobrania i ręcznego wrzucenia gdzie indziej
     freed = 0
     for x in P:
         f = x.get("file")
@@ -1121,7 +1121,8 @@ def api_plan(group: str = ""):
         tt = tiktok_pub.connected()
     except Exception:
         tt = False
-    return {"items": P[-400:], "d0": d0, "cfg": cfg(), "tiktok": tt, "tt_mode": tiktok_pub.mode() if tt else "",
+    P = [{**x, "file_ok": bool(x.get("file") and os.path.isfile(x["file"]))} if x.get("kind") == "film" else x for x in P[-400:]]
+    return {"items": P, "d0": d0, "cfg": cfg(), "tiktok": tt, "tt_mode": tiktok_pub.mode() if tt else "",
             "public": bool(_public())}
 
 
