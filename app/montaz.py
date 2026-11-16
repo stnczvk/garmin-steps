@@ -569,7 +569,7 @@ def _probe(f):
     blacks = [float(m) for m in re.findall(r"black_start:([\d.]+)", out) if 0.3 < float(m) < dur - 1.5]
     if blacks:
         probs.append("czarny ekran od " + ", ".join(f"{b:.1f}s" for b in blacks[:4]))
-    sil = [float(m) for m in re.findall(r"silence_start: ([\d.]+)", out) if float(m) < dur - 3]
+    sil = [float(m) for m in re.findall(r"silence_start: ([\d.]+)", out) if float(m) < dur - 6.5]   # końcowa plansza (ok. 5 s) jest cicha celowo
     if sil:
         warns.append("cisza od " + ", ".join(f"{s:.1f}s" for s in sil[:4]))
     return dur, probs, warns
@@ -609,6 +609,8 @@ def compare(m, kind):
         return [], None
     w = []
     lo, med, hi = b["lufs"]
+    if kind == "jedzenie":
+        med = -16.0   # daily jest celowo normalizowane do -16 LUFS (standard TikTok/Reels); stare filmy miały ok. -20
     if m.get("lufs") is not None and med is not None and abs(m["lufs"] - med) > 3:
         w.append(f"głośność {m['lufs']:.0f} LUFS – Twoje gotowe filmy mają ok. {med:.0f} ({'za cicho' if m['lufs'] < med else 'za głośno'})")
     lo, med, hi = b["cpm"]
@@ -618,7 +620,7 @@ def compare(m, kind):
     if med and (m["dur"] < lo * .7 or m["dur"] > hi * 1.3):
         w.append(f"długość {m['dur']:.0f} s – zwykle {lo:.0f}–{hi:.0f} s")
     lo, med, hi = b["sil"]
-    if m.get("sil", 0) > max(5, (hi or 0) * 1.5):
+    if m.get("sil", 0) > max(12 if kind == "jedzenie" else 5, (hi or 0) * 1.5):   # daily: cicha plansza końcowa to ~8–10%
         w.append(f"cisza przez {m['sil']:.0f}% filmu – w gotowych zwykle do {hi:.0f}%")
     return w, b
 
