@@ -450,6 +450,32 @@ def api_opis_nowy(pid: str):
     return {"ok": True, "yt_desc": d}
 
 
+@router.post("/api/mont-hook/mac-praca")
+async def hook_mac_praca(req: Request):
+    """Mac melduje, co teraz robi (miniatury, klipy…) – pasek na górze centrum."""
+    from montaz import _tok
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    st = _read("mac_praca.json", {})
+    if st.get("co") != b.get("co") or st.get("koniec"):
+        st = {"co": b.get("co"), "start": time.time()}
+    st.update(tekst=b.get("tekst") or "", at=time.time(), koniec=bool(b.get("koniec")))
+    _write("mac_praca.json", st)
+    return {"ok": True}
+
+
+@router.get("/api/mac-praca")
+def api_mac_praca():
+    st = _read("mac_praca.json", {})
+    teraz = None
+    if st.get("co") and (time.time() - st.get("at", 0) < (180 if st.get("koniec") else 1800)):
+        teraz = {"co": st["co"], "tekst": st.get("tekst", ""), "min": int((time.time() - st.get("start", time.time())) / 60), "koniec": st.get("koniec")}
+    nazwy = {"miniatury": "Nowe miniatury", "napisy": "Poprawa napisów klipu"}
+    kolejka = [nazwy.get(x.get("typ"), "Nowe klipy") + " – " + x["name"] for x in _read("klipy_popraw.json", [])]
+    return {"teraz": teraz, "kolejka": kolejka}
+
+
 @router.post("/api/planer/{pid}/propozycje")
 def api_propozycje(pid: str):
     """Vlog YT: 3 tytuły i 3 opisy do wyboru (nic się nie zapisuje, dopóki nie wybierzesz i nie klikniesz Zapisz)."""
