@@ -2143,18 +2143,5 @@ body:not(.s-wide) #snind:before{left:-13px}
  addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.cmdk)open()});
 })();
 </script>
-<div id="macbar" style="display:none;position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;max-width:min(560px,calc(100vw - 32px));background:rgba(30,26,48,.96);border:1px solid rgba(139,124,199,.5);border-radius:14px;padding:8px 14px;font-size:13px;line-height:1.4;color:#e8e4f5;box-shadow:0 8px 30px rgba(0,0,0,.4);cursor:pointer"></div>
-<script>
-(()=>{const el=document.getElementById('macbar');let zw=false;const esc=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-el.onclick=()=>{zw=!zw;tick()};
-async function tick(){let r;try{r=await (await fetch('/api/mac-praca')).json()}catch(e){return}
- const t=r.teraz,q=r.kolejka||[];if(!t&&!q.length){el.style.display='none';return}
- let h='';
- if(t)h+=t.koniec?`✅ <b>Mac skończył:</b> ${esc(t.co)}`:`<span style="display:inline-block;animation:mbspin 1.2s linear infinite">⏳</span> <b>Mac robi:</b> ${esc(t.co)} <span style="opacity:.6">· ${t.min} min</span>${zw&&t.tekst?`<div style="opacity:.7;font-size:12px;margin-top:2px">${esc(t.tekst)}</div>`:''}`;
- if(q.length)h+=`${t?'<div style="margin-top:4px">':''}🕒 <b>Czeka:</b> ${q.map(esc).join(' · ')}${t?'</div>':''}`;
- el.innerHTML=h;el.style.display='block'}
-const st=document.createElement('style');st.textContent='@keyframes mbspin{to{transform:rotate(360deg)}}';document.head.appendChild(st);
-tick();setInterval(tick,15000)})();
-</script>
 </body>
 </html>

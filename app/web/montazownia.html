@@ -549,6 +549,8 @@ const VST=['Pobieranie z centrum','Przygotowanie klipów','Transkrypcja i cięci
 function vstage(j){if(j.state==='done')return 4;if(j.state==='ask')return 2;const st=(j.step||'')+' '+(j.lines||[]).slice(-6).join(' ');
  const m=[...(j.lines||[])].reverse().find(l=>/^[123]\/3/.test(l));if(m)return +m[0];if(/Pobieram|otwiera|przejął|CapCut na czas/i.test(st))return 0;return 0}
 const dur=t=>{const s=Math.max(0,Math.round(Date.now()/1000-t));return s<60?s+' s':Math.floor(s/60)+' min '+String(s%60).padStart(2,'0')+' s'};
+let MP=null;async function mpLoad(){try{MP=await (await fetch('/api/mac-praca')).json()}catch(e){}liveRender.h=null;liveRender()}
+mpLoad();setInterval(mpLoad,10000);
 function liveRender(){const box=$('liveb');if(!box)return;const out=[];
  for(const j of (V&&V.jobs||[]).filter(j=>['queued','uploading','claimed','working','ask'].includes(j.state))){
   const k=j.state==='queued'||j.state==='uploading'?-1:vstage(j);const last=(j.lines||[]).filter(l=>l.trim()&&l.trim()!==(j.step||'').trim()).slice(-3).join('\n');
@@ -557,6 +559,9 @@ function liveRender(){const box=$('liveb');if(!box)return;const out=[];
    <div class="ll">${esc(j.step||'')}${last?'\n'+esc(last):''}</div>${j.state==='ask'?'<div class="ask">👉 Wybierz zapowiedź niżej, w sekcji Vlog.</div>':''}</div>`)}
  for(const j of (D&&D.jobs||[]).filter(j=>['working','uploading','queued'].includes(j.state)&&!j.stalled))
   out.push(`<div class="live"><div class="lh"><span class="sp"></span><b>🍽 ${esc(ttl(j))} – ${ST[j.state]||j.state}</b><small>${j.at?dur(j.at):''}</small></div><div class="ll" style="margin-top:8px">${esc(j.step||'')}</div></div>`);
+ if(MP){const t=MP.teraz;
+  if(t)out.push(`<div class="live"><div class="lh">${t.koniec?'✅':'<span class="sp"></span>'}<b>🎬 ${esc(t.co)} – ${t.koniec?'gotowe':'robi się na Macu'}</b><small>${t.koniec?'':t.min+' min'}</small></div>${t.koniec?'':`<div class="ll" style="margin-top:8px">${esc(t.tekst||'')}</div>`}</div>`);
+  for(const q of MP.kolejka||[])out.push(`<div class="live" style="opacity:.75"><div class="lh"><b>🕒 ${esc(q)} – czeka na Maca</b></div><div class="ll" style="margin-top:8px">Mac weźmie to w ciągu kilku minut (jeśli jest włączony).</div></div>`)}
  const h=out.join('');if(h!==liveRender.h){liveRender.h=h;box.innerHTML=h}
  const act=!!h;if(act!==liveRender.act){liveRender.act=act;clearInterval(liveRender.t);liveRender.t=setInterval(()=>{vload();load()},act?3000:15000)}}
 setInterval(()=>{if(liveRender.act)liveRender.h=null,liveRender()},1000);
