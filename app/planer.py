@@ -414,6 +414,42 @@ async def api_thumb_own(pid: str, req: Request):
     return {"ok": True}
 
 
+@router.post("/api/planer/{pid}/opis-nowy")
+def api_opis_nowy(pid: str):
+    """Vlog YT: nowy opis od AI (z zapisanej transkrypcji, a bez niej – przepisanie obecnego opisu wg zasad)."""
+    from agency import claude, as_json
+    from montaz import vlog_prompt, human, OPIS_RULES
+    it, nm, V = _vyt(pid)
+    if not it:
+        return {"ok": False, "error": "to nie vlog YT"}
+    trf = V / (nm + ".tr.json")
+    try:
+        if trf.exists():
+            t = json.loads(trf.read_text(encoding="utf-8"))
+            j = as_json(claude(vlog_prompt(t["tr"], nm, t.get("dur") or 0), max_tokens=2500,
+                               system=__import__("skills").sk("hook", "caption", "seo", "slop"))) or {}
+        else:
+            j = as_json(claude("Przepisz opis vloga YouTube (kanał ŁysyVlog, autor Bartłomiej – redukcja, jedzenie, trening). Zachowaj WSZYSTKIE fakty, "
+                               "liczby, rozdziały (linie z czasem) i hashtagi bez zmian. Popraw tylko tekst nad rozdziałami: pisze go SAM AUTOR w pierwszej osobie, "
+                               "nigdy o sobie w trzeciej osobie ani po imieniu („z Bartkiem” odpada), pierwsze zdanie pełne i od wielkiej litery, "
+                               "konkret z frazą do wyszukania w pierwszych 150 znakach, 1–2 zdania o odcinku i jedno łatwe pytanie do widzów. Bez linków (dodam je sam).\n"
+                               + OPIS_RULES + "\n\nObecny opis:\n" + "\n".join(l for l in (it.get("yt_desc") or it.get("caption") or "").split("\n") if l.strip() not in {v.strip() for v in VLOG_LINKI.split("\n") if v.strip()})[:4000]
+                               + '\n\nOdpowiedz wyłącznie JSON: {"yt_desc": "..."}', max_tokens=2000, system=__import__("skills").sk("caption", "slop"))) or {}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:150]}
+    d = human(str(j.get("yt_desc") or "")).strip()
+    if len(d) < 40:
+        return {"ok": False, "error": "AI nie zwróciło opisu – spróbuj jeszcze raz"}
+    d = vlog_opis(d)
+    with _lock:
+        P = plan()
+        x = next((y for y in P if y["id"] == pid), None)
+        if x:
+            x["yt_desc"] = x["caption"] = d
+            save(P)
+    return {"ok": True, "yt_desc": d}
+
+
 @router.post("/api/planer/{pid}/thumb-nowe")
 def api_thumb_nowe(pid: str):
     it, nm, V = _vyt(pid)

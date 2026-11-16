@@ -714,16 +714,9 @@ async def hook_film(req: Request, name: str = "", kind: str = "vlog", mtime: flo
     return {"ok": True}
 
 
-@router.post("/api/mont-hook/vlogyt-pakiet")
-async def hook_vlogyt_pakiet(req: Request):
-    """Mac: transkrypcja gotowego vloga YT → tytuł, opis z rozdziałami, tagi, napis i kadr na miniaturę."""
-    if not _tok(req):
-        return JSONResponse({"error": "token"}, status_code=401)
-    from agency import claude, as_json
-    import asyncio
-    b = await req.json()
-    tr, name, dur = (b.get("transkrypcja") or "")[:60000], b.get("name") or "", float(b.get("dur") or 0)
-    prompt = (f"To transkrypcja vloga na YouTube „{name}” ({dur / 60:.0f} min), kanał ŁysyVlog. Autor: Bartłomiej z Lublina, natural bodybuilding, "
+def vlog_prompt(tr, name, dur):
+    """Polecenie dla AI: tytuł, opis z rozdziałami, tagi i napisy na miniatury vloga YT."""
+    return (f"To transkrypcja vloga na YouTube „{name}” ({dur / 60:.0f} min), kanał ŁysyVlog. Autor: Bartłomiej z Lublina, natural bodybuilding, "
               "redukcja, jedzenie, trening, codzienne życie. Każda linia: [sekunda] tekst.\n\n" + tr +
               "\n\nPrzygotuj publikację na YouTube:\n"
               f"- yt_title: do 70 znaków, schemat „luźna, śmieszna fraza z konkretem z odcinka | ŁysyVlog #N” (N = numer odcinka z nazwy „{name}”, "
@@ -740,12 +733,33 @@ async def hook_vlogyt_pakiet(req: Request):
               "2 frazy, które ludzie naprawdę wyszukują i pasują do tego odcinka (np. #redukcja, #cojemwciągudnia, #dzieńnaredukcji, #cheatmeal), "
               "a trzeci zawsze #łysyvlog;\n"
               "- tags: 8–15 tagów YouTube (frazy, które ludzie wyszukują);\n"
-              "- thumb_text: napis na miniaturę, 2–4 słowa, duże emocje albo liczba, inny niż tytuł;\n"
+              "- thumb_text: napis na miniaturę, 2–4 słowa. MUSI mówić o GŁÓWNYM temacie tego odcinka (to samo, o czym jest tytuł, ale innymi słowami) i być zrozumiały bez oglądania: "
+              "konkretna liczba z filmu (np. „2100 KCAL”, „20 000 KROKÓW”, „-3 KG”) albo konkretne wydarzenie/rzecz z odcinka (np. „CHEAT MEAL”, „SIŁOWNIA O 6 RANO”, „PIERWSZE ZAWODY”). "
+              "ZAKAZ ogólników i losowych emocji typu „NIE UWIERZYSZ”, „SZOK”, „TO BYŁO COŚ”, „SERIO?”, „WOW” oraz cytatów wyrwanych z kontekstu;\n"
               "- thumb_t: sekunda filmu z najlepszym kadrem na miniaturę (twarz, emocja albo jedzenie, nie przejście);\n"
               "- thumbs: 4 RÓŻNE propozycje miniatury do wyboru, każda: t (sekunda kadru, różne sceny: twarz z emocją, jedzenie, siłownia, waga) "
-              "i text (2–4 słowa, różne podejścia: liczba, emocja, pytanie, kontrast).\n"
+              "i text (2–4 słowa, te same zasady co thumb_text: każdy napis o głównym temacie odcinka, tylko inaczej ujęty – np. liczba, efekt, wydarzenie, porównanie; "
+              "kadr ma pasować do napisu, np. napis o jedzeniu → kadr z jedzeniem).\n"
               + OPIS_RULES +
               '\nOdpowiedz wyłącznie JSON: {"yt_title": "...", "yt_desc": "...", "tags": ["..."], "thumb_text": "...", "thumb_t": s, "thumbs": [{"t": s, "text": "..."}]}')
+
+
+@router.post("/api/mont-hook/vlogyt-pakiet")
+async def hook_vlogyt_pakiet(req: Request):
+    """Mac: transkrypcja gotowego vloga YT → tytuł, opis z rozdziałami, tagi, napis i kadr na miniaturę."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    from agency import claude, as_json
+    import asyncio
+    b = await req.json()
+    tr, name, dur = (b.get("transkrypcja") or "")[:60000], b.get("name") or "", float(b.get("dur") or 0)
+    try:   # transkrypcja zostaje na serwerze – „Nowy opis” w centrum robi opis od nowa bez Maca
+        VFILM.mkdir(parents=True, exist_ok=True)
+        (VFILM / (re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100] + ".tr.json")).write_text(
+            json.dumps({"tr": tr, "dur": dur}, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+    prompt = vlog_prompt(tr, name, dur)
     try:
         txt = await asyncio.to_thread(lambda: claude(prompt, max_tokens=2500, system=__import__("skills").sk("hook", "caption", "seo", "slop")))
     except Exception as e:
