@@ -402,10 +402,18 @@ def ai_fix_words(trans, day):
             stare = re.sub(r"[^\wąćęłńóśźż]", "", ws[i]["word"].lower()) if 0 <= i < len(ws) else ""
             if stare and (re.search(r"\d", stare) or _slowo_liczba(stare) is not None):
                 continue      # liczb i liczebników AI nie poprawia („na trzy” ≠ „na to”)
+            if stare in SLOWA_STALE and stare not in {str(k.get("z", "")).lower() for k in known}:
+                continue      # krótkich, zwykłych słów AI nie zamienia („do tego” ≠ „na to”), chyba że jest to w słowniku poprawek
             if 0 <= i < len(ws) and str(new).strip() and str(new).strip() != ws[i]["word"]:
                 ws[i]["word"] = str(new).strip(); n += 1
     print(f"Poprawki napisów (AI): {n} słów", flush=True)
     return trans
+
+
+# zwykłe krótkie słowa – zawsze są prawdziwymi słowami, więc AI nie może ich „poprawiać” na inne
+SLOWA_STALE = set("""a aby ale albo bo by być był była było co czy dla do dwa ja jak jest jeszcze już ją je jego jej ich i
+im mam ma mi mnie mój moje na nad nie no o od oraz po pod potem przed przez przy razem są się ta tak także tam te tego tej ten
+teraz to tu tylko tym u w we więc wszystko z za ze że żeby jem jemy""".split())
 
 
 # słowa, które rozpoznawanie mowy notorycznie przekręca (końcówka słowa po normalizacji -> poprawka)
