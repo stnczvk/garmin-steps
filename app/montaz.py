@@ -737,7 +737,10 @@ def vlog_prompt(tr, name, dur):
               "przede wszystkim konkretne wydarzenie/rzecz/temat odcinka (np. „CHEAT MEAL”, „SIŁOWNIA O 6 RANO”, „PIERWSZE ZAWODY”, „TYDZIEŃ BEZ SŁODYCZY”). "
               "UWAGA: vlog zwykle obejmuje KILKA DNI – nie dawaj liczb z jednego dnia (kcal czy kroki z jednego dnia są bez sensu na miniaturze całego odcinka). "
               "Liczba tylko wtedy, gdy dotyczy całego odcinka (np. „-2 KG W TYDZIEŃ”, „5 DNI DIETY”). "
-              "ZAKAZ ogólników i losowych emocji typu „NIE UWIERZYSZ”, „SZOK”, „TO BYŁO COŚ”, „SERIO?”, „WOW” oraz cytatów wyrwanych z kontekstu;\n"
+              "ZAKAZ ogólników i losowych emocji typu „NIE UWIERZYSZ”, „SZOK”, „TO BYŁO COŚ”, „SERIO?”, „WOW” oraz cytatów wyrwanych z kontekstu. "
+              "ZAKAZ też nudnych, neutralnych opisów jak z listy zakupów („ŚNIADANIE Z JAJKAMI”, „ZAKUPY I PRACA”, „DUŻO KROKÓW”): napis ma budzić ciekawość "
+              "albo kontrast wokół tematu odcinka, np. „KFC NA REDUKCJI?”, „CHEAT MEAL W ŚRODKU TYGODNIA”, „APKA MÓWI: NIEMOŻLIWE”, „ŚWIĘTA BĘDĄ GRUBE”. "
+              "Maksymalnie 3–4 KRÓTKIE słowa, żadne słowo dłuższe niż 12 liter;\n"
               "- thumb_t: sekunda filmu z najlepszym kadrem na miniaturę (twarz, emocja albo jedzenie, nie przejście);\n"
               "- thumbs: 4 RÓŻNE propozycje miniatury do wyboru, każda: t (sekunda kadru, różne sceny: twarz z emocją, jedzenie, siłownia, waga) "
               "i text (2–4 słowa, te same zasady co thumb_text: każdy napis o głównym temacie odcinka, tylko inaczej ujęty – np. liczba, efekt, wydarzenie, porównanie; "
@@ -791,7 +794,8 @@ async def hook_kadr_wybor(req: Request):
     p = (f"To kolejne kadry (numerowane od 0, w kolejności) z vloga fitness na YouTube. Napis na miniaturze: „{b.get('napis') or ''}”.\n"
          "Wybierz JEDEN kadr na miniaturę: musi POKAZYWAĆ to, o czym jest napis (napis o jedzeniu/posiłku/cheat mealu → wyraźnie widać to jedzenie; "
          "o siłowni/treningu → siłownia albo ćwiczenie; o wadze → waga; o kardio/krokach → ruch, bieżnia, spacer). "
-         "Poza tym: ostry, dobrze oświetlony, bez rozmycia ruchu i przejść; jeśli jest twarz – oczy otwarte, wyrazista mina. "
+         "Poza tym: ostry, dobrze oświetlony, bez rozmycia ruchu i przejść; ODRZUĆ kadry z napisami, plakietkami, zegarem i grafikami nałożonymi w montażu "
+         "(na miniaturę wejdzie własny napis); najlepszy kadr pokazuje temat I moją twarz z wyrazistą miną (oczy otwarte), a jeśli takiego nie ma – sam temat duży i wyraźny. "
          "pasuje=false, jeśli ŻADEN kadr nie pokazuje tematu napisu.\n"
          'Odpowiedz wyłącznie JSON: {"nr": 0, "pasuje": true}')
     try:
@@ -850,7 +854,28 @@ async def hook_memy_wybor(req: Request):
         if 0 <= o <= d_ <= o + 2 and str(m.get("sytuacja") or "").strip():
             out.append({"od": o, "do": d_, "sytuacja": human(str(m["sytuacja"]))[:120], "tiktok": human(str(m.get("tiktok") or "")),
                         "instagram": human(str(m.get("instagram") or "")), "yt_title": human(str(m.get("yt_title") or "")), "hook": human(str(m["sytuacja"]))[:80]})
-    return {"memy": out[:ile]}
+    # memy: bez duplikatów między sobą i tylko naprawdę śmieszne (drugie AI ocenia)
+    zm = _zdania_map(zd)
+    uniq = []
+    for m in out:
+        t = " ".join(zm.get(n, "") for n in range(m["od"], m["do"] + 1))
+        if any(_podobne(t, u["_tekst"]) > 0.5 or _podobne(m["sytuacja"], u["sytuacja"]) > 0.6 for u in uniq):
+            continue
+        uniq.append(dict(m, _tekst=t, tytul=m["sytuacja"]))
+    if uniq:
+        try:
+            lista = "\n\n".join(f"### {i}\nSytuacja na górze: {m['sytuacja']}\nPuenta (moje słowa z vloga): {m['_tekst'][:400]}" for i, m in enumerate(uniq))
+            j = as_json(await asyncio.to_thread(lambda: claude(
+                f"Oceń memy wideo z vloga fitness (TikTok/Reels) jak widz bez kontekstu.\n\n{lista}\n\nOcena 1–10: 8–10 = naprawdę śmieszne albo trafne, puenta pasuje do sytuacji "
+                "i jest krótka; 5–7 = da się, ale słabe; 1–4 = nieśmieszne, puenta nie odpowiada sytuacji, za długa albo to zwykłe zdanie bez żartu. Bądź surowy.\n"
+                'Odpowiedz wyłącznie JSON: {"oceny": [{"nr": 0, "ocena": 7}]}', max_tokens=800))) or {}
+            oc = {int(x["nr"]): int(x["ocena"]) for x in (j.get("oceny") or []) if str(x.get("nr", "")).isdigit()}
+            uniq = [m for i, m in enumerate(uniq) if oc.get(i, 10) >= 7]
+        except Exception:
+            pass
+    for m in uniq:
+        m.pop("_tekst", None); m.pop("tytul", None)
+    return {"memy": uniq[:ile]}
 
 
 def _uzyte_teksty(name):
@@ -902,7 +927,7 @@ def _ocena_klipow(name, kand, claude, as_json):
         j = as_json(claude(f"Oceń kandydatów na krótkie klipy (TikTok/Reels) wycięte z vloga „{name}”. Oceniasz jak widz, który NIE widział vloga.\n\n{lista}\n\n"
                            "Dla każdego daj ocenę 1–10: 8–10 = jedna jasna rzecz, zrozumiała bez reszty filmu, mocny początek i domknięty koniec (puenta, wynik, reakcja); "
                            "5–7 = zrozumiałe, ale słabe; 1–4 = przypadkowy fragment, urwany wątek, odniesienia do czegoś, czego widz nie zna („to”, „tamto”, „jak mówiłem”), "
-                           "tytuł nie pasuje do tego, co mówię. Bądź surowy.\n"
+                           "tytuł nie pasuje do tego, co mówię; codzienne podsumowanie kcal/kroków bez żadnego zwrotu akcji = max 4. Bądź surowy.\n"
                            'Odpowiedz wyłącznie JSON: {"oceny": [{"nr": 0, "ocena": 7, "dlaczego": "..."}]}', max_tokens=1500)) or {}
         oc = {int(x["nr"]): int(x["ocena"]) for x in (j.get("oceny") or []) if str(x.get("nr", "")).isdigit()}
     except Exception:
@@ -954,7 +979,10 @@ async def hook_klipy_wybor(req: Request):
               ("- w środku coś, co trzyma dalej (pytanie, zwrot akcji, „ale…”), na końcu puenta (wynik, liczba, reakcja);\n" if zd else
                "- w środku coś, co trzyma dalej (pytanie, zwrot akcji, „ale…”); ostatni beat = puenta (wynik, liczba, reakcja);\n"
                "- beaty w kolejności, która ma sens dla widza (nie musi być chronologiczna), bez powtarzania tej samej myśli;\n") +
-              "- każdy klip o czymś innym.\n"
+              "- każdy klip o czymś innym;\n"
+              "- NIE wybieraj codziennych podsumowań („dzisiaj zjedzonych kalorii było…, kroków zrobiłem…”) – są w każdym odcinku i nikogo nie ciekawią; "
+              "liczba ma sens tylko, gdy coś z niej wynika (wpadka, rekord, zaskoczenie, reakcja). Szukaj historii, wydarzeń, wpadek, opinii, rad i śmiesznych momentów; "
+              "lepiej zwrócić 2 dobre klipy niż 5 słabych.\n"
               "Do każdego: tytul = TYTUŁ NA EKRANIE przez cały klip (u góry, jak w klipach z kampanii), 5–9 słów, konkret z liczbą albo "
               "ciekawością, pisany jak człowiek, bez emotek i bez myślników (np. „Zjadłem 4000 kcal i tak zareagowała waga”); "
               "hook = 2–5 słów, DOPEŁNIA to, co mówię (nie powtarza), ciekawość albo liczba; "
