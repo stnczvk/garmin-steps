@@ -472,6 +472,9 @@ def api_propozycje(pid: str):
     try:
         j = as_json(claude(baza + "\n\nZAMIAST pojedynczej odpowiedzi daj PROPOZYCJE DO WYBORU: 3 różne tytuły (różne podejścia: śmieszny, konkretny, "
                            "z ciekawością) i 3 różne opisy (różne pierwsze zdanie i pytanie; rozdziały i hashtagi w każdym takie same). "
+                           "Opisy krótkie i przejrzyste: 2–3 krótkie zdania nad rozdziałami, każde w nowej linii, pytanie w osobnej linii. "
+                           "Odcinek obejmuje kilka dni – nie zaczynaj od kcal czy kroków z jednego dnia, zacznij od tego, o czym jest cały odcinek. "
+                           "Nie dopisuj rzeczy, których nie ma w materiale. "
                            'Odpowiedz wyłącznie JSON: {"tytuly": ["...", "...", "..."], "opisy": ["...", "...", "..."]}', max_tokens=5000,
                            system=__import__("skills").sk("hook", "caption", "seo", "slop"))) or {}
     except Exception as e:
