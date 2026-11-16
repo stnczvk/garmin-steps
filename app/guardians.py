@@ -641,20 +641,44 @@ def g_etsy_manager():
     top = (f or w or I or [{"msg": ""}])[0]["msg"]
     return st, f"sklep {R.get('score')}/100 · {len(f)} pilne, {len(w)} do poprawy" + (f" · {top[:70]}" if top else ""), None
 
+def _g_dlugi(mod, nazwa):
+    """Kanał długich filmów: ostatni film – błąd, film czekający na Ciebie, zawieszona produkcja."""
+    def f():
+        import sys
+        m = sys.modules.get(mod)
+        if not m:
+            return WARN, "moduł kanału niezaładowany", None
+        S = m._read(m.F, {})
+        I = sorted(S.get("items", []), key=lambda x: x.get("at", 0))
+        c = m.cfg()
+        if not I:
+            return OK, "jeszcze bez filmów" + ("" if c.get("enabled") else " · harmonogram wyłączony"), None
+        x = I[-1]
+        st, krok = x.get("status"), (x.get("step") or "")[:80]
+        ile = time.time() - x.get("at", 0)
+        if st == "error":
+            return FAIL, f"ostatni film: błąd – {krok}", None
+        if st == "working" and ile > 3 * 3600:
+            return WARN, f"film robi się od {ile / 3600:.0f} h – {krok}", None
+        if st == "review" and ile > 48 * 3600:
+            return WARN, f"film czeka na Twoją decyzję od {ile / 86400:.0f} dni", None
+        pub = [y for y in I if y.get("status") == "published"]
+        info = {"working": "film w produkcji", "review": "film czeka na sprawdzenie", "uploading": "wysyła się"}.get(st)
+        if not info:
+            info = f"ostatni opublikowany {time.strftime('%d.%m', time.localtime(pub[-1].get('published', 0)))}" if pub else "brak opublikowanych"
+        return OK, info + ("" if c.get("enabled") else " · harmonogram wyłączony"), None
+    return f
+
+
 G = [
     ("vps", "Serwer", "infra", "🖥️", "Dysk, pamięć i obciążenie VPS", g_vps),
     ("ssl", "Certyfikat HTTPS", "infra", "🔐", "Czy certyfikat centrum nie wygasa", g_ssl),
     ("dziennik", "Dziennik", "infra", "📓", "Czy aplikacja Dziennik odpowiada", g_dziennik),
     ("backup", "Kopie zapasowe", "infra", "💾", "Czy codzienna kopia danych centrum się zrobiła", g_backup),
     ("push", "Powiadomienia", "infra", "🔔", "Czy powiadomienia dochodzą na Twoje urządzenia", g_push),
-    ("n8n", "n8n", "pozaskala", "⚙️", "Czy n8n działa i nie sypie błędami", g_n8n),
-    ("gen", "Generator", "pozaskala", "🎬", "Czy filmy wygenerowały się o zaplanowanych godzinach", _scheduled(r"^generator$", "Generator")),
-    ("montage", "Montaż", "pozaskala", "🎞️", "Czy montaż i kontrola techniczna przeszły", g_montage),
-    ("pub", "Publikacja", "pozaskala", "🚀", "Czy filmy opublikowały się o zaplanowanych godzinach", _scheduled(r"^publisher$", "Publikacja")),
-    ("live", "Filmy na żywo", "pozaskala", "📺", "Czy filmy są naprawdę publiczne na YouTube i IG (co 20 min)", g_publication),
-    ("vlog", "Dane do analityki", "pozaskala", "🧷", "Czy log każdego filmu ma ID z YouTube i IG (dla Analytics Collectora)", g_video_log),
-    ("queue", "Kolejka tematów", "agencja", "🔭", "Czy generator ma z czego brać tematy", g_queue),
-    ("qa", "Kontrola jakości", "agencja", "🛡️", "Czy Kontroler ocenił ostatni scenariusz", g_quality),
+    ("redtie", "Red Tie Stories", "kanaly", "👔", "Czy ostatni film kanału się zrobił i nie czeka za długo", _g_dlugi("dlugi", "Red Tie Stories")),
+    ("zdrowie", "Zdrowie 50+", "kanaly", "🩺", "Czy ostatni film kanału się zrobił i nie czeka za długo", _g_dlugi("dlugi_zdrowie", "Zdrowie 50+")),
+    ("historia", "History Slowly Told", "kanaly", "📜", "Czy ostatni film kanału się zrobił i nie czeka za długo", _g_dlugi("dlugi_historia", "Historia")),
     ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", g_inbox),
     ("ret", "Retencja", "agencja", "📈", "Czy codzienna analiza retencji (7:00) się odbyła", _agent_ran("retention", "Retencja", 26, after_hour=8)),
     ("apicost", "Środki w API", "agencja", "🪙", "Czy w OpenAI / Apify nie kończą się środki (raz na godzinę)", g_costs_api),
@@ -676,7 +700,7 @@ G = [
     ("etsyj", "Zmiany w ofertach", "etsy", "🔧", "Czy ostatnia podmiana / wystawianie z centrum przeszło bez błędów", g_etsy_job),
     ("etsym", "Menedżer sklepu", "etsy", "🧭", "Codzienny audyt: tytuły, tagi, zdjęcia, film, wygasanie, konwersja, sezon (co 6 h)", g_etsy_manager),
 ]
-AREAS = {"infra": "Infrastruktura", "pozaskala": "PozaSkala", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy"}
+AREAS = {"infra": "Infrastruktura", "kanaly": "Kanały YT", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy"}
 
 
 def run_all(push=True):
