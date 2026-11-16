@@ -284,7 +284,7 @@ def film(jid: str, dl: int = 0):
     if dl:
         return FileResponse(f, media_type="video/mp4", filename=f.name)
     from lite import lite
-    return FileResponse(lite(str(f)), media_type="video/mp4")
+    return FileResponse(lite(str(f)), media_type="video/mp4", headers={"Cache-Control": "no-cache"})
 
 
 # ---------- akcje w Dzienniku (przez jego API, z hasłem z .env) ----------
