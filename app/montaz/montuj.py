@@ -1502,6 +1502,12 @@ def main():
         trans = ai_fix_words(trans, day)
         trans = user_subs(trans, day)
         trans = clean_words(trans)
+        trans = user_subs(trans, day)   # drugi raz: ręczne poprawki z centrum widzą napisy już po czyszczeniu (cyfry itp.)
+        try:   # dokładnie te napisy, które są na filmie – do ręcznej edycji w centrum
+            (day / "napisy_final.json").write_text(json.dumps({n: " ".join(w["word"] for w in v.get("words", []) if str(w.get("word", "")).strip())
+                                                               for n, v in trans.items()}, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
         jobs = [title_job(title, title_png, work)]
         if summary:
             jobs.append(summary_job(dict(summary, cta="Zapisz, jeśli też redukujesz"), summary_png, work))

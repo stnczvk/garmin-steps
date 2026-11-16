@@ -1167,6 +1167,66 @@ Odpowiedz wyłącznie JSON:
 _MZ_TASKS = set()
 
 
+@app.get("/api/montaz/{jid}/napisy")
+def montaz_napisy_get(jid: str):
+    """Napisy dokładnie takie, jak są na filmie (po wszystkich poprawkach) – do ręcznej edycji."""
+    day = next(_mz_job(jid).glob("dzien_*"))
+    try:
+        N = json.loads((day / "napisy_final.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {"klipy": [], "error": "Brak napisów – zmontuj film jeszcze raz (nowa wersja zapisuje napisy)."}
+    order = [r["clip"] for r in _mz_plan_rows(day)] or list(N)
+    return {"klipy": [{"klip": c, "tekst": N[c]} for c in order if N.get(c)]}
+
+
+@app.post("/api/montaz/{jid}/napisy")
+async def montaz_napisy_set(jid: str, req: Request):
+    """Ręcznie poprawione napisy → zamiany słów (z kontekstem sąsiednich słów) i montaż od nowa, cięcia bez zmian."""
+    import difflib
+    d = _mz_job(jid)
+    day = next(d.glob("dzien_*"))
+    try:
+        N = json.loads((day / "napisy_final.json").read_text(encoding="utf-8"))
+    except Exception:
+        return JSONResponse({"error": "Brak napisów do porównania – zmontuj film jeszcze raz."}, status_code=400)
+    nowe = (await req.json()).get("klipy") or {}
+    subs = []
+    for clip, txt in nowe.items():
+        A, B = (N.get(clip) or "").split(), str(txt).split()
+        if A == B:
+            continue
+        for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, A, B, autojunk=False).get_opcodes():
+            if op == "equal":
+                continue
+            # kontekst: słowo przed i po – żeby zamiana trafiła tylko w to miejsce, a nie w każde „na” w filmie
+            a0, a1 = max(0, i1 - 1), min(len(A), i2 + 1)
+            pre, post = A[a0:i1], A[i2:a1]
+            z = " ".join(pre + A[i1:i2] + post).strip()
+            na = " ".join(pre + B[j1:j2] + post).strip()
+            if z and z != na:
+                subs.append({"z": z, "na": na})
+    if not subs:
+        return JSONResponse({"error": "Nie widzę zmian w napisach."}, status_code=400)
+    zf = day / "napisy_zamiany.json"
+    try:
+        old = json.loads(zf.read_text(encoding="utf-8"))
+    except Exception:
+        old = []
+    if zf.exists():
+        shutil.copy2(zf, day / "napisy_zamiany_przed_poprawka.json")
+    old = [o for o in old if o["z"].lower() not in {x["z"].lower() for x in subs}] + subs
+    zf.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
+    ko = day / "kolejnosc.txt"
+    if ko.exists() and not ko.read_text(encoding="utf-8").startswith("# POPRAWKI"):   # cięcia zostają jak są
+        ko.write_text("# POPRAWKI – ręczne napisy\n" + "\n".join(l for l in ko.read_text(encoding="utf-8").splitlines() if not l.startswith("#")) + "\n", encoding="utf-8")
+    cur = _mz_status(d)
+    (d / "status.json").write_text(json.dumps({k: v for k, v in cur.items() if k in ("date", "src")} | {"state": "idle"}, ensure_ascii=False))
+    st = montaz_start(jid)
+    if isinstance(st, dict):
+        st["zmiany"] = len(subs)
+    return st
+
+
 @app.post("/api/montaz/{jid}/fix")
 async def montaz_fix(jid: str, req: Request):
     import shlex
