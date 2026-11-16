@@ -1126,6 +1126,24 @@ def api_plan(group: str = ""):
             "public": bool(_public())}
 
 
+@router.post("/api/planer/{pid}/recznie")
+async def api_recznie(pid: str, req: Request):
+    """Vlog wrzucony ręcznie na YouTube: oznacz jako opublikowany (centrum go nie wysyła), klipy promujące lecą dalej."""
+    b = await req.json()
+    m = re.search(r"(?:v=|youtu\.be/|shorts/|live/)([\w-]{11})", b.get("url") or "")
+    with _lock:
+        P = plan()
+        it = next((x for x in P if x["id"] == pid), None)
+        if not it or it["status"] == "published":
+            return {"ok": False, "error": "nie ma albo już opublikowany"}
+        it["results"] = {**(it.get("results") or {}), "youtube": {"ok": True, "id": m.group(1) if m else None, "at": time.time(), "manual": True}}
+        it["status"], it["step"], it["done_at"] = "published", "wrzucony ręcznie na YouTube", time.time()
+        if it.get("series") == "vlogyt" and it["when"] > time.time():   # klipy promujące mają iść po premierze – premiera = teraz
+            it["when"] = time.time()
+        save(P)
+    return {"ok": True}
+
+
 @router.post("/api/planer/{pid}/{action}")
 async def api_act(pid: str, action: str, req: Request):
     b = await req.json() if action in ("save", "approve") else {}
