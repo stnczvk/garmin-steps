@@ -635,6 +635,12 @@ def hook_vlogyt_klipy_reset(req: Request, name: str = ""):
     for typ, ile0, key in (("klip", 5, ""), ("mem", 5, "_mem")):
         K = [x for x in P if str(x.get("src", "")).startswith(f"vf:{nm} {typ} ")]
         dr = [x["src"] for x in K if x.get("status") in ("draft", "error", "skipped")]   # usunięte ręcznie też (inaczej blokują nowe pliki o tej nazwie)
+        for x in K:
+            if x.get("status") in ("draft", "error"):   # nowe klipy zamiast tych = te były złe
+                try:
+                    zapamietaj_odrzucony(x)
+                except Exception:
+                    pass
         zost = [x for x in K if x["src"] not in dr]
         nums = [int(m.group(1)) for x in zost for m in [re.search(rf"{typ} (\d+)$", x["src"])] if m]
         srcs += dr
@@ -786,6 +792,29 @@ def hook_klipy_popraw(req: Request):
 
 DROP = "posts_dropped.json"
 VLOG_LEAD = 24 * 3600   # vlog YT idzie na YouTube dobę przed premierą (prywatny + zaplanowany), żeby zdążył się przetworzyć
+
+
+def zapamietaj_odrzucony(it):
+    """Klip/mem z vloga odrzucony (usunięty albo podmieniony przez „Popraw klipy”) – AI nie może go zaproponować drugi raz."""
+    from montaz import VFILM
+    src = str(it.get("src", ""))
+    m = re.match(r"vf:(.+) (klip|mem) \d+$", src)
+    if not m:
+        return
+    try:
+        tekst = json.loads((VFILM / (re.sub(r"[^\w .()#-]+", "_", src[3:])[:120] + ".meta.json")).read_text(encoding="utf-8")).get("tekst") or ""
+    except Exception:
+        tekst = ""
+    O = _read("odrzucone_klipy.json", {})
+    L = O.setdefault(m.group(1), [])
+    if not any(x.get("tekst") == tekst and x.get("label") == it.get("label") for x in L):
+        L.append({"tekst": tekst[:1500], "label": it.get("label") or "", "at": time.time()})
+    O[m.group(1)] = L[-40:]
+    _write("odrzucone_klipy.json", O)
+
+
+def odrzucone_klipy(nm):
+    return _read("odrzucone_klipy.json", {}).get(nm, [])
 
 
 def drop(srcs=(), series=None, ep=None, why="nowy montaż"):
@@ -1303,6 +1332,10 @@ async def api_act(pid: str, action: str, req: Request):
             it["status"] = "draft"
         elif action == "skip":
             it["status"] = "skipped"
+            try:
+                zapamietaj_odrzucony(it)
+            except Exception as e:
+                print("odrzucony klip:", e, flush=True)
         if action in ("approve", "skip"):
             try:
                 nauka_klipu(it, action == "approve")

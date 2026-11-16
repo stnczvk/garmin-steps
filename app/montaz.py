@@ -820,7 +820,7 @@ async def hook_memy_wybor(req: Request):
         except Exception:
             continue
         _t = " ".join(_zdania_map(zd).get(n, "") for n in range(o, d_ + 1))
-        if any(_podobne(_t, u) > 0.5 for u in uzyte):
+        if any(_podobne(_t, u) > 0.5 for u in uzyte) or any(_podobne(_t, x["tekst"]) > 0.5 for x in _odrzucone(name)):
             continue
         if 0 <= o <= d_ <= o + 2 and str(m.get("sytuacja") or "").strip():
             out.append({"od": o, "do": d_, "sytuacja": human(str(m["sytuacja"]))[:120], "tiktok": human(str(m.get("tiktok") or "")),
@@ -842,6 +842,12 @@ def _uzyte_teksty(name):
         except Exception:
             out.append(x.get("label") or "")
     return [t for t in out if t]
+
+
+def _odrzucone(name):
+    import planer as _pl
+    nm = re.sub(r"[^\w .()#-]+", "_", os.path.splitext(os.path.basename(name))[0])[:100]
+    return _pl.odrzucone_klipy(nm)
 
 
 def _slowa(t):
@@ -897,6 +903,10 @@ async def hook_klipy_wybor(req: Request):
     if b.get("zostaja"):
         extra += "\nTe klipy z tego vloga już są (zatwierdzone) – zrób o CZYMŚ INNYM: " + " | ".join(map(str, b["zostaja"]))[:800] + "\n"
     uzyte = _uzyte_teksty(name)
+    odrz = _odrzucone(name)
+    if odrz:
+        extra += ("\nTE KLIPY ODRZUCIŁEM – NIGDY nie proponuj ich ponownie (ani tego samego momentu, ani tego samego tytułu):\n- "
+                  + "\n- ".join(f"„{x['label']}”: {x['tekst'][:250]}" for x in odrz[-20:])[:4000] + "\n")
     if uzyte:
         extra += ("\nTE MOMENTY SĄ JUŻ UŻYTE w zatwierdzonych klipach/memach – NIE wybieraj tych zdań ani tego samego wątku:\n- "
                   + "\n- ".join(t[:300] for t in uzyte)[:3000] + "\n")
@@ -946,7 +956,8 @@ async def hook_klipy_wybor(req: Request):
             if B:
                 zm = _zdania_map(zd)
                 tekst = " ".join(zm.get(n, "") for bb in B for n in range(bb["od"], bb["do"] + 1))
-                if any(_podobne(tekst, u) > 0.45 for u in uzyte) or any(_podobne(tekst, o.get("_tekst", "")) > 0.45 for o in out):
+                if (any(_podobne(tekst, u) > 0.45 for u in uzyte) or any(_podobne(tekst, o.get("_tekst", "")) > 0.45 for o in out)
+                        or any(_podobne(tekst, x["tekst"]) > 0.45 or _podobne(str(k.get("tytul") or ""), x["label"]) > 0.7 for x in odrz)):
                     continue   # ten sam moment co zatwierdzony klip albo inny nowy
                 out.append({"_tekst": tekst, "beats": B[:7], "temat": str(k.get("temat") or "")[:80], "hook": human(str(k.get("hook") or "")),
                             "tytul": human(str(k.get("tytul") or k.get("hook") or ""))[:90],
