@@ -308,7 +308,8 @@ def map_words(words, keep, speed, src_dur):
 
 
 def _clean(word):
-    return re.sub(r"^[\"'„”(\[]+|[\"'„”)\],.;:…]+$", "", word.strip())
+    w = re.sub(r"^[\"'„”(\[]+|[\"'„”)\],.;:…!]+$", "", word.strip())
+    return re.sub(r"(?<!\d)[.,;:…!]+|[.,;:…!]+(?!\d)", "", w).strip()   # kropki i przecinki w napisach precz (zostają tylko w liczbach: 56,7)
 
 
 def draw_caption(words, active, out, scale=1.0):

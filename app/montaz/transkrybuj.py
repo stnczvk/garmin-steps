@@ -100,7 +100,7 @@ def scribe(audio_path):
     ek = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     if not ek:
         return None
-    kt = keyterms()
+    kt = []   # słowa kluczowe wyłączone: Scribe przez nie „słyszał” słowa, które nie padły (nazwy poprawia słownik po transkrypcji)
     for model, terms in ([("scribe_v2", kt)] if kt else []) + [("scribe_v2", None), ("scribe_v1", None)]:
         boundary = uuid.uuid4().hex
         body = b""
