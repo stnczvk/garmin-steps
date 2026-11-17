@@ -2299,11 +2299,11 @@ function goalHTML(){
   const warn=dir<0&&pct>1?"To szybciej niż 1% masy ciała na tydzień, łatwo stracić mięśnie. Na końcówce redukcji lepiej ok. 0,4–0,5 kg.":dir>0&&rate>0.5?"Na masie tempo powyżej ok. 0,5 kg/tydz. to głównie tłuszcz. Po 2 latach treningu celuj w 0,25–0,35 kg.":"";
   const sel=(id,opts,val)=>`<select id="${id}">${opts.map(([v,l])=>`<option value="${v}" ${String(v)===String(val)?"selected":""}>${l}</option>`).join("")}</select>`;
   const deficit=Math.round(rate*7700/7);
-  const open=!t.zero||!targets.goalBw;
+  const open=!t.zero||!targets.goalBw||!!window.__goalOpen;
   return `<div class="card stack"><h2>Cel wagi i kalorie</h2>
     ${ak&&!open?`<div class="stat" style="background:color-mix(in srgb,var(--accent) 12%,var(--surface))"><div class="label">Twoje kalorie</div><div class="v num">${Math.round(ak.avg)} kcal / dzień</div>
       <div class="note num">zero kaloryczne ${Math.round(ak.zero)} kcal ${dir<0?`− ${deficit} deficytu`:dir>0?`+ ${deficit} nadwyżki`:""} · tempo ${fmt(rate)} kg/tydz. · cel ${fmt(g)} kg</div>
-      <div class="note num" style="margin-top:4px"><b>Dzień treningowy ${ak.train} kcal · dzień wolny ${ak.rest} kcal</b></div></div>`:""}
+      <div class="note num" style="margin-top:4px"><b>${targets.kcalMode==="fixed"?`Każdego dnia ${Math.round(ak.avg/10)*10} kcal`:`Dzień treningowy ${ak.train} kcal · dzień wolny ${ak.rest} kcal`}</b></div></div>`:""}
     <details ${open?"open":""}><summary class="note" style="cursor:pointer;font-weight:600">${open?"Uzupełnij dane i cel":"Zmień dane, aktywność i cel"}</summary><div class="stack" style="gap:12px;margin-top:12px">
     <div class="label">1. Twoje dane</div>
     <div class="editgrid">
@@ -2325,17 +2325,23 @@ function goalHTML(){
       <label style="grid-column:span 2"><span class="label">Tempo zmiany wagi</span>${sel("wg-rate",[[0.25,"0,25 kg / tydzień"],[0.3,"0,3 kg / tydzień"],[0.4,"0,4 kg / tydzień"],[0.5,"0,5 kg / tydzień"],[0.6,"0,6 kg / tydzień"],[0.75,"0,75 kg / tydzień"],[1,"1 kg / tydzień"]],targets.rate??0.4)}</label>
     </div>
     ${warn?`<div class="note" style="color:var(--warn);font-weight:600">${warn}</div>`:""}
+    <div><span class="label" style="display:block">Kalorie na dzień</span><div class="seg" role="group" style="margin-top:6px;display:inline-flex"><button data-act="wg-kmode" data-v="fixed" aria-pressed="${targets.kcalMode==="fixed"}">Stałe</button><button data-act="wg-kmode" data-v="split" aria-pressed="${targets.kcalMode!=="fixed"}">Trening / wolny</button></div></div>
     <label class="row" style="gap:10px;cursor:pointer;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="wg-auto" ${targets.autoKcal!==false?"checked":""} style="width:22px;height:22px;min-height:0;flex:none"> <span>Ustaw moje cele kalorii według tego wyliczenia</span></label>
     <div class="row"><button class="btn" data-act="wg-save">Zapisz i przelicz</button><span class="note" id="wg-msg" style="font-weight:600"></span></div>
     ${ak&&open?`<div class="stat" style="background:color-mix(in srgb,var(--accent) 12%,var(--surface))"><div class="label">Twoje kalorie</div><div class="v num">${Math.round(ak.avg)} kcal / dzień</div>
       <div class="note num">${dir<0?`zero kaloryczne ${Math.round(ak.zero)} − ${deficit} kcal deficytu`:dir>0?`zero kaloryczne ${Math.round(ak.zero)} + ${deficit} kcal nadwyżki`:"utrzymanie wagi"}</div>
-      <div class="note num" style="margin-top:4px"><b>Dzień treningowy ${ak.train} kcal · dzień wolny ${ak.rest} kcal</b></div></div>`:""}
+      <div class="note num" style="margin-top:4px"><b>${targets.kcalMode==="fixed"?`Każdego dnia ${Math.round(ak.avg/10)*10} kcal`:`Dzień treningowy ${ak.train} kcal · dzień wolny ${ak.rest} kcal`}</b></div></div>`:""}
     </div></details>
     ${bw&&g&&dir?`<div class="note">Do celu: <b class="num">${fmt(Math.round(diff*10)/10)} kg</b>, przy ${fmt(rate)} kg/tydz. to ok. <b>${weeks} tyg.</b> (około ${eta}).</div>`:bw&&g?`<div class="note">Jesteś przy wadze docelowej, kalorie ustawione na utrzymanie.</div>`:""}
     <p class="note" style="margin:0">Kalorie przeliczają się same po każdym nowym pomiarze wagi. Gdy waga spadnie o 1 kg, zero kaloryczne zmniejszy się o ok. 15–20 kcal, więc cel też lekko spadnie, tak jak w Fitatu.</p>
     ${t.adapt?`<div class="note">Sprawdzenie na Twoich danych: jedzenie i zmiana wagi z 3 tygodni wskazują zero kaloryczne ok. <b class="num">${Math.round(t.adapt)} kcal</b>.${t.zero&&Math.abs(t.adapt-t.zero)>150?` To różni się od wyliczenia o ${Math.round(Math.abs(t.adapt-t.zero))} kcal. Jeśli utrzyma się to jeszcze tydzień–dwa, zmień poziom aktywności ${t.adapt<t.zero?"na niższy":"na wyższy"}.`:" Zgadza się z wyliczeniem."}</div>`:`<div class="note">Sprawdzenie na Twoich danych pojawi się ${esc(t.why)}.</div>`}
   </div>`;
 }
+document.addEventListener("click",async ev=>{
+  const k=ev.target.closest('[data-act="wg-kmode"]'); if(!k) return;
+  window.__goalOpen=true; try{await saveTargets({kcalMode:k.dataset.v})}catch(e){}
+  renderProg(); if(typeof renderFood==="function") renderFood();
+});
 document.addEventListener("click",async ev=>{
   const b=ev.target.closest('[data-act="wg-save"]'); if(!b) return;
   const num=id=>{const v=document.getElementById(id).value.replace(",",".");return v===""?null:+v};
