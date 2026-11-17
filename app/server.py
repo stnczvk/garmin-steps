@@ -95,7 +95,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 @app.middleware("http")
 async def guard(req: Request, call_next):
     p = req.url.path
-    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/redakcja", "/api/hook/montaz_log", "/api/hook/asr", "/api/hook/slownik") and not authed(req):
+    if p.startswith("/api/") and p not in ("/api/login", "/api/me", "/api/hook/weight", "/api/hook/vlog", "/api/hook/backup", "/api/hook/redakcja", "/api/hook/montaz_log", "/api/hook/asr", "/api/hook/slownik", "/api/hook/fitatu") and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     resp = await call_next(req)
     if p in ("/", "/index.html", "/shim.js", "/sw.js"):
@@ -760,6 +760,79 @@ def hook_vlog(key: str = "", date: str = ""):
     if not d:
         raise HTTPException(404, "brak danych z tego dnia")
     return d
+
+
+FITATU_POSILEK = {"śniadanie": "Śniadanie", "ii śniadanie": "II śniadanie", "drugie śniadanie": "II śniadanie", "obiad": "Obiad",
+                  "podwieczorek": "Przekąski", "przekąska": "Przekąski", "przekąski": "Przekąski", "kolacja": "Kolacja"}
+
+
+def _fitatu_nazwa(n):
+    """„Nestlé Corn Flakes Chrupiące płatki kukurydziane z witaminami 500 g” → krótko, bez gramatury opakowania."""
+    n = re.sub(r"\s*\([^)]*\)", "", str(n or "")).strip()
+    n = re.sub(r"\s+\d+([.,]\d+)?\s*(g|kg|ml|l)\b.*$", "", n, flags=re.I).strip()
+    n = n[:1].upper() + n[1:]
+    return n if len(n) <= 34 else n[:33].rsplit(" ", 1)[0] + "…"
+
+
+def _fitatu_ilosc(miara, g):
+    m = re.match(r"\s*([\d.,]+)x\s*(sztuka|plaster)", str(miara or ""), re.I)
+    if m:
+        n = float(m.group(1).replace(",", "."))
+        n = int(n) if n == int(n) else n
+        return f"{n} szt." if m.group(2).lower() == "sztuka" else f"{n} pl."
+    return f"{round(g)} g" if g else str(miara or "")
+
+
+def fitatu_csv(txt):
+    """Eksport „Jadłospis” z Fitatu (CSV) → {data: {meals, total}} w kształcie, który montaż już zna."""
+    import csv
+    num = lambda v: float(str(v or "0").replace(",", ".") or 0)
+    dni = {}
+    for r in csv.DictReader(io.StringIO(txt.lstrip("\ufeff"))):
+        d, pos = (r.get("Data") or "").strip(), (r.get("Posiłek") or "").strip()
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) or not r.get("Produkty i potrawy"):
+            continue
+        meal = FITATU_POSILEK.get(pos.lower(), pos or "Przekąski")
+        g = num(r.get("ilość (g)"))
+        dni.setdefault(d, {}).setdefault(meal, []).append({
+            "name": _fitatu_nazwa(r["Produkty i potrawy"]), "qty": _fitatu_ilosc(r.get("Miara użyteczna"), g),
+            "kcal": num(r.get("kalorie (kcal)")), "p": num(r.get("Białka (g)")), "c": num(r.get("Węglowodany (g)")), "f": num(r.get("Tłuszcze (g)"))})
+    out = {}
+    kolej = ["Śniadanie", "II śniadanie", "Obiad", "Przekąski", "Kolacja"]
+    for d, M in dni.items():
+        meals = []
+        for name in sorted(M, key=lambda x: kolej.index(x) if x in kolej else 9):
+            L = M[name]
+            meals.append({"name": name, "kcal": round(sum(i["kcal"] for i in L)), "p": round(sum(i["p"] for i in L)),
+                          "c": round(sum(i["c"] for i in L)), "f": round(sum(i["f"] for i in L)),
+                          "items": [{"name": i["name"], "qty": i["qty"], "kcal": round(i["kcal"])} for i in sorted(L, key=lambda i: -i["kcal"])]})
+        tot = {k: sum(m[k] for m in meals) for k in ("kcal", "p", "c", "f")}
+        out[d] = {"date": d, "meals": meals, "total": tot, "src": "fitatu", "at": time.time()}
+    return out
+
+
+@app.post("/api/hook/fitatu")
+async def hook_fitatu(req: Request, key: str = ""):
+    """Eksport z Fitatu (CSV) – z aplikacji albo ze skrótu w iPhonie (?key=…). Montaż bierze z niego karty posiłków i podsumowanie."""
+    if not (authed(req) or key_ok(key)):
+        raise HTTPException(403, "bad key")
+    ct = req.headers.get("content-type", "")
+    if ct.startswith("multipart/"):
+        form = await req.form()
+        f = next((v for v in form.values() if hasattr(v, "read")), None)
+        raw = await f.read() if f else b""
+    else:
+        raw = await req.body()
+    try:
+        txt = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        txt = raw.decode("cp1250", "replace")
+    dni = fitatu_csv(txt)
+    if not dni:
+        return JSONResponse({"error": "Nie widzę posiłków w pliku – wyślij eksport „Jadłospis” w CSV."}, status_code=400)
+    for d, doc in dni.items():
+        put_doc("fitatu/" + d, doc)
+    return {"ok": True, "dni": {d: v["total"]["kcal"] for d, v in dni.items()}}
 
 
 @app.post("/api/hook/newkey")

@@ -412,8 +412,21 @@ def day_summary(day_date, n, title):
     try:
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         row = con.execute("SELECT data FROM docs WHERE path=?", ("vlog/" + day_date.isoformat(),)).fetchone()
+        fit = con.execute("SELECT data FROM docs WHERE path=?", ("fitatu/" + day_date.isoformat(),)).fetchone()
+        cel = None
+        if not row or not (json.loads(row[0] or "{}").get("goal") or {}).get("kcal"):   # cel z ostatniego dnia, który go ma
+            for (x,) in con.execute("SELECT data FROM docs WHERE coll='vlog' AND path<=? ORDER BY path DESC LIMIT 30", ("vlog/" + day_date.isoformat(),)):
+                g = (json.loads(x or "{}").get("goal") or {})
+                if g.get("kcal"):
+                    cel = g
+                    break
         con.close()
         d = json.loads(row[0]) if row else None
+        if fit:   # posiłki z Fitatu wygrywają; cel i trening zostają z dziennika
+            f = json.loads(fit[0])
+            d = dict(d or {}, meals=f["meals"], total=f["total"])
+        if d is not None and cel and not (d.get("goal") or {}).get("kcal"):
+            d["goal"] = cel
     except Exception:
         return None
     if not d or not (d.get("total") or {}).get("kcal"):
