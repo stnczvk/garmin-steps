@@ -348,7 +348,8 @@ def ai_fix_words(trans, day):
     if not key or not clips:
         return trans
     try:
-        known = json.loads(Path(os.environ.get("MONTAZ_SLOWNIK", "")).read_text(encoding="utf-8"))
+        from transkrybuj import slownik_ok
+        known = [x for x in json.loads(Path(os.environ.get("MONTAZ_SLOWNIK", "")).read_text(encoding="utf-8")) if slownik_ok(x)]
         known = [k for k in known if not (str(k.get("na", "")).lower().strip() == "dzik" and "dzik" not in str(k.get("z", "")).lower())]
     except Exception:
         known = []
@@ -515,12 +516,14 @@ def clean_words(trans):
     return days_as_digits(trans)
 
 
-def user_subs(trans, day):
+def user_subs(trans, day, tylko_dzien=False):
     """Zamiany słów w napisach wpisane w aplikacji (uwagi do montażu) – napisy_zamiany.json."""
-    subs = [{"z": "taki o", "na": "takiego"}]   # stałe: rozpoznawanie mowy pisze „taki o” zamiast „takiego”
-    for f in [os.environ.get("MONTAZ_SLOWNIK"), day / "napisy_zamiany.json"]:   # stały słownik + poprawki z tego dnia
+    subs = [] if tylko_dzien else [{"z": "taki o", "na": "takiego"}]   # stałe: rozpoznawanie mowy pisze „taki o” zamiast „takiego”
+    from transkrybuj import slownik_ok
+    for f in ([] if tylko_dzien else [os.environ.get("MONTAZ_SLOWNIK")]) + [day / "napisy_zamiany.json"]:   # stały słownik + poprawki z tego dnia
         try:
-            subs += json.loads(Path(f).read_text(encoding="utf-8")) if f else []
+            L = json.loads(Path(f).read_text(encoding="utf-8")) if f else []
+            subs += [x for x in L if slownik_ok(x)] if f == os.environ.get("MONTAZ_SLOWNIK") else L
         except Exception:
             pass
     subs = [x for x in subs if not (str(x.get("na", "")).lower().strip() == "dzik" and "dzik" not in str(x.get("z", "")).lower())]
@@ -1502,7 +1505,7 @@ def main():
         trans = ai_fix_words(trans, day)
         trans = user_subs(trans, day)
         trans = clean_words(trans)
-        trans = user_subs(trans, day)   # drugi raz: ręczne poprawki z centrum widzą napisy już po czyszczeniu (cyfry itp.)
+        trans = user_subs(trans, day, tylko_dzien=True)   # drugi raz: ręczne poprawki z centrum widzą napisy już po czyszczeniu (cyfry itp.)
         try:   # dokładnie te napisy, które są na filmie – do ręcznej edycji w centrum
             (day / "napisy_final.json").write_text(json.dumps({n: " ".join(w["word"] for w in v.get("words", []) if str(w.get("word", "")).strip())
                                                                for n, v in trans.items()}, ensure_ascii=False), encoding="utf-8")

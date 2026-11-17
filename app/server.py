@@ -789,6 +789,11 @@ def _slownik():
 
 
 def _slownik_add(subs):
+    sys.path.insert(0, str(HERE / "montaz"))
+    from transkrybuj import slownik_ok
+    subs = [x for x in subs if slownik_ok(x)]   # do stałego słownika tylko krótkie przekręcenia, zdania zostają w poprawkach dnia
+    if not subs:
+        return
     cur = [x for x in _slownik() if x["z"].lower() not in {s["z"].lower() for s in subs}]
     cur += [{"z": s["z"], "na": s["na"]} for s in subs]
     MZ_DIR.mkdir(parents=True, exist_ok=True)

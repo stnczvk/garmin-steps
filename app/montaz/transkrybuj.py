@@ -67,11 +67,24 @@ KEYTERMS_BAZA = ["kcal", "białko", "makro", "węglowodany", "tłuszcze", "reduk
                  "serek kanapkowy", "dżem z Łowicza", "kasza manna", "orkisz", "borówki", "gyros"]
 
 
+def slownik_ok(x):
+    """Stały słownik działa na WSZYSTKIE filmy – wpuszczamy tylko krótkie poprawki prawdziwych przekręceń (nazwy, marki),
+    nie całe zdania z poprawek konkretnego dnia (te psuły napisy w innych filmach)."""
+    zw = [w for w in re.findall(r"[\wąćęłńóśźż]+", str(x.get("z", "")).lower())]
+    nw = str(x.get("na", "")).split()
+    if not zw or len(zw) > 2 or len(nw) > 3:
+        return False
+    return not all(w in _STALE_SL for w in zw)
+
+
+_STALE_SL = set("""a aby ale albo bo by być był była było co czy dla do dwa ja jak jest jeszcze już ją je jego jej ich i im mam ma mi mnie mój moje na nad nie no o od oraz po pod potem przed przez przy razem są się ta tak także tam te tego tej ten teraz to tu tylko tym u w we więc wszystko z za ze że żeby jem jemy""".split())
+
+
 def keyterms():
     """Słowa kluczowe dla Scribe: stała lista + poprawne słowa ze słownika poprawek (MONTAZ_SLOWNIK)."""
     extra = []
     try:
-        extra = [x.get("na", "") for x in json.loads(open(os.environ["MONTAZ_SLOWNIK"], encoding="utf-8").read())]
+        extra = [x.get("na", "") for x in json.loads(open(os.environ["MONTAZ_SLOWNIK"], encoding="utf-8").read()) if slownik_ok(x)]
     except Exception:
         pass
     out, seen = [], set()
