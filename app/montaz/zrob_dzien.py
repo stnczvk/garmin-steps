@@ -487,6 +487,11 @@ def main():
     tj = day / "transkrypcja.json"
     trans = json.loads(tj.read_text(encoding="utf-8")) if tj.exists() else {}
     redo = os.environ.get("ELEVENLABS_API_KEY") and not (day / ".scribe").exists()   # lepszy model – od nowa
+    if not redo and not (day / ".tr2").exists():   # zgubione fragmenty („K” przez 4 s) – jeszcze raz, teraz z Whisperem jako zapasem
+        sys.path.insert(0, str(HERE))
+        from transkrybuj import _podejrzane
+        redo = any(_podejrzane(v) for v in trans.values() if isinstance(v, dict))
+    (day / ".tr2").touch()
     if redo or not all(v.name in trans and "chunks" in trans[v.name] for v in videos):
         print("Transkrypcja...", flush=True)
         r = subprocess.run([sys.executable, str(HERE / "transkrybuj.py"), str(day)], text=True,

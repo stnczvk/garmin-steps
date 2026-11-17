@@ -129,10 +129,30 @@ def scribe(audio_path):
     return None
 
 
+def _podejrzane(r):
+    """Scribe czasem „gubi” zdanie: zostaje jedna litera albo słowo trwające kilka sekund – wtedy pytamy też Whispera."""
+    ws = (r or {}).get("words") or []
+    return any((w.get("end", 0) - w.get("start", 0)) > 1.4 or (len(re.sub(r"\W", "", str(w.get("word", "")))) == 1
+               and str(w.get("word", "")).strip().lower() not in ("a", "i", "o", "u", "w", "z") ) for w in ws)
+
+
 def transcribe(audio_path, key):
     s = scribe(audio_path)
-    if s is not None:
+    if s is not None and not _podejrzane(s):
         return s
+    if s is not None:
+        try:
+            g = _groq(audio_path, key)
+        except (SystemExit, Exception):
+            return s
+        ns = len([w for w in s.get("words") or [] if str(w.get("word", "")).strip()])
+        ng = len([w for w in (g or {}).get("words") or [] if str(w.get("word", "")).strip()])
+        print(f"[transkrypcja] {audio_path.name}: Scribe zgubił fragment – Whisper {ng} słów vs Scribe {ns}", flush=True)
+        return g if ng > ns else s
+    return _groq(audio_path, key)
+
+
+def _groq(audio_path, key):
     boundary = uuid.uuid4().hex
     fields = {
         "model": MODEL,
