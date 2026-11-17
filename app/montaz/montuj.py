@@ -486,6 +486,12 @@ def clean_words(trans):
     nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", w.lower())
     for v in trans.values():
         ws = v.get("words", [])
+        for w in ws:   # śmieci z rozpoznawania: samotna litera („K”) i słowa „trwające” kilka sekund – napis wisiał i rozjeżdżał się z mową
+            k = nrm(w["word"])
+            if len(k) == 1 and k not in "aiouwz":
+                w["word"] = ""
+            elif w["end"] - w["start"] > 1.4:
+                w["start"] = round(max(w["start"], w["end"] - 0.7), 3)
         for i, w in enumerate(ws):
             k = nrm(w["word"])
             if k in STALE_POPRAWKI:
@@ -535,11 +541,23 @@ def user_subs(trans, day, tylko_dzien=False):
             continue
         for v in trans.values():
             ws = v.get("words", [])
-            for i in range(len(ws) - len(z) + 1):
+            i = -1
+            while True:
+                i += 1
+                if i > len(ws) - len(z):
+                    break
                 if [nrm(ws[i + k]["word"]) for k in range(len(z))] == z:
-                    ws[i]["word"] = s["na"]
-                    for k in range(1, len(z)):
-                        ws[i + k]["word"] = ""
+                    # nowe słowa dostają WŁASNE czasy w miejscu starych – inaczej cała fraza wisiała jako jeden duży napis
+                    nowe = str(s["na"]).split()
+                    a, b = ws[i]["start"], ws[i + len(z) - 1]["end"]
+                    if len(nowe) == len(z):
+                        for k, w in enumerate(nowe):
+                            ws[i + k]["word"] = w
+                    else:
+                        krok = (b - a) / max(1, len(nowe))
+                        for k in range(len(z)):
+                            ws[i + k]["word"] = ""
+                        ws[i:i + len(z)] = [{"word": w, "start": round(a + k * krok, 3), "end": round(a + (k + 1) * krok, 3)} for k, w in enumerate(nowe)] or ws[i:i + len(z)]
                     n += 1
     if n:
         print(f"Zamiany słów z aplikacji: {n}", flush=True)
