@@ -307,6 +307,18 @@ def _dz_call(method, path, **kw):
     return r
 
 
+@router.post("/api/mont-fitatu")
+async def mont_fitatu(req: Request):
+    """Plik CSV z Fitatu → Dziennik (karty posiłków i podsumowanie do montażu daily)."""
+    raw = await req.body()
+    try:
+        r = _dz_call("POST", "/api/hook/fitatu", content=raw)
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+    j = r.json() if r.content else {}
+    return j if r.status_code < 300 else {"ok": False, "error": j.get("error") or f"błąd {r.status_code}"}
+
+
 @router.get("/api/mont/{jid}/napisy")
 def napisy_get(jid: str):
     try:
