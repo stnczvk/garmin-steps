@@ -794,7 +794,7 @@ def load_summary(day):
             return None
         return {"label": str(d.get("label") or "DZIEŃ"), "kcal": int(d["kcal"]), "goal": d.get("goal"),
                 "p": int(d.get("p") or 0), "c": int(d.get("c") or 0), "fat": int(d.get("f") or 0),
-                "gp": d.get("gp"), "gc": d.get("gc"), "gf": d.get("gf"), "train": bool(d.get("train")), "karty": d.get("karty") or {},
+                "gp": d.get("gp"), "gc": d.get("gc"), "gf": d.get("gf"), "train": bool(d.get("train")), "karty": d.get("karty") or {}, "src": d.get("src") or "",
                 "licznik": {k: int(v) for k, v in (d.get("licznik") or {}).items() if v}}
     except Exception:
         return None
@@ -1506,7 +1506,7 @@ def main():
         if summary:
             summary_png = work / "podsumowanie.png"
             draw_summary_png(summary, summary_png)
-            if KARTY_Z_DZIENNIKA:       # karty posiłków z danych dziennika zamiast screenów
+            if KARTY_Z_DZIENNIKA or summary.get("src") == "fitatu":   # karty posiłków z danych (Fitatu) zamiast screenów
                 for i, (video, shots, keep) in enumerate(plan):
                     meal = summary["karty"].get(video.name)
                     if meal:

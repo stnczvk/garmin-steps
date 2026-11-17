@@ -424,7 +424,7 @@ def day_summary(day_date, n, title):
         d = json.loads(row[0]) if row else None
         if fit:   # posiłki z Fitatu wygrywają; cel i trening zostają z dziennika
             f = json.loads(fit[0])
-            d = dict(d or {}, meals=f["meals"], total=f["total"])
+            d = dict(d or {}, meals=f["meals"], total=f["total"], src="fitatu")
         if d is not None and cel and not (d.get("goal") or {}).get("kcal"):
             d["goal"] = cel
     except Exception:
@@ -436,7 +436,7 @@ def day_summary(day_date, n, title):
     label = f"DZIEŃ {m.group(1) if m else n}" if (m or n is not None) else day_date.strftime("%d.%m")
     return {"label": label, "kcal": t["kcal"], "p": t.get("p", 0), "c": t.get("c", 0), "f": t.get("f", 0),
             "goal": g.get("kcal"), "gp": g.get("p"), "gc": g.get("c"), "gf": g.get("f"),
-            "train": bool(d.get("workout")),
+            "train": bool(d.get("workout")), "src": d.get("src") or "",
             "meals": {m["name"]: m for m in d.get("meals", []) if m.get("kcal")}}
 
 
