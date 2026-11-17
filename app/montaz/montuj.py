@@ -700,45 +700,44 @@ def build_counter(adds, goal, start, end, work):
 
 
 def draw_meal_card(meal, out):
-    """Karta posiłku z danych dziennika: nazwa, kalorie, produkty, B/W/T. Zwraca (x, y) na ekranie."""
-    cw, pad = 880, 46
+    """Karta posiłku (jasna, w stylu aplikacji): nazwa, kcal na zielono, produkty z gramaturą, paski makro. Zwraca (x, y) na ekranie."""
+    cw, pad = 900, 48
     items = [i for i in (meal.get("items") or []) if i.get("name")][:5]
-    ch = pad + 76 + 22 + len(items) * 52 + (18 if items else 0) + 120 + pad
+    ch = pad + 64 + 26 + len(items) * 54 + 30 + 100 + pad - 10
     img = Image.new("RGBA", (cw + 80, ch + 80), (0, 0, 0, 0))
     sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    ImageDraw.Draw(sh).rounded_rectangle([40, 52, 40 + cw, 52 + ch], 44, fill=(0, 0, 0, 150))
+    ImageDraw.Draw(sh).rounded_rectangle([40, 52, 40 + cw, 52 + ch], 40, fill=(0, 0, 0, 120))
     img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(22)))
     d = ImageDraw.Draw(img)
     x0, y0 = 40, 40
-    d.rounded_rectangle([x0, y0, x0 + cw, y0 + ch], 44, fill=(16, 16, 18, 238), outline=(255, 255, 255, 34), width=2)
+    d.rounded_rectangle([x0, y0, x0 + cw, y0 + ch], 40, fill=(255, 255, 255, 244))
     y = y0 + pad
-    d.text((x0 + pad, y + 60), str(meal.get("name") or "Posiłek"), font=font(60, 800), fill="white", anchor="ls")
-    kc = f"{int(meal.get('kcal') or 0)}"
-    fk, fu = font(70, 900), font(32, 700)
-    wu = d.textlength(" kcal", font=fu)
-    d.text((x0 + cw - pad - wu, y + 60), kc, font=fk, fill=YELLOW, anchor="rs")
-    d.text((x0 + cw - pad, y + 60), " kcal", font=fu, fill=(255, 255, 255, 210), anchor="rs")
-    y += 76 + 22
-    fi = font(34, 500)
+    d.text((x0 + pad, y + 54), str(meal.get("name") or "Posiłek"), font=font(58, 800), fill=(25, 25, 25), anchor="ls")
+    d.text((x0 + cw - pad, y + 54), f"{int(meal.get('kcal') or 0)} kcal", font=font(58, 900), fill=(40, 170, 90), anchor="rs")
+    y += 64 + 26
+    fi, fq = font(36, 500), font(30, 500)
     for it in items:
+        prawa = (f"{it.get('qty')} · " if it.get("qty") else "") + f"{int(it.get('kcal') or 0)} kcal"
+        wq = d.textlength(prawa, font=fq)
         name = str(it["name"])
-        while d.textlength(name, font=fi) > cw - 2 * pad - 140 and len(name) > 4:
+        while d.textlength(name, font=fi) > cw - 2 * pad - wq - 30 and len(name) > 4:
             name = name[:-2]
         if name != str(it["name"]):
-            name = name.rstrip() + "…"
-        d.text((x0 + pad, y + 38), name, font=fi, fill=(255, 255, 255, 220), anchor="ls")
-        d.text((x0 + cw - pad, y + 38), str(int(it.get("kcal") or 0)), font=font(34, 700), fill=(255, 255, 255, 235), anchor="rs")
-        y += 52
-    if items:
-        y += 18
-    tw = (cw - 2 * pad - 2 * 18) / 3
-    for k, (lab, key) in enumerate([("B", "p"), ("W", "c"), ("T", "f")]):
-        tx = x0 + pad + k * (tw + 18)
-        d.rounded_rectangle([tx, y, tx + tw, y + 100], 24, fill=(36, 36, 40, 245))
-        d.text((tx + 24, y + 66), lab, font=font(30, 700), fill=(255, 255, 255, 150), anchor="ls")
-        d.text((tx + 66, y + 70), f"{int(meal.get(key) or 0)}", font=font(56, 900), fill="white", anchor="ls")
-        vw = d.textlength(f"{int(meal.get(key) or 0)}", font=font(56, 900))
-        d.text((tx + 72 + vw, y + 70), "g", font=font(28, 700), fill=(255, 255, 255, 190), anchor="ls")
+            name = name.rstrip(" …") + "…"
+        d.text((x0 + pad, y + 38), name, font=fi, fill=(50, 50, 50), anchor="ls")
+        d.text((x0 + cw - pad, y + 38), prawa, font=fq, fill=(135, 135, 135), anchor="rs")
+        y += 54
+    y += 30
+    kc = max(1.0, float(meal.get("kcal") or 0))
+    tw = (cw - 2 * pad - 2 * 30) / 3
+    for k, (lab, key, mn, col) in enumerate([("Białko", "p", 4, (90, 190, 120)), ("Węgle", "c", 4, (240, 180, 50)), ("Tłuszcze", "f", 9, (90, 150, 240))]):
+        tx = x0 + pad + k * (tw + 30)
+        v = int(meal.get(key) or 0)
+        d.text((tx, y + 34), f"{lab} {v} g", font=font(32, 700), fill=(60, 60, 60), anchor="ls")
+        d.rounded_rectangle([tx, y + 58, tx + tw, y + 80], 11, fill=(230, 230, 230))
+        frac = min(1.0, v * mn / kc)   # udział kalorii z tego makro w posiłku
+        if frac > 0.02:
+            d.rounded_rectangle([tx, y + 58, tx + max(22, tw * frac), y + 80], 11, fill=col)
     img.save(out)
     return (W - img.width) // 2, (H - img.height) // 2 - 60
 
