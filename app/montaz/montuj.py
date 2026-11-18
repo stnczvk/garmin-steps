@@ -608,8 +608,11 @@ def user_subs(trans, day, tylko_dzien=False):
     return trans
 
 
-def build_captions(words, hide, work):
-    """words: [(start, end, słowo)] na osi całego filmu. Zwraca plik ffconcat z PNG albo None."""
+def build_captions(words, hide, work, granice=()):
+    """words: [(start, end, słowo)] na osi całego filmu. Zwraca plik ffconcat z PNG albo None.
+    granice: czasy końców klipów – napis nigdy nie przechodzi przez cięcie (słowa z następnego klipu nie wskakują na poprzedni)."""
+    G = sorted(granice)
+    gr_po = lambda t: next((c for c in G if c > t + 0.01), 1e9)
     words = [(a, b, _clean(w).upper()) for a, b, w in sorted(words) if _clean(w)]
     words = [x for x in words if not any(h0 - 0.05 < x[0] < h1 for h0, h1 in hide)]
     if not words:
@@ -618,7 +621,8 @@ def build_captions(words, hide, work):
     LACZ = SLOWA_STALE | {"tutaj", "będzie", "mamy", "oraz", "plus", "czyli", "też", "jeszcze", "który", "która", "które", "kcal", "kalorii", "g", "gram"}
     sl = lambda w: w.lower() in LACZ
     for i, wd in enumerate(words):
-        przerwa = cur and (wd[0] - cur[-1][1] > 0.6 or any(h0 <= wd[0] and cur[-1][0] < h0 for h0, _ in hide))
+        przerwa = cur and (wd[0] - cur[-1][1] > 0.6 or any(h0 <= wd[0] and cur[-1][0] < h0 for h0, _ in hide)
+                           or gr_po(cur[0][0]) <= wd[0] + 0.01)
         pelny = cur and (len(cur) >= NAPISY_SLOW or sum(len(x[2]) + 1 for x in cur) + len(wd[2]) > 16)
         if przerwa:
             groups.append(cur); cur = []
@@ -635,13 +639,13 @@ def build_captions(words, hide, work):
     n = 0
     for gi, g in enumerate(groups):
         nxt = groups[gi + 1][0][0] if gi + 1 < len(groups) else 1e9
-        g_end = min(g[-1][1] + 0.35, nxt)
+        g_end = min(g[-1][1] + 0.35, nxt, gr_po(g[0][0]))
         for h0, h1 in hide:
             if g[0][0] < h0 < g_end:
                 g_end = h0
         texts = [x[2] for x in g]
         for i, (a, b, _) in enumerate(g):
-            st = g[0][0] if i == 0 else a
+            st = max(g[0][0] - 0.06, max([c for c in G if c <= g[0][0] + 0.01], default=0.0)) if i == 0 else a - 0.04   # oko lubi napis minimalnie przed słowem
             en = g[i + 1][0] if i + 1 < len(g) else g_end
             if en - st < 0.04:
                 continue
@@ -755,8 +759,9 @@ def build_counter(adds, goal, start, end, work):
 def draw_meal_card(meal, out):
     """Karta posiłku (jasna, w stylu aplikacji): nazwa, kcal na zielono, produkty z gramaturą, paski makro. Zwraca (x, y) na ekranie."""
     cw, pad = 900, 48
-    items = [i for i in (meal.get("items") or []) if i.get("name")][:5]
-    ch = pad + 64 + 26 + len(items) * 54 + 30 + 100 + pad - 10
+    items = [i for i in (meal.get("items") or []) if i.get("name")][:9]
+    rh = 54 if len(items) <= 5 else 46 if len(items) <= 7 else 40   # wszystkie produkty – przy dłuższej liście mniejsze wiersze
+    ch = pad + 64 + 26 + len(items) * rh + 30 + 100 + pad - 10
     img = Image.new("RGBA", (cw + 80, ch + 80), (0, 0, 0, 0))
     sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
     ImageDraw.Draw(sh).rounded_rectangle([40, 52, 40 + cw, 52 + ch], 40, fill=(0, 0, 0, 120))
@@ -768,7 +773,7 @@ def draw_meal_card(meal, out):
     d.text((x0 + pad, y + 54), str(meal.get("name") or "Posiłek"), font=font(58, 800), fill=(25, 25, 25), anchor="ls")
     d.text((x0 + cw - pad, y + 54), f"{int(meal.get('kcal') or 0)} kcal", font=font(58, 900), fill=(40, 170, 90), anchor="rs")
     y += 64 + 26
-    fi, fq = font(36, 500), font(30, 500)
+    fi, fq = font(36 if rh == 54 else 31 if rh == 46 else 28, 500), font(30 if rh == 54 else 27 if rh == 46 else 25, 500)
     for it in items:
         prawa = (f"{it.get('qty')} · " if it.get("qty") else "") + f"{int(it.get('kcal') or 0)} kcal"
         wq = d.textlength(prawa, font=fq)
@@ -777,9 +782,9 @@ def draw_meal_card(meal, out):
             name = name[:-2]
         if name != str(it["name"]):
             name = name.rstrip(" …") + "…"
-        d.text((x0 + pad, y + 38), name, font=fi, fill=(50, 50, 50), anchor="ls")
-        d.text((x0 + cw - pad, y + 38), prawa, font=fq, fill=(135, 135, 135), anchor="rs")
-        y += 54
+        d.text((x0 + pad, y + rh - 16), name, font=fi, fill=(50, 50, 50), anchor="ls")
+        d.text((x0 + cw - pad, y + rh - 16), prawa, font=fq, fill=(135, 135, 135), anchor="rs")
+        y += rh
     y += 30
     kc = max(1.0, float(meal.get("kcal") or 0))
     tw = (cw - 2 * pad - 2 * 30) / 3
@@ -1578,7 +1583,7 @@ def main():
         trans = clean_words(trans)
         trans = user_subs(trans, day, tylko_dzien=True)   # drugi raz: ręczne poprawki z centrum widzą napisy już po czyszczeniu (cyfry itp.)
         try:   # dokładnie te napisy, które są na filmie – do ręcznej edycji w centrum
-            (day / "napisy_final.json").write_text(json.dumps({n: " ".join(w["word"] for w in v.get("words", []) if str(w.get("word", "")).strip())
+            (day / "napisy_final.json").write_text(json.dumps({n: " ".join(_clean(w["word"]) for w in v.get("words", []) if _clean(str(w.get("word", ""))))
                                                                for n, v in trans.items()}, ensure_ascii=False), encoding="utf-8")
         except Exception:
             pass
@@ -1594,6 +1599,7 @@ def main():
         animate(jobs, work)
 
         segments, total, cap_words, hide, adds, sfx_at = [], 0.0, [], [], [], []
+        granice = []
         licz = (summary or {}).get("licznik") or {}
         teaser = None
         if HOOK_NA_START:
@@ -1632,6 +1638,7 @@ def main():
             if prepared and not str(prepared[0][0]).endswith("_dane.png"):   # karta z danych stoi nad napisami – napisy zostają
                 hide.append((total + card_at, total + card_at + len(prepared) * SHOT_SECONDS))
             total += d
+            granice.append(total)
             info = f" + zrzut: {', '.join(s.name for s in shots)}" if shots else ""
             if keep:
                 info += "  (wycięte fragmenty, zostaje: " + ", ".join(f"{a:.1f}-{b:.1f}s" for a, b in keep) + ")"
@@ -1647,7 +1654,7 @@ def main():
             hide.append((total - PODSUMOWANIE_SECONDS - end_extra, total + 1))
         if koniec_png:
             hide.append((total - end_extra, total + 1))
-        captions = build_captions(cap_words, hide, work) if cap_words else None
+        captions = build_captions(cap_words, hide, work, granice) if cap_words else None
         counter = None
         if adds:
             end = total - (PODSUMOWANIE_SECONDS if summary else 0) - end_extra
