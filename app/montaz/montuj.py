@@ -792,7 +792,7 @@ def draw_meal_card(meal, out):
         if frac > 0.02:
             d.rounded_rectangle([tx, y + 58, tx + max(22, tw * frac), y + 80], 11, fill=col)
     img.save(out)
-    return (W - img.width) // 2, (H - img.height) // 2 - 60
+    return (W - img.width) // 2, max(140, NAPISY_Y - 175 - img.height)   # nad napisami – napisy lecą dalej, nie znikają pod kartą
 
 
 def koniec_job(nxt, png, work):
@@ -1562,7 +1562,7 @@ def main():
                 for i, (video, shots, keep) in enumerate(plan):
                     meal = summary["karty"].get(video.name)
                     if meal:
-                        png = work / f"karta_dz_{i}.png"
+                        png = work / f"karta_dz_{i}_dane.png"
                         prepared_all[i] = [(png, draw_meal_card(meal, png))]
         m_n = re.search(r"dzie[nń]\s*(\d+)", " ".join(title), re.I)
         koniec_png = None
@@ -1629,7 +1629,7 @@ def main():
                     adds.append((total + card_at + 0.3, licz[video.name]))
             if prepared and EFEKTY_DZWIEKOWE:
                 sfx_at.append((total + card_at, "whoosh"))
-            if prepared:
+            if prepared and not str(prepared[0][0]).endswith("_dane.png"):   # karta z danych stoi nad napisami – napisy zostają
                 hide.append((total + card_at, total + card_at + len(prepared) * SHOT_SECONDS))
             total += d
             info = f" + zrzut: {', '.join(s.name for s in shots)}" if shots else ""
