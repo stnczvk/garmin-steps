@@ -953,7 +953,7 @@ def _zdania_map(zd):
     return M
 
 
-def _ocena_klipow(name, kand, claude, as_json):
+def _ocena_klipow(name, kand, claude, as_json, prog=7):
     """Drugie AI sprawdza każdy kandydat jak widz bez kontekstu: czy to jedna zrozumiała historia z puentą. Słabe odpadają."""
     if not kand:
         return []
@@ -967,7 +967,9 @@ def _ocena_klipow(name, kand, claude, as_json):
         oc = {int(x["nr"]): int(x["ocena"]) for x in (j.get("oceny") or []) if str(x.get("nr", "")).isdigit()}
     except Exception:
         return kand
-    dobre = [k for i, k in enumerate(kand) if oc.get(i, 10) >= 7]
+    dobre = [k for i, k in enumerate(kand) if oc.get(i, 10) >= prog]
+    if prog >= 8:
+        return dobre
     return dobre or sorted([k for i, k in enumerate(kand) if oc.get(i, 0) >= 5], key=lambda k: -oc.get(kand.index(k), 0))[:1]
 
 
@@ -1072,8 +1074,29 @@ async def hook_klipy_wybor(req: Request):
         out.append({"start": B[0]["start"], "end": B[-1]["end"], "beats": B[:7], "temat": str(k.get("temat") or "")[:80],
                     "hook": human(str(k.get("hook") or "")), "tiktok": human(str(k.get("tiktok") or "")),
                     "instagram": human(str(k.get("instagram") or "")), "yt_title": human(str(k.get("yt_title") or ""))})
+    # pierwszeństwo mają memy; zwykły klip z monologu tylko naprawdę mocny (8/10+); bez memów i mocnych momentów → 1 zwiastun odcinka
+    memy_teraz = [z for z in (b.get("zostaja") or []) if str(z).startswith("mem:")]
     if zd and out:
-        out = await asyncio.to_thread(_ocena_klipow, name, [dict(o, tytul=o.get("tytul", "")) for o in out], claude, as_json)
+        out = await asyncio.to_thread(_ocena_klipow, name, [dict(o, tytul=o.get("tytul", "")) for o in out], claude, as_json, 8)
+        out = out[:1] if memy_teraz else out[:2]
+    if zd and not out and not memy_teraz:
+        try:
+            z = as_json(await asyncio.to_thread(lambda: claude(
+                f"To transkrypcja vloga „{name}” (ŁysyVlog: redukcja, jedzenie, trening; zwykle kilka dni). Każda linia: [numer | start | długość] tekst.\n\n{tr}\n\n"
+                "Zrób JEDEN ZWIASTUN odcinka na TikToka/Reels: 4–7 krótkich fragmentów z RÓŻNYCH części vloga (każdy = 1–2 pełne zdania, 3–7 s), "
+                "razem 20–35 s, które razem pokazują, że w odcinku dużo się dzieje: jedzenie, trening, wydarzenia, reakcje, najlepsze zdania. "
+                "Pierwszy fragment = najmocniejszy (emocja, zaskoczenie, konkret). Bez codziennych podsumowań kcal/kroków, bez powitań i zdań urwanych w pół myśli. "
+                "tytul = krótki hook o całym odcinku (do 45 znaków, potocznie, bez emotek), hook = to samo krótsze (do 30 znaków).\n"
+                'Odpowiedz wyłącznie JSON: {"tytul": "...", "hook": "...", "temat": "zwiastun", "beats": [{"od": 12, "do": 13}]}', max_tokens=1200))) or {}
+            B = [{"od": int(x["od"]), "do": int(x["do"])} for x in (z.get("beats") or []) if str(x.get("od", "")).isdigit() and str(x.get("do", "")).isdigit()
+                 and 0 <= int(x["od"]) <= int(x["do"]) <= int(x["od"]) + 2]
+            if len(B) >= 3:
+                t_ = human(str(z.get("tytul") or ""))
+                out = [{"beats": B[:7], "temat": "zwiastun odcinka", "hook": human(str(z.get("hook") or "")), "tytul": t_,
+                        "tiktok": f"{t_}. Cały odcinek jest na YouTube, link w bio", "instagram": f"{t_}. Cały odcinek na YouTube, link w bio",
+                        "yt_title": t_[:90]}]
+        except Exception as e:
+            print("zwiastun vloga:", e, flush=True)
     for o in out:
         o.pop("_tekst", None)
     return {"klipy": out[:ile]}
