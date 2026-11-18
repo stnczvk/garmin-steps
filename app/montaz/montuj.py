@@ -482,11 +482,54 @@ def days_as_digits(trans):
     return trans
 
 
+_LICZ_DOKL = {}
+for _v, _f in [(2, "dwa dwie dwóch dwoma dwu"), (3, "trzy trzech trzema"), (4, "cztery czterech czterema"), (5, "pięć pięciu"),
+               (6, "sześć sześciu"), (7, "siedem siedmiu"), (8, "osiem ośmiu"), (9, "dziewięć dziewięciu"), (10, "dziesięć dziesięciu"),
+               (11, "jedenaście jedenastu"), (12, "dwanaście dwunastu"), (13, "trzynaście trzynastu"), (14, "czternaście czternastu"),
+               (15, "piętnaście piętnastu"), (16, "szesnaście szesnastu"), (17, "siedemnaście siedemnastu"), (18, "osiemnaście osiemnastu"),
+               (19, "dziewiętnaście dziewiętnastu"), (20, "dwadzieścia dwudziestu"), (30, "trzydzieści trzydziestu"),
+               (40, "czterdzieści czterdziestu"), (50, "pięćdziesiąt pięćdziesięciu"), (60, "sześćdziesiąt sześćdziesięciu"),
+               (70, "siedemdziesiąt siedemdziesięciu"), (80, "osiemdziesiąt osiemdziesięciu"), (90, "dziewięćdziesiąt dziewięćdziesięciu"),
+               (100, "sto stu"), (200, "dwieście dwustu"), (300, "trzysta trzystu"), (400, "czterysta czterystu"), (500, "pięćset pięciuset"),
+               (600, "sześćset sześciuset"), (700, "siedemset siedmiuset"), (800, "osiemset ośmiuset"), (900, "dziewięćset dziewięciuset"),
+               (1000, "tysiąc tysiące tysięcy tysiąca")]:
+    for _x in _f.split():
+        _LICZ_DOKL[_x] = _v
+
+
+def liczby_w_slowach(ws):
+    """Napisy: liczebniki słownie → cyfry („cztery jajka” → „4 jajka”, „dwa tysiące sto” → „2100”), czas zostaje z pierwszego do ostatniego słowa.
+    Tylko pełne formy liczebników (bez „trzymam”, „jednak”); „jeden/jedna” zostają słowami."""
+    nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", str(w).lower())
+    k = 0
+    while k < len(ws):
+        j = k
+        while j < len(ws) and nrm(ws[j]["word"]) in _LICZ_DOKL:
+            j += 1
+        if j > k:
+            tot, cur = 0, 0
+            for x in ws[k:j]:
+                v = _LICZ_DOKL[nrm(x["word"])]
+                if v == 1000:
+                    tot += max(cur, 1) * 1000; cur = 0
+                else:
+                    cur += v
+            ws[k]["word"] = str(tot + cur)
+            ws[k]["end"] = ws[j - 1]["end"]
+            for x in ws[k + 1:j]:
+                x["word"] = ""
+            k = j
+        else:
+            k += 1
+    return ws
+
+
 def clean_words(trans):
     """Stałe poprawki słów + usuwanie „dzięki” wymyślonego przez rozpoznawanie mowy w ciszy."""
     nrm = lambda w: re.sub(r"[^\wąćęłńóśźż]", "", w.lower())
     for v in trans.values():
         ws = v.get("words", [])
+        liczby_w_slowach(ws)
         for w in ws:   # śmieci z rozpoznawania: samotna litera („K”) i słowa „trwające” kilka sekund – napis wisiał i rozjeżdżał się z mową
             k = nrm(w["word"])
             if len(k) == 1 and k not in "aiouwz":
@@ -572,10 +615,20 @@ def build_captions(words, hide, work):
     if not words:
         return None
     groups, cur = [], []
+    LACZ = SLOWA_STALE | {"tutaj", "będzie", "mamy", "oraz", "plus", "czyli", "też", "jeszcze", "który", "która", "które", "kcal", "kalorii", "g", "gram"}
+    sl = lambda w: w.lower() in LACZ
     for i, wd in enumerate(words):
-        if cur and (len(cur) >= NAPISY_SLOW or sum(len(x[2]) + 1 for x in cur) + len(wd[2]) > 16
-                    or wd[0] - cur[-1][1] > 0.6 or any(h0 <= wd[0] and cur[-1][0] < h0 for h0, _ in hide)):
+        przerwa = cur and (wd[0] - cur[-1][1] > 0.6 or any(h0 <= wd[0] and cur[-1][0] < h0 for h0, _ in hide))
+        pelny = cur and (len(cur) >= NAPISY_SLOW or sum(len(x[2]) + 1 for x in cur) + len(wd[2]) > 16)
+        if przerwa:
             groups.append(cur); cur = []
+        elif pelny:
+            # „KASZA | MANNA”: dwa zwykłe słowa obok siebie (nazwa produktu) nie rozdzielamy – ostatnie słowo przechodzi do nowego napisu
+            if (len(cur) >= 2 and not sl(cur[-1][2]) and not sl(wd[2]) and not cur[-1][2][:1].isdigit()
+                    and len(cur[-1][2]) + len(wd[2]) + 1 <= 18 and wd[0] - cur[-1][1] < 0.3):
+                groups.append(cur[:-1]); cur = [cur[-1]]
+            else:
+                groups.append(cur); cur = []
         cur.append(wd)
     groups.append(cur)
     events = []                                  # (start, koniec, png)
