@@ -330,7 +330,7 @@ $('td').onclick=()=>{W=ds(rollStart());M=ym(now);save();load().then(()=>{const c
 $('vw').onclick=async e=>{const b=e.target.closest('button');if(!b||b.dataset.v===V)return;V=b.dataset.v;document.querySelectorAll('#vw button').forEach(x=>x.classList.toggle('on',x===b));pill();const g=$('grid');g.classList.remove('sw-in');g.classList.add('sw-out');await new Promise(r=>setTimeout(r,160));if(V==='m')M=pd(W).getDate()>24?ym(new Date(pd(W).getTime()+6*864e5)):W.slice(0,7);else{const t=ds(now);W=t.slice(0,7)===M?ds(rollStart()):ds(pd(M+'-01'))}save();await load();g.classList.remove('sw-out');void g.offsetWidth;g.classList.add('sw-in');setTimeout(()=>g.classList.remove('sw-in'),400)};
 function shift(n){if(V==='w'){const d=pd(W);d.setDate(d.getDate()+7*n);W=ds(d)}else{const[y,m]=M.split('-').map(Number);M=ym(new Date(y,m-1+n,1))}save();load()}
 function save(){try{localStorage.setItem('tresci-m',M);localStorage.setItem('tresci-v',V);localStorage.setItem('tresci-w',W)}catch(e){}}
-const closeM=()=>$('mb').classList.remove('on');$('mb').onclick=e=>{if(e.target===$("mb"))closeM()};
+const closeM=()=>{$('mb').querySelectorAll('video,audio').forEach(v=>{try{v.pause()}catch(e){}});$('mb').classList.remove('on')};$('mb').onclick=e=>{if(e.target===$("mb"))closeM()};
 document.addEventListener('keydown',e=>{if(e.key==="Escape")closeM()});
 
 // ---------- własny post: wgraj film/zdjęcia z telefonu lub komputera → planer ----------
