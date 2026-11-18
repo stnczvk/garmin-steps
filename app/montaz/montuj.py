@@ -532,7 +532,7 @@ def clean_words(trans):
         liczby_w_slowach(ws)
         for w in ws:   # śmieci z rozpoznawania: samotna litera („K”) i słowa „trwające” kilka sekund – napis wisiał i rozjeżdżał się z mową
             k = nrm(w["word"])
-            if len(k) == 1 and k not in "aiouwz":
+            if len(k) == 1 and k not in "aiouwz" and not k.isdigit():   # cyfry („4 kanapki”) zostają
                 w["word"] = ""
             elif w["end"] - w["start"] > 1.4:
                 w["start"] = round(max(w["start"], w["end"] - 0.7), 3)
