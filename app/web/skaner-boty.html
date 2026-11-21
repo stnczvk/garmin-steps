@@ -48,6 +48,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
 .bot p.d{font-size:12px;color:var(--faint);margin-top:6px}
 @media(max-width:1100px){.bots{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.bots{grid-template-columns:minmax(0,1fr)}}
+#demo{margin-bottom:12px}#demo .row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--soft)}
 @media(max-width:700px){.wrap>h2,body>h2,h2[style]{flex-wrap:wrap!important;row-gap:4px}h2[style]>small{flex-basis:100%;margin:2px 0 0 0!important;white-space:normal;font-size:12px;line-height:1.4}}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
@@ -60,6 +61,7 @@ html{background:#06070c}html[data-theme=light]:not(.lg-dark){background:#eef0f8}
  <div class="bots" id="bots"></div>
  <h2 style="margin:4px 0 10px">Sygnały skanera — warianty wejścia <small>każdy sygnał (real + shadow) grany 4 sposobami · świece 1m</small></h2>
  <div class="bots" id="sbots"></div>
+ <section class="glass" id="demo"></section>
  <div class="g2">
   <section class="glass"><h2>Kapitał botów <small>USDT, po każdej zamkniętej transakcji</small></h2><div class="ch" id="eqw"><canvas id="eq"></canvas></div></section>
   <section class="glass"><h2>On-chain (Etherscan) <small>przepływy na giełdy, ostatnie odczyty</small></h2><div class="scroll" id="oc"></div></section>
@@ -97,6 +99,7 @@ async function load(){let r;try{r=await (await fetch('/api/scanner/lab')).json()
   <div class="row"><span>Otwarte</span><b>${b.open_positions.length}</b></div>
   <p class="d">${esc(DESC[b.bot]||'')}</p></div>`;
  $('bots').innerHTML=L.bots.map(card).join('');
+ const OD=L.okx_demo||{};$('demo').innerHTML='<h2>Konto DEMO OKX <small>sygnały SHORT skanera, prawdziwe zlecenia na wirtualnych środkach</small></h2>'+(!OD.enabled?'<p class="empty">Wyłączone — dodaj klucze OKX_DEMO_* do .env skanera.</p>':OD.error?`<p class="empty">Błąd: ${esc(OD.error)}</p>`:`<div class="row"><span>Kapitał demo</span><b>${fmt(OD.equity_usdt)} USDT</b></div><div class="row"><span>Zlecenia</span><b>${esc(Object.entries(OD.orders||{}).map(([k,v])=>k+': '+v).join(' · ')||'brak')}</b></div>`+((OD.positions||[]).length?'<table class="tb"><tr><th>symbol</th><th>strona</th><th class="r">kontrakty</th><th class="r">wejście</th><th class="r">PnL</th></tr>'+OD.positions.map(p=>`<tr><td>${esc(p.symbol.split('/')[0])}</td><td>${esc(p.side)}</td><td class="r">${fmt(p.contracts,3)}</td><td class="r">${fmt(p.entry,4)}</td><td class="r ${cls(p.upnl)}">${fmt(p.upnl)}</td></tr>`).join('')+'</table>':'<p class="empty">Brak otwartych pozycji.</p>'));
  const SB=L.scanner_bots||[];$('sbots').innerHTML=SB.length?SB.map((b,i)=>card(b,i+4).replace('</p></div>',`</p><p class="d">czeka: ${b.pending} · anulowane: ${b.cancelled}</p></div>`)).join(''):'<p class="empty">Czekam na pierwsze sygnały skanera.</p>';
  chart([...L.bots,...(L.scanner_bots||[])],st);
  const op=[...L.bots,...(L.scanner_bots||[])].flatMap(b=>b.open_positions.map(o=>({...o,bot:b.bot})));
