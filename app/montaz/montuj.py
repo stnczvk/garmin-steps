@@ -926,7 +926,8 @@ def okno_bez_ruchu(v, dl, wariant=0):
                 okna.append(s0)
             if len(okna) >= 6:
                 break
-        dobre = [o for o in okna if koszt(o) <= koszt(okna[0]) * 2.5 + 1.0] or okna[:1]
+        dobre = [o for o in okna if koszt(o) <= koszt(okna[0]) * 4 + 2.0]
+        dobre = dobre if len(dobre) >= 3 else okna[:3]   # zawsze kilka różnych fragmentów nagrania do wyboru
         a = dobre[wariant % len(dobre)] / 10
         return a, min(dur, a + dl)
     except Exception:
@@ -967,7 +968,7 @@ def wybierz_hook(plan, day, n, licz, dl=TITLE_SECONDS):
         src = "silownia" if silka else "pozowanie"
         uzyte = sum(1 for k, v in hist.items() if v == src and int(k) < n)
         v = L[uzyte % len(L)]
-        a, b = okno_bez_ruchu(v, max(dl, HOOK_POZA_SECONDS), uzyte // len(L))
+        a, b = okno_bez_ruchu(v, max(dl, HOOK_POZA_SECONDS), uzyte // len(L) + n)   # inny fragment nagrania każdego dnia
         zapisz(src)
         return v, a, b, src
     if not HOOK_JEDZENIE and wszystkie:      # wstęp zawsze z Tobą: pozowanie, co 5. dzień siłownia
