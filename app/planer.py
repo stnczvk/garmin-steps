@@ -2,6 +2,7 @@
 Instagram: Reels (film) i karuzela zdjęć (Instagram API z logowaniem przez Instagram, uprawnienie instagram_business_content_publish).
 YouTube: Shorts (upload przez YouTube Data API, uprawnienie youtube.force-ssl, które już mamy).
 Pliki wystawiamy platformom pod jednorazowymi linkami /pub/<token>/… (ważne 24 h)."""
+import subprocess
 import asyncio, json, os, re, secrets, threading, time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -909,12 +910,31 @@ def pub_instagram(it):
     tok, uid = _ig_token(key, acc), key.split(":", 1)[1]
     cap = (it.get("caption") or "")[:2200]
     if it["kind"] == "film":
-        r = httpx.post(f"{IG}/{uid}/media", timeout=60, data={"media_type": "REELS", "video_url": _pub_url(it, it["file"]),
-                                                               "caption": cap, "share_to_feed": "true", "access_token": tok}).json()
-        if "id" not in r:
-            raise RuntimeError(_ig_err(r))
-        cid = r["id"]
-        _ig_wait(cid, tok)
+        def _reel(path):
+            r = httpx.post(f"{IG}/{uid}/media", timeout=60, data={"media_type": "REELS", "video_url": _pub_url(it, path),
+                                                                   "caption": cap, "share_to_feed": "true", "access_token": tok}).json()
+            if "id" not in r:
+                raise RuntimeError(_ig_err(r))
+            _ig_wait(r["id"], tok)
+            return r["id"]
+        try:
+            cid = _reel(it["file"])
+        except RuntimeError as e:
+            if "odrzucił plik" not in str(e):
+                raise
+            # Instagram bywa wybredny (bitrate, klatki/s, dźwięk, metadane) – druga próba z plikiem przerobionym dokładnie pod jego wymagania
+            print("IG odrzucił plik, przerabiam i ponawiam:", e, flush=True)
+            safe = str(it["file"]).rsplit(".", 1)[0] + "_ig.mp4"
+            if not os.path.isfile(safe):
+                rr = subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", it["file"], "-map", "0:v:0", "-map", "0:a:0?",
+                                     "-vf", "scale='min(1080,iw)':-2:flags=lanczos,fps=30,format=yuv420p", "-c:v", "libx264", "-profile:v", "high",
+                                     "-level", "4.1", "-preset", "medium", "-crf", "21", "-maxrate", "8M", "-bufsize", "16M", "-g", "60",
+                                     "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
+                                     "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-ac", "2", "-map_metadata", "-1", "-movflags", "+faststart", safe],
+                                    capture_output=True, text=True, timeout=1800)
+                if rr.returncode or not os.path.isfile(safe):
+                    raise RuntimeError(f"{e} (przeróbka pliku też nie wyszła: {rr.stderr[-200:]})")
+            cid = _reel(safe)
     else:
         kids = []
         for f in it["files"][:10]:
