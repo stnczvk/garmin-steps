@@ -364,7 +364,7 @@ def _postacie_w(opis):
     """Imiona postaci → opis wyglądu (generator nie dostaje imion, więc nie rysuje plakietek i nie myli postaci)."""
     o, uzyte = opis, []
     for k, (kto, wyg) in POSTACIE.items():
-        pat = re.compile(r"\b(?:pan|pani|mr\.?|mrs\.?)?\s*" + k[:5] + r"\w*", re.I)
+        pat = re.compile(r"\b(?:(?:pan|pani|mr\.?|mrs\.?)\s+)?" + k[:5] + r"\w*", re.I)
         if pat.search(o):
             o = pat.sub(kto, o)
             uzyte.append(f"{kto}: {wyg}")
