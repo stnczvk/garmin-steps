@@ -2017,3 +2017,84 @@ async def vertex_zapisz(req: Request):
     VERTEX_JSON.write_text(json.dumps(d))
     os.chmod(VERTEX_JSON, 0o600)
     return {"ok": True, "projekt": d["project_id"]}
+
+
+# ---------------------------------------------------------------- Veo (Google Vertex AI) – test scen
+_vx_tok = {"t": 0, "v": None}
+
+
+def _vertex_token():
+    """Token OAuth z klucza konta usługi (JWT podpisany RS256, bez google-auth)."""
+    import base64 as b64
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+    if _vx_tok["v"] and time.time() < _vx_tok["t"] - 120:
+        return _vx_tok["v"]
+    k = json.loads(VERTEX_JSON.read_text())
+    e = lambda x: b64.urlsafe_b64encode(x).rstrip(b"=")
+    now = int(time.time())
+    h = e(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
+    c = e(json.dumps({"iss": k["client_email"], "scope": "https://www.googleapis.com/auth/cloud-platform",
+                      "aud": "https://oauth2.googleapis.com/token", "iat": now, "exp": now + 3600}).encode())
+    key = serialization.load_pem_private_key(k["private_key"].encode(), password=None)
+    sig = e(key.sign(h + b"." + c, padding.PKCS1v15(), hashes.SHA256()))
+    r = httpx.post("https://oauth2.googleapis.com/token", timeout=30, data={
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer", "assertion": (h + b"." + c + b"." + sig).decode()})
+    r.raise_for_status()
+    _vx_tok.update(v=r.json()["access_token"], t=now + 3600)
+    return _vx_tok["v"]
+
+
+def _vx_url(model, akcja):
+    p = json.loads(VERTEX_JSON.read_text())["project_id"]
+    return (f"https://us-central1-aiplatform.googleapis.com/v1/projects/{p}/locations/us-central1/"
+            f"publishers/google/models/{model}:{akcja}")
+
+
+@router.post("/api/mont-hook/veo")
+async def hook_veo(req: Request):
+    """Mac: obraz (base64 jpg) + opis → zadanie Veo; zwraca nazwę operacji."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    model = b.get("model") or "veo-3.1-lite-generate-001"
+    inst = {"prompt": b["opis"]}
+    if b.get("obraz"):
+        inst["image"] = {"bytesBase64Encoded": b["obraz"], "mimeType": "image/jpeg"}
+    par = {"aspectRatio": b.get("format", "16:9"), "durationSeconds": int(b.get("dl", 8)), "sampleCount": 1,
+           "generateAudio": bool(b.get("dzwiek", True)), "resolution": b.get("rozdz", "720p")}
+    try:
+        import asyncio
+        r = await asyncio.to_thread(lambda: httpx.post(_vx_url(model, "predictLongRunning"), timeout=60,
+                                    headers={"Authorization": "Bearer " + _vertex_token()},
+                                    json={"instances": [inst], "parameters": par}))
+        d = r.json()
+        if r.status_code >= 400:
+            return {"error": (d.get("error") or {}).get("message", str(d))[:400]}
+        return {"op": d.get("name"), "model": model}
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {str(e)[:300]}"}
+
+
+@router.post("/api/mont-hook/veo/stan")
+async def hook_veo_stan(req: Request):
+    """Mac: {op, model} → status; gdy gotowe, zwraca mp4 jako base64."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    try:
+        import asyncio
+        r = await asyncio.to_thread(lambda: httpx.post(_vx_url(b["model"], "fetchPredictOperation"), timeout=120,
+                                    headers={"Authorization": "Bearer " + _vertex_token()}, json={"operationName": b["op"]}))
+        d = r.json()
+        if r.status_code >= 400 or d.get("error"):
+            return {"error": str((d.get("error") or {}).get("message", d))[:400]}
+        if not d.get("done"):
+            return {"done": False}
+        res = d.get("response") or {}
+        v = (res.get("videos") or [{}])[0]
+        if not v.get("bytesBase64Encoded"):
+            return {"done": True, "error": "brak wideo: " + json.dumps(res)[:300]}
+        return {"done": True, "mp4": v["bytesBase64Encoded"]}
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {str(e)[:300]}"}
