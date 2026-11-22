@@ -815,6 +815,46 @@ async def hook_vlogyt_pakiet(req: Request):
                        for x in (j.get("thumbs") or []) if isinstance(x, dict) and str(x.get("t", "")).replace(".", "", 1).isdigit()][:4]}
 
 
+@router.post("/api/mont-hook/test-wideo")
+async def hook_test_wideo(req: Request):
+    """Test animacji postaci: obraz + opis ruchu → Kling (PiAPI) image-to-video. Zwraca task_id do sprawdzania."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    import base64, httpx
+    from costs_full import _piapi_key
+    from planer import _pub_url
+    b = await req.json()
+    key = _piapi_key()
+    if not key:
+        return {"error": "brak klucza PiAPI (Kling) – ani w env PIAPI_KEY, ani w workflow n8n"}
+    VFILM.mkdir(parents=True, exist_ok=True)
+    import io
+    from PIL import Image
+    img = VFILM / f"test_wideo_{int(time.time())}.jpg"
+    Image.open(io.BytesIO(base64.b64decode(b["obraz"]))).convert("RGB").save(img, quality=92)   # /pub serwuje .jpg jako obraz
+    url = _pub_url({}, img)
+    body = {"model": "kling", "task_type": "video_generation",
+            "input": {"prompt": b.get("opis", ""), "negative_prompt": "text, watermark, logo, distorted face, extra limbs",
+                      "cfg_scale": 0.5, "duration": int(b.get("dl") or 5), "aspect_ratio": b.get("format") or "9:16",
+                      "image_url": url, "mode": b.get("tryb") or "std", "version": b.get("wersja") or "2.1"}}
+    r = httpx.post("https://api.piapi.ai/api/v1/task", headers={"X-API-Key": key}, json=body, timeout=60).json()
+    d = r.get("data") or {}
+    return {"task_id": d.get("task_id"), "status": d.get("status"), "raw": None if d.get("task_id") else str(r)[:400]}
+
+
+@router.get("/api/mont-hook/test-wideo/{tid}")
+def hook_test_wideo_status(tid: str, req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    import httpx
+    from costs_full import _piapi_key
+    d = (httpx.get(f"https://api.piapi.ai/api/v1/task/{tid}", headers={"X-API-Key": _piapi_key()}, timeout=30).json().get("data") or {})
+    o = d.get("output") or {}
+    v = o.get("video_url") or next((w.get("video", {}).get("resource_without_watermark") or w.get("video", {}).get("resource")
+                                    for w in (o.get("works") or []) if w.get("video")), None)
+    return {"status": d.get("status"), "video": v, "error": (d.get("error") or {}).get("message")}
+
+
 @router.post("/api/mont-hook/kadr-wybor")
 async def hook_kadr_wybor(req: Request):
     """Mac: kilka kadrów z okolicy momentu + napis miniatury → AI (z obrazem) wybiera kadr, który pokazuje to, o czym jest napis."""
