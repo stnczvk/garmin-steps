@@ -861,6 +861,24 @@ def hook_test_wideo_status(tid: str, req: Request):
     return {"status": d.get("status"), "video": v, "error": (d.get("error") or {}).get("message")}
 
 
+@router.get("/api/mont-hook/test-wideo/{tid}/plik")
+async def hook_test_wideo_plik(tid: str, req: Request):
+    """Pobiera gotowy klip przez serwer (Mac nie ma dostępu do hosta PiAPI)."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    import httpx, re as _re
+    from fastapi.responses import FileResponse
+    tid = _re.sub(r"[^a-zA-Z0-9-]", "", tid)
+    f = VFILM / f"test_wideo_{tid}.mp4"
+    if not f.exists():
+        st = hook_test_wideo_status(tid, req)
+        if not isinstance(st, dict) or not st.get("video"):
+            return JSONResponse({"error": "jeszcze nie gotowe", "status": st.get("status") if isinstance(st, dict) else None}, status_code=409)
+        VFILM.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(httpx.get(st["video"], timeout=120, follow_redirects=True).content)
+    return FileResponse(f, media_type="video/mp4")
+
+
 @router.post("/api/mont-hook/kadr-wybor")
 async def hook_kadr_wybor(req: Request):
     """Mac: kilka kadrów z okolicy momentu + napis miniatury → AI (z obrazem) wybiera kadr, który pokazuje to, o czym jest napis."""
