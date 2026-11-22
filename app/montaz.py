@@ -827,6 +827,14 @@ async def hook_test_wideo(req: Request):
     key = _piapi_key()
     if not key:
         return {"error": "brak klucza PiAPI (Kling) – ani w env PIAPI_KEY, ani w workflow n8n"}
+    try:
+        return _test_wideo(b, key, _pub_url)
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {str(e)[:300]}"}
+
+
+def _test_wideo(b, key, _pub_url):
+    import base64, httpx
     VFILM.mkdir(parents=True, exist_ok=True)
     import io
     from PIL import Image
