@@ -315,6 +315,218 @@ The sum of all narration must be 1250-1500 words (8-10 minutes: from 8 minutes Y
 
 
 # ---------------------------------------------------------------- 2. lektor i kadry
+# ---------------------------------------------------------------- Osiedle Tłumaczy (PL): dialogi kilku postaci + sceny Veo
+TEMATY_OSIEDLE = ["pieniądze i ceny", "kredyty i banki", "podatki i ZUS", "praca i pensje", "mieszkania i czynsze", "oszczędzanie i inwestowanie",
+                  "zakupy i promocje", "państwo i urzędy", "ekonomia wytłumaczona prosto", "psychologia pieniędzy", "oszustwa i pułapki",
+                  "historia pieniądza w Polsce"]
+BIB = DIR / "osiedle_biblioteka"
+
+
+def script_osiedle(used):
+    """Odcinek 8–10 min: Pan Kazik z kiosku tłumaczy jedno pojęcie, sąsiedzi przeżywają je na własnej skórze (dialogi)."""
+    import random
+    kat = random.choice(TEMATY_OSIEDLE)
+    p = f"""Napisz JEDEN długi odcinek (8–10 minut) polskiego kanału YouTube „Osiedle Tłumaczy”.
+Format: animowany serial w klockowym świecie gry na polskim blokowisku. Pan Kazik (narrator, właściciel kiosku, mądry, spokojny, z humorem)
+tłumaczy JEDNO pojęcie z kategorii „{kat}” na prostej historyjce z osiedla. Sąsiedzi przeżywają temat na własnej skórze:
+Pani Grażyna (głośna, wszystko wie najlepiej, narzeka na ceny), Pan Zdzichu (prosty chłop, ma pomysły na szybki zarobek, często się myli),
+Mati (nastolatek z telefonem, zadaje pytania, które zadałby widz). Nie powtarzaj tematów: {"; ".join(used[-40:]) or "brak"}.
+
+Zasady: fakty prawdziwe i aktualne dla Polski, proste słowa, liczby na przykładach z życia (bułka, czynsz, pensja), humor sytuacyjny,
+bez wulgaryzmów, bez polityki partyjnej. Hook w pierwszych 15 s: zaskakujące zdanie albo kłótnia sąsiadów. 6 rozdziałów, każdy
+to scenka z dialogiem i komentarzem Kazika. Koniec: Kazik podsumowuje w 3 zdaniach i pyta widzów o ich zdanie w komentarzu.
+Kwestie krótkie (1–3 zdania), naturalna mówiona polszczyzna. Kazik mówi ok. 60% tekstu.
+
+Zwróć TYLKO JSON:
+{{"title":"max 60 znaków, ciekawy, po polsku (np. Dlaczego bułka kosztuje 2 zł? Inflacja na osiedlu)",
+"description":"3-4 zdania po polsku + 3 hashtagi w tym #OsiedleTłumaczy",
+"tags":["8-12 fraz wyszukiwania po polsku"],
+"thumbnail_prompt":"EN: one clear funny scene with 1-2 characters and a big emotion, simple background",
+"chapters":[{{"title":"krótki tytuł rozdziału",
+  "lines":[{{"who":"KAZIK|GRAZYNA|ZDZICHU|MATI","text":"kwestia po polsku"}}],
+  "scenes":[{{"opis":"EN visual description of ONE shot: which characters (use names KAZIK, GRAZYNA, ZDZICHU, MATI), where on the estate (kiosk, bench by the stairwell, carpet-beating rack, corner shop, courtyard, flat interior, bus stop), what they hold/do",
+             "ruch":"EN: the simple motion in this 8-second shot (who walks, gestures, reacts)"}}]}}]}}
+Każdy rozdział: 220–260 słów w lines i 5 scen. Suma słów wszystkich kwestii 1350–1550."""
+    r = as_json(claude(p, SMART, 12000, system=sk("reel", "hook")))
+    if isinstance(r, list):
+        r = r[0] if r else {}
+    for ch in r.get("chapters") or []:
+        ch["lines"] = [l for l in (ch.get("lines") or []) if isinstance(l, dict) and str(l.get("text", "")).strip()]
+        ch["narration"] = " ".join(l["text"] for l in ch["lines"])
+        ch["scenes"] = [x for x in (ch.get("scenes") or []) if isinstance(x, dict) and x.get("opis")]
+    r = _chk(r)
+    r["kategoria"] = kat
+    return r
+
+
+def _postacie_w(opis):
+    """Dopisuje do opisu sceny wygląd postaci, które w niej występują (żeby wyglądały zawsze tak samo)."""
+    o = opis
+    for k, v in POSTACIE.items():
+        if k in opis.upper() or k[:5] in opis.upper():
+            o += "; " + v
+    return o
+
+
+def tts_linie(lines, out, d, tag):
+    """Każda kwestia swoim głosem, krótka pauza między kwestiami, sklejone w jeden plik rozdziału."""
+    vo = cfg().get("voices") or {}
+    parts = []
+    for k, l in enumerate(lines):
+        f = d / f"{tag}_l{k}.mp3"
+        tts(l["text"], f, vo.get(str(l.get("who", "KAZIK")).upper(), "onyx"))
+        parts.append(f)
+    inp = sum([["-i", str(f)] for f in parts], [])
+    fc = "".join(f"[{k}:a]aresample=24000,apad=pad_dur=0.3[a{k}];" for k in range(len(parts))) + \
+         "".join(f"[a{k}]" for k in range(len(parts))) + f"concat=n={len(parts)}:v=0:a=1[o]"
+    subprocess.run(["ffmpeg", "-y", *inp, "-filter_complex", fc, "-map", "[o]", "-b:a", "160k", str(out)], check=True, capture_output=True)
+    for f in parts:
+        f.unlink(missing_ok=True)
+
+
+def _ma_audio(f):
+    return "audio" in subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", str(f)],
+                                     capture_output=True, text=True).stdout
+
+
+def veo_klip(sc, d, name):
+    """Kadr (OpenAI, przycięty do 16:9) → Veo (8 s, dźwięk otoczenia bez mowy). Gdy Veo zawiedzie: sam kadr (bez ruchu)."""
+    import montaz as M
+    c = cfg()
+    png, jpg, mp4 = d / f"{name}.png", d / f"{name}.jpg", d / f"{name}.mp4"
+    image(_postacie_w(sc["opis"]), png, c["img_quality"], "1536x1024")
+    subprocess.run(["ffmpeg", "-y", "-i", str(png), "-vf", "crop=1536:864", "-q:v", "3", str(jpg)], check=True, capture_output=True)
+    try:
+        prompt = (sc.get("ruch") or "Subtle idle motion.") + (" Blocky game animation, characters move stiffly like rigid blocks, heads are rigid cubes, "
+                  "keep the flat pixel textures, no morphing. Sound: only ambient sounds of the scene (birds, footsteps, wind, distant city). "
+                  "No speech, no dialogue, no voices, no singing, no music.")
+        model = c.get("veo_model") or "veo-3.1-lite-generate-001"
+        r = httpx.post(M._vx_url(model, "predictLongRunning"), timeout=60, headers={"Authorization": "Bearer " + M._vertex_token()},
+                       json={"instances": [{"prompt": prompt, "image": {"bytesBase64Encoded": base64.b64encode(jpg.read_bytes()).decode(), "mimeType": "image/jpeg"}}],
+                             "parameters": {"aspectRatio": "16:9", "durationSeconds": 8, "sampleCount": 1, "generateAudio": True, "resolution": "720p"}})
+        op = r.json().get("name")
+        if not op:
+            raise RuntimeError(str(r.json())[:200])
+        for _ in range(60):
+            time.sleep(15)
+            j = httpx.post(M._vx_url(model, "fetchPredictOperation"), timeout=120, headers={"Authorization": "Bearer " + M._vertex_token()},
+                           json={"operationName": op}).json()
+            if j.get("error"):
+                raise RuntimeError(str(j["error"])[:200])
+            if j.get("done"):
+                v = ((j.get("response") or {}).get("videos") or [{}])[0]
+                if not v.get("bytesBase64Encoded"):
+                    raise RuntimeError("Veo bez wideo (filtr?)")
+                mp4.write_bytes(base64.b64decode(v["bytesBase64Encoded"]))
+                break
+        else:
+            raise RuntimeError("Veo: za długo")
+        if not _ma_audio(mp4):
+            tmp = d / f"{name}_x.mp4"
+            subprocess.run(["ffmpeg", "-y", "-i", str(mp4), "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-c:v", "copy", "-c:a", "aac",
+                            "-shortest", str(tmp)], check=True, capture_output=True)
+            tmp.replace(mp4)
+    except Exception as e:
+        print("veo", name, e, flush=True)
+        subprocess.run(["ffmpeg", "-y", "-loop", "1", "-framerate", "25", "-i", str(jpg), "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+                        "-t", "8", "-vf", "scale=1280:720,format=yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac", "-shortest", str(mp4)],
+                       check=True, capture_output=True)
+    BIB.mkdir(parents=True, exist_ok=True)
+    try:   # biblioteka scen – do powtarzania w kolejnych odcinkach
+        shutil.copy(mp4, BIB / f"{d.name}_{name}.mp4")
+        idx = _read("osiedle_biblioteka.json", [])
+        idx.append({"f": f"{d.name}_{name}.mp4", "opis": sc["opis"], "at": time.time()})
+        _write("osiedle_biblioteka.json", idx[-400:])
+    except Exception:
+        pass
+    png.unlink(missing_ok=True)
+    return mp4
+
+
+def _segment(src, out, t, wariant):
+    """Klip 1920x1080/25 fps z cichym dźwiękiem otoczenia; wariant ≠ 0 = lustro / zbliżenie, żeby powtórka nie była identyczna."""
+    vf = "scale=1920:1080:flags=lanczos"
+    if wariant % 3 == 1:
+        vf = "hflip," + vf
+    elif wariant % 3 == 2:
+        vf = "crop=iw*0.8:ih*0.8:(iw-iw*0.8)/2:(ih-ih*0.8)/3," + vf
+    subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-stream_loop", "-1", "-i", str(src), "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+                    "-filter_complex", f"[0:v]{vf},fps=25,format=yuv420p[v];[0:a]aresample=48000,volume=0.18[x];[x][1:a]amix=inputs=2:duration=first[a]",
+                    "-map", "[v]", "-map", "[a]", "-t", f"{t:.3f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-c:a", "aac", "-ar", "48000", "-ac", "2", str(out)],
+                   check=True, capture_output=True)
+
+
+def render_osiedle(d, chapters, klipy):
+    """Rozdział = jego własne sceny Veo, a gdy lektor mówi dłużej – powtórki scen z odcinka i z biblioteki (lustro/zbliżenie)."""
+    import random
+    pula = [k for ks in klipy for k in ks]
+    try:
+        bib = [BIB / x["f"] for x in _read("osiedle_biblioteka.json", []) if (BIB / x["f"]).exists() and not x["f"].startswith(d.name)]
+    except Exception:
+        bib = []
+    parts = []
+    for ci, ch in enumerate(chapters):
+        a = d / f"a{ci}.mp3"
+        D = dur(a)
+        own = klipy[ci]
+        segs, t, j, prev = [], 0.0, 0, None
+        while t < D - 0.05:
+            ln = min(8.0, D - t)
+            if j < len(own):
+                src, war = own[j], 0
+            else:
+                cand = [x for x in (pula + random.sample(bib, min(len(bib), 10))) if x != prev] or pula
+                src, war = random.choice(cand), random.randint(1, 2)
+            seg = d / f"s{ci}_{j}.mp4"
+            _segment(src, seg, ln, war)
+            segs.append(seg)
+            prev, t, j = src, t + ln, j + 1
+        lst = d / f"l{ci}.txt"
+        lst.write_text("".join(f"file '{x.name}'\n" for x in segs))
+        v = d / f"v{ci}.mp4"
+        subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(v)], check=True, capture_output=True, cwd=d)
+        part = d / f"p{ci}.mp4"
+        subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-i", str(v), "-i", str(a), "-filter_complex",
+                        "[1:a]aresample=48000,aformat=channel_layouts=stereo[g];[0:a][g]amix=inputs=2:duration=longest:normalize=0[o]",
+                        "-map", "0:v", "-map", "[o]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-t", f"{D:.3f}", str(part)],
+                       check=True, capture_output=True)
+        parts.append(part)
+        for x in segs + [v]:
+            x.unlink(missing_ok=True)
+    lst = d / "all.txt"
+    lst.write_text("".join(f"file '{p.name}'\n" for p in parts))
+    out = d / "final.mp4"
+    subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
+                    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(out)], check=True, capture_output=True, cwd=d)
+    return out
+
+
+def produce_osiedle(vid, d, c, sc):
+    chs = sc["chapters"]
+    # limit scen Veo na odcinek (koszt) – równo na rozdziały, reszta czasu = powtórki
+    per = max(2, int(c.get("veo_max", 36)) // len(chs))
+    for ch in chs:
+        ch["scenes"] = ch["scenes"][:per]
+    (d / "script.json").write_text(json.dumps(sc, ensure_ascii=False, indent=1))
+    n = sum(len(ch["scenes"]) for ch in chs)
+    _upd(vid, title=sc["title"], step=f"lektor (głosy postaci) + {n} scen Veo (ok. 15–25 min)")
+    klipy = [[None] * len(ch["scenes"]) for ch in chs]
+    with cf.ThreadPoolExecutor(6) as ex:
+        jobs = [ex.submit(tts_linie, ch["lines"], d / f"a{ci}.mp3", d, f"c{ci}") for ci, ch in enumerate(chs)]
+        jobs.append(ex.submit(image, sc.get("thumbnail_prompt") or sc["title"], d / "thumb.png", "medium", "1536x1024"))
+        vj = {ex.submit(veo_klip, s, d, f"k{ci}_{si}"): (ci, si) for ci, ch in enumerate(chs) for si, s in enumerate(ch["scenes"])}
+        for j in jobs:
+            j.result()
+        for f_, (ci, si) in vj.items():
+            klipy[ci][si] = f_.result()
+    _upd(vid, step="montaż (FFmpeg)")
+    cds = [dur(d / f"a{ci}.mp3") for ci in range(len(chs))]
+    render_osiedle(d, chs, klipy)
+    for p in d.glob("k*_*.*"):
+        p.unlink(missing_ok=True)
+    return finish(vid, d, sc, cds, c)
+
+
 def tts(text, out, voice):
     r = httpx.post("https://api.openai.com/v1/audio/speech", headers=_key(), timeout=300,
                    json={"model": "tts-1", "voice": voice, "input": text[:4000], "response_format": "mp3"})
