@@ -40,9 +40,12 @@ SWEAR = re.compile(r"kurw|chuj|pierdol|jeb|szmat")
 
 # posiłek w mowie -> klucz ; kolejność ma znaczenie ("drugie śniadanie" przed "śniadanie")
 # dopasowanie na tekście bez polskich znaków (Whisper czasem gubi ogonki albo zdrabnia: "śniadanko", "kolacyjka")
-MEAL_SPEECH = [("drugie", r"(drug\w*|ii|2)\s+sniadan"), ("sniadanie", r"sniadan"), ("obiad", r"obiad"),
+# oprócz nazw posiłków także typowe zwroty zamiast nich ("dzień zaczynamy od…", "na koniec dnia…")
+MEAL_SPEECH = [("drugie", r"(drug\w*|ii|2)\s+sniadan"),
+               ("sniadanie", r"sniadan|dzien zaczyna\w*|zaczyna\w* dzien|(na|z) (sam )?(start|poczatek) dnia|pierwszy posilek|na dzien dobry"),
+               ("obiad", r"obiad|lunch"),
                ("podwieczorek", r"podwieczor"), ("przekaska", r"przekas|przegryz|deser"),
-               ("kolacja", r"kolac|kolacyj")]
+               ("kolacja", r"kolac|kolacyj|(na|z) (sam )?koniec dnia|ostatni posilek|dzien (konczy\w*|zamyka\w*)|na wieczor")]
 MEAL_ORDER = ["sniadanie", "drugie", "obiad", "podwieczorek", "przekaska", "kolacja"]
 MEAL_HOUR = {"sniadanie": 8.0, "drugie": 11.0, "obiad": 14.5, "podwieczorek": 16.5, "przekaska": 17.0, "kolacja": 20.0}
 MEAL_FILE = [("drugie", "drugie"), ("sniadanie", "sniadan"), ("obiad", "obiad"),
