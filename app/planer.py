@@ -451,6 +451,23 @@ def api_opis_nowy(pid: str):
     return {"ok": True, "yt_desc": d}
 
 
+@router.get("/api/mont-hook/planer-bledy")
+def hook_planer_bledy(req: Request):
+    """Diagnostyka: ostatnie posty z błędem publikacji (bez tokenów i podpisów)."""
+    from montaz import _tok
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    out = []
+    for x in plan()[-40:]:
+        rs = {k: v for k, v in (x.get("results") or {}).items() if not v.get("ok")}
+        if rs or x.get("status") == "error":
+            f = x.get("file") or ""
+            out.append({"id": x["id"], "label": x.get("label"), "kind": x.get("kind"), "plik": os.path.basename(f),
+                        "jest": os.path.isfile(f), "mb": round(os.path.getsize(f) / 1e6, 1) if os.path.isfile(f) else None,
+                        "step": x.get("step"), "bledy": rs})
+    return out
+
+
 @router.post("/api/mont-hook/mac-praca")
 async def hook_mac_praca(req: Request):
     """Mac melduje, co teraz robi (miniatury, klipy…) – pasek na górze centrum."""
@@ -869,13 +886,14 @@ def _pub_url(it, path):
     L = {k: v for k, v in L.items() if v["exp"] > time.time()}
     L[tok] = {"path": str(path), "exp": time.time() + 86400}
     _write("posts_pub.json", L)
-    return f"{_public()}/pub/{tok}/{os.path.basename(str(path))}"
+    ext = os.path.splitext(str(path))[1].lower() or ".mp4"
+    return f"{_public()}/pub/{tok}/plik{ext}"   # bez spacji i polskich znaków w adresie (Instagram ich nie pobierze)
 
 
 @router.get("/pub/{tok}/{name}")
 def pub_file(tok: str, name: str):
     v = _read("posts_pub.json", {}).get(tok)
-    if not v or v["exp"] < time.time() or os.path.basename(v["path"]) != name or not os.path.isfile(v["path"]):
+    if not v or v["exp"] < time.time() or not os.path.isfile(v["path"]):
         return JSONResponse({"error": "nie ma"}, status_code=404)
     mt = "image/jpeg" if name.lower().endswith(".jpg") else "video/mp4"
     return FileResponse(v["path"], media_type=mt)
