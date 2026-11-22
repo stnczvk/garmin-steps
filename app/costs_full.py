@@ -194,6 +194,12 @@ def _piapi_key():
     k = (os.environ.get("PIAPI_KEY") or "").strip()
     if k:
         return k
+    if not _wf:   # nic jeszcze nie wczytane – przejrzyj wszystkie workflow w n8n
+        try:
+            for w in (_n8n("GET", "/api/v1/workflows", params={"limit": 100}).json().get("data") or []):
+                _wf[w["id"]] = {"t": time.time(), "name": w.get("name", "?"), "nodes": {n["name"]: n for n in w.get("nodes", [])}}
+        except Exception:
+            pass
     for w in list(_wf.values()):
         for n in w["nodes"].values():
             s = json.dumps(n.get("parameters") or {})
