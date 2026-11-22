@@ -836,10 +836,8 @@ async def hook_test_wideo(req: Request):
 def _test_wideo(b, key, _pub_url):
     import base64, httpx
     VFILM.mkdir(parents=True, exist_ok=True)
-    import io
-    from PIL import Image
     img = VFILM / f"test_wideo_{int(time.time())}.jpg"
-    Image.open(io.BytesIO(base64.b64decode(b["obraz"]))).convert("RGB").save(img, quality=92)   # /pub serwuje .jpg jako obraz
+    img.write_bytes(base64.b64decode(b["obraz"]))   # klient wysyła gotowy JPG (na serwerze nie ma PIL)   # /pub serwuje .jpg jako obraz
     url = _pub_url({}, img)
     body = {"model": "kling", "task_type": "video_generation",
             "input": {"prompt": b.get("opis", ""), "negative_prompt": "text, watermark, logo, distorted face, extra limbs",
