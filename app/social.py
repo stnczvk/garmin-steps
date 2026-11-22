@@ -20,7 +20,7 @@ _states = {}          # state OAuth -> (dostawca, grupa, czas)
 
 CFG_KEYS = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "IG_APP_ID", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_PROFILES", "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"]
 SECRET_KEYS = {"GOOGLE_CLIENT_SECRET", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_CLIENT_SECRET"}
-GROUPS = {"pozaskala": "Red Tie Stories", "prywatne": "Prywatne", "zdrowie": "Zdrowie 50+", "historia": "Historia"}   # Strimy w Pigułce usunięte (11.2026)
+GROUPS = {"pozaskala": "Red Tie Stories", "prywatne": "Prywatne", "zdrowie": "Zdrowie 50+", "historia": "Historia", "osiedle": "Osiedle Tłumaczy"}   # Strimy w Pigułce usunięte (11.2026)
 
 
 def _read(name, default):

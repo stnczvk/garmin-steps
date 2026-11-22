@@ -23,6 +23,9 @@ def api_kal(days: int = 35):
     h = sys.modules.get("dlugi_historia")
     if h:
         mods.append(("historia", h))
+    o = sys.modules.get("dlugi_osiedle")
+    if o:
+        mods.append(("osiedle", o))
     now, end = time.time(), time.time() + days * 86400
     E = []
     for ch, m in mods:

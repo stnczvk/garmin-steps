@@ -679,6 +679,7 @@ G = [
     ("redtie", "Red Tie Stories", "kanaly", "👔", "Czy ostatni film kanału się zrobił i nie czeka za długo", _g_dlugi("dlugi", "Red Tie Stories")),
     ("zdrowie", "Zdrowie 50+", "kanaly", "🩺", "Czy ostatni film kanału się zrobił i nie czeka za długo", _g_dlugi("dlugi_zdrowie", "Zdrowie 50+")),
     ("historia", "History Slowly Told", "kanaly", "📜", "Czy ostatni film kanału się zrobił i nie czeka za długo", _g_dlugi("dlugi_historia", "Historia")),
+    ("osiedle", "Osiedle Tłumaczy", "kanaly", "🧱", "Czy ostatni odcinek kanału się zrobił i nie czeka za długo", _g_dlugi("dlugi_osiedle", "Osiedle")),
     ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", g_inbox),
     ("ret", "Retencja", "agencja", "📈", "Czy codzienna analiza retencji (7:00) się odbyła", _agent_ran("retention", "Retencja", 26, after_hour=8)),
     ("apicost", "Środki w API", "agencja", "🪙", "Czy w OpenAI / Apify nie kończą się środki (raz na godzinę)", g_costs_api),
