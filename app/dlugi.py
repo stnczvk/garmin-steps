@@ -20,8 +20,25 @@ from skills import sk
 router = APIRouter()
 # Ten sam moduł obsługuje dwa kanały: „dlugi” = PozaSkala (What If? + nauka z humorem), „dlugi_zdrowie” = kanał o zdrowiu 50+
 # (ładowany drugi raz pod inną nazwą przez zdrowie.py – osobny stan, katalog, adresy API i konto YouTube).
-CH = "zdrowie" if __name__.endswith("zdrowie") else "historia" if __name__.endswith("historia") else "pozaskala"
-if CH == "historia":
+CH = ("zdrowie" if __name__.endswith("zdrowie") else "historia" if __name__.endswith("historia")
+      else "osiedle" if __name__.endswith("osiedle") else "pozaskala")
+if CH == "osiedle":
+    F, WORK, API, GROUP, TAGLINE, PUSH = "osiedle_dlugie.json", DIR / "osiedle_dlugie", "/api/osiedle", "osiedle", "#OsiedleTłumaczy #shorts", "/#osiedle"
+    DEF = {"enabled": False, "days": [3], "hour": 9, "img_quality": "medium", "voice": "onyx", "auto_publish": False, "us_hour": 17, "shorts": 4,
+           "veo_max": 36, "veo_model": "veo-3.1-lite-generate-001",
+           "voices": {"KAZIK": "onyx", "GRAZYNA": "nova", "ZDZICHU": "echo", "MATI": "alloy"}}
+    STYLE = ("Looks exactly like an in-game screenshot of a block-building sandbox game rendered in Mine-imator: low detail, simple flat 16x16 pixel textures on every block, "
+             "characters with standard blocky humanoid proportions (one cube head, rectangular body, rectangular arms and legs), faces are FLAT pixel-art painted on the front of the cube head "
+             "(simple square eyes, mouth drawn with a few pixels, no 3D nose, no 3D beard, no sculpted features), clothes are flat pixel textures, "
+             "plain bright daylight, simple sky with flat blocky clouds, sharp edges, no depth of field, no cinematic lighting, no bloom, no realism, not detailed, simple and clean, "
+             "horizontal 16:9 wide shot, no text, no letters, no logos, no game UI, original characters, not Steve, not Alex, no creepers. "
+             "Everything is built from classic game blocks only: grass blocks, stone bricks, smooth stone, light grey concrete blocks, oak planks, glass panes, iron bars; "
+             "the apartment block is a simple grey block building with glass pane windows, like a player build. Setting: a Polish housing estate (blokowisko).")
+    POSTACIE = {"KAZIK": "PAN KAZIK (narrator, kiosk owner): cube head with grey hair texture, grey pixel mustache, beige vest over brown shirt, dark brown pants",
+                "GRAZYNA": "PANI GRAZYNA: woman with red curly hair texture, pink tracksuit with white stripes",
+                "ZDZICHU": "PAN ZDZICHU: bald cube head, white tank top, blue tracksuit pants with white stripe",
+                "MATI": "MATI: boy with blond hair, black cap, orange hoodie, dark jeans"}
+elif CH == "historia":
     F, WORK, API, GROUP, TAGLINE, PUSH = "historia_dlugie.json", DIR / "historia_dlugie", "/api/historia", "historia", "#History #shorts", "/#historia"
     DEF = {"enabled": False, "days": [3], "hour": 9, "img_quality": "low", "voice": "fable", "auto_publish": False, "us_hour": 18, "shorts": 4}
     STYLE = ("detailed hand-painted storybook illustration, soft watercolor and ink like an old history book, warm muted earthy palette, "
@@ -41,7 +58,9 @@ else:
              "thick clean black outlines, simple flat pastel background, bold readable shapes, correct relative proportions, "
              "horizontal 16:9, no text, no watermark")
 LOG = "dlugi" if CH == "pozaskala" else "zdrowie"
-US = ZoneInfo("America/New_York")
+US = ZoneInfo("Europe/Warsaw" if CH == "osiedle" else "America/New_York")
+LANG = "pl" if CH == "osiedle" else "en"
+FULL_EP = "Cały odcinek na kanale" if LANG == "pl" else "Full episode on the channel"
 _busy = {}
 _START = time.time()
 
@@ -92,6 +111,8 @@ def script(used):
         return script_zdrowie(used)
     if CH == "historia":
         return script_historia(used)
+    if CH == "osiedle":
+        return script_osiedle(used)
     return script_firmy(used)      # od 11.2026 PozaSkala = historie firm (What If / humor zostają w kodzie, nieużywane)
 
 
@@ -398,6 +419,8 @@ def produce(why="harmonogram"):
     try:
         sc = script(used)
         (d / "script.json").write_text(json.dumps(sc, ensure_ascii=False, indent=1))
+        if CH == "osiedle":
+            return produce_osiedle(vid, d, c, sc)
         st = STYLE_BIZ.format(outfit=sc.get("outfit") or "a simple dark business suit") if CH == "pozaskala" else None
         n_img = sum(len(ch["scenes"]) for ch in sc["chapters"])
         _upd(vid, title=sc["title"], step=f"lektor + {n_img} kadrów")
@@ -519,7 +542,7 @@ def trailers(d, sc, cds):
             lines = (lines + [cur])[:3]
             for li, tx in enumerate(lines):
                 vf += f",drawtext=fontfile={font}:text='{_esc(tx)}':fontcolor=white:fontsize=66:x=(w-text_w)/2:y={250 + li * 92}:box=1:boxcolor=black@0.5:boxborderw=18"
-            vf += f",drawtext=fontfile={font}:text='Full episode on the channel':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h-420:box=1:boxcolor=0x5FA987@0.9:boxborderw=20"
+            vf += f",drawtext=fontfile={font}:text='{FULL_EP}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=h-420:box=1:boxcolor=0x5FA987@0.9:boxborderw=20"
         subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-ss", f"{ss:.2f}", "-t", f"{ln:.2f}", "-i", str(f), "-filter_complex", vf, "-r", "30",
                         "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)],
                        check=True, capture_output=True)
@@ -572,8 +595,8 @@ def publish_trailer(vid, n, at=None):
             title = ct
     except Exception:
         pass
-    yid = _yt_upload(tok, f, {"snippet": {"title": (title[:80] + " #shorts"), "categoryId": "27", "defaultLanguage": "en",
-                                          "description": f"Full episode 👉 https://youtu.be/{it['yt']}\n\n{TAGLINE}",
+    yid = _yt_upload(tok, f, {"snippet": {"title": (title[:80] + " #shorts"), "categoryId": "27", "defaultLanguage": LANG,
+                                          "description": (f"Cały odcinek 👉 https://youtu.be/" if LANG == "pl" else f"Full episode 👉 https://youtu.be/") + f"{it['yt']}\n\n{TAGLINE}",
                                           "tags": (sc.get("tags") or [])[:10]},
                               "status": ({"privacyStatus": "private", "publishAt": _iso(at)} if at else {"privacyStatus": "public"}) | {"selfDeclaredMadeForKids": False}})
     f.unlink(missing_ok=True)
@@ -598,7 +621,7 @@ def publish(vid):
     tok = _google_access(acc)
     _upd(vid, status="uploading", step="wysyłam na YouTube")
     meta = {"snippet": {"title": sc["title"][:100], "description": sc.get("description", "")[:4900], "tags": (sc.get("tags") or [])[:15],
-                        "categoryId": "27", "defaultLanguage": "en"},
+                        "categoryId": "27", "defaultLanguage": LANG},
             "status": {"privacyStatus": "private", "publishAt": _iso(when := us_slot()), "selfDeclaredMadeForKids": False}}
     f = d / "final.mp4"
     try:
