@@ -2076,7 +2076,7 @@ async def hook_veo(req: Request):
         return {"error": f"{type(e).__name__}: {str(e)[:300]}"}
 
 
-@router.post("/api/mont-hook/veo/stan")
+@router.post("/api/mont-hook/veo-stan")
 async def hook_veo_stan(req: Request):
     """Mac: {op, model} → status; gdy gotowe, zwraca mp4 jako base64."""
     if not _tok(req):
