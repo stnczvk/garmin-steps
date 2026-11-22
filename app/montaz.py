@@ -1972,3 +1972,48 @@ def komentarze(force: int = 0):
     out.sort(key=lambda c: c["t"], reverse=True)
     _kom_cache.update(t=time.time(), items=out[:150])
     return {"items": out[:150], "errors": errs}
+
+
+# ---------------------------------------------------------------- klucz Google Vertex (Veo) – wgrywany z przeglądarki
+VERTEX_JSON = Path("/root/social/vertex.json")
+
+
+@router.get("/vertex")
+def vertex_strona():
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse("""<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>Klucz Veo</title><body style="font:16px system-ui;max-width:520px;margin:40px auto;padding:0 16px;background:#111;color:#eee">
+<h2>Klucz Google Vertex (Veo)</h2><p id=st>Sprawdzam…</p>
+<p>Wybierz plik JSON pobrany z Google Cloud (Konta usługi → Klucze):</p>
+<input type=file id=f accept=".json,application/json"><p id=w></p>
+<script>
+async function st(){const r=await fetch('/api/vertex-klucz');const d=await r.json();
+ document.getElementById('st').textContent=r.ok?(d.jest?('✅ Klucz jest wgrany (projekt: '+d.projekt+')'):'❌ Brak klucza'):'Zaloguj się najpierw w centrum.'}
+document.getElementById('f').onchange=async e=>{const t=await e.target.files[0].text();
+ const r=await fetch('/api/vertex-klucz',{method:'POST',headers:{'Content-Type':'application/json'},body:t});
+ const d=await r.json();document.getElementById('w').textContent=d.ok?'Zapisano ✅':('Błąd: '+(d.error||r.status));st()}
+st()
+</script>""")
+
+
+@router.get("/api/vertex-klucz")
+def vertex_stan():
+    try:
+        d = json.loads(VERTEX_JSON.read_text())
+        return {"jest": True, "projekt": d.get("project_id")}
+    except Exception:
+        return {"jest": False}
+
+
+@router.post("/api/vertex-klucz")
+async def vertex_zapisz(req: Request):
+    try:
+        d = await req.json()
+    except Exception:
+        return JSONResponse({"error": "to nie jest plik JSON"}, status_code=400)
+    if d.get("type") != "service_account" or not d.get("private_key") or not d.get("project_id"):
+        return JSONResponse({"error": "to nie jest klucz konta usługi Google (brak type=service_account)"}, status_code=400)
+    VERTEX_JSON.parent.mkdir(parents=True, exist_ok=True)
+    VERTEX_JSON.write_text(json.dumps(d))
+    os.chmod(VERTEX_JSON, 0o600)
+    return {"ok": True, "projekt": d["project_id"]}
