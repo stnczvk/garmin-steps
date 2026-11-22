@@ -31,13 +31,14 @@ if CH == "osiedle":
              "characters with standard blocky humanoid proportions (one cube head, rectangular body, rectangular arms and legs), faces are FLAT pixel-art painted on the front of the cube head "
              "(simple square eyes, mouth drawn with a few pixels, no 3D nose, no 3D beard, no sculpted features), clothes are flat pixel textures, "
              "plain bright daylight, simple sky with flat blocky clouds, sharp edges, no depth of field, no cinematic lighting, no bloom, no realism, not detailed, simple and clean, "
-             "horizontal 16:9 wide shot, no text, no letters, no logos, no game UI, original characters, not Steve, not Alex, no creepers. "
+             "horizontal 16:9 wide shot, no text, no letters, no logos, no game UI, NO name tags or nameplates above heads, no floating names, original characters, not Steve, not Alex, no creepers. "
              "Everything is built from classic game blocks only: grass blocks, stone bricks, smooth stone, light grey concrete blocks, oak planks, glass panes, iron bars; "
              "the apartment block is a simple grey block building with glass pane windows, like a player build. Setting: a Polish housing estate (blokowisko).")
-    POSTACIE = {"KAZIK": "PAN KAZIK (narrator, kiosk owner): cube head with grey hair texture, grey pixel mustache, beige vest over brown shirt, dark brown pants",
-                "GRAZYNA": "PANI GRAZYNA: woman with red curly hair texture, pink tracksuit with white stripes",
-                "ZDZICHU": "PAN ZDZICHU: bald cube head, white tank top, blue tracksuit pants with white stripe",
-                "MATI": "MATI: boy with blond hair, black cap, orange hoodie, dark jeans"}
+    # bez imion w opisie dla generatora obrazów – imiona rysował jako plakietki nad głowami (i mylił, komu jaka)
+    POSTACIE = {"KAZIK": ("the old kiosk man", "cube head with grey hair texture, grey pixel mustache, beige vest over brown shirt, dark brown pants"),
+                "GRAZYNA": ("the red-haired woman", "red curly hair texture, pink tracksuit with white stripes"),
+                "ZDZICHU": ("the bald man", "bald cube head, white tank top, blue tracksuit pants with white stripe"),
+                "MATI": ("the blond teenage boy", "blond hair, black cap, orange hoodie, dark jeans")}
 elif CH == "historia":
     F, WORK, API, GROUP, TAGLINE, PUSH = "historia_dlugie.json", DIR / "historia_dlugie", "/api/historia", "historia", "#History #shorts", "/#historia"
     DEF = {"enabled": False, "days": [3], "hour": 9, "img_quality": "low", "voice": "fable", "auto_publish": False, "us_hour": 18, "shorts": 4}
@@ -360,12 +361,14 @@ Każdy rozdział: 220–260 słów w lines i 5 scen. Suma słów wszystkich kwes
 
 
 def _postacie_w(opis):
-    """Dopisuje do opisu sceny wygląd postaci, które w niej występują (żeby wyglądały zawsze tak samo)."""
-    o = opis
-    for k, v in POSTACIE.items():
-        if k in opis.upper() or k[:5] in opis.upper():
-            o += "; " + v
-    return o
+    """Imiona postaci → opis wyglądu (generator nie dostaje imion, więc nie rysuje plakietek i nie myli postaci)."""
+    o, uzyte = opis, []
+    for k, (kto, wyg) in POSTACIE.items():
+        pat = re.compile(r"\b(?:pan|pani|mr\.?|mrs\.?)?\s*" + k[:5] + r"\w*", re.I)
+        if pat.search(o):
+            o = pat.sub(kto, o)
+            uzyte.append(f"{kto}: {wyg}")
+    return o + ("; characters: " + "; ".join(uzyte) if uzyte else "") + "; no name tags, no text above heads"
 
 
 def tts_linie(lines, out, d, tag):
