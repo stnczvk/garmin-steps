@@ -761,8 +761,57 @@ def trailers(d, sc, cds):
         subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-ss", f"{ss:.2f}", "-t", f"{ln:.2f}", "-i", str(f), "-filter_complex", vf, "-r", "30",
                         "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out)],
                        check=True, capture_output=True)
+        if LANG == "pl":
+            try:
+                napisy_short(out, d)
+            except Exception as e:
+                print("napisy short", e, flush=True)
         made.append(out.name)
     return made
+
+
+def _ass_t(x):
+    return f"{int(x // 3600)}:{int(x % 3600 // 60):02d}:{x % 60:05.2f}"
+
+
+def napisy_short(f, d):
+    """Napisy do shorta: słowa z transkrypcji (Whisper, czasy słów), po 1–2 słowa, aktualne słowo na żółto. Wypalane pod kadrem filmu."""
+    a = d / (f.stem + "_a.mp3")
+    subprocess.run(["ffmpeg", "-y", "-i", str(f), "-vn", "-ac", "1", "-b:a", "64k", str(a)], check=True, capture_output=True)
+    with open(a, "rb") as fh:
+        r = httpx.post("https://api.openai.com/v1/audio/transcriptions", headers=_key(), timeout=300,
+                       files={"file": (a.name, fh, "audio/mpeg")},
+                       data={"model": "whisper-1", "language": "pl", "response_format": "verbose_json", "timestamp_granularities[]": "word"})
+    a.unlink(missing_ok=True)
+    r.raise_for_status()
+    W = [w for w in (r.json().get("words") or []) if str(w.get("word", "")).strip()]
+    if not W:
+        return
+    grp, cur = [], []
+    for w in W:   # grupy max 2 słowa, nowa grupa po przerwie > 0.5 s
+        if cur and (len(cur) >= 2 or w["start"] - cur[-1]["end"] > 0.5):
+            grp.append(cur); cur = []
+        cur.append(w)
+    grp.append(cur)
+    ev = []
+    for g in grp:
+        for i, w in enumerate(g):
+            st = w["start"]
+            en = g[i + 1]["start"] if i + 1 < len(g) else max(w["end"], st + 0.25)
+            txt = " ".join(("{\\c&H00E5FF&}" + x["word"].upper() + "{\\c&HFFFFFF&}") if k == i else x["word"].upper() for k, x in enumerate(g))
+            ev.append(f"Dialogue: 0,{_ass_t(st)},{_ass_t(en)},N,,0,0,0,,{txt}")
+    font = "DejaVu Sans"
+    ass = d / (f.stem + ".ass")
+    ass.write_text("[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\n\n[V4+ Styles]\n"
+                   "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, "
+                   "ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+                   f"Style: N,{font},76,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,100,100,2,0,1,7,3,2,40,40,480,1\n\n"
+                   "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n" + "\n".join(ev) + "\n", encoding="utf-8")
+    tmp = f.with_name(f.stem + "_n.mp4")
+    subprocess.run(["nice", "-n", "15", "ffmpeg", "-y", "-i", str(f), "-vf", f"subtitles={ass.name}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+                    "-c:a", "copy", "-movflags", "+faststart", str(tmp)], check=True, capture_output=True, cwd=d)
+    tmp.replace(f)
+    ass.unlink(missing_ok=True)
 
 
 def _yt_upload(tok, f, meta):
