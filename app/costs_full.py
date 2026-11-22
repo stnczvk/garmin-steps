@@ -219,22 +219,7 @@ def balances(S=None):
     if o.get("balance") is not None:
         sp = spent("openai", o["at"]) + _agency_since(o["at"])
         out["openai"] = {"left": round(o["balance"] - sp, 2), "spent": round(sp, 2), "set": o["balance"], "at": o["at"], "how": "saldo wpisane − wydatki"}
-    key = _piapi_key()
-    if key:
-        try:
-            j = httpx.get("https://api.piapi.ai/account/info", headers={"X-API-Key": key}, timeout=15).json()
-            d = j.get("data") or {}
-            usd = d.get("equivalent_in_usd")
-            if usd is None and d.get("credits") is not None:
-                usd = float(d["credits"]) / 1e6 if float(d["credits"]) > 1e4 else float(d["credits"])
-            if usd is not None:
-                out["piapi"] = {"left": round(float(usd), 2), "how": "saldo z konta PiAPI"}
-        except Exception:
-            pass
-    p = c.get("piapi") or {}
-    if "piapi" not in out and p.get("balance") is not None:
-        sp = spent("piapi", p["at"])
-        out["piapi"] = {"left": round(p["balance"] - sp, 2), "spent": round(sp, 2), "set": p["balance"], "at": p["at"], "how": "saldo wpisane − wydatki"}
+    # PiAPI (Kling) wyłączone od 11.2026 – nie używamy, nie pokazujemy salda ani nie wysyłamy alertów
     tok = os.environ.get("APIFY_TOKEN", "")
     if tok:
         try:
