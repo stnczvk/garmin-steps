@@ -2111,7 +2111,10 @@ async def mont_hooki(req: Request):
     from skills import sk
     p = f"""Wymyśl hooki (pierwsze zdanie wypowiedziane do kamery w pierwszych 2 s) do mojego krótkiego filmu z wyzwania jedzeniowego na TikTok/IG/Shorts.
 Wyzwanie: {co}
-Dodatkowo: {extra or "brak"}
+Komentarz widza, na który odpowiadam filmem (TikTok „odpowiedz na komentarz” – komentarz widać na ekranie): {extra or "brak – wtedy zwykły hook"}
+Jeśli jest komentarz: wstęp ma być REAKCJĄ na ten komentarz, krótką scenką z puentą, która jednocześnie robi hook.
+Wzór, który u mnie zadziałał (wyzwanie z twarogiem): „Miałem ochotę na sernik, ale jestem na redukcji… więc zjem 6 kostek twarogu. Za to poświęcenie zostaw follow.”
+Czyli: zwykła zachcianka → żart z redukcji → absurdalna ilość z wyzwania → krótkie wezwanie. Daj warianty w tym duchu, ale nie kopiuj go słowo w słowo.
 O mnie: Bartek, 163 cm wzrostu, niski, łysy, normalnie jestem na redukcji i codziennie pokazuję, ile jem; wyzwania dostaję od widzów w komentarzach.
 Mój styl: luźny, z dystansem do siebie, lekko zaczepny, bez cringe. Wyróżnik: niski typ vs ogromna ilość jedzenia.
 Zasady: po polsku, mówione naturalnie (max 12 słów), konkret i liczby zamiast przymiotników, bez „STOP”, bez fałszywej pilności,
