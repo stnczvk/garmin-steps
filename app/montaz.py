@@ -2098,3 +2098,32 @@ async def hook_veo_stan(req: Request):
         return {"done": True, "mp4": v["bytesBase64Encoded"]}
     except Exception as e:
         return {"error": f"{type(e).__name__}: {str(e)[:300]}"}
+
+
+# ---------------------------------------------------------------- generator hooków do wyzwań jedzeniowych
+@router.post("/api/mont/hooki")
+async def mont_hooki(req: Request):
+    b = await req.json()
+    co, extra = str(b.get("co", ""))[:300], str(b.get("extra", ""))[:300]
+    if not co.strip():
+        return JSONResponse({"error": "napisz, co jesz"}, status_code=400)
+    from agency import claude, as_json, SMART
+    from skills import sk
+    p = f"""Wymyśl hooki (pierwsze zdanie wypowiedziane do kamery w pierwszych 2 s) do mojego krótkiego filmu z wyzwania jedzeniowego na TikTok/IG/Shorts.
+Wyzwanie: {co}
+Dodatkowo: {extra or "brak"}
+O mnie: Bartek, 163 cm wzrostu, niski, łysy, normalnie jestem na redukcji i codziennie pokazuję, ile jem; wyzwania dostaję od widzów w komentarzach.
+Mój styl: luźny, z dystansem do siebie, lekko zaczepny, bez cringe. Wyróżnik: niski typ vs ogromna ilość jedzenia.
+Zasady: po polsku, mówione naturalnie (max 12 słów), konkret i liczby zamiast przymiotników, bez „STOP”, bez fałszywej pilności,
+bez wymyślonych faktów (nie podawaj kalorii, jeśli nie jesteś pewien), hook musi być spłacony przez film. 8 hooków w RÓŻNYCH strukturach
+(liczba/wynik, kontrast, historia od środka, pytanie do widza, błąd/mit, wezwanie do komentarza, porównanie z wzrostem, zakład).
+Do każdego tekst na ekran (max 6 słów). Wybierz najlepszy i 2 kolejne.
+Zwróć TYLKO JSON: {{"hooki":[{{"mowa":"...","ekran":"...","typ":"nazwa struktury"}}],"top":[nr1,nr2,nr3],"dlaczego":"1-2 zdania czemu nr1 wygrywa"}}"""
+    import asyncio
+    try:
+        r = as_json(await asyncio.to_thread(lambda: claude(p, SMART, 2500, system=sk("hook", "reel"))))
+    except Exception as e:
+        return {"error": str(e)[:200]}
+    if not isinstance(r, dict) or not r.get("hooki"):
+        return {"error": "AI nie zwróciło hooków – spróbuj jeszcze raz"}
+    return r

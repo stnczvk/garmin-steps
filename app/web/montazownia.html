@@ -191,6 +191,19 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
   <div class="r"><button class="btn pri qb" id="food"><i style="--c:#ffc24b">🍽</i><span><span class="lg-only">Zmontuj </span>jedzenie</span></button><button class="btn pri qb gone" id="vlogb"><i style="--c:#ff6fa5">🎥</i><span><span class="lg-only">Zmontuj </span>vloga</span></button><button class="btn pri qb" id="przb"><i style="--c:#3ddc84">🍳</i><span><span class="lg-only">Zmontuj </span>przepis</span></button><button class="btn pri qb" id="cheatb"><i style="--c:#5ad1ff">🍔</i><span><span class="lg-only">Zmontuj cheat meal</span><span class="sm-only">cheat</span></span></button></div></div>
  <div class="bar2"><div class="vt" id="vt"><button data-m="office">🏢 Biuro</button><button data-m="dash">▦ <span class="lg-only">Dashboard</span><span class="sm-only">Lista</span></button></div><div class="vt sec dash-only" id="sec"><button data-s="food" class="on">🍽 Jedzenie</button><button data-s="vlog">🎥 Vlog YT<em id="vbadge" class="gone"></em></button><button data-s="cheat">🍔 <span class="lg-only">Cheat meal</span><span class="sm-only">Cheat</span><em id="cbadge"></em></button></div></div>
  <div class="stage3d glass office-only"><canvas id="c3" aria-label="Warsztat twórcy – biuro Montażowni"></canvas><span class="h3d">przeciągnij · obróć</span><span class="wsst" id="wsst"></span></div>
+ <details class="glass" id="hk" style="margin-bottom:14px;padding:14px 16px"><summary style="cursor:pointer;font-weight:600">🎯 Hooki do wyzwania</summary>
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><input id="hkq" placeholder="co jem? np. 6 Drwali z McDonalda" style="flex:1 1 240px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:inherit;font:inherit">
+  <input id="hkx" placeholder="dodatkowo (opcjonalnie): od widza, na czas…" style="flex:1 1 200px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:inherit;font:inherit">
+  <button class="btn pri" id="hkb">Wymyśl hooki</button></div><div id="hko" style="margin-top:10px;line-height:1.5"></div></details>
+<script>
+(()=>{const $=i=>document.getElementById(i),E=t=>String(t||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+$('hkb').onclick=async()=>{const q=$('hkq').value.trim();if(!q)return;$('hko').textContent='Wymyślam…';$('hkb').disabled=true;
+ try{const r=await fetch('/api/mont/hooki',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({co:q,extra:$('hkx').value})});const d=await r.json();
+ if(!d.hooki){$('hko').textContent='Błąd: '+(d.error||r.status);return}
+ $('hko').innerHTML=d.hooki.map((h,i)=>`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)">${d.top&&d.top[0]===i+1?'🏆 ':''}<b>${i+1}. ${E(h.mowa)}</b><br><span style="opacity:.75">ekran: ${E(h.ekran)} · ${E(h.typ)}</span> <button class="btn" style="padding:2px 8px;font-size:12px" onclick="navigator.clipboard.writeText(this.dataset.t)" data-t="${E(h.mowa)}">kopiuj</button></div>`).join('')+(d.dlaczego?`<p style="opacity:.85;margin-top:8px">${E(d.dlaczego)}</p>`:'')}
+ catch(e){$('hko').textContent='Błąd: '+e}finally{$('hkb').disabled=false}};
+$('hkq').onkeydown=e=>{if(e.key==='Enter')$('hkb').click()}})();
+</script>
  <section class="glass dash-only s-food" id="newp" hidden style="margin-bottom:14px">
   <h2>Nowy montaż: daily jedzenie</h2>
   <div class="nf">
