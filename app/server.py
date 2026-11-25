@@ -1236,9 +1236,10 @@ Zasady:
 - Zwracane cięcia dla klipu ZASTĘPUJĄ obecne, więc przepisz też obecne cięcia, które mają zostać.
 - Nie wycinaj całego klipu, chyba że użytkownik wyraźnie każe go usunąć – wtedy ustaw "usun": true.
 - Jeśli uwaga dotyczy błędnych słów w NAPISACH (np. „zamiast owszanymi ma być owsianymi”), dodaj zamianę do "napisy":
-  "z" = słowo/słowa dokładnie tak, jak są w transkrypcji, "na" = poprawna wersja. Cięć wtedy nie zmieniaj (pomiń klip w "klipy").
+  "z" = słowo/słowa dokładnie tak, jak są w transkrypcji, "na" = poprawna wersja, "klip" = nazwa pliku klipu, którego dotyczy
+  (gdy użytkownik mówi o brakującym słowie, wskaż TEN JEDEN klip, w którym ono pada). Cięć wtedy nie zmieniaj (pomiń klip w "klipy").
 Odpowiedz wyłącznie JSON:
-{"klipy":[{"klip":"nazwa pliku","od":liczba|null,"do":liczba|null,"wytnij":[[A,B],...],"usun":false}],"napisy":[{"z":"...","na":"..."}],"opis":"jedno zdanie po polsku co zmieniłeś"}
+{"klipy":[{"klip":"nazwa pliku","od":liczba|null,"do":liczba|null,"wytnij":[[A,B],...],"usun":false}],"napisy":[{"z":"...","na":"...","klip":"nazwa pliku"}],"opis":"jedno zdanie po polsku co zmieniłeś"}
 """
 
 
@@ -1400,7 +1401,8 @@ async def _mz_fix_ai(d, day, rows, tr, comment, prompt):
         return JSONResponse({"error": "Nie udało się odczytać odpowiedzi AI – spróbuj jeszcze raz (szczegóły w logu serwera)."}, status_code=502)
     changes = {x.get("klip"): x for x in (ans.get("klipy") or []) if isinstance(x, dict)}
     # poprawki słów w napisach – zapamiętane dla tego dnia, montaż podmienia je w napisach
-    subs = [{"z": str(x.get("z", "")).strip(), "na": str(x.get("na", "")).strip()} for x in (ans.get("napisy") or [])
+    subs = [{"z": str(x.get("z", "")).strip(), "na": str(x.get("na", "")).strip(),
+             **({"klip": x["klip"]} if x.get("klip") in tr else {})} for x in (ans.get("napisy") or [])
             if isinstance(x, dict) and str(x.get("z", "")).strip() and str(x.get("na", "")).strip()]
     subs = [x for x in subs if x["z"].lower() != x["na"].lower()]
     # pewniak bez AI: fraza w cudzysłowie z uwagi („do tego pomidor luzem”) → szukamy w napisach z filmu podobnego miejsca i podmieniamy
