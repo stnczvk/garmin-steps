@@ -451,6 +451,51 @@ def api_opis_nowy(pid: str):
     return {"ok": True, "yt_desc": d}
 
 
+@router.post("/api/mont-hook/vlog-blad")
+async def hook_vlog_blad(req: Request):
+    """Mac: vlog nie przetworzył się mimo ponowień (pusty błąd = już dobrze)."""
+    from montaz import _tok
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=401)
+    b = await req.json()
+    with _lock:
+        B = _read("vlog_bledy.json", {})
+        if str(b.get("blad") or "").strip():
+            B[b["name"]] = {"blad": str(b["blad"])[:300], "proby": b.get("proby"), "at": time.time()}
+            try:
+                from extra import push_all
+                push_all("❌ Vlog się nie przetworzył", f"{b['name']}: {str(b['blad'])[:80]}", "/#montaz")
+            except Exception:
+                pass
+        else:
+            B.pop(b.get("name"), None)
+        _write("vlog_bledy.json", B)
+    return {"ok": True}
+
+
+@router.get("/api/planer/vlog-bledy")
+def api_vlog_bledy():
+    return _read("vlog_bledy.json", {})
+
+
+@router.post("/api/planer/vlog-ponow")
+async def api_vlog_ponow(req: Request):
+    """Guzik „🔁 Ponów”: Mac robi vloga od nowa (tytuł, opis, miniatury, klipy) albo sam pakiet YT."""
+    b = await req.json()
+    nm, typ = str(b.get("name") or "").strip(), ("pakiet" if b.get("typ") == "pakiet" else "calosc")
+    if not nm:
+        return {"ok": False, "error": "brak nazwy"}
+    with _lock:
+        Q = [x for x in _read("klipy_popraw.json", []) if not (x["name"] == nm and x.get("typ") in ("pakiet", "calosc"))]
+        Q.append({"name": nm, "typ": typ, "at": time.time()})
+        _write("klipy_popraw.json", Q[-20:])
+        B = _read("vlog_bledy.json", {})
+        if nm in B:
+            B[nm]["ponowione"] = time.time()
+            _write("vlog_bledy.json", B)
+    return {"ok": True}
+
+
 @router.get("/api/mont-hook/planer-bledy")
 def hook_planer_bledy(req: Request):
     """Diagnostyka: ostatnie posty z błędem publikacji (bez tokenów i podpisów)."""
@@ -489,7 +534,7 @@ def api_mac_praca():
     teraz = None
     if st.get("co") and (time.time() - st.get("at", 0) < (180 if st.get("koniec") else 1800)):
         teraz = {"co": st["co"], "tekst": st.get("tekst", ""), "min": int((time.time() - st.get("start", time.time())) / 60), "koniec": st.get("koniec")}
-    nazwy = {"miniatury": "Nowe miniatury", "napisy": "Poprawa napisów klipu"}
+    nazwy = {"miniatury": "Nowe miniatury", "napisy": "Poprawa napisów klipu", "pakiet": "Pakiet YouTube od nowa", "calosc": "Vlog od nowa"}
     kolejka = [nazwy.get(x.get("typ"), "Nowe klipy") + " – " + x["name"] for x in _read("klipy_popraw.json", [])]
     return {"teraz": teraz, "kolejka": kolejka}
 
