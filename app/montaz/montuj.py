@@ -583,9 +583,11 @@ def user_subs(trans, day, tylko_dzien=False):
         z = [nrm(x) for x in s["z"].split() if nrm(x)]
         if not z:
             continue
-        # dopisanie nowych słów bez wskazanego klipu (np. „650 kcal” → „650 kcal i do picia kawa”) tylko w pierwszym pasującym klipie –
-        # inaczej trafiało do każdego klipu z tą samą frazą
-        dopisek = not s.get("klip") and len(str(s["na"]).split()) > len(z) + 1
+        # napisy = to, co mówisz: automatyczne zamiany mogą tylko POPRAWIĆ źle usłyszane słowa, nie dopisywać nowych.
+        # Dopisywać wolno tylko ręcznie w edytorze napisów (wtedy zamiana ma swój klip).
+        if not s.get("klip") and len([x for x in str(s["na"]).split() if nrm(x)]) > len(z):
+            continue
+        dopisek = False
         trafione = False
         for kk, v in trans.items():
             if s.get("klip") and kk != s["klip"]:
