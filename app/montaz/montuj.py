@@ -601,6 +601,13 @@ def user_subs(trans, day, tylko_dzien=False):
                 if i > len(ws) - len(z):
                     break
                 if [nrm(ws[i + k]["word"]) for k in range(len(z))] == z:
+                    # zamiana już wcześniej zadziałała (albo te słowa i tak są w nagraniu) – nie dublujemy dopisku
+                    nn = [nrm(x) for x in str(s["na"]).split() if nrm(x)]
+                    if len(nn) > len(z) and nn[:len(z)] == z:
+                        reszta = nn[len(z):]
+                        dalej = [nrm(w["word"]) for w in ws[i + len(z):i + len(z) + len(reszta) + 3] if nrm(w["word"])]
+                        if dalej[:len(reszta)] == reszta or " ".join(reszta) in " ".join(dalej):
+                            continue
                     # nowe słowa dostają WŁASNE czasy w miejscu starych – inaczej cała fraza wisiała jako jeden duży napis
                     nowe = str(s["na"]).split()
                     a, b = ws[i]["start"], ws[i + len(z) - 1]["end"]
@@ -616,6 +623,19 @@ def user_subs(trans, day, tylko_dzien=False):
                     trafione = True
                     if dopisek:
                         break
+    # ta sama fraza (3+ słowa) dwa razy pod rząd w jednym klipie = dubel z poprawek → zostaje raz
+    for v in trans.values():
+        ws = v.get("words", [])
+        for L in range(6, 2, -1):
+            i = 0
+            while i + 2 * L <= len(ws):
+                a = [nrm(w["word"]) for w in ws[i:i + L]]
+                b = [nrm(w["word"]) for w in ws[i + L:i + 2 * L]]
+                if all(a) and a == b:
+                    del ws[i + L:i + 2 * L]
+                    n += 1
+                else:
+                    i += 1
     if n:
         print(f"Zamiany słów z aplikacji: {n}", flush=True)
     return trans
