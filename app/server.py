@@ -1282,7 +1282,7 @@ async def montaz_napisy_set(jid: str, req: Request):
             z = " ".join(pre + A[i1:i2] + post).strip()
             na = " ".join(pre + B[j1:j2] + post).strip()
             if z and z != na:
-                subs.append({"z": z, "na": na})
+                subs.append({"z": z, "na": na, "klip": clip})   # ręczna poprawka dotyczy TYLKO tego klipu
     if not subs:
         return JSONResponse({"error": "Nie widzę zmian w napisach."}, status_code=400)
     zf = day / "napisy_zamiany.json"
@@ -1292,7 +1292,8 @@ async def montaz_napisy_set(jid: str, req: Request):
         old = []
     if zf.exists():
         shutil.copy2(zf, day / "napisy_zamiany_przed_poprawka.json")
-    old = [o for o in old if o["z"].lower() not in {x["z"].lower() for x in subs}] + subs
+    klucz = lambda o: (o["z"].lower(), o.get("klip"))
+    old = [o for o in old if klucz(o) not in {klucz(x) for x in subs}] + subs
     zf.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
     ko = day / "kolejnosc.txt"
     if ko.exists() and not ko.read_text(encoding="utf-8").startswith("# POPRAWKI"):   # cięcia zostają jak są
@@ -1432,9 +1433,9 @@ async def _mz_fix_ai(d, day, rows, tr, comment, prompt):
                         continue
                     r = difflib.SequenceMatcher(None, a, b).ratio() - 0.12 * abs(n - len(cel))
                     if r >= 0.6 and (not best or r > best[0]):
-                        best = (r, " ".join(okno))
+                        best = (r, " ".join(okno), clip)
         if best and not any(x["z"].lower() == best[1].lower() for x in subs):
-            subs.append({"z": best[1], "na": " ".join(cel)})
+            subs.append({"z": best[1], "na": " ".join(cel), "klip": best[2]})
     if subs:
         zf = day / "napisy_zamiany.json"
         try:
@@ -1445,7 +1446,8 @@ async def _mz_fix_ai(d, day, rows, tr, comment, prompt):
         if zf.exists():
             shutil.copy2(zf, day / "napisy_zamiany_przed_poprawka.json")
         zf.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
-        _slownik_add(subs)
+        # do stałego słownika tylko poprawki słów (bez dopisywania nowych fraz i bez tych z jednego klipu)
+        _slownik_add([x for x in subs if not x.get("klip") and len(x["na"].split()) <= len(x["z"].split()) + 1])
     # nagłówek „# POPRAWKI” – przy ponownym montażu cięcia zostają (nie są liczone od nowa)
     out, changed = [f"# POPRAWKI – z uwag: {comment[:120].replace(chr(10), ' ')}", ""], len(subs)
     for r in rows:

@@ -72,7 +72,7 @@ def slownik_ok(x):
     nie całe zdania z poprawek konkretnego dnia (te psuły napisy w innych filmach)."""
     zw = [w for w in re.findall(r"[\wąćęłńóśźż]+", str(x.get("z", "")).lower())]
     nw = str(x.get("na", "")).split()
-    if not zw or len(zw) > 2 or len(nw) > 3:
+    if not zw or len(zw) > 2 or len(nw) > 3 or len(nw) > len(zw) + 1 or x.get("klip"):   # bez dopisywania fraz i poprawek jednego klipu
         return False
     return not all(w in _STALE_SL for w in zw)
 

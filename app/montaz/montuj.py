@@ -583,7 +583,15 @@ def user_subs(trans, day, tylko_dzien=False):
         z = [nrm(x) for x in s["z"].split() if nrm(x)]
         if not z:
             continue
-        for v in trans.values():
+        # dopisanie nowych słów bez wskazanego klipu (np. „650 kcal” → „650 kcal i do picia kawa”) tylko w pierwszym pasującym klipie –
+        # inaczej trafiało do każdego klipu z tą samą frazą
+        dopisek = not s.get("klip") and len(str(s["na"]).split()) > len(z) + 1
+        trafione = False
+        for kk, v in trans.items():
+            if s.get("klip") and kk != s["klip"]:
+                continue
+            if dopisek and trafione:
+                break
             ws = v.get("words", [])
             i = -1
             while True:
@@ -603,6 +611,9 @@ def user_subs(trans, day, tylko_dzien=False):
                             ws[i + k]["word"] = ""
                         ws[i:i + len(z)] = [{"word": w, "start": round(a + k * krok, 3), "end": round(a + (k + 1) * krok, 3)} for k, w in enumerate(nowe)] or ws[i:i + len(z)]
                     n += 1
+                    trafione = True
+                    if dopisek:
+                        break
     if n:
         print(f"Zamiany słów z aplikacji: {n}", flush=True)
     return trans
