@@ -1633,6 +1633,10 @@ def main():
                 if glos:
                     seg = dolej_glos(seg, glos[0], HOOK_TLO_GLOS if src == "silownia" else 0.0, work)   # przy formie bez tła (muzyka/basy z sali)
                     print(f"[hook] głos: {glos[2]} ({glos[1]:.1f}s)", flush=True)
+                try:
+                    d = probe(seg)[0]
+                except Exception:
+                    pass
                 segments.append(seg); total += d; teaser = src
                 print(f"[hook] start: {v.name} {a:.1f}-{b:.1f}s ({src})", flush=True)
         for i, (video, shots, keep) in enumerate(plan):
@@ -1651,6 +1655,13 @@ def main():
                 sfx_at.append((total + card_at, "whoosh"))
             if prepared and not str(prepared[0][0]).endswith("_dane.png"):   # karta z danych stoi nad napisami – napisy zostają
                 hide.append((total + card_at, total + card_at + len(prepared) * SHOT_SECONDS))
+            try:   # prawdziwa długość pliku (tak skleja go ffmpeg) – inaczej napisy z każdym klipem rozjeżdżały się z obrazem i głosem
+                d_real = probe(seg)[0]
+                if abs(d_real - d) > 0.01:
+                    print(f"[napisy] {video.name}: segment {d_real:.3f}s zamiast {d:.3f}s – liczę od prawdziwej długości", flush=True)
+                d = d_real
+            except Exception:
+                pass
             total += d
             granice.append(total)
             info = f" + zrzut: {', '.join(s.name for s in shots)}" if shots else ""
