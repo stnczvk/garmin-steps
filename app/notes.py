@@ -370,6 +370,19 @@ TOOLS = [
     {"name": "centrum_data", "description": "Diagnostyka centrum (tylko odczyt, bez tokenów/haseł): bez 'file' → lista plików danych + ostatnie logi; "
      "z 'file' (np. agency_log.json, agency_inbox.json) → zawartość pliku (ostatnie 'tail' elementów listy).",
      "inputSchema": {"type": "object", "properties": {"file": {"type": "string"}, "tail": {"type": "integer"}}}},
+    {"name": "social_stats", "description": "Statystyki kont użytkownika (TikTok, Instagram, YouTube): obserwujący, wyświetlenia 28 dni i ostatnie posty "
+     "z wyświetleniami, lajkami, komentarzami, zapisami. group: 'prywatne' (jego własne konta, daily jedzenie, vlog), 'pozaskala', 'zdrowie', 'historia', 'osiedle' lub puste = wszystkie.",
+     "inputSchema": {"type": "object", "properties": {"group": {"type": "string"}, "posts": {"type": "integer", "description": "ile ostatnich postów na konto (domyślnie 8)"}}}},
+    {"name": "planer", "description": "Planer publikacji centrum: zaplanowane i ostatnio opublikowane posty (kiedy, gdzie, status, błędy). "
+     "days_back/days_ahead = zakres dni (domyślnie 3 wstecz i 7 naprzód).",
+     "inputSchema": {"type": "object", "properties": {"days_back": {"type": "integer"}, "days_ahead": {"type": "integer"}}}},
+    {"name": "kanaly_yt", "description": "Kanały YouTube z AI (PozaSkala, Zdrowie, History Slowly Told, Osiedle Tłumaczy): ostatnie i zaplanowane długie filmy i shorty, statusy, błędy.",
+     "inputSchema": {"type": "object", "properties": {"days": {"type": "integer"}}}},
+    {"name": "hooks", "description": "Generator hooków (pierwsze zdanie filmu) do wyzwań jedzeniowych użytkownika. co = co je w wyzwaniu; "
+     "komentarz = komentarz widza, na który odpowiada filmem (wtedy wstęp jest reakcją na komentarz, w stylu jego hitu z twarogiem).",
+     "inputSchema": {"type": "object", "properties": {"co": {"type": "string"}, "komentarz": {"type": "string"}}, "required": ["co"]}},
+    {"name": "mac_praca", "description": "Co teraz robi Mac użytkownika (montaż vloga, klipy, miniatury) i czy jakiś vlog się nie przetworzył.",
+     "inputSchema": {"type": "object", "properties": {}}},
 ]
 
 _SECRET = re.compile(r"token|secret|refresh|passw|api_?key|cookie|session|auth|credential", re.I)
@@ -450,6 +463,43 @@ def _tool(name, a):
         return {"ok": True, "id": m["path"]}
     if name == "centrum_data":
         return centrum_data(a.get("file"), a.get("tail") or 80)
+    if name == "social_stats":
+        g, n = str(a.get("group") or "").strip(), max(1, min(int(a.get("posts") or 8), 25))
+        out = []
+        for k, x in (_read("cache.json", {}).get("accounts") or {}).items():
+            if g and x.get("group", "prywatne") != g:
+                continue
+            out.append({"konto": x.get("name") or k, "platforma": x.get("platform"), "grupa": x.get("group", "prywatne"),
+                        "obserwujacy": x.get("followers"), "wyswietlenia_28d": x.get("views_28d"), "blad": x.get("error"),
+                        "posty": [{kk: p.get(kk) for kk in ("date", "title", "views", "likes", "comments", "saved", "shares", "url") if p.get(kk) is not None}
+                                  for p in (x.get("posts") or [])[:n]]})
+        return {"konta": out, "odswiezone": _read("cache.json", {}).get("updated")}
+    if name == "planer":
+        import planer as P
+        now = time.time()
+        a0, a1 = now - 86400 * int(a.get("days_back") or 3), now + 86400 * int(a.get("days_ahead") or 7)
+        R = []
+        for x in sorted(P.plan(), key=lambda x: x.get("when", 0)):
+            if a0 <= x.get("when", 0) <= a1:
+                R.append({"id": x["id"], "kiedy": datetime.fromtimestamp(x["when"]).strftime("%a %d.%m %H:%M"), "co": x.get("label"),
+                          "rodzaj": x.get("kind"), "status": x.get("status"), "platformy": x.get("platforms"), "etap": x.get("step"),
+                          "bledy": {k: v.get("error") for k, v in (x.get("results") or {}).items() if not v.get("ok")} or None})
+        return {"posty": R}
+    if name == "kanaly_yt":
+        import kanaly
+        return {"kalendarz": _redact(kanaly.api_kal(int(a.get("days") or 14)))}
+    if name == "hooks":
+        from agency import claude, as_json, SMART
+        from skills import sk
+        co, kom = str(a.get("co", ""))[:300], str(a.get("komentarz", ""))[:300]
+        p = f"""Wymyśl 8 hooków (pierwsze zdanie do kamery, max 12 słów, po polsku) do krótkiego filmu z wyzwania jedzeniowego: {co}.
+Komentarz widza, na który odpowiadam: {kom or "brak"}. Jeśli jest komentarz, wstęp ma być reakcją na niego.
+Wzór, który zadziałał: „Miałem ochotę na sernik, ale jestem na redukcji… więc zjem 6 kostek twarogu. Za to poświęcenie zostaw follow.”
+O mnie: 163 cm, na redukcji, luźny styl z dystansem do siebie. Bez wymyślonych kalorii. Różne struktury, do każdego tekst na ekran (max 6 słów).
+Zwróć TYLKO JSON: {{"hooki":[{{"mowa":"...","ekran":"...","typ":"..."}}],"top":[1,2,3],"dlaczego":"..."}}"""
+        return as_json(claude(p, SMART, 2500, system=sk("hook", "reel")))
+    if name == "mac_praca":
+        return {"praca": _redact(_read("mac_praca.json", {})), "nieudane_vlogi": _read("vlog_bledy.json", {})}
     raise ValueError("nieznane narzędzie")
 
 
@@ -475,7 +525,7 @@ async def mcp(token: str, req: Request):
             if meth == "initialize":
                 res = {"protocolVersion": prm.get("protocolVersion") or "2025-06-18", "capabilities": {"tools": {"listChanged": False}},
                        "serverInfo": {"name": "centrum-notatki", "version": "1.0"},
-                       "instructions": "Notatki użytkownika z jego centrum (Markdown). Używaj search/fetch do czytania, create_note/append_note do zapisu."}
+                       "instructions": "Centrum użytkownika (Bartek): notatki (search/fetch/create_note), statystyki jego kont social media (social_stats), planer publikacji (planer), kanały YT z AI (kanaly_yt), generator hooków do wyzwań jedzeniowych (hooks) i praca Maca (mac_praca). Odpowiadaj po polsku."}
             elif meth == "tools/list":
                 res = {"tools": TOOLS}
             elif meth == "tools/call":
