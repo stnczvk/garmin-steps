@@ -181,6 +181,8 @@ app.include_router(zdrowie_router)
 app.include_router(historia_router)
 from osiedle import router as osiedle_router  # noqa: E402
 app.include_router(osiedle_router)
+from widzowie import router as widzowie_router  # noqa: E402
+app.include_router(widzowie_router)
 from kanaly import router as kanaly_router  # noqa: E402
 app.include_router(kanaly_router)
 from etsy import router as etsy_router  # noqa: E402

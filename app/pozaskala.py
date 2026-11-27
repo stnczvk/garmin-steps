@@ -45,6 +45,9 @@ def _triggers(w):
 
 @router.get("/api/pozaskala/status")
 def status(force: int = 0):
+    # n8n wyłączony od 11.2026 (kanały robi centrum – dlugi.py); bez N8N_ON=1 nie odpytujemy go wcale
+    if os.environ.get("N8N_ON") != "1":
+        return {"ok": False, "off": True, "error": "n8n wyłączony – filmy robi centrum (zakładki kanałów)"}
     if _cache["data"] and not force and time.time() - _cache["t"] < 30:
         return _cache["data"]
     key = os.environ.get("N8N_API_KEY", "")

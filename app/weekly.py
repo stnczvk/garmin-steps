@@ -62,7 +62,7 @@ def _dziennik(now):
     return {"days": len(D), "kcal": round(sum(kc) / len(kc)) if kc else None, "in_goal": ok, "train": sum(1 for d in D if d.get("workout"))}
 
 
-def report():
+def report(rada=False):
     now = time.time()
     G, best = _social(now)
     out = {"t": now, "social": G, "best": best}
@@ -85,6 +85,37 @@ def report():
     except Exception:
         pass
     out["dziennik"] = _dziennik(now)
+    # twoje konta: najlepszy i najsłabszy film tygodnia na każdej platformie
+    P = {}
+    for a in (_read("cache.json", {}).get("accounts") or {}).values():
+        if a.get("group", "prywatne") != "prywatne":
+            continue
+        ps = [p for p in a.get("posts") or [] if _pts(p) >= now - 7 * 86400 and p.get("views") is not None]
+        if ps:
+            ps.sort(key=lambda p: -(p.get("views") or 0))
+            f = lambda p: {"title": (p.get("title") or "")[:70], "views": p.get("views") or 0, "url": p.get("url")}
+            P[a.get("platform")] = {"best": f(ps[0]), "worst": f(ps[-1]), "posts": len(ps)}
+    out["platformy"] = P
+    try:
+        from widzowie import hooki, _ranking
+        h = hooki()
+        out["hook"] = h[0] if h else None
+        W = [w for w in _ranking(_read("wyzwania.json", [])) if w["status"] == "nowe"]
+        out["wyzwanie"] = {"wyzwanie": W[0]["wyzwanie"], "ile": W[0]["ile"]} if W else None
+    except Exception as e:
+        print("weekly widzowie", e, flush=True)
+    try:   # jedna konkretna rada na kolejny tydzień (tylko przy wysyłce – kosztuje wywołanie AI)
+        if not rada:
+            raise StopIteration
+        from agency import claude, SMART
+        out["rada"] = claude("Jesteś doradcą twórcy (Bartek, 163 cm, codzienne filmy o jedzeniu na redukcji + wyzwania od widzów + vlog na YT). "
+                             "Na podstawie danych z tygodnia napisz JEDNĄ konkretną radę na kolejny tydzień, max 2 zdania, po polsku, bez ogólników:\n"
+                             + json.dumps({k: out.get(k) for k in ("social", "platformy", "hook", "wyzwanie", "dziennik")}, ensure_ascii=False)[:5000],
+                             SMART, 300).strip()
+    except StopIteration:
+        pass
+    except Exception as e:
+        print("weekly rada", e, flush=True)
     return out
 
 
@@ -107,6 +138,14 @@ def text(R):
         s = R["scanner"]; L.append(f"📈 Skaner: {s['trades']} zamkniętych, wynik {'+' if s['pnl'] >= 0 else ''}{s['pnl']}")
     if R.get("dziennik"):
         d = R["dziennik"]; L.append(f"🍽 Dieta: śr. {d['kcal']} kcal, w celu {d['in_goal']}/{d['days']} dni, treningi: {d['train']}")
+    for pl, x in (R.get("platformy") or {}).items():
+        L.append(f"\n{pl}: najlepszy „{x['best']['title'][:50]}” {x['best']['views']} wyśw., najsłabszy „{x['worst']['title'][:40]}” {x['worst']['views']}")
+    if R.get("hook"):
+        L.append(f"🎯 Najlepiej działa hook typu: {R['hook']['typ']} (śr. {R['hook']['sr_wyswietlen']} wyśw.)")
+    if R.get("wyzwanie"):
+        L.append(f"💡 Najczęściej proszą o: {R['wyzwanie']['wyzwanie']} ({R['wyzwanie']['ile']}×)")
+    if R.get("rada"):
+        L.append(f"\n👉 {R['rada']}")
     return "\n".join(L)
 
 
@@ -122,6 +161,21 @@ def _tg():
     tok = env.get("TELEGRAM_BOT_TOKEN") or env.get("TELEGRAM_TOKEN") or env.get("BOT_TOKEN")
     chat = env.get("TELEGRAM_CHAT_ID") or env.get("CHAT_ID") or env.get("TG_CHAT_ID")
     return tok, chat
+
+
+def push(R):
+    """Krótki raport na telefon (powiadomienie centrum)."""
+    try:
+        from extra import push_all
+        pr = (R.get("social") or {}).get("prywatne") or {}
+        b = f"{pr.get('views', 0):,} wyśw., obserwujący {'+' if pr.get('fol_d', 0) >= 0 else ''}{pr.get('fol_d', 0)}".replace(",", " ")
+        if R.get("best"):
+            b += f" · 🏆 {R['best']['title'][:40]} ({R['best']['views']})"
+        if R.get("rada"):
+            b += f" · 👉 {R['rada'][:140]}"
+        push_all("📊 Raport tygodnia", b, "/#home")
+    except Exception as e:
+        print("weekly push", e, flush=True)
 
 
 def send(R=None):
@@ -140,8 +194,9 @@ def _loop():
             wk = f"{now.isocalendar()[0]}-{now.isocalendar()[1]}"
             S = _read("weekly.json", {})
             if now.weekday() == 6 and now.hour >= 20 and S.get("sent") != wk:
-                R = report()
+                R = report(rada=True)
                 S.update(sent=wk, last=R); _write("weekly.json", S)
+                push(R)
                 send(R)
         except Exception as e:
             print("weekly", e, flush=True)
@@ -158,7 +213,10 @@ def api_weekly():
 
 @router.post("/api/weekly/send")
 def api_send():
-    return send()
+    R = report(rada=True)
+    push(R)
+    r = send(R)
+    return {**r, "push": True} if not r.get("ok") else r
 
 
 # ---------- kalendarz treści: 7 dni od dziś ----------

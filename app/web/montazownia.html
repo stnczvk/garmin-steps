@@ -199,6 +199,25 @@ details.grp{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}det
  box.onclick=async e=>{const b=e.target.closest('[data-vp]');if(!b)return;b.disabled=true;const r=await (await fetch('/api/planer/vlog-ponow',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:b.dataset.vp,typ:b.dataset.t})})).json();if(r.ok===false)alert(r.error);load()};
  load();setInterval(load,60000)})();
 </script>
+ <details class="glass" id="wz" style="margin-bottom:14px;padding:14px 16px"><summary style="cursor:pointer;font-weight:600">💡 Wyzwania od widzów <span id="wzn" style="opacity:.6;font-weight:400"></span></summary>
+  <div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;align-items:center"><button class="btn" id="wzr">Sprawdź nowe komentarze</button><span id="wzs" style="opacity:.65;font-size:13px"></span></div>
+  <div id="wzl"></div>
+  <h3 style="margin:16px 0 6px;font-size:15px">📊 Które hooki działają <small style="opacity:.6;font-weight:400">posty starsze niż 3 dni, ostatnie 45 dni</small></h3><div id="hkt" style="opacity:.8">rozwiń, żeby policzyć…</div></details>
+<script>
+(()=>{const $=i=>document.getElementById(i),E=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const ago=t=>{const m=Math.round((Date.now()/1e3-t)/60);return m<60?m+' min temu':m<1440?Math.round(m/60)+' h temu':Math.round(m/1440)+' dni temu'};
+ async function load(){const d=await (await fetch('/api/widzowie/wyzwania')).json();const W=d.wyzwania||[],S=d.stan||{};
+  $('wzn').textContent=W.filter(w=>w.status==='nowe').length?'('+W.filter(w=>w.status==='nowe').length+' nowych)':'';
+  $('wzs').textContent=S.t?('sprawdzone '+ago(S.t)+(S.bledy&&S.bledy.length?' · problem: '+S.bledy.join('; '):'')):'jeszcze nie sprawdzane';
+  $('wzl').innerHTML=W.length?W.map(w=>`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);${w.status!=='nowe'?'opacity:.45':''}"><b>${E(w.wyzwanie)}</b> <span style="opacity:.7;font-size:13px">· ${w.ile} ${w.ile===1?'osoba':'osób'} · ❤ ${w.lajki}${w.status!=='nowe'?' · '+w.status:''}</span><br><span style="opacity:.7;font-size:13px">„${E((w.glosy[0]||{}).tekst)}” – ${E((w.glosy[0]||{}).autor)} (${E((w.glosy[0]||{}).platforma)})</span><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-wh="${w.id}">🎯 Hooki</button>${w.status==='nowe'?`<button class="btn" data-ws="${w.id}" data-v="zrobione">✅ Zrobione</button><button class="btn" data-ws="${w.id}" data-v="odrzucone">✕</button>`:`<button class="btn" data-ws="${w.id}" data-v="nowe">↺</button>`}</div></div>`).join(''):'<p style="opacity:.7">Brak propozycji wyzwań w komentarzach (Instagram i YouTube; TikTok nie udostępnia komentarzy).</p>';
+  $('wzl').onclick=async e=>{const b=e.target.closest('[data-ws],[data-wh]');if(!b)return;const w=W.find(x=>x.id===(b.dataset.ws||b.dataset.wh));
+   if(b.dataset.wh){const hk=$('hk');hk.open=true;$('hkq').value=w.wyzwanie;$('hkx').value=(w.glosy[0]||{}).tekst||'';hk.scrollIntoView({behavior:'smooth'});$('hkb').click();return}
+   await fetch('/api/widzowie/wyzwania/'+w.id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:b.dataset.v})});load()}}
+ $('wzr').onclick=async()=>{$('wzr').disabled=true;$('wzs').textContent='sprawdzam komentarze…';try{await fetch('/api/widzowie/zbierz',{method:'POST'})}finally{$('wzr').disabled=false;load()}};
+ let hz=0;$('wz').addEventListener('toggle',async()=>{if(!$('wz').open||hz)return;hz=1;const d=await (await fetch('/api/widzowie/hooki')).json();const T=d.typy||[];
+  $('hkt').innerHTML=T.length?'<table style="width:100%;border-collapse:collapse;font-size:14px"><tr style="opacity:.6;text-align:left"><th>typ hooka</th><th>postów</th><th>śr. wyśw.</th><th>zaangaż.</th></tr>'+T.map((t,i)=>`<tr style="border-top:1px solid rgba(255,255,255,.08)"><td>${i===0?'🏆 ':''}${E(t.typ)}<br><small style="opacity:.6">${E(t.najlepszy&&t.najlepszy.title)}</small></td><td>${t.postow}</td><td>${t.sr_wyswietlen}</td><td>${t.zaangazowanie_proc}%</td></tr>`).join('')+'</table>':'Za mało postów do porównania.'});
+ load()})();
+</script>
  <details class="glass" id="hk" style="margin-bottom:14px;padding:14px 16px"><summary style="cursor:pointer;font-weight:600">🎯 Hooki do wyzwania</summary>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><input id="hkq" placeholder="co jem? np. 6 Drwali z McDonalda" style="flex:1 1 240px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:inherit;font:inherit">
   <input id="hkx" placeholder="komentarz widza, na który odpowiadasz (wklej)" style="flex:1 1 200px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:inherit;font:inherit">
