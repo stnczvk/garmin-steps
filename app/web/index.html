@@ -856,7 +856,7 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
  const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats-strimy": "Statystyki", "stats": "Statystyki", "stats-ps": "Statystyki", "stats-zd": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Red Tie Stories", "zdrowie": "Zdrowie 50+", "historia": "Historia", "osiedle": "Osiedle Tłumaczy", "kalendarz-yt": "Kalendarz", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
  const H=()=>[...nav.querySelectorAll('button[data-hub]')];
  let last={};try{last=JSON.parse(localStorage.getItem('hub-last')||'{}')}catch(e){}
- const subs=g=>[...nav.querySelectorAll(`button[data-sub="${g}"]`)];
+ const subs=g=>[...nav.querySelectorAll(`button[data-sub="${g}"]:not([hidden])`)];
  nav.addEventListener('click',e=>{const h=e.target.closest('button[data-hub]');if(!h)return;const g=h.dataset.hub,L=subs(g).map(b=>b.dataset.v);setView(L.includes(last[g])?last[g]:L[0],true);document.body.classList.remove('s-open')});
  let curG=null;
  function pill(anim){const on=bar.querySelector('button.on'),p=bar.querySelector('.pill');if(!on||!p)return;p.style.transition=anim?'':'none';p.style.width=on.offsetWidth+'px';p.style.transform=`translateX(${on.offsetLeft-4}px)`;
@@ -1313,7 +1313,7 @@ async function loadSettings() {
   if ($('#grp') && c.groups) {   // wybór grupy: PozaSkala, Prywatne, Strimy w Pigułce, Zdrowie 50+ …
     const cur = $('#grp').value;
     // w „Kanały YT” tylko kanały AI (PozaSkala, Zdrowie 50+), w Social Twoje konta (Prywatne, Strimy w Pigułce)
-    const fam = ['pozaskala', 'zdrowie', 'historia', 'osiedle'].includes(group || cur) ? ['pozaskala', 'zdrowie', 'historia', 'osiedle'] : ['prywatne'];
+    const fam = ['osiedle'].includes(group || cur) ? ['osiedle'] : ['prywatne'];
     $('#grp').innerHTML = Object.entries(c.groups).filter(([k]) => fam.includes(k)).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
     $('#grp').value = fam.includes(group) ? group : fam[0];
   }

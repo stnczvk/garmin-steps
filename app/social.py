@@ -20,7 +20,8 @@ _states = {}          # state OAuth -> (dostawca, grupa, czas)
 
 CFG_KEYS = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "IG_APP_ID", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_PROFILES", "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"]
 SECRET_KEYS = {"GOOGLE_CLIENT_SECRET", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_CLIENT_SECRET"}
-GROUPS = {"pozaskala": "Red Tie Stories", "prywatne": "Prywatne", "zdrowie": "Zdrowie 50+", "historia": "Historia", "osiedle": "Osiedle Tłumaczy"}   # Strimy w Pigułce usunięte (11.2026)
+GROUPS = {"prywatne": "Prywatne", "osiedle": "Osiedle Tłumaczy"}
+OFF = {"strimy", "pozaskala", "zdrowie", "historia"}   # kanały wstrzymane (11.2026) – konta zostają w tokens.json, ale centrum ich nie używa   # Strimy w Pigułce usunięte (11.2026)
 
 
 def _read(name, default):
@@ -83,7 +84,7 @@ def redirects(req: Request):
 
 # ---------------------------------------------------------------- konta
 def _accounts():
-    return {k: a for k, a in _read("tokens.json", {}).items() if a.get("group") != "strimy"}
+    return {k: a for k, a in _read("tokens.json", {}).items() if a.get("group") not in OFF}
 
 
 def _usun_strimy():
@@ -555,6 +556,7 @@ def post_details(key: str, id: str):
 @router.get("/api/social/summary")
 def summary():
     c = _read("cache.json", {})
+    c["accounts"] = {k: a for k, a in (c.get("accounts") or {}).items() if a.get("group", "prywatne") not in OFF}
     c["refreshing"] = _running.is_set()
     c["groups"] = GROUPS
     return c

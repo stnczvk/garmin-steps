@@ -677,10 +677,8 @@ G = [
     ("backup", "Kopie zapasowe", "infra", "💾", "Czy codzienna kopia danych centrum się zrobiła", g_backup),
     ("push", "Powiadomienia", "infra", "🔔", "Czy powiadomienia dochodzą na Twoje urządzenia", g_push),
     ("osiedle", "Osiedle Tłumaczy", "kanaly", "🧱", "Czy ostatni odcinek kanału się zrobił i nie czeka za długo", _g_dlugi("dlugi_osiedle", "Osiedle")),
-    ("inbox", "Inbox", "agencja", "💬", "Czy komentarze są sprawdzane (co 30 min)", g_inbox),
-    ("ret", "Retencja", "agencja", "📈", "Czy codzienna analiza retencji (7:00) się odbyła", _agent_ran("retention", "Retencja", 26, after_hour=8)),
-    ("apicost", "Środki w API", "agencja", "🪙", "Czy w OpenAI / Apify nie kończą się środki (raz na godzinę)", g_costs_api),
-    ("costs", "Koszty AI", "agencja", "💸", "Wszystkie wydatki (n8n: OpenAI, Kling; agenci) i ile zostało środków", g_costs),
+    ("apicost", "Środki w API", "infra", "🪙", "Czy w OpenAI / Apify nie kończą się środki (raz na godzinę)", g_costs_api),
+    ("costs", "Koszty AI", "infra", "💸", "Wszystkie wydatki (n8n: OpenAI, Kling; agenci) i ile zostało środków", g_costs),
     ("tokens", "Tokeny kont", "social", "🔑", "Czy logowania do YouTube/Instagrama nie wygasają", g_tokens),
     ("macdisk", "Miejsce na Macu", "social", "🗄️", "Archiwista: wolne miejsce na Macu i stare surowe klipy", g_mac_disk),
     ("mac", "Mac (vlog)", "social", "💻", "Czy Mac jest gotowy, gdy czeka montaż vloga", g_mac),
@@ -691,14 +689,8 @@ G = [
     ("okx", "Pozycje OKX", "skaner", "🔒", "Czy SL na OKX zgadza się ze skanerem (tylko odczyt – przesuwasz sam)", g_okx),
     ("journal", "Dziennik", "skaner", "📝", "Czy transakcje dostają notatki po zamknięciu", lambda: (OK, "notatki po każdym zamknięciu", None)),
     ("saudit", "Audyt skanera", "skaner", "🧾", "Czy cotygodniowy audyt się odbył", g_audit),
-    ("etsy", "Połączenie z Etsy", "etsy", "🛍️", "Czy sklep jest połączony i dane się odświeżają (co 30 min)", g_etsy_conn),
-    ("etsyl", "Oferty Etsy", "etsy", "🖼️", "Czy oferty są aktywne i mają 5 zdjęć + film (co 6 h)", g_etsy_listings),
-    ("etsyp", "Personalizacje", "etsy", "✍️", "Czy zamówienia z personalizacją są wysłane na czas (48 h)", g_etsy_pers),
-    ("etsyt", "Ruch w sklepie", "etsy", "👀", "Wyświetlenia i sprzedaż z ostatnich 7 dni", g_etsy_traffic),
-    ("etsyj", "Zmiany w ofertach", "etsy", "🔧", "Czy ostatnia podmiana / wystawianie z centrum przeszło bez błędów", g_etsy_job),
-    ("etsym", "Menedżer sklepu", "etsy", "🧭", "Codzienny audyt: tytuły, tagi, zdjęcia, film, wygasanie, konwersja, sezon (co 6 h)", g_etsy_manager),
 ]
-AREAS = {"infra": "Infrastruktura", "kanaly": "Kanały YT", "agencja": "Agencja AI", "social": "Social media", "skaner": "Skaner", "etsy": "Etsy"}
+AREAS = {"infra": "Infrastruktura", "kanaly": "Kanały YT", "social": "Social media", "skaner": "Skaner"}
 
 
 def run_all(push=True):

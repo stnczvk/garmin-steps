@@ -15,14 +15,7 @@ def _ev(ch, kind, t, title, status, extra=None):
 @router.get("/api/kanaly/kalendarz")
 def api_kal(days: int = 35):
     import sys
-    import dlugi
-    mods = [("pozaskala", dlugi)]
-    z = sys.modules.get("dlugi_zdrowie")
-    if z:
-        mods.append(("zdrowie", z))
-    h = sys.modules.get("dlugi_historia")
-    if h:
-        mods.append(("historia", h))
+    mods = []   # Red Tie, Zdrowie i Historia wstrzymane (11.2026)
     o = sys.modules.get("dlugi_osiedle")
     if o:
         mods.append(("osiedle", o))
