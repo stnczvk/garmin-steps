@@ -2070,22 +2070,39 @@ Zwróć TYLKO JSON: {{"hooki":[{{"mowa":"...","ekran":"...","typ":"nazwa struktu
 
 @router.post("/api/mont-hook/tts")
 async def hook_tts(req: Request):
-    """Lektor do testowych filmów faceless (Mac/Claude): tekst -> mp3."""
+    """Lektor do filmów faceless: tekst -> mp3. Najpierw Google TTS (kredyty Cloud), potem OpenAI."""
+    import base64 as b64
+    from fastapi.responses import Response
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=403)
     b = await req.json()
     text = (b.get("text") or "")[:1500]
-    voice = b.get("voice") if b.get("voice") in {"onyx", "nova", "echo", "alloy", "shimmer", "fable", "ash", "coral", "sage"} else "onyx"
+    if not text:
+        return JSONResponse({"error": "brak tekstu"}, status_code=400)
+    bledy = []
+    if VERTEX_JSON.exists() and b.get("engine") != "openai":
+        try:
+            p = json.loads(VERTEX_JSON.read_text())["project_id"]
+            g = str(b.get("gvoice") or "pl-PL-Chirp3-HD-Charon")[:60]
+            async with httpx.AsyncClient(timeout=120) as c:
+                r = await c.post("https://texttospeech.googleapis.com/v1/text:synthesize",
+                                 headers={"Authorization": "Bearer " + _vertex_token(), "x-goog-user-project": p},
+                                 json={"input": {"text": text}, "voice": {"languageCode": g[:5], "name": g},
+                                       "audioConfig": {"audioEncoding": "MP3", "speakingRate": float(b.get("tempo") or 1.08)}})
+            if r.status_code < 300:
+                return Response(b64.b64decode(r.json()["audioContent"]), media_type="audio/mpeg")
+            bledy.append("google: " + r.text[:300])
+        except Exception as e:
+            bledy.append("google: " + str(e)[:200])
     k = os.environ.get("OPENAI_API_KEY", "")
-    if not text or not k:
-        return JSONResponse({"error": "brak tekstu/klucza"}, status_code=400)
-    body = {"model": b.get("model") if b.get("model") in {"tts-1", "tts-1-hd", "gpt-4o-mini-tts"} else "gpt-4o-mini-tts",
-            "voice": voice, "input": text, "response_format": "mp3"}
-    if body["model"] == "gpt-4o-mini-tts" and b.get("instructions"):
-        body["instructions"] = str(b["instructions"])[:400]
-    async with httpx.AsyncClient(timeout=120) as c:
-        r = await c.post("https://api.openai.com/v1/audio/speech", headers={"Authorization": "Bearer " + k}, json=body)
-    if r.status_code >= 300:
-        return JSONResponse({"error": r.text[:200]}, status_code=502)
-    from fastapi.responses import Response
-    return Response(r.content, media_type="audio/mpeg")
+    if k:
+        voice = b.get("voice") if b.get("voice") in {"onyx", "nova", "echo", "alloy", "shimmer", "fable", "ash", "coral", "sage"} else "onyx"
+        body = {"model": "gpt-4o-mini-tts", "voice": voice, "input": text, "response_format": "mp3"}
+        if b.get("instructions"):
+            body["instructions"] = str(b["instructions"])[:400]
+        async with httpx.AsyncClient(timeout=120) as c:
+            r = await c.post("https://api.openai.com/v1/audio/speech", headers={"Authorization": "Bearer " + k}, json=body)
+        if r.status_code < 300:
+            return Response(r.content, media_type="audio/mpeg")
+        bledy.append("openai: " + r.text[:200])
+    return JSONResponse({"error": " | ".join(bledy) or "brak silnika"}, status_code=502)
