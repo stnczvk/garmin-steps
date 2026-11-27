@@ -33,7 +33,8 @@ def _read(name, default):
 
 def _write(name, data):
     p = DIR / name
-    tmp = p.with_suffix(".tmp")
+    import threading
+    tmp = p.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")   # osobny plik na wątek – równoległe zapisy się nie gryzą
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1))
     os.chmod(tmp, 0o600)
     tmp.replace(p)
