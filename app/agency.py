@@ -612,7 +612,7 @@ def _send(item, text):
 def _yt_new_comments(I, done):
     from social import _google_access, _accounts
     accs = [(k, a) for k, a in _accounts().items() if a.get("platform") == "youtube" and a.get("refresh_token")
-            and a.get("group") in PERSONY]
+            and a.get("group") in PERSONY and a.get("group") not in ("pozaskala", "zdrowie", "historia")]   # te kanały wstrzymane
     out, errs = [], []
     cache = _read("cache.json", {}).get("accounts", {})
     for key, acc in accs:

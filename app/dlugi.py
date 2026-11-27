@@ -931,7 +931,9 @@ def _loop():
                 c, now = cfg(), datetime.now(TZ)
                 S = _state()
                 today = now.strftime("%y%m%d")
-                if c["enabled"] and now.weekday() in c["days"] and now.hour >= c["hour"] and not any(x["id"].startswith(today) for x in S["items"]):
+                # Red Tie / Zdrowie / Historia wstrzymane od 27.11.2026 (słabe wyniki) – wraca po KANALY_AI_ON=1 w .env
+                wlaczony = CH == "osiedle" or os.environ.get("KANALY_AI_ON") == "1"
+                if wlaczony and c["enabled"] and now.weekday() in c["days"] and now.hour >= c["hour"] and not any(x["id"].startswith(today) for x in S["items"]):
                     produce()
                 for it in S["items"]:
                     if it.get("status") != "published" or not it.get("yt") or time.time() - it.get("published", 0) < 3600:
