@@ -20,7 +20,7 @@ _states = {}          # state OAuth -> (dostawca, grupa, czas)
 
 CFG_KEYS = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "IG_APP_ID", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_PROFILES", "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"]
 SECRET_KEYS = {"GOOGLE_CLIENT_SECRET", "IG_APP_SECRET", "APIFY_TOKEN", "TIKTOK_CLIENT_SECRET"}
-GROUPS = {"prywatne": "Prywatne", "osiedle": "Osiedle Tłumaczy"}
+GROUPS = {"prywatne": "Prywatne", "osiedle": "Osiedle Tłumaczy", "teoria": "Teoria w 30 sekund", "rekrutacja": "Rekrutacja bez Stresu"}
 OFF = {"strimy", "pozaskala", "zdrowie", "historia"}   # kanały wstrzymane (11.2026) – konta zostają w tokens.json, ale centrum ich nie używa   # Strimy w Pigułce usunięte (11.2026)
 
 

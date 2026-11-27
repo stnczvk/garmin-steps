@@ -1,0 +1,31 @@
+<!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teoria i Rekrutacja</title>
+<style>
+body{margin:0;font:15px/1.45 -apple-system,system-ui,sans-serif;background:#0b0e16;color:#e8eaf2;padding:16px}
+h1{font-size:22px;margin:4px 0 14px}.k{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:18px}
+.c{background:#151a27;border:1px solid #262d40;border-radius:16px;padding:14px}.c b{font-size:17px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+button{background:#ffc800;color:#111;border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}
+button.sec{background:#262d40;color:#e8eaf2}label{display:flex;gap:6px;align-items:center;color:#aab}
+.it{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #1f2535}
+.it video{width:90px;border-radius:8px;background:#000}.st{font-size:12px;padding:2px 8px;border-radius:99px;background:#262d40}
+.ok{background:#1f5a36}.err{background:#6a2228}.muted{color:#8b93a7;font-size:13px}
+</style>
+<h1>Teoria w 30 sekund · Rekrutacja bez Stresu</h1>
+<div class="k" id="k"></div>
+<div class="c"><b>Ostatnie filmy</b><div id="l"></div></div>
+<script>
+const api=(u,o)=>fetch(u,o).then(r=>r.json());const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+async function load(){const s=await api('/api/faceless');
+document.getElementById('k').innerHTML=Object.entries(s.kanaly).map(([k,c])=>`<div class="c"><b>${esc(c.name)}</b>
+<div class="muted">Codziennie nowy short, publikacja ${c.pub}:00${c.busy?' · <b>robi się…</b>':''}</div>
+<div class="row"><label><input type="checkbox" data-k="${k}" data-f="enabled" ${c.enabled?'checked':''}> włączony</label>
+<label><input type="checkbox" data-k="${k}" data-f="auto" ${c.auto?'checked':''}> publikuj bez zatwierdzania</label></div>
+<div class="row"><button data-run="${k}" ${c.busy?'disabled':''}>Zrób film teraz</button></div></div>`).join('');
+document.getElementById('l').innerHTML=s.items.map(x=>`<div class="it">${x.status==='gotowe'?`<video src="/api/faceless/plik/${x.id}" controls preload="none"></video>`:''}
+<div><div><b>${esc(x.title||x.name)}</b></div><div class="muted">${esc(x.name)} · ${esc(x.date)} · ${esc(x.why||'')}</div>
+<span class="st ${x.status==='gotowe'?'ok':x.status==='błąd'?'err':''}">${esc(x.status)}</span> ${x.err?`<span class="muted">${esc(x.err)}</span>`:''}</div></div>`).join('')||'<div class="muted">Jeszcze nic.</div>';}
+document.addEventListener('change',async e=>{const t=e.target;if(!t.dataset.k)return;await api(`/api/faceless/${t.dataset.k}/cfg`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({[t.dataset.f]:t.checked})});load();});
+document.addEventListener('click',async e=>{const k=e.target.dataset.run;if(!k)return;e.target.disabled=true;await api(`/api/faceless/${k}/run`,{method:'POST'});setTimeout(load,1500);});
+load();setInterval(load,20000);
+</script></html>

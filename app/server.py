@@ -185,6 +185,8 @@ from widzowie import router as widzowie_router  # noqa: E402
 app.include_router(widzowie_router)
 from parking import router as parking_router  # noqa: E402
 # app.include_router(parking_router)  # test parkingu wyłączony (27.11)
+from faceless import router as faceless_router  # noqa: E402
+app.include_router(faceless_router)
 from kanaly import router as kanaly_router  # noqa: E402
 app.include_router(kanaly_router)
 from etsy import router as etsy_router  # noqa: E402
@@ -206,7 +208,7 @@ def index():
     return FileResponse(HERE / "web" / "index.html")
 
 
-PAGES = {"home": "home.html", "poczta": "poczta.html", "tresci": "tresci.html", "klipping": "klipping.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html", "kalendarz-yt": "kalendarz-yt.html"}
+PAGES = {"home": "home.html", "poczta": "poczta.html", "tresci": "tresci.html", "klipping": "klipping.html", "agencja": "agencja.html", "pozaskala": "pozaskala.html", "skaner": "skaner.html", "skaner-stats": "skaner-stats.html", "skaner-sygnaly": "skaner-sygnaly.html", "skaner-boty": "skaner-boty.html", "straznicy": "straznicy.html", "powiadomienia": "powiadomienia.html", "montazownia": "montazownia.html", "notatki": "notatki.html", "hasla": "hasla.html", "etsy": "etsy.html", "kalendarz-yt": "kalendarz-yt.html", "faceless": "faceless.html"}
 
 
 def _page(req: Request, name: str):

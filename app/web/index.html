@@ -789,6 +789,7 @@ body.kb #hm{height:var(--vh,100dvh);bottom:auto;top:0}
     <button data-v="zdrowie" data-sub="ps" hidden><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></i><span>Zdrowie 50+</span></button>
     <button data-v="historia" data-sub="ps" hidden><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></i><span>Historia</span></button>
     <button data-v="osiedle" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"/></svg></i><span>Osiedle</span></button>
+    <button data-v="faceless" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5l4 2.5-4 2.5z"/></svg></i><span>Teoria i Rekrutacja</span></button>
     <button data-v="stats-ps" data-sub="ps"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i><span>Statystyki</span></button>
     <button data-v="etsy" hidden><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></i><span>Etsy</span></button>
     <div class="s-sep"></div>
@@ -853,7 +854,7 @@ body.has-subt .subt{display:block}
 </style>
 <script>
 addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav'),bar=document.getElementById('subt');if(!nav||!bar)return;
- const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats-strimy": "Statystyki", "stats": "Statystyki", "stats-ps": "Statystyki", "stats-zd": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Red Tie Stories", "zdrowie": "Zdrowie 50+", "historia": "Historia", "osiedle": "Osiedle Tłumaczy", "kalendarz-yt": "Kalendarz", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
+ const LAB={"tresci": "Kalendarz", "montazownia": "Montażownia", "klipping": "Filmy ze streamów", "kalendarz-strimy": "Kalendarz", "stats-strimy": "Statystyki", "stats": "Statystyki", "stats-ps": "Statystyki", "stats-zd": "Statystyki", "agencja": "Agencja AI", "pozaskala": "Red Tie Stories", "zdrowie": "Zdrowie 50+", "historia": "Historia", "osiedle": "Osiedle Tłumaczy", "faceless": "Teoria i Rekrutacja", "kalendarz-yt": "Kalendarz", "skaner": "Biuro", "skaner-sygnaly": "Sygnały", "skaner-stats": "Statystyki", "skaner-boty": "Boty", "straznicy": "Strażnicy", "hasla": "Hasła", "notatki": "Notatki"};
  const H=()=>[...nav.querySelectorAll('button[data-hub]')];
  let last={};try{last=JSON.parse(localStorage.getItem('hub-last')||'{}')}catch(e){}
  const subs=g=>[...nav.querySelectorAll(`button[data-sub="${g}"]:not([hidden])`)];
@@ -909,6 +910,8 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
       <button data-g="" aria-pressed="true">Wszystkie</button>
       <button data-g="prywatne" aria-pressed="false">👤 Prywatne</button>
       <button data-g="osiedle" aria-pressed="false">🧱 Osiedle</button>
+      <button data-g="teoria" aria-pressed="false">🚗 Teoria</button>
+      <button data-g="rekrutacja" aria-pressed="false">💼 Rekrutacja</button>
     </div></div>
   </div>
   <div id="msg"></div>
@@ -1310,7 +1313,7 @@ async function loadSettings() {
   if ($('#grp') && c.groups) {   // wybór grupy: PozaSkala, Prywatne, Strimy w Pigułce, Zdrowie 50+ …
     const cur = $('#grp').value;
     // w „Kanały YT” tylko kanały AI (PozaSkala, Zdrowie 50+), w Social Twoje konta (Prywatne, Strimy w Pigułce)
-    const fam = ['osiedle'].includes(group || cur) ? ['osiedle'] : ['prywatne'];
+    const fam = ['osiedle', 'teoria', 'rekrutacja'].includes(group || cur) ? ['osiedle', 'teoria', 'rekrutacja'] : ['prywatne'];
     $('#grp').innerHTML = Object.entries(c.groups).filter(([k]) => fam.includes(k)).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
     $('#grp').value = fam.includes(group) ? group : fam[0];
   }
@@ -1532,7 +1535,7 @@ $('#theme').onclick = e => {
 setTheme(document.documentElement.dataset.theme || 'auto');
 
 // widoki z menu bocznego: Ekran główny / Statystyki / Agencja AI / Pipeline / Skaner (osobne strony w iframe, ładowane raz)
-const VIEWS = ['home', 'straznicy', 'powiadomienia', 'poczta', 'tresci', 'montazownia', 'klipping', 'kalendarz-strimy', 'notatki', 'hasla', 'etsy', 'stats', 'stats-ps', 'stats-zd', 'stats-strimy', 'agencja', 'pozaskala', 'zdrowie', 'kalendarz-yt', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty', 'historia', 'osiedle'];
+const VIEWS = ['home', 'straznicy', 'powiadomienia', 'poczta', 'tresci', 'montazownia', 'klipping', 'kalendarz-strimy', 'notatki', 'hasla', 'etsy', 'stats', 'stats-ps', 'stats-zd', 'stats-strimy', 'agencja', 'pozaskala', 'zdrowie', 'kalendarz-yt', 'skaner', 'skaner-sygnaly', 'skaner-stats', 'skaner-boty', 'historia', 'osiedle', 'faceless'];
 function vRepaint() { const box = document.getElementById('vframe'); if (!box || !document.body.classList.contains('v-ext')) return;
   box.style.display = 'none'; void box.offsetHeight; box.style.display = '';
   // Safari / aplikacja z Docka (WebKit) potrafi dalej malować obraz poprzedniej zakładki, choć w środku jest już nowa –
