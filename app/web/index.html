@@ -907,10 +907,7 @@ addEventListener('DOMContentLoaded',()=>{const nav=document.getElementById('snav
     <div class="seg big" role="group" aria-label="Grupa kont" id="tabs">
       <span class="pill"></span>
       <button data-g="" aria-pressed="true">Wszystkie</button>
-      <button data-g="pozaskala" aria-pressed="false">👔 Red Tie Stories</button>
       <button data-g="prywatne" aria-pressed="false">👤 Prywatne</button>
-      <button data-g="zdrowie" aria-pressed="false">🩺 Zdrowie 50+</button>
-      <button data-g="historia" aria-pressed="false">📜 Historia</button>
       <button data-g="osiedle" aria-pressed="false">🧱 Osiedle</button>
     </div></div>
   </div>
@@ -1548,7 +1545,7 @@ function setView(v, push) {
   document.querySelectorAll('#snav button').forEach(x => x.dataset.v === v ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
   const isS = v === 'stats' || v === 'stats-ps' || v === 'stats-zd' || v === 'stats-strimy';
   document.body.classList.toggle('v-ext', !isS); document.body.dataset.view = v;
-  if (isS) { const gb = $('#tabs').querySelector(`[data-g="${({stats: 'prywatne', 'stats-ps': 'pozaskala', 'stats-zd': 'zdrowie', 'stats-strimy': 'strimy'})[v]}"]`); if (gb && gb.getAttribute('aria-pressed') !== 'true') { gb.click(); try { loadSettings(); } catch (e) {} } try { renderReport(); } catch (e) {} }
+  if (isS) { const gb = $('#tabs').querySelector(`[data-g="${({stats: 'prywatne', 'stats-ps': 'osiedle', 'stats-zd': 'osiedle', 'stats-strimy': 'prywatne'})[v]}"]`); if (gb && gb.getAttribute('aria-pressed') !== 'true') { gb.click(); try { loadSettings(); } catch (e) {} } try { renderReport(); } catch (e) {} }
   document.body.classList.remove('s-open');
   document.documentElement.style.setProperty('--hh', $('#head').offsetHeight + 'px');
   const box = $('#vframe');
