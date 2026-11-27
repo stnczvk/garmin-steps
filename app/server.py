@@ -72,7 +72,7 @@ def check_pass(pw):
 @app.middleware("http")
 async def guard(req: Request, call_next):
     # /api/agency/hook/* woła n8n – tam sprawdzany jest token agencji, nie sesja
-    if req.url.path.startswith("/api/") and req.url.path != "/api/login" and not req.url.path.startswith(("/api/agency/hook/", "/api/mont-hook/")) and not authed(req):
+    if req.url.path.startswith("/api/") and req.url.path != "/api/login" and not req.url.path.startswith(("/api/agency/hook/", "/api/mont-hook/", "/api/pub/")) and not authed(req):
         return JSONResponse({"error": "auth"}, status_code=401)
     try:
         resp = await call_next(req)
@@ -183,6 +183,8 @@ from osiedle import router as osiedle_router  # noqa: E402
 app.include_router(osiedle_router)
 from widzowie import router as widzowie_router  # noqa: E402
 app.include_router(widzowie_router)
+from parking import router as parking_router  # noqa: E402
+app.include_router(parking_router)
 from kanaly import router as kanaly_router  # noqa: E402
 app.include_router(kanaly_router)
 from etsy import router as etsy_router  # noqa: E402

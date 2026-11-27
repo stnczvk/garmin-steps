@@ -381,6 +381,8 @@ TOOLS = [
     {"name": "hooks", "description": "Generator hooków (pierwsze zdanie filmu) do wyzwań jedzeniowych użytkownika. co = co je w wyzwaniu; "
      "komentarz = komentarz widza, na który odpowiada filmem (wtedy wstęp jest reakcją na komentarz, w stylu jego hitu z twarogiem).",
      "inputSchema": {"type": "object", "properties": {"co": {"type": "string"}, "komentarz": {"type": "string"}}, "required": ["co"]}},
+    {"name": "parking_stats", "description": "Test strony /parking (odwołania od kar za parking pod marketem): wejścia, oceny, kliknięcia 'chcę odwołanie za 19 zł', zapisane e-maile – po dniach.",
+     "inputSchema": {"type": "object", "properties": {}}},
     {"name": "mac_praca", "description": "Co teraz robi Mac użytkownika (montaż vloga, klipy, miniatury) i czy jakiś vlog się nie przetworzył.",
      "inputSchema": {"type": "object", "properties": {}}},
 ]
@@ -498,6 +500,9 @@ Wzór, który zadziałał: „Miałem ochotę na sernik, ale jestem na redukcji�
 O mnie: 163 cm, na redukcji, luźny styl z dystansem do siebie. Bez wymyślonych kalorii. Różne struktury, do każdego tekst na ekran (max 6 słów).
 Zwróć TYLKO JSON: {{"hooki":[{{"mowa":"...","ekran":"...","typ":"..."}}],"top":[1,2,3],"dlaczego":"..."}}"""
         return as_json(claude(p, SMART, 2500, system=sk("hook", "reel")))
+    if name == "parking_stats":
+        import parking
+        return parking.stats()
     if name == "mac_praca":
         return {"praca": _redact(_read("mac_praca.json", {})), "nieudane_vlogi": _read("vlog_bledy.json", {})}
     raise ValueError("nieznane narzędzie")
