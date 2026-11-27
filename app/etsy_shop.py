@@ -109,6 +109,9 @@ def run():
 def _loop():
     time.sleep(240)
     while True:
+        if __import__("os").environ.get("ETSY_ON") != "1":   # sklep uśpiony od 27.11.2026
+            time.sleep(3600)
+            continue
         R = _read(OUT, {})
         if time.time() - (R.get("at") or 0) > 6 * 3600:
             run()

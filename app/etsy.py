@@ -137,7 +137,7 @@ def _loop():
         time.sleep(90)
         while True:
             try:
-                if _cfg().get("refresh"):
+                if _cfg().get("refresh") and __import__("os").environ.get("ETSY_ON") == "1":   # sklep uśpiony od 27.11.2026
                     sync()
             except Exception as e:
                 D = _read(DATA, {})
