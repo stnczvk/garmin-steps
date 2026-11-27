@@ -2066,3 +2066,26 @@ Zwróć TYLKO JSON: {{"hooki":[{{"mowa":"...","ekran":"...","typ":"nazwa struktu
     if not isinstance(r, dict) or not r.get("hooki"):
         return {"error": "AI nie zwróciło hooków – spróbuj jeszcze raz"}
     return r
+
+
+@router.post("/api/mont-hook/tts")
+async def hook_tts(req: Request):
+    """Lektor do testowych filmów faceless (Mac/Claude): tekst -> mp3."""
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=403)
+    b = await req.json()
+    text = (b.get("text") or "")[:1500]
+    voice = b.get("voice") if b.get("voice") in {"onyx", "nova", "echo", "alloy", "shimmer", "fable", "ash", "coral", "sage"} else "onyx"
+    k = os.environ.get("OPENAI_API_KEY", "")
+    if not text or not k:
+        return JSONResponse({"error": "brak tekstu/klucza"}, status_code=400)
+    body = {"model": b.get("model") if b.get("model") in {"tts-1", "tts-1-hd", "gpt-4o-mini-tts"} else "gpt-4o-mini-tts",
+            "voice": voice, "input": text, "response_format": "mp3"}
+    if body["model"] == "gpt-4o-mini-tts" and b.get("instructions"):
+        body["instructions"] = str(b["instructions"])[:400]
+    async with httpx.AsyncClient(timeout=120) as c:
+        r = await c.post("https://api.openai.com/v1/audio/speech", headers={"Authorization": "Bearer " + k}, json=body)
+    if r.status_code >= 300:
+        return JSONResponse({"error": r.text[:200]}, status_code=502)
+    from fastapi.responses import Response
+    return Response(r.content, media_type="audio/mpeg")

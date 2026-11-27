@@ -184,7 +184,7 @@ app.include_router(osiedle_router)
 from widzowie import router as widzowie_router  # noqa: E402
 app.include_router(widzowie_router)
 from parking import router as parking_router  # noqa: E402
-app.include_router(parking_router)
+# app.include_router(parking_router)  # test parkingu wyłączony (27.11)
 from kanaly import router as kanaly_router  # noqa: E402
 app.include_router(kanaly_router)
 from etsy import router as etsy_router  # noqa: E402
