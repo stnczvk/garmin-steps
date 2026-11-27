@@ -28,7 +28,7 @@ CH = {
                    "tags": ["rozmowa o pracę", "rekrutacja", "pytania rekrutacyjne", "jak odpowiedzieć", "praca", "CV"],
                    "cta": "Zapisz, zanim pójdziesz na rozmowę. Jutro kolejne pytanie."},
 }
-DEF = {"enabled": True, "auto": True}
+DEF = {"enabled": False, "auto": True}   # włączamy po rebrandingu kanałów
 
 TEORIA_TEMATY = [
     "pierwszeństwo na skrzyżowaniu równorzędnym (prawa ręka)", "skręt w lewo a pojazd z naprzeciwka", "znak ustąp pierwszeństwa na skrzyżowaniu",
