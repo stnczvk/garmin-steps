@@ -2,6 +2,8 @@
 następne filmy z harmonogramu) + codzienny short PozaSkali z n8n."""
 import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+TZ = ZoneInfo("Europe/Warsaw")
 
 from fastapi import APIRouter
 
@@ -44,9 +46,25 @@ def api_kal(days: int = 35):
                 if dd.weekday() in c["days"] and dd.timestamp() > now - 3600 and dd.strftime("%y%m%d") not in made:
                     pub = m.us_slot(after=dd.timestamp() + 3 * 3600, min_lead=0).timestamp()
                     E.append(_ev(ch, "film", pub, "Nowy film z harmonogramu", "plan"))
-    # codzienny short PozaSkali z n8n (publikacja o północy)
-    d0 = datetime.now(dlugi.TZ).replace(hour=0, minute=0, second=0, microsecond=0)
-    for k in range(1, days + 1):
-        E.append(_ev("pozaskala", "short", (d0 + timedelta(days=k)).timestamp(), "Short PozaSkala (n8n)", "plan"))
+    # Teoria w 30 sekund + Rekrutacja bez Stresu: shorty z planera (+ plan kolejnych dni)
+    try:
+        import planer, faceless
+        dni = {}
+        for x in planer.plan():
+            g = x.get("group")
+            if g in faceless.CH and x.get("status") != "skipped":
+                st = {"published": "opublikowany", "approved": "zaplanowany", "draft": "do zatwierdzenia", "error": "błąd"}.get(x["status"], x["status"])
+                E.append(_ev(g, "short", x["when"], x.get("label", ""), st, {"yt": ((x.get("results") or {}).get("youtube") or {}).get("id")}))
+                dni.setdefault(g, set()).add(datetime.fromtimestamp(x["when"], TZ).strftime("%Y-%m-%d"))
+        for g, c in faceless.CH.items():
+            if not faceless.cfg(g).get("enabled"):
+                continue
+            d0 = datetime.now(TZ).replace(hour=c["pub"], minute=0, second=0, microsecond=0)
+            for k in range(days):
+                dd = d0 + timedelta(days=k)
+                if dd.timestamp() > now and dd.strftime("%Y-%m-%d") not in dni.get(g, set()):
+                    E.append(_ev(g, "short", dd.timestamp(), c["name"] + ": nowy short", "plan"))
+    except Exception as e:
+        print("kanaly kalendarz faceless:", e, flush=True)
     E = [e for e in E if now - 7 * 86400 <= e["t"] <= end]
     return {"events": sorted(E, key=lambda e: e["t"])}
