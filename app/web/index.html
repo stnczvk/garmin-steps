@@ -2112,6 +2112,15 @@ body:not(.s-wide) #snind:before{left:-13px}
 #cmdk li small{margin-left:auto;opacity:.55;font-size:12px;white-space:nowrap}#cmdk li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #cmdk li.on{background:color-mix(in srgb,var(--ac,#8a8cff) 22%,transparent)}
 #cmdk .hd{padding:8px 12px 2px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.5;cursor:default}
+
+/* ===== K2: Statystyki ===== */
+#app .kpi{display:flex;flex-direction:column}
+#app .kpi .k{font-size:12px!important;font-weight:600!important;letter-spacing:.1em;text-transform:uppercase;color:rgba(236,235,248,.62)!important}
+#app .kpi .v{font-family:"Space Grotesk",Geist,sans-serif!important;font-size:28px!important}
+#app .kpi .kspark{position:static!important;width:auto!important;height:54px!important;margin:12px -20px -16px!important;opacity:1!important}
+#app .kpi .kspark polyline,#app .kpi .kspark path{filter:drop-shadow(0 0 3px currentColor)}
+#app .kpi .chip{border-radius:99px!important}
+@media(max-width:760px){#app .kpis{display:grid!important;grid-template-columns:1fr 1fr;overflow:visible;margin-left:0;margin-right:0;padding:0}#app .kpis>.kpi{min-width:0!important;width:auto!important}#app .kpi .v{font-size:24px!important}}
 </style>
 <div id="cmdk" role="dialog" aria-label="Szukaj"><div class="bx"><input id="cki" placeholder="Przejdź do…, szukaj w notatkach albo wpisz notatkę" autocomplete="off"><ul id="ckl"></ul></div></div>
 <script>
