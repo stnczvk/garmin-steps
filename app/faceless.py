@@ -121,24 +121,34 @@ def _migr():
 
 
 # ---------------------------------------------------------------- Google: Gemini + TTS
-MODELS = [m for m in [os.environ.get("FACELESS_MODEL", "")] if m] + ["gemini-2.5-flash", "gemini-3-flash", "gemini-flash-latest", "gemini-2.0-flash-001"]
+MODELS = [m for m in [os.environ.get("FACELESS_MODEL", "")] if m] + [
+    "gemini-3-flash-preview", "gemini-3.1-flash-preview", "gemini-3-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
+_OK = {}
+
+
+def _gurl(loc, m):
+    from montaz import VERTEX_JSON
+    p = json.loads(VERTEX_JSON.read_text())["project_id"]
+    host = "aiplatform.googleapis.com" if loc == "global" else f"{loc}-aiplatform.googleapis.com"
+    return f"https://{host}/v1/projects/{p}/locations/{loc}/publishers/google/models/{m}:generateContent"
 
 
 def gemini(prompt, temp=0.9):
-    from montaz import _vertex_token, _vx_url
+    from montaz import _vertex_token
+    combos = ([_OK["c"]] if _OK.get("c") else []) + [(l, m) for m in MODELS for l in ("global", "us-central1")]
     err = []
-    for m in MODELS:
-        r = httpx.post(_vx_url(m, "generateContent"), timeout=180, headers={"Authorization": "Bearer " + _vertex_token()},
+    for loc, m in combos:
+        r = httpx.post(_gurl(loc, m), timeout=180, headers={"Authorization": "Bearer " + _vertex_token()},
                        json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
                              "generationConfig": {"responseMimeType": "application/json", "temperature": temp}})
         if r.status_code == 200:
             j = r.json()
-            txt = "".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"])
-            MODELS.remove(m)
-            MODELS.insert(0, m)   # działający model na początek
+            txt = "".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought"))
+            _OK["c"] = (loc, m)
             return json.loads(txt)
-        err.append(f"{m}: {r.status_code} {r.text[:150]}")
+        err.append(f"{m}@{loc}: {r.status_code}")
         if r.status_code not in (400, 404):
+            err.append(r.text[:200])
             break
     raise RuntimeError("Gemini: " + " | ".join(err))
 
