@@ -123,3 +123,28 @@ html[data-theme=light] #ktoast div{background:#fff;color:#14163a;box-shadow:0 0 
 :is(.colx,.mg) :is(p.empty,div.empty)::after{left:14px;top:50%;margin:-15px 0 0;width:30px;height:30px;font-size:14px}
 /* odstęp pustej ramki od nagłówka karty (ramka nie dotyka ikonki) */
 :is(.t,.card,.sec,.box,section)>h3+:is(div,p) :is(p.empty,div.empty):first-child,:is(.t,.card,.sec,.box,section)>h3+:is(p.empty,div.empty),:is(p.empty,div.empty){margin-top:14px!important}
+
+/* ===================== MOTYW K2 (11.2026) – nadpisuje „Kosmos”. Usuń ten blok, żeby wrócić. ===================== */
+html:not([data-theme=light]){--k-bg:#0b0b12;--k-c1:rgba(255,255,255,.06);--k-c2:rgba(255,255,255,.015);--k-ac:#9d8cf0;--k-li:#d7ceff;--k-ln:rgba(255,255,255,.08);
+ --lg-base:#0b0b12!important;--acc:#9d8cf0!important;--ac:#9d8cf0!important;--ac2:#d7ceff!important;--accent:#9d8cf0!important;--o-ac:#9d8cf0!important;--bg:#0b0b12!important;background:#0b0b12!important}
+html:not([data-theme=light]) body:after{background:
+ radial-gradient(900px 560px at 18% -10%,rgba(157,140,240,.34),transparent 62%),
+ radial-gradient(700px 500px at 105% 8%,rgba(111,195,223,.16),transparent 60%),
+ radial-gradient(700px 500px at 50% 115%,rgba(240,163,196,.12),transparent 60%),#0b0b12!important}
+html:not([data-theme=light]) :is(.lg .glass,.lg .card,.lg .kpi,.lg .stage,.lg #panel,.t,.sec,.box){
+ background:linear-gradient(165deg,rgba(255,255,255,.065),rgba(255,255,255,.018))!important;border:1px solid rgba(255,255,255,.085)!important;
+ -webkit-backdrop-filter:blur(16px) saturate(130%)!important;backdrop-filter:blur(16px) saturate(130%)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 18px 44px -26px rgba(0,0,0,.9)!important;transition:transform .18s ease,border-color .18s ease}
+@media (hover:hover){html:not([data-theme=light]) :is(.t,.lg .card,.lg .kpi):hover{border-color:rgba(157,140,240,.38)!important;transform:translateY(-1px)}}
+html:not([data-theme=light]) :is(.t .btn:not(.g),.lg .btn.pri,.lg .btn.primary,.lg button.main){background:linear-gradient(135deg,#9d8cf0,#7f6fd6)!important;color:#fff!important;box-shadow:0 10px 26px -12px rgba(157,140,240,.55)!important}
+html:not([data-theme=light]) :is(.lg #side,.side){background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;-webkit-backdrop-filter:blur(18px) saturate(130%)!important;backdrop-filter:blur(18px) saturate(130%)!important;border:1px solid rgba(255,255,255,.08)!important}
+html:not([data-theme=light]) #snav button[aria-current=page]{background:linear-gradient(135deg,rgba(157,140,240,.26),rgba(111,195,223,.09))!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(157,140,240,.38),0 8px 22px -14px rgba(157,140,240,.6)!important}
+html:not([data-theme=light]) #snav button[aria-current=page]:before{background:#9d8cf0!important;box-shadow:0 0 12px #9d8cf0!important}
+html:not([data-theme=light]) #snav button[aria-current=page] i{color:#d7ceff!important}
+html:not([data-theme=light]) .s-badge{background:rgba(240,163,196,.2)!important;color:#f0a3c4!important}
+html:not([data-theme=light]) .tbar{background:rgba(16,16,26,.78)!important;-webkit-backdrop-filter:blur(18px)!important;backdrop-filter:blur(18px)!important}
+html:not([data-theme=light]) .tbar button.on{background:linear-gradient(135deg,rgba(157,140,240,.35),rgba(111,195,223,.12))!important;box-shadow:inset 0 0 0 1px rgba(157,140,240,.4)!important}
+html:not([data-theme=light]) .tbar button.on svg{color:#d7ceff!important}
+html:not([data-theme=light]) .lg .seg .pill,html:not([data-theme=light]) .thm button.on{background:linear-gradient(135deg,rgba(157,140,240,.34),rgba(111,195,223,.13))!important;box-shadow:inset 0 0 0 1px rgba(157,140,240,.4)!important;color:#fff!important}
+html:not([data-theme=light]) :is(.lg .wrap>h1:first-child,.lg .intro-l h1,.top h1){background:linear-gradient(120deg,#fff 40%,#9d8cf0);-webkit-background-clip:text;background-clip:text;color:transparent}
+html:not([data-theme=light]) .lg ::-webkit-scrollbar-thumb{background:rgba(157,140,240,.3)!important}

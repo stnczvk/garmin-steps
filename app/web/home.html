@@ -298,6 +298,32 @@ html:not([data-theme=light]) .btn.g,html:not([data-theme=light]) .health,html:no
 html:not([data-theme=light]) .thm button.on{background:linear-gradient(135deg,rgba(157,140,240,.33),rgba(111,195,223,.13));box-shadow:inset 0 0 0 1px rgba(157,140,240,.4);color:#fff}
 html:not([data-theme=light]) .chip.ac{background:rgba(157,140,240,.18);color:#d7ceff}
 html:not([data-theme=light]) .big{background:linear-gradient(120deg,#fff 40%,#9d8cf0);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ===== MOTYW K2: układ ekranu głównego ===== */
+.kp>.t:nth-child(2){grid-column:span 2;order:-3}
+.kp>.nxt{order:-2}.kp>.t:nth-child(4){order:-1}
+.kp>.t:nth-child(1),.kp>.t:nth-child(3){grid-column:span 2}
+.kp>.t:nth-child(2) .kv{font-size:60px;letter-spacing:-.05em;margin-top:14px}
+html body #kp>#nxt.nxt{cursor:pointer;color:#fff;background:linear-gradient(155deg,#9d8cf0,#6b5bc4 70%,#4f4296)!important;border:0!important;box-shadow:0 20px 44px -22px #9d8cf0!important;overflow:hidden}
+.nxt:before{content:"";position:absolute;right:-50px;top:-50px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.25),transparent 70%)}
+.nxt h3{color:rgba(255,255,255,.88)!important;font-size:12px!important;font-weight:700!important;letter-spacing:.1em;text-transform:uppercase}
+.nxt .kv{font-size:46px;color:#fff;-webkit-text-fill-color:#fff;background:none}
+.nxt .kd{color:#fff;display:flex;flex-direction:column;gap:4px}.nxt .kd b{font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nxin{opacity:.85}.nxp{display:flex;gap:5px;flex-wrap:wrap}.nxp i{font-style:normal;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.2)}
+.nowl{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:11px;font-weight:700;color:#f0a3c4}
+.nowl:before{content:"";width:10px;height:2px;background:#f0a3c4}.nowl:after{content:"";flex:1;height:1px;background:rgba(240,163,196,.35)}
+.ev{position:relative}
+.ev .dt.f{border-color:#6fc3df}
+.ev.nxt1{background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(157,140,240,.35);border-radius:12px;padding:7px 8px;margin:4px -8px}
+.ev.nxt1 .dt{background:#9d8cf0!important;border:0!important;box-shadow:0 0 0 4px rgba(157,140,240,.22),0 0 12px #9d8cf0}
+.ev.nxt1 time{color:#c9bdff;font-weight:700}
+html:not([data-theme=light]) body #kp>.t.k:nth-child(2){background:linear-gradient(165deg,#1a1830,#13131d) padding-box,linear-gradient(135deg,rgba(157,140,240,.7),rgba(255,255,255,.08) 55%,rgba(111,195,223,.35)) border-box!important;border:1px solid transparent!important}
+html:not([data-theme=light]) .kp>.t:nth-child(2) .kv,html:not([data-theme=light]) .top h1{background:linear-gradient(120deg,#fff 40%,#9d8cf0);-webkit-background-clip:text;background-clip:text;color:transparent}
+html:not([data-theme=light]) .ev.done .dt{background:rgba(236,235,248,.35)}
+html:not([data-theme=light]) .qa button{background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015));border-color:rgba(255,255,255,.08);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+html:not([data-theme=light]) .qn input,html:not([data-theme=light]) #qni{background:rgba(255,255,255,.04)!important;border-color:rgba(255,255,255,.08)!important}
+html:not([data-theme=light]) .grp:after{background:linear-gradient(90deg,rgba(157,140,240,.45),transparent)}
+@media(max-width:1180px){.kp>.t{grid-column:auto!important}}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -310,7 +336,7 @@ html:not([data-theme=light]) .big{background:linear-gradient(120deg,#fff 40%,#9d
   <div class="thm" id="thm" role="group" aria-label="Motyw"><button data-t="auto">Auto</button><button data-t="light">Jasny</button><button data-t="dark">Ciemny</button></div>
  </div>
 <div class="qa"><form class="qn" id="qn"><input id="qni" placeholder="Szybka notatka – Enter zapisuje do Skrzynki" autocomplete="off"></form><button data-go="notatki"><span class="hi" style="--c:#8b7cc7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></span><span>Notatka</span></button><button data-go="montazownia"><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2v8l-4-2"/></svg></span><span>Nowy montaż</span></button><button data-go="hasla"><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg></span><span>Hasło</span></button><button onclick="document.getElementById('plc').scrollIntoView({behavior:'smooth'})"><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span><span>Posty</span></button></div>
- <div class="kp" id="kp"><div class="t k"><h3><span class="hi" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></span>Obserwujący</h3><div class="kv tn" id="kv0">–</div><div class="kd" id="kd0"></div><div class="ks" id="ks0"></div></div><div class="t k"><h3><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Wyświetlenia 7 dni</h3><div class="kv tn" id="kv1">–</div><div class="kd" id="kd1"></div><div class="ks" id="ks1"></div></div><div class="t k"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Skaner 30 dni</h3><div class="kv tn" id="kv2">–</div><div class="kd" id="kd2"></div><div class="ks" id="ks2"></div></div><div class="t k"><h3><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>Do zrobienia</h3><div class="kv tn" id="kv3">–</div><div class="kd" id="kd3"></div><div class="ks" id="ks3"></div></div></div>
+ <div class="kp" id="kp"><div class="t k"><h3><span class="hi" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></span>Obserwujący</h3><div class="kv tn" id="kv0">–</div><div class="kd" id="kd0"></div><div class="ks" id="ks0"></div></div><div class="t k"><h3><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Wyświetlenia 7 dni</h3><div class="kv tn" id="kv1">–</div><div class="kd" id="kd1"></div><div class="ks" id="ks1"></div></div><div class="t k"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Skaner 30 dni</h3><div class="kv tn" id="kv2">–</div><div class="kd" id="kd2"></div><div class="ks" id="ks2"></div></div><div class="t k"><h3><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>Do zrobienia</h3><div class="kv tn" id="kv3">–</div><div class="kd" id="kd3"></div><div class="ks" id="ks3"></div></div><div class="t k nxt" id="nxt" data-go="tresci"><h3>Następna publikacja</h3><div class="kv tn" id="nxv">–</div><div class="kd" id="nxd"></div></div></div>
  <div id="nowtop" style="display:none;margin-bottom:10px"></div>
  <div class="mg">
   <aside class="t" id="dayc"><h3><span class="hi" style="--c:#8b7cc7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>Twój dzień<span class="r" style="display:flex;align-items:center"><span class="chip" id="dname"></span><span id="tlc"></span></span></h3><div class="tlx" id="tl"><div class="sk" style="margin-top:10px"></div></div><div class="kw" id="kalc"><div class="kwh"><b>Kalendarz treści</b><small id="kals"></small></div><div class="kws" id="kal"></div><div class="kwl" id="kall"></div></div></aside>
@@ -397,7 +423,7 @@ function timeline(A,P,V,F,PL){
   +(aft.length?`<div class="ph">Po południu</div>${aft.slice(-12).map(e=>row(e,'done')).join('')}`:'')
   +(!ev.length?'<p class="empty">Dziś jeszcze nic się nie wydarzyło.</p>':'')
   +nowHtml
-  +(later.length?`<div class="ph">Później</div>${later.map(e=>row(e,'f').replace('class="ev f','class="ev')).join('')}`:'');
+  +(later.length?`<div class="nowl"><span>teraz ${hm(Date.now())}</span></div><div class="ph">Później</div>${later.map((e,i)=>row(e,'f').replace('class="ev f',i?'class="ev':'class="ev nxt1')).join('')}`:'');
  $('tlc').innerHTML=ev.length?`<button class="clr" data-hideall="${ev.map(e=>e.k).join(' ')}">Wyczyść</button>`:'';
  $('nowtop').innerHTML=nowHtml.replace(/class="now"/g,'class="now" style="margin:0 0 10px"');
  return now;
@@ -440,6 +466,13 @@ function walletDraw(){const W=WAL;if(!W)return;
  box.onmousemove=mv;box.ontouchstart=box.ontouchmove=mv;box.onmouseleave=box.ontouchend=()=>{tip.hidden=ln.hidden=true};
 }
 
+// ---------- następna publikacja (motyw K2) ----------
+function nextCard(){const x=typeof NX!=='undefined'?NX:null;if(!x){$('nxv').textContent='—';$('nxd').innerHTML='Nic nie jest zaplanowane';return}
+ const t=x.when*1000,m=Math.max(0,Math.round((t-Date.now())/6e4)),h=Math.floor(m/60);
+ $('nxv').textContent=hm(t);
+ const pl={instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok',facebook:'Facebook'};
+ $('nxd').innerHTML=`<span class="nxin">${m<1440?'za '+(h?h+' h ':'')+(m%60)+' min':new Date(t).toLocaleDateString('pl',{weekday:'long'})}</span><b>${esc(x.label||'Post')}</b><span class="nxp">${(x.platforms||[]).map(p=>`<i>${pl[p]||esc(p)}</i>`).join('')}</span>`}
+setInterval(()=>{try{nextCard()}catch(e){}},60000);
 // ---------- social ----------
 const PL={instagram:['IG','#9B66E8'],tiktok:['TT','#14A898'],youtube:['YT','#E8504A']};
 function social(D){
@@ -541,7 +574,7 @@ async function load(){
  try{
   const [D,S,EQ,FG,A,P,AUD,G,V,F,W]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit'),get('/api/guardians'),get('/api/mont-vlog/state'),get('/api/mont/jobs'),get('/api/wallets')]);
   const HK=await get('/api/ui/hidden');if(HK&&HK.keys){HK.keys.forEach(k=>HID.add(k))}
-  AP=[A,V,F,G];kal();weekly();await mailCard();const PL=await planer();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);await klipJob();offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
+  AP=[A,V,F,G];kal();weekly();await mailCard();const PL=await planer();nextCard();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);await klipJob();offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
  }finally{busy=false}
 }
 // ---------- planer postów ----------

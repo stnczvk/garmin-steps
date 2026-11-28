@@ -130,33 +130,3 @@ body.dash #dash{padding:12px 26px 48px!important}
 .lg .glass:before,.lg .card:before,.lg .kpi:before,.lg .side:before,.side:before,.spot:before,.spot:after{display:none!important}
 .lg .glass,.lg .card,.lg .kpi{box-shadow:inset 0 1px 0 var(--v3-hi),var(--v3-sh)!important}
 
-/* ===== MOTYW K2 (11.2026, tylko ciemny motyw) – usuń ten blok, żeby wrócić do poprzedniego wyglądu ===== */
-html:not([data-theme=light]){--acc:#9d8cf0;--acc2:#6fc3df;--acc3:#f0a3c4;--k2glow:rgba(157,140,240,.38)}
-html:not([data-theme=light]) body.lg{background:
-  radial-gradient(900px 560px at 18% -10%,rgba(157,140,240,.20),transparent 62%),
-  radial-gradient(700px 500px at 105% 8%,rgba(111,195,223,.10),transparent 60%),
-  radial-gradient(700px 500px at 50% 115%,rgba(240,163,196,.08),transparent 60%),#0b0b12!important;background-attachment:fixed!important}
-html:not([data-theme=light]) .lg .glass,html:not([data-theme=light]) .lg .card,html:not([data-theme=light]) .lg .kpi{
-  background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;border:1px solid rgba(255,255,255,.08)!important;
-  -webkit-backdrop-filter:blur(16px) saturate(130%);backdrop-filter:blur(16px) saturate(130%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 18px 44px -26px rgba(0,0,0,.9)!important;transition:transform .18s ease,border-color .18s ease}
-html:not([data-theme=light]) .lg .card:hover,html:not([data-theme=light]) .lg .kpi:hover{border-color:rgba(157,140,240,.35)!important;transform:translateY(-1px)}
-html:not([data-theme=light]) .lg #side{background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;
-  -webkit-backdrop-filter:blur(18px) saturate(130%)!important;backdrop-filter:blur(18px) saturate(130%)!important;border:1px solid rgba(255,255,255,.08)!important}
-html:not([data-theme=light]) #snav button{transition:background .15s ease,color .15s ease}
-html:not([data-theme=light]) #snav button[aria-current=page]{background:linear-gradient(135deg,rgba(157,140,240,.22),rgba(111,195,223,.08))!important;color:#fff!important;
-  box-shadow:inset 0 0 0 1px rgba(157,140,240,.33),0 8px 22px -14px var(--k2glow)!important}
-html:not([data-theme=light]) #snav button[aria-current=page] i{color:#d7ceff!important}
-html:not([data-theme=light]) .s-badge{background:rgba(240,163,196,.18)!important;color:#f0a3c4!important}
-html:not([data-theme=light]) .lg .btn.pri,html:not([data-theme=light]) .lg .btn.primary,html:not([data-theme=light]) .lg button.main{
-  background:linear-gradient(135deg,#9d8cf0,#7f6fd6)!important;color:#fff!important;box-shadow:0 10px 26px -12px var(--k2glow)!important}
-html:not([data-theme=light]) .lg .btn.pri:hover,html:not([data-theme=light]) .lg .btn.primary:hover{filter:brightness(1.08)}
-html:not([data-theme=light]) .lg .seg{background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;border:1px solid rgba(255,255,255,.08)!important;border-radius:14px!important}
-html:not([data-theme=light]) .lg .seg .pill{background:linear-gradient(135deg,rgba(157,140,240,.33),rgba(111,195,223,.13))!important;box-shadow:inset 0 0 0 1px rgba(157,140,240,.40)!important;border-radius:10px!important}
-html:not([data-theme=light]) .lg .seg button.on,html:not([data-theme=light]) .lg .seg button[aria-pressed=true]{color:#fff!important}
-html:not([data-theme=light]) .lg .wrap>h1:first-child,html:not([data-theme=light]) .lg .intro-l h1{
-  background:linear-gradient(120deg,#fff 40%,#9d8cf0);-webkit-background-clip:text;background-clip:text;color:transparent}
-html:not([data-theme=light]) .lg input:not([type=checkbox]):not([type=radio]):not([type=range]):focus-visible,
-html:not([data-theme=light]) .lg select:focus-visible,html:not([data-theme=light]) .lg textarea:focus-visible{box-shadow:0 0 0 3px rgba(157,140,240,.25)!important;border-color:rgba(157,140,240,.6)!important}
-html:not([data-theme=light]) .lg ::-webkit-scrollbar-thumb{background:rgba(157,140,240,.28)!important}
-@media (prefers-reduced-motion:reduce){html:not([data-theme=light]) .lg .card:hover,html:not([data-theme=light]) .lg .kpi:hover{transform:none}}
