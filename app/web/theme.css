@@ -148,3 +148,24 @@ html:not([data-theme=light]) .tbar button.on svg{color:#d7ceff!important}
 html:not([data-theme=light]) .lg .seg .pill,html:not([data-theme=light]) .thm button.on{background:linear-gradient(135deg,rgba(157,140,240,.34),rgba(111,195,223,.13))!important;box-shadow:inset 0 0 0 1px rgba(157,140,240,.4)!important;color:#fff!important}
 html:not([data-theme=light]) :is(.lg .wrap>h1:first-child,.lg .intro-l h1,.top h1){background:linear-gradient(120deg,#fff 40%,#9d8cf0);-webkit-background-clip:text;background-clip:text;color:transparent}
 html:not([data-theme=light]) .lg ::-webkit-scrollbar-thumb{background:rgba(157,140,240,.3)!important}
+/* ----- K2: detale wspólne dla wszystkich zakładek ----- */
+html:not([data-theme=light]) :is(.t,.lg .card,.lg .glass,.lg .kpi,.sec,.box)>:is(h2,h3):first-child{font-size:12px!important;font-weight:600!important;letter-spacing:.1em!important;text-transform:uppercase;color:rgba(236,235,248,.62)!important;font-family:Geist,system-ui,sans-serif!important}
+html:not([data-theme=light]) :is(.t,.lg .card,.lg .glass,.lg .kpi,.sec,.box)>:is(h2,h3):first-child>*:not(.hi){text-transform:none;letter-spacing:0}
+html:not([data-theme=light]) :is(.t,.lg .card,.lg .glass,.sec,.box)>:is(h2,h3):first-child .hi{background:transparent!important;box-shadow:none!important;width:18px!important;height:18px!important}
+html:not([data-theme=light]) :is(.t,.lg .card,.lg .glass,.sec,.box)>:is(h2,h3):first-child .hi svg{filter:drop-shadow(0 0 6px var(--c,#9d8cf0))}
+html:not([data-theme=light]) :is(.chip,.lg .chip,.pill,.tag,.badge){border-radius:99px!important}
+html:not([data-theme=light]) :is(.btn.g,.lg .btn:not(.pri):not(.primary):not(.del):not(.danger),.lnk.btn){background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.09)!important;border-radius:12px!important;color:#f3f2fa!important}
+html:not([data-theme=light]) :is(.btn.g,.lg .btn:not(.pri):not(.primary)):hover{border-color:rgba(157,140,240,.45)!important;background:rgba(157,140,240,.12)!important}
+html:not([data-theme=light]) .lg :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea),html:not([data-theme=light]) .qn input{background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.09)!important;border-radius:12px!important}
+html:not([data-theme=light]) :is(table th,.tbl th){font-size:11px!important;font-weight:600!important;letter-spacing:.1em;text-transform:uppercase;color:rgba(236,235,248,.45)!important}
+html:not([data-theme=light]) :is(table tr,.it,.row-i):hover>td{background:rgba(157,140,240,.05)}
+html:not([data-theme=light]) input[type=checkbox]{accent-color:#9d8cf0}
+html:not([data-theme=light]) :is(.grp,.lg h2.grp){font-family:"Space Grotesk",Geist,sans-serif}
+html:not([data-theme=light]) .grp:after{background:linear-gradient(90deg,rgba(157,140,240,.5),transparent)!important}
+/* oś dnia i listy na ekranie głównym w stylu K2 */
+html:not([data-theme=light]) .ev .dt{box-sizing:border-box}
+html:not([data-theme=light]) .ev.done .dt{background:rgba(236,235,248,.3)!important}
+html:not([data-theme=light]) .ev .dt.f{border-color:#6fc3df!important}
+html:not([data-theme=light]) .it{border-radius:14px}
+html:not([data-theme=light]) .now{background:linear-gradient(135deg,rgba(157,140,240,.18),rgba(111,195,223,.06))!important;border-color:rgba(157,140,240,.38)!important}
+html:not([data-theme=light]) .prog i,html:not([data-theme=light]) .bar>i{background:linear-gradient(90deg,#9d8cf0,#6fc3df)!important}
