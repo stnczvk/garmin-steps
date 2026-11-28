@@ -272,6 +272,11 @@ def kalendarz_yt_page(req: Request):
     return _page(req, "kalendarz-yt")
 
 
+@app.get("/faceless")
+def faceless_page(req: Request):
+    return _page(req, "faceless")
+
+
 @app.get("/tresci")
 def tresci(req: Request):
     return _page(req, "tresci")
