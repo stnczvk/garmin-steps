@@ -304,7 +304,7 @@ html:not([data-theme=light]) .big{background:linear-gradient(120deg,#fff 40%,#9d
 .kp>.nxt{order:-2}.kp>.t:nth-child(4){order:-1}
 .kp>.t:nth-child(1),.kp>.t:nth-child(3){grid-column:span 2}
 .kp>.t:nth-child(2) .kv{font-size:60px;letter-spacing:-.05em;margin-top:14px}
-html body #kp>#nxt.nxt{cursor:pointer;color:#fff;background:linear-gradient(155deg,#9d8cf0,#6b5bc4 70%,#4f4296)!important;border:0!important;box-shadow:0 20px 44px -22px #9d8cf0!important;overflow:hidden}
+html body #k2>#nxt.nxt{cursor:pointer;color:#fff;background:linear-gradient(155deg,#9d8cf0,#6b5bc4 70%,#4f4296)!important;border:0!important;box-shadow:0 20px 44px -22px #9d8cf0!important;overflow:hidden}
 .nxt:before{content:"";position:absolute;right:-50px;top:-50px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.25),transparent 70%)}
 .nxt h3{color:rgba(255,255,255,.88)!important;font-size:12px!important;font-weight:700!important;letter-spacing:.1em;text-transform:uppercase}
 .nxt .kv{font-size:46px;color:#fff;-webkit-text-fill-color:#fff;background:none}
@@ -324,6 +324,50 @@ html:not([data-theme=light]) .qa button{background:linear-gradient(165deg,rgba(2
 html:not([data-theme=light]) .qn input,html:not([data-theme=light]) #qni{background:rgba(255,255,255,.04)!important;border-color:rgba(255,255,255,.08)!important}
 html:not([data-theme=light]) .grp:after{background:linear-gradient(90deg,rgba(157,140,240,.45),transparent)}
 @media(max-width:1180px){.kp>.t{grid-column:auto!important}}
+
+/* ===== K2: blok startowy ===== */
+#kp[hidden]{display:none!important}
+.k2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:14px}
+.k2-hero,.k2-plan{grid-column:span 2}
+.k2 .t{padding:20px 22px}
+.k2-h{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)}
+.k2-h small{font-size:11px;letter-spacing:0;text-transform:none;font-weight:500;color:var(--fa)}
+.k2-pill{font-size:12px;letter-spacing:0;text-transform:none;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.07)}
+.k2-a{font-size:13px;letter-spacing:0;text-transform:none;color:#9d8cf0;font-weight:600;text-decoration:none}
+.k2-hero{display:flex;flex-direction:column;justify-content:space-between;gap:14px}
+.k2-big{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.k2-big span{color:var(--mu);font-size:14px}
+.k2-num{font-size:76px;font-weight:700;letter-spacing:-.05em;line-height:.9;background:linear-gradient(120deg,#fff 40%,#9d8cf0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.k2-bar{display:flex;gap:5px;height:12px}.k2-bar i{border-radius:99px;display:block}
+.k2-shine{background-image:linear-gradient(90deg,#9d8cf0,#c3b7ff,#9d8cf0)!important;background-size:200% 100%!important;animation:k2s 6s linear infinite}
+@keyframes k2s{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.k2-pl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;font-size:13px}.k2-pl div{display:flex;flex-direction:column;gap:2px}
+.k2-pl span{display:flex;align-items:center;gap:6px;color:var(--mu)}.k2-pl span i{width:8px;height:8px;border-radius:3px}.k2-pl b{font-size:16px}.k2-pl small{font-size:11px;color:var(--fa)}
+.k2-plan{display:flex;flex-direction:column;gap:2px}
+.k2-ev{display:flex;gap:14px;align-items:flex-start;padding:8px 0;position:relative}
+.k2-ev .k2-d{width:10px;height:10px;border-radius:99px;margin-top:5px;flex:none;box-sizing:border-box}
+.k2-ev>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.k2-ev small{font-size:12px;color:var(--fa)}
+.k2-ev b{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.k2-done .k2-d{background:rgba(236,235,248,.35)}.k2-done b{color:var(--mu)}
+.k2-q .k2-d{border:2px solid #6fc3df}.k2-err .k2-d{background:#ff6b7a}
+.k2-next .k2-d{background:#9d8cf0;box-shadow:0 0 0 4px rgba(157,140,240,.22),0 0 12px #9d8cf0}
+.k2-next{background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(157,140,240,.35);border-radius:12px;padding:8px 10px;margin:2px -10px}
+.k2-tag{font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;white-space:nowrap}
+.k2-td{background:rgba(255,255,255,.06);color:var(--mu)}.k2-tn{background:#9d8cf0;color:#14101f}.k2-tq{background:rgba(111,195,223,.15);color:#6fc3df}.k2-te{background:rgba(255,107,122,.15);color:#ff6b7a}
+.k2-pf{display:flex;flex-direction:column;gap:10px;min-width:0;overflow:hidden}
+.k2-dot{display:flex;align-items:center;gap:8px;letter-spacing:0;text-transform:none;font-size:13px;color:var(--tx)}.k2-dot i{width:8px;height:8px;border-radius:99px}
+.k2-pv{display:flex;align-items:baseline;gap:8px}.k2-pv b{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1}.k2-pv small{font-size:12px;color:var(--mu)}
+.k2-chw{margin:0 -22px;height:58px}.k2-ch{width:100%;height:58px;display:block}
+.k2-pfoot{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--mu)}.k2-pfoot b{color:var(--tx)}
+.k2-ph{display:flex;align-items:center;margin:4px 2px 10px}.k2-ph h2{font-size:17px;font-weight:650}
+.k2-pj{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:18px}
+.k2-pjc{display:flex;flex-direction:column;gap:8px;cursor:pointer;padding:16px 18px!important}
+.k2-ic{width:30px;height:30px;border-radius:9px;display:block}
+.k2-st{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0;text-transform:none;font-weight:500}.k2-st i{width:7px;height:7px;border-radius:99px;animation:k2p 2.2s infinite}
+@keyframes k2p{0%,100%{box-shadow:0 0 0 0 rgba(61,220,132,.5)}50%{box-shadow:0 0 0 6px rgba(61,220,132,0)}}
+.k2-pjc b{font-size:14.5px}.k2-pjc small{font-size:12px;color:var(--mu)}.k2-w{font-size:12px;font-weight:600}
+@media(max-width:1100px){.k2{grid-template-columns:repeat(2,minmax(0,1fr))}.k2-pj{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.k2{grid-template-columns:1fr}.k2-hero,.k2-plan{grid-column:auto}.k2-num{font-size:56px}.k2-pj{grid-template-columns:1fr 1fr;gap:10px}}
+@media (prefers-reduced-motion:reduce){.k2-shine,.k2-st i{animation:none}}
 </style>
 <style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
 </head>
@@ -336,7 +380,17 @@ html:not([data-theme=light]) .grp:after{background:linear-gradient(90deg,rgba(15
   <div class="thm" id="thm" role="group" aria-label="Motyw"><button data-t="auto">Auto</button><button data-t="light">Jasny</button><button data-t="dark">Ciemny</button></div>
  </div>
 <div class="qa"><form class="qn" id="qn"><input id="qni" placeholder="Szybka notatka – Enter zapisuje do Skrzynki" autocomplete="off"></form><button data-go="notatki"><span class="hi" style="--c:#8b7cc7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></span><span>Notatka</span></button><button data-go="montazownia"><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="14" height="14" rx="3"/><path d="M17 10l4-2v8l-4-2"/></svg></span><span>Nowy montaż</span></button><button data-go="hasla"><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg></span><span>Hasło</span></button><button onclick="document.getElementById('plc').scrollIntoView({behavior:'smooth'})"><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span><span>Posty</span></button></div>
- <div class="kp" id="kp"><div class="t k"><h3><span class="hi" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></span>Obserwujący</h3><div class="kv tn" id="kv0">–</div><div class="kd" id="kd0"></div><div class="ks" id="ks0"></div></div><div class="t k"><h3><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Wyświetlenia 7 dni</h3><div class="kv tn" id="kv1">–</div><div class="kd" id="kd1"></div><div class="ks" id="ks1"></div></div><div class="t k"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Skaner 30 dni</h3><div class="kv tn" id="kv2">–</div><div class="kd" id="kd2"></div><div class="ks" id="ks2"></div></div><div class="t k"><h3><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>Do zrobienia</h3><div class="kv tn" id="kv3">–</div><div class="kd" id="kd3"></div><div class="ks" id="ks3"></div></div><div class="t k nxt" id="nxt" data-go="tresci"><h3>Następna publikacja</h3><div class="kv tn" id="nxv">–</div><div class="kd" id="nxd"></div></div></div>
+<div class="k2" id="k2">
+ <section class="t k2-hero"><div class="k2-h"><span>Zasięg Twoich kont</span><span class="k2-pill">28 dni</span></div>
+  <div class="k2-big"><b class="k2-num tn" id="k2v">–</b><span id="k2f"></span></div>
+  <div class="k2-bar" id="k2bar"></div><div class="k2-pl" id="k2pl"></div></section>
+ <section class="t k2-plan"><div class="k2-h"><span>Plan dnia</span><a href="#" data-go="tresci" class="k2-a">Otwórz planer →</a></div><div id="k2tl"><div class="sk"></div></div></section>
+ <section class="t k2-pf" id="k2p0"></section><section class="t k2-pf" id="k2p1"></section><section class="t k2-pf" id="k2p2"></section>
+ <section class="t k nxt" id="nxt" data-go="tresci"><h3>Następna publikacja</h3><div class="kv tn" id="nxv">–</div><div class="kd" id="nxd"></div></section>
+</div>
+<div class="k2-ph"><h2>Projekty</h2></div>
+<div class="k2-pj" id="k2pj"></div>
+ <div class="kp" id="kp" hidden><div class="t k"><h3><span class="hi" style="--c:#ff6fa5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg></span>Obserwujący</h3><div class="kv tn" id="kv0">–</div><div class="kd" id="kd0"></div><div class="ks" id="ks0"></div></div><div class="t k"><h3><span class="hi" style="--c:#5ad1ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>Wyświetlenia 7 dni</h3><div class="kv tn" id="kv1">–</div><div class="kd" id="kd1"></div><div class="ks" id="ks1"></div></div><div class="t k"><h3><span class="hi" style="--c:#3ddc84"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Skaner 30 dni</h3><div class="kv tn" id="kv2">–</div><div class="kd" id="kd2"></div><div class="ks" id="ks2"></div></div><div class="t k"><h3><span class="hi" style="--c:#ffc24b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>Do zrobienia</h3><div class="kv tn" id="kv3">–</div><div class="kd" id="kd3"></div><div class="ks" id="ks3"></div></div></div>
  <div id="nowtop" style="display:none;margin-bottom:10px"></div>
  <div class="mg">
   <aside class="t" id="dayc"><h3><span class="hi" style="--c:#8b7cc7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span>Twój dzień<span class="r" style="display:flex;align-items:center"><span class="chip" id="dname"></span><span id="tlc"></span></span></h3><div class="tlx" id="tl"><div class="sk" style="margin-top:10px"></div></div><div class="kw" id="kalc"><div class="kwh"><b>Kalendarz treści</b><small id="kals"></small></div><div class="kws" id="kal"></div><div class="kwl" id="kall"></div></div></aside>
@@ -473,6 +527,38 @@ function nextCard(){const x=typeof NX!=='undefined'?NX:null;if(!x){$('nxv').text
  const pl={instagram:'Instagram',youtube:'YouTube',tiktok:'TikTok',facebook:'Facebook'};
  $('nxd').innerHTML=`<span class="nxin">${m<1440?'za '+(h?h+' h ':'')+(m%60)+' min':new Date(t).toLocaleDateString('pl',{weekday:'long'})}</span><b>${esc(x.label||'Post')}</b><span class="nxp">${(x.platforms||[]).map(p=>`<i>${pl[p]||esc(p)}</i>`).join('')}</span>`}
 setInterval(()=>{try{nextCard()}catch(e){}},60000);
+// ---------- MOTYW K2: zasięg, plan dnia, platformy, projekty ----------
+const K2C={tiktok:'#9d8cf0',youtube:'#6fc3df',instagram:'#f0a3c4'},K2N={tiktok:'TikTok',youtube:'YouTube',instagram:'Instagram'};
+function k2area(vals,c){if(!vals||vals.length<2)return'<p class="empty" style="margin:8px 0">Za mało postów</p>';const lv=vals.map(v=>Math.log10((v||0)+10)),mn=Math.min(...lv),mx=Math.max(...lv),w=300,h=58;
+ const P=lv.map((v,i)=>[i*w/(lv.length-1),h-6-(h-14)*(v-mn)/(mx-mn||1)]),d='M'+P.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L'),id='k2g'+Math.random().toString(36).slice(2,7);
+ return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="k2-ch" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".32"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient></defs><path d="${d} L${w},${h} L0,${h} Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 3px ${c})"/></svg>`}
+function k2(D,PL,G){
+ let acc=Object.values(D?.accounts||{}).filter(a=>!a.error);const pr=acc.filter(a=>(a.group||'prywatne')==='prywatne');if(pr.length)acc=pr;
+ const by={};acc.forEach(a=>{const p=a.platform;by[p]=by[p]||{v:0,f:0,posts:[]};by[p].v+=a.views_28d||0;by[p].f+=a.followers||0;by[p].posts.push(...(a.posts||[]))});
+ const tot=Object.values(by).reduce((s,x)=>s+x.v,0),fol=Object.values(by).reduce((s,x)=>s+x.f,0);
+ $('k2v').textContent=fmt(tot);$('k2f').textContent=`wyświetleń · ${fmt(fol)} obserwujących`;
+ const order=['tiktok','youtube','instagram'].filter(p=>by[p]);
+ $('k2bar').innerHTML=order.map((p,i)=>`<i class="${i?'':'k2-shine'}" style="flex:${by[p].v||1};background:${K2C[p]}"></i>`).join('');
+ $('k2pl').innerHTML=order.map(p=>`<div><span><i style="background:${K2C[p]}"></i>${K2N[p]}</span><b class="tn">${fmt(by[p].v)}</b><small>${tot?Math.round(by[p].v/tot*100):0}% całości</small></div>`).join('');
+ order.slice(0,3).forEach((p,i)=>{const x=by[p],ps=x.posts.filter(q=>q.date).sort((a,b)=>a.date<b.date?-1:1).slice(-8),best=Math.max(0,...ps.map(q=>q.views||0));
+  $('k2p'+i).innerHTML=`<div class="k2-h"><span class="k2-dot"><i style="background:${K2C[p]};box-shadow:0 0 8px ${K2C[p]}"></i>${K2N[p]}</span><small>8 ostatnich postów</small></div>
+  <div class="k2-pv"><b class="tn">${fmt(x.v)}</b><small>wyśw. / 28 dni</small></div><div class="k2-chw">${k2area(ps.map(q=>q.views||0),K2C[p])}</div>
+  <div class="k2-pfoot"><span>${fmt(x.f)} ${p==='youtube'?'subskrypcji':'obserwujących'}</span><span>najlepszy <b>${fmt(best)}</b></span></div>`});
+ // plan dnia
+ const t0=today0(),t1=t0+864e5,now=Date.now();const L=(PL||[]).filter(x=>x.when*1000>=t0&&x.when*1000<t1&&x.status!=='skipped').sort((a,b)=>a.when-b.when);
+ const pn={instagram:'IG',youtube:'YT',tiktok:'TikTok',facebook:'FB'};let h='',nowDone=false,nx=false;
+ L.forEach(x=>{const fut=x.when*1000>now&&x.status!=='published';if(fut&&!nowDone){h+=`<div class="nowl"><span>teraz ${hm(now)}</span></div>`;nowDone=true}
+  const k=x.status==='published'?'done':x.status==='error'?'err':(!nx&&fut?(nx=true,'next'):'q');
+  const tag={done:['gotowe','d'],err:['błąd','e'],next:[(()=>{const m=Math.round((x.when*1000-now)/6e4);return 'za '+(m>=60?Math.floor(m/60)+' h ':'')+m%60+' min'})(),'n'],q:[x.status==='draft'?'do zatwierdzenia':'w kolejce','q']}[k];
+  h+=`<div class="k2-ev k2-${k}"><i class="k2-d"></i><div><small>${hm(x.when*1000)} · ${(x.platforms||[]).map(p=>pn[p]||p).join(' · ')}</small><b>${esc(x.label||'Post')}</b></div><span class="k2-tag k2-t${tag[1]}">${esc(tag[0])}</span></div>`});
+ if(!nowDone&&L.length)h+=`<div class="nowl"><span>teraz ${hm(now)}</span></div>`;
+ $('k2tl').innerHTML=h||'<p class="empty">Dziś nic nie jest zaplanowane.</p>';
+ // projekty
+ const gs=G?.guardians||[],st=n=>{const g=gs.find(x=>(x.name||'').toLowerCase().includes(n));return g?g.status:'ok'};
+ const P=[['Osiedle Tłumaczy','Kanał AI · długie + shorty','wt i pt','#9d8cf0','osiedle','kanaly-yt'],['Teoria w 30 sekund','Faceless · quiz prawo jazdy','codz. 17:00','#6fc3df','teoria','faceless'],['Rekrutacja bez Stresu','Faceless · rozmowy o pracę','codz. 19:00','#f0a3c4','rekrut','faceless'],['Skaner OKX','Sygnały, boty, Telegram','na żywo','#3ddc84','skaner','skaner']];
+ $('k2pj').innerHTML=P.map(([n,d,w,c,key,go])=>{const s=st(key),lab={ok:'działa',warn:'uwaga',fail:'problem',idle:'wstrzymany'}[s]||'działa',col={ok:'#3ddc84',warn:'#ffc24b',fail:'#ff6b7a',idle:'#6e6a88'}[s]||'#3ddc84';
+  return `<section class="t k2-pjc" data-go="${go}"><div class="k2-h"><i class="k2-ic" style="background:${c}22;box-shadow:inset 0 0 0 1px ${c}55"></i><span class="k2-st"><i style="background:${col}"></i>${lab}</span></div><b>${n}</b><small>${d}</small><span class="k2-w" style="color:${c}">${w}</span></section>`}).join('');
+}
 // ---------- social ----------
 const PL={instagram:['IG','#9B66E8'],tiktok:['TT','#14A898'],youtube:['YT','#E8504A']};
 function social(D){
@@ -574,7 +660,7 @@ async function load(){
  try{
   const [D,S,EQ,FG,A,P,AUD,G,V,F,W]=await Promise.all([get('/api/social/summary'),get('/api/scanner/state'),get('/api/scanner/equity?days=30'),get('/api/scanner/sentiment'),get('/api/agency/state'),get('/api/pozaskala/status'),get('/api/scanner/audit'),get('/api/guardians'),get('/api/mont-vlog/state'),get('/api/mont/jobs'),get('/api/wallets')]);
   const HK=await get('/api/ui/hidden');if(HK&&HK.keys){HK.keys.forEach(k=>HID.add(k))}
-  AP=[A,V,F,G];kal();weekly();await mailCard();const PL=await planer();nextCard();health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);await klipJob();offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
+  AP=[A,V,F,G];kal();weekly();await mailCard();const PL=await planer();nextCard();try{k2(D,PL,G)}catch(e){console.error(e)}health(G);const now=timeline(A,P,V,F,PL);wallet(W,EQ,S);social(D);const n=approvals(A,V,F,G,PL);scanner(S,FG);await klipJob();offices(A,V,G,AUD);reports(A,AUD);summary(now,n,S);kpis(D,S,EQ,n,A);
  }finally{busy=false}
 }
 // ---------- planer postów ----------
