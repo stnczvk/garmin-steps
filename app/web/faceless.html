@@ -19,27 +19,48 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#9d8cf0}
 .st{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.07);color:var(--soft)}
 .ok{background:rgba(61,220,132,.15);color:#3ddc84}.err{background:rgba(255,107,122,.15);color:#ff6b7a}
 .muted{color:var(--mut);font-size:13px}
+.sub{color:var(--mut);font-size:13px;margin:4px 0 6px}
+.k{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.ch{display:flex;flex-direction:column;gap:12px;padding:20px 22px}
+.chh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.chh b{display:flex;align-items:center;gap:10px;font-size:17px}.chh i{width:10px;height:10px;border-radius:99px}
+.sw{display:flex;justify-content:space-between;align-items:center;color:var(--ink);font-size:14px;cursor:pointer}
+.sw input{appearance:none;-webkit-appearance:none;width:42px;height:24px;border-radius:99px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:background .2s;margin:0}
+.sw input:before{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:99px;background:#fff;transition:transform .2s}
+.sw input:checked{background:#9d8cf0;box-shadow:0 0 12px rgba(157,140,240,.6)}.sw input:checked:before{transform:translateX(18px)}
+.btn.big{width:100%;height:44px;margin-top:4px}
+.lh{display:flex;justify-content:space-between;align-items:baseline;margin:6px 2px 12px}.lh h2{font-size:17px;margin:0}
+.vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px;margin-bottom:18px}
+.vi{display:flex;gap:14px;align-items:center;padding:12px!important;border-radius:18px}
+.th{position:relative;width:72px;aspect-ratio:9/16;border-radius:12px;overflow:hidden;flex:none;background:linear-gradient(160deg,#1d1b33,#0f0f19);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.th video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.th svg{position:relative;width:24px;height:24px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+.th.ph span{font-size:8px;font-weight:800;padding:3px 6px;border-radius:99px}
+.vb{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.vch{font-size:12px;font-weight:600}.vb b{font-size:15px}.er{color:#ff8a96}
+.st.run{background:rgba(157,140,240,.18);color:#c9bdff}
+.kl{padding:14px 18px}.kl summary{cursor:pointer;display:flex;gap:10px;align-items:baseline;list-style:none}.kl summary::-webkit-details-marker{display:none}
+@media(max-width:640px){.vg{grid-template-columns:1fr}}
 </style>
-<body class="lg"><div class="lg-bg" aria-hidden="true"></div><div class="wrap"><h1>Teoria w 30 sekund · Rekrutacja bez Stresu</h1>
+<body class="lg"><div class="lg-bg" aria-hidden="true"></div><div class="wrap">
+<p class="sub">Kanały faceless · codziennie jeden short na kanał</p><h1>Teoria i Rekrutacja</h1>
 <div class="k" id="k"></div>
-<div class="c card" id="kl" style="margin-bottom:18px"><b>Klucz Gemini (Google AI Studio)</b>
-<div class="muted" id="kls">Zapas, gdy Google Cloud blokuje modele. Klucz weź z aistudio.google.com → Get API key.</div>
-<div class="row"><input id="kli" type="password" placeholder="AIza…" style="flex:1;min-width:200px;padding:9px;border-radius:10px;border:1px solid #262d40;background:#0b0e16;color:#e8eaf2"><button class="btn pri" id="klb">Zapisz klucz</button></div></div>
-<div class="c card"><b>Ostatnie filmy</b><div id="l"></div></div>
+<div class="lh"><h2>Ostatnie filmy</h2><span class="muted" id="lsum"></span></div>
+<div class="vg" id="l"></div>
+<details class="c card kl" id="kl"><summary><b>Klucz Gemini (Google AI Studio)</b><span class="muted" id="kls"></span></summary>
+<div class="row"><input id="kli" type="password" placeholder="Wklej klucz z aistudio.google.com" style="flex:1;min-width:200px"><button class="btn pri" id="klb">Zapisz klucz</button></div></details>
 <script>
-const api=(u,o)=>fetch(u,o).then(r=>r.json());const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const COL={teoria:'#6fc3df',rekrutacja:'#f0a3c4'};const api=(u,o)=>fetch(u,o).then(r=>r.json());const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 async function load(){const s=await api('/api/faceless');
-document.getElementById('k').innerHTML=Object.entries(s.kanaly).map(([k,c])=>`<div class="c card"><b>${esc(c.name)}</b>
-<div class="muted">Codziennie nowy short, publikacja ${c.pub}:00${c.busy?' · <b>robi się…</b>':''}</div>
-<div class="row"><label><input type="checkbox" data-k="${k}" data-f="enabled" ${c.enabled?'checked':''}> włączony</label>
-<label><input type="checkbox" data-k="${k}" data-f="auto" ${c.auto?'checked':''}> publikuj bez zatwierdzania</label></div>
-<div class="row"><button class="btn pri" data-run="${k}" ${c.busy?'disabled':''}>Zrób film teraz</button></div></div>`).join('');
-document.getElementById('l').innerHTML=s.items.map(x=>`<div class="it">${x.status==='gotowe'?`<video src="/api/faceless/plik/${x.id}#t=1" controls preload="metadata" playsinline></video>`:''}
-<div><div><b>${esc(x.title||x.name)}</b></div><div class="muted">${esc(x.name)} · ${esc(x.date)} · ${esc(x.why||'')}</div>
-${x.status==='gotowe'?`<div><a href="/api/faceless/plik/${x.id}" target="_blank">Otwórz film w nowej karcie</a></div>`:''}<span class="st ${x.status==='gotowe'?'ok':x.status==='błąd'?'err':''}">${esc(x.status)}</span> ${x.err?`<span class="muted">${esc(x.err)}</span>`:''}${x.status==='robi się'&&x.krok?`<span class="muted">${esc(x.krok)}</span>`:''}</div></div>`).join('')||'<div class="muted">Jeszcze nic.</div>';}
+document.getElementById('k').innerHTML=Object.entries(s.kanaly).map(([k,c])=>`<div class="c card ch"><div class="chh"><b><i style="background:${COL[k]};box-shadow:0 0 10px ${COL[k]}"></i>${esc(c.name)}</b><span class="muted">publikacja ${c.pub}:00${c.busy?' · robi się…':''}</span></div>
+<label class="sw">Włączony<input type="checkbox" data-k="${k}" data-f="enabled" ${c.enabled?'checked':''}></label>
+<label class="sw">Publikuj bez zatwierdzania<input type="checkbox" data-k="${k}" data-f="auto" ${c.auto?'checked':''}></label>
+<button class="btn pri big" data-run="${k}" ${c.busy?'disabled':''}>${c.busy?'Film się robi…':'Zrób film teraz'}</button></div>`).join('');
+const today=new Date().toISOString().slice(0,10),T=s.items.filter(x=>x.date===today);document.getElementById('lsum').textContent=T.length?`dziś ${T.length} ${T.length===1?'próba':'prób'}, ${T.filter(x=>x.status==='gotowe').length} gotowe`:'';
+document.getElementById('l').innerHTML=s.items.filter(x=>x.why!=='test').slice(0,12).map(x=>{const col=COL[x.ch]||'#9d8cf0',ok=x.status==='gotowe',bad=x.status==='błąd';
+return `<div class="c card vi">${ok?`<a class="th" href="/api/faceless/plik/${x.id}" target="_blank" title="Otwórz film"><video src="/api/faceless/plik/${x.id}#t=1" preload="metadata" muted playsinline></video><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></a>`:`<div class="th ph"><span style="background:${col}33;color:${col}">${x.ch==='teoria'?'TEORIA':'REKRUTACJA'}</span></div>`}
+<div class="vb"><span class="vch" style="color:${col}">${esc(x.name)}</span><b>${esc(x.title||(x.status==='robi się'?'Generuję film…':x.name))}</b><span class="muted">${esc(x.date)} · ${esc(x.why||'')}${x.status==='robi się'&&x.krok?' · '+esc(x.krok):''}</span>${x.err?`<span class="muted er">${esc(x.err)}</span>`:''}</div>
+<span class="st ${ok?'ok':bad?'err':'run'}">${esc(x.status)}</span></div>`}).join('')||'<div class="muted">Jeszcze nic.</div>';}
 document.addEventListener('change',async e=>{const t=e.target;if(!t.dataset.k)return;await api(`/api/faceless/${t.dataset.k}/cfg`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({[t.dataset.f]:t.checked})});load();});
 document.addEventListener('click',async e=>{const k=e.target.dataset.run;if(!k)return;e.target.disabled=true;await api(`/api/faceless/${k}/run`,{method:'POST'});setTimeout(load,1500);});
-async function kl(){const r=await api('/api/faceless/klucz');document.getElementById('kls').textContent=r.jest?'✅ Klucz zapisany. Gemini z AI Studio działa jako zapas.':'Zapas, gdy Google Cloud blokuje modele. Klucz weź z aistudio.google.com → Get API key.';}
+async function kl(){const r=await api('/api/faceless/klucz');document.getElementById('kls').textContent=r.jest?'zapisany':'brak';}
 document.getElementById('klb').onclick=async()=>{const v=document.getElementById('kli').value.trim();const r=await fetch('/api/faceless/klucz',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:v})}).then(r=>r.json());document.getElementById('kli').value='';if(r.error)alert(r.error);kl();};
 load();kl();setInterval(load,20000);
 </script></html>
