@@ -138,17 +138,23 @@ def _post(url, headers, body, tries=4):
     r = None
     for proba in range(tries):
         try:
-            r = httpx.post(url, timeout=httpx.Timeout(300, connect=20), headers=headers, json=body)
+            r = httpx.post(url, timeout=httpx.Timeout(100, connect=15), headers=headers, json=body)
         except (httpx.TimeoutException, httpx.TransportError) as e:
-            if proba < tries - 1:
-                time.sleep(15)
-                continue
-            raise RuntimeError(f"brak odpowiedzi ({type(e).__name__})")
+            raise RuntimeError(f"brak odpowiedzi w 100 s ({type(e).__name__})")   # od razu następny model
         if r.status_code in (429, 500, 502, 503, 504) and proba < tries - 1:
-            time.sleep(20 * (proba + 1))
+            time.sleep(15 * (proba + 1))
             continue
         return r
     return r
+
+
+_CUR = threading.local()
+
+
+def _krok(t):
+    iid = getattr(_CUR, "iid", None)
+    if iid:
+        _upd(iid, krok=t, krok_at=time.time())
 
 
 def _txt(j):
@@ -172,6 +178,7 @@ def gemini(prompt, temp=0.9):
         if _OK.get("ai") in pref:
             pref.remove(_OK["ai"]); pref.insert(0, _OK["ai"])
         for m in pref:
+            _krok(f"AI Studio: {m}")
             try:
                 r = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", {"x-goog-api-key": k}, body)
             except RuntimeError as e:
@@ -248,6 +255,7 @@ OPIS_ZASADY = ("Opis: 2 krótkie zdania naturalnym językiem, jak człowiek, bez
 def script_teoria(used):
     temat = random.choice([t for t in TEORIA_TEMATY if t not in used[-15:]] or TEORIA_TEMATY)
     for proba in range(4):
+        _krok(f"skrypt, podejście {proba + 1}/4")
         sc = gemini(f"""Jesteś doświadczonym instruktorem nauki jazdy w Polsce. Przygotuj JEDNO pytanie quizowe do 30-sekundowego filmu (YouTube Shorts)
 dla kandydatów na kierowców kat. B. Musi być w 100% zgodne z aktualnym polskim Prawem o ruchu drogowym i rozporządzeniem o znakach. Bez wymyślania przepisów.
 Temat: {temat}. Nie powtarzaj tych pytań: {json.dumps(used[-30:], ensure_ascii=False)}.
@@ -330,6 +338,7 @@ def produce(ch, why="harmonogram", to_planer=True):
         S = _S()
         S["items"].append({"id": iid, "ch": ch, "date": datetime.now(TZ).strftime("%Y-%m-%d"), "status": "robi się", "at": time.time(), "why": why})
         _save(S)
+    _CUR.iid = iid
     try:
         _ensure_pil()
         import faceless_render as R
@@ -339,6 +348,7 @@ def produce(ch, why="harmonogram", to_planer=True):
             sc = script_teoria(used)
             aud = {"hook": tts(sc["hook_voice"], d / "hook.mp3", c["voice"]), "q": tts(sc["pytanie_voice"], d / "q.mp3", c["voice"]),
                    "a": tts(sc["wyjasnienie_voice"], d / "a.mp3", c["voice"]), "cta": tts(c["cta"], d / "cta.mp3", c["voice"])}
+            _krok("render filmu")
             R.render_teoria(sc, aud, d / "film.mp4", d)
             key = sc.get("pytanie_ekran") or sc["temat"]
         else:
@@ -346,6 +356,7 @@ def produce(ch, why="harmonogram", to_planer=True):
             aud = {"hook": tts(sc["hook_voice"], d / "hook.mp3", c["voice"]), "q": tts(sc["pytanie"], d / "q.mp3", c["voice2"], 1.0),
                    "zla": tts(sc["zla_voice"], d / "zla.mp3", c["voice"]), "dobra": tts("Lepiej tak: " + sc["dobra"], d / "dobra.mp3", c["voice"]),
                    "zasada": tts(sc["zasada_voice"], d / "zasada.mp3", c["voice"]), "cta": tts(c["cta"], d / "cta.mp3", c["voice"])}
+            _krok("render filmu")
             R.render_rekrutacja(sc, aud, d / "film.mp4", d)
             key = sc["temat"]
         (d / "script.json").write_text(json.dumps(sc, ensure_ascii=False, indent=1))
