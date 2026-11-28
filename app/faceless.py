@@ -322,7 +322,31 @@ def _do_planera(ch, iid, sc, f):
     return it and it["id"]
 
 
+def _stale():
+    """Po restarcie serwera: filmy przerwane w trakcie dostają status błędu (liczą się jako próba)."""
+    with _lock:
+        S = _S()
+        for x in S["items"]:
+            if x["status"] == "robi się":
+                x["status"] = "błąd"
+                x["err"] = "przerwane przez restart serwera"
+        _save(S)
+
+
+def _due(ch, S, now):
+    """Czy harmonogram ma dziś zrobić film: brak gotowego/trwającego, max 3 próby, min. 30 min od ostatniej."""
+    today = now.strftime("%Y-%m-%d")
+    mine = [x for x in S["items"] if x["ch"] == ch and x["date"] == today and x.get("why") != "test"]
+    if any(x["status"] in ("robi się", "gotowe") for x in mine) or ch in _busy:
+        return False
+    proby = [x for x in mine if x.get("why") == "harmonogram"]
+    if len(proby) >= 3:
+        return False
+    return not proby or time.time() - max(x.get("at", 0) for x in proby) > 1800
+
+
 def _loop():
+    _stale()
     time.sleep(90)
     _migr()
     while True:
@@ -330,12 +354,7 @@ def _loop():
             now = datetime.now(TZ)
             S = _S()
             for ch in CH:
-                c = cfg(ch)
-                if not c.get("enabled") or now.hour < CH[ch]["hour"]:
-                    continue
-                today = now.strftime("%Y-%m-%d")
-                mine = [x for x in S["items"] if x["ch"] == ch and x["date"] == today and x.get("why") == "harmonogram"]
-                if not any(x["status"] in ("robi się", "gotowe") for x in mine) and len(mine) < 3 and ch not in _busy:
+                if cfg(ch).get("enabled") and now.hour >= CH[ch]["hour"] and _due(ch, S, now):
                     threading.Thread(target=produce, args=(ch,), daemon=True).start()
         except Exception as e:
             print("faceless loop:", e, flush=True)
@@ -414,3 +433,10 @@ def hook_plik(iid: str, req: Request):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=403)
     return api_plik(iid)
+
+
+@router.get("/api/mont-hook/faceless-stan")
+def hook_stan(req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=403)
+    return api_state()
