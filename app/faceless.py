@@ -156,7 +156,33 @@ def gemini(prompt, temp=0.9):
             continue
         err.insert(0, f"{m}@{loc}: {r.status_code} {r.text[:200]}")
         break
+    k = _aistudio_key()
+    if k:
+        for m in ("gemini-flash-latest", "gemini-2.5-flash", "gemini-3-flash-preview"):
+            for proba in range(4):
+                r = httpx.post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", timeout=180,
+                               headers={"x-goog-api-key": k},
+                               json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                                     "generationConfig": {"responseMimeType": "application/json", "temperature": temp}})
+                if r.status_code in (429, 500, 503) and proba < 3:
+                    time.sleep(20 * (proba + 1))
+                    continue
+                break
+            if r.status_code == 200:
+                j = r.json()
+                return json.loads("".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought")))
+            err.insert(0, f"AI Studio {m}: {r.status_code} {r.text[:150]}")
     raise RuntimeError("Gemini: " + " | ".join(err))
+
+
+KEYF = ROOT / "gemini_key"
+
+
+def _aistudio_key():
+    try:
+        return KEYF.read_text().strip()
+    except Exception:
+        return ""
 
 
 def tts(text, out, voice, rate=1.08):
@@ -440,3 +466,36 @@ def hook_stan(req: Request):
     if not _tok(req):
         return JSONResponse({"error": "token"}, status_code=403)
     return api_state()
+
+
+@router.post("/api/faceless/klucz")
+async def api_klucz(req: Request):
+    """Klucz Gemini z Google AI Studio (wpisywany w centrum, nie w czacie)."""
+    k = str((await req.json()).get("key") or "").strip()
+    if not k.startswith("AIza") or len(k) < 30:
+        return JSONResponse({"error": "To nie wygląda na klucz z AI Studio (zaczyna się od AIza…)."}, status_code=400)
+    r = httpx.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", timeout=60,
+                   headers={"x-goog-api-key": k}, json={"contents": [{"role": "user", "parts": [{"text": "Odpowiedz jednym słowem: ok"}]}]})
+    if r.status_code != 200:
+        return JSONResponse({"error": f"Google odrzucił klucz: {r.status_code} {r.text[:150]}"}, status_code=400)
+    KEYF.write_text(k)
+    os.chmod(KEYF, 0o600)
+    return {"ok": True}
+
+
+@router.get("/api/faceless/klucz")
+def api_klucz_stan():
+    return {"jest": bool(_aistudio_key())}
+
+
+@router.get("/api/mont-hook/gemini-diag")
+def hook_diag(req: Request):
+    if not _tok(req):
+        return JSONResponse({"error": "token"}, status_code=403)
+    from montaz import _vertex_token
+    out = []
+    for loc, m in [("global", "gemini-flash-latest"), ("us-central1", "gemini-2.5-flash"), ("us-central1", "gemini-3-flash-preview")]:
+        r = httpx.post(_gurl(loc, m), timeout=60, headers={"Authorization": "Bearer " + _vertex_token()},
+                       json={"contents": [{"role": "user", "parts": [{"text": "ok"}]}]})
+        out.append({"m": m, "loc": loc, "st": r.status_code, "txt": r.text[:400]})
+    return out

@@ -14,6 +14,9 @@ button.sec{background:#262d40;color:#e8eaf2}label{display:flex;gap:6px;align-ite
 </style>
 <h1>Teoria w 30 sekund · Rekrutacja bez Stresu</h1>
 <div class="k" id="k"></div>
+<div class="c" id="kl" style="margin-bottom:18px"><b>Klucz Gemini (Google AI Studio)</b>
+<div class="muted" id="kls">Zapas, gdy Google Cloud blokuje modele. Klucz weź z aistudio.google.com → Get API key.</div>
+<div class="row"><input id="kli" type="password" placeholder="AIza…" style="flex:1;min-width:200px;padding:9px;border-radius:10px;border:1px solid #262d40;background:#0b0e16;color:#e8eaf2"><button id="klb">Zapisz klucz</button></div></div>
 <div class="c"><b>Ostatnie filmy</b><div id="l"></div></div>
 <script>
 const api=(u,o)=>fetch(u,o).then(r=>r.json());const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
@@ -28,5 +31,7 @@ document.getElementById('l').innerHTML=s.items.map(x=>`<div class="it">${x.statu
 ${x.status==='gotowe'?`<div><a href="/api/faceless/plik/${x.id}" target="_blank">Otwórz film w nowej karcie</a></div>`:''}<span class="st ${x.status==='gotowe'?'ok':x.status==='błąd'?'err':''}">${esc(x.status)}</span> ${x.err?`<span class="muted">${esc(x.err)}</span>`:''}</div></div>`).join('')||'<div class="muted">Jeszcze nic.</div>';}
 document.addEventListener('change',async e=>{const t=e.target;if(!t.dataset.k)return;await api(`/api/faceless/${t.dataset.k}/cfg`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({[t.dataset.f]:t.checked})});load();});
 document.addEventListener('click',async e=>{const k=e.target.dataset.run;if(!k)return;e.target.disabled=true;await api(`/api/faceless/${k}/run`,{method:'POST'});setTimeout(load,1500);});
-load();setInterval(load,20000);
+async function kl(){const r=await api('/api/faceless/klucz');document.getElementById('kls').textContent=r.jest?'✅ Klucz zapisany. Gemini z AI Studio działa jako zapas.':'Zapas, gdy Google Cloud blokuje modele. Klucz weź z aistudio.google.com → Get API key.';}
+document.getElementById('klb').onclick=async()=>{const v=document.getElementById('kli').value.trim();const r=await fetch('/api/faceless/klucz',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:v})}).then(r=>r.json());document.getElementById('kli').value='';if(r.error)alert(r.error);kl();};
+load();kl();setInterval(load,20000);
 </script></html>
