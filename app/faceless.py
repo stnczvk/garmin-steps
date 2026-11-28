@@ -122,7 +122,7 @@ def _migr():
 
 # ---------------------------------------------------------------- Google: Gemini + TTS
 MODELS = [m for m in [os.environ.get("FACELESS_MODEL", "")] if m] + [
-    "gemini-2.5-flash", "gemini-3-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-flash-latest"]
+    "gemini-flash-latest", "gemini-2.5-flash", "gemini-3-flash", "gemini-2.5-flash-lite"]
 _OK = {}
 
 
@@ -138,17 +138,24 @@ def gemini(prompt, temp=0.9):
     combos = ([_OK["c"]] if _OK.get("c") else []) + [(l, m) for m in MODELS for l in ("global", "us-central1")]
     err = []
     for loc, m in combos:
-        r = httpx.post(_gurl(loc, m), timeout=180, headers={"Authorization": "Bearer " + _vertex_token()},
-                       json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                             "generationConfig": {"responseMimeType": "application/json", "temperature": temp}})
+        for proba in range(4):
+            r = httpx.post(_gurl(loc, m), timeout=180, headers={"Authorization": "Bearer " + _vertex_token()},
+                           json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                                 "generationConfig": {"responseMimeType": "application/json", "temperature": temp}})
+            if r.status_code in (429, 500, 503) and proba < 3:
+                time.sleep(20 * (proba + 1))
+                continue
+            break
         if r.status_code == 200:
             j = r.json()
             txt = "".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought"))
             _OK["c"] = (loc, m)
             return json.loads(txt)
-        err.append(f"{m}@{loc}: {r.status_code} {r.text[:120]}" if r.status_code != 404 else f"{m}@{loc}: 404")
-        if r.status_code not in (400, 403, 404):
-            break
+        if r.status_code in (400, 403, 404):
+            err.append(f"{m}@{loc}: {r.status_code}")
+            continue
+        err.insert(0, f"{m}@{loc}: {r.status_code} {r.text[:200]}")
+        break
     raise RuntimeError("Gemini: " + " | ".join(err))
 
 
