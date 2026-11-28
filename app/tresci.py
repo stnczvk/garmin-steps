@@ -65,7 +65,8 @@ def api_get(month: str = "", group: str = ""):
     a = (m0 - timedelta(days=7)).timestamp()
     b = (m0 + timedelta(days=45)).timestamp()
     strimy = group == "strimy"   # ten sam kalendarz miesięczny dla kanału Strimy w Pigułce (zakładka Klipping → Kalendarz)
-    P = {x["id"]: x for x in plan() if (x.get("group") == "strimy") == strimy}
+    cel = group or "prywatne"   # główny kalendarz = tylko Twoje prywatne konta (kanały faceless mają swoją zakładkę)
+    P = {x["id"]: x for x in plan() if (x.get("group") or "prywatne") == cel}
     R = [] if strimy else results()
     rid = {r["id"]: r for r in R}
     posts, used = [], set()
