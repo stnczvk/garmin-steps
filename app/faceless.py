@@ -229,10 +229,10 @@ def _aistudio_key():
 def tts(text, out, voice, rate=1.08):
     from montaz import _vertex_token, VERTEX_JSON
     p = json.loads(VERTEX_JSON.read_text())["project_id"]
-    r = httpx.post("https://texttospeech.googleapis.com/v1/text:synthesize", timeout=120,
-                   headers={"Authorization": "Bearer " + _vertex_token(), "x-goog-user-project": p},
-                   json={"input": {"text": text}, "voice": {"languageCode": "pl-PL", "name": voice},
-                         "audioConfig": {"audioEncoding": "MP3", "speakingRate": rate}})
+    r = _post("https://texttospeech.googleapis.com/v1/text:synthesize",
+              {"Authorization": "Bearer " + _vertex_token(), "x-goog-user-project": p},
+              {"input": {"text": text}, "voice": {"languageCode": "pl-PL", "name": voice},
+               "audioConfig": {"audioEncoding": "MP3", "speakingRate": rate}})
     if r.status_code >= 300:
         raise RuntimeError("TTS: " + r.text[:200])
     Path(out).write_bytes(base64.b64decode(r.json()["audioContent"]))
