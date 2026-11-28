@@ -1,31 +1,39 @@
 <!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Teoria i Rekrutacja</title>
+<script>let t='dark';try{t=localStorage.getItem('motyw')||'dark'}catch(e){}if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&display=swap">
+<link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
 <style>
-body{margin:0;font:15px/1.45 -apple-system,system-ui,sans-serif;background:#0b0e16;color:#e8eaf2;padding:16px}
-h1{font-size:22px;margin:4px 0 14px}.k{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:18px}
-.c{background:#151a27;border:1px solid #262d40;border-radius:16px;padding:14px}.c b{font-size:17px}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
-button{background:#ffc800;color:#111;border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}
-button.sec{background:#262d40;color:#e8eaf2}label{display:flex;gap:6px;align-items:center;color:#aab}
-.it{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #1f2535}
-.it video{width:180px;aspect-ratio:9/16;border-radius:10px;background:#000;flex:none}
-.it a{color:#ffc800}.st{font-size:12px;padding:2px 8px;border-radius:99px;background:#262d40}
-.ok{background:#1f5a36}.err{background:#6a2228}.muted{color:#8b93a7;font-size:13px}
+html,body{min-height:100%;color:var(--ink);font:14px/1.45 Geist,system-ui,sans-serif}
+.wrap{max-width:1300px;margin:0 auto;padding:18px 16px 80px}
+h1{font-size:26px;margin:0 0 14px}
+.k{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-bottom:18px}
+.c{padding:18px 20px;border-radius:22px}.c>b{font-size:17px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+button{font:inherit;font-weight:600;border:0;border-radius:12px;padding:10px 16px;cursor:pointer}
+label{display:flex;gap:8px;align-items:center;color:var(--soft)}
+input[type=checkbox]{width:18px;height:18px;accent-color:#9d8cf0}
+.it{display:flex;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.it video{width:110px;aspect-ratio:9/16;border-radius:12px;background:#000;flex:none}
+.it a{color:#9d8cf0}
+.st{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.07);color:var(--soft)}
+.ok{background:rgba(61,220,132,.15);color:#3ddc84}.err{background:rgba(255,107,122,.15);color:#ff6b7a}
+.muted{color:var(--mut);font-size:13px}
 </style>
-<h1>Teoria w 30 sekund · Rekrutacja bez Stresu</h1>
+<body class="lg"><div class="lg-bg" aria-hidden="true"></div><div class="wrap"><h1>Teoria w 30 sekund · Rekrutacja bez Stresu</h1>
 <div class="k" id="k"></div>
-<div class="c" id="kl" style="margin-bottom:18px"><b>Klucz Gemini (Google AI Studio)</b>
+<div class="c card" id="kl" style="margin-bottom:18px"><b>Klucz Gemini (Google AI Studio)</b>
 <div class="muted" id="kls">Zapas, gdy Google Cloud blokuje modele. Klucz weź z aistudio.google.com → Get API key.</div>
-<div class="row"><input id="kli" type="password" placeholder="AIza…" style="flex:1;min-width:200px;padding:9px;border-radius:10px;border:1px solid #262d40;background:#0b0e16;color:#e8eaf2"><button id="klb">Zapisz klucz</button></div></div>
-<div class="c"><b>Ostatnie filmy</b><div id="l"></div></div>
+<div class="row"><input id="kli" type="password" placeholder="AIza…" style="flex:1;min-width:200px;padding:9px;border-radius:10px;border:1px solid #262d40;background:#0b0e16;color:#e8eaf2"><button class="btn pri" id="klb">Zapisz klucz</button></div></div>
+<div class="c card"><b>Ostatnie filmy</b><div id="l"></div></div>
 <script>
 const api=(u,o)=>fetch(u,o).then(r=>r.json());const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 async function load(){const s=await api('/api/faceless');
-document.getElementById('k').innerHTML=Object.entries(s.kanaly).map(([k,c])=>`<div class="c"><b>${esc(c.name)}</b>
+document.getElementById('k').innerHTML=Object.entries(s.kanaly).map(([k,c])=>`<div class="c card"><b>${esc(c.name)}</b>
 <div class="muted">Codziennie nowy short, publikacja ${c.pub}:00${c.busy?' · <b>robi się…</b>':''}</div>
 <div class="row"><label><input type="checkbox" data-k="${k}" data-f="enabled" ${c.enabled?'checked':''}> włączony</label>
 <label><input type="checkbox" data-k="${k}" data-f="auto" ${c.auto?'checked':''}> publikuj bez zatwierdzania</label></div>
-<div class="row"><button data-run="${k}" ${c.busy?'disabled':''}>Zrób film teraz</button></div></div>`).join('');
+<div class="row"><button class="btn pri" data-run="${k}" ${c.busy?'disabled':''}>Zrób film teraz</button></div></div>`).join('');
 document.getElementById('l').innerHTML=s.items.map(x=>`<div class="it">${x.status==='gotowe'?`<video src="/api/faceless/plik/${x.id}#t=1" controls preload="metadata" playsinline></video>`:''}
 <div><div><b>${esc(x.title||x.name)}</b></div><div class="muted">${esc(x.name)} · ${esc(x.date)} · ${esc(x.why||'')}</div>
 ${x.status==='gotowe'?`<div><a href="/api/faceless/plik/${x.id}" target="_blank">Otwórz film w nowej karcie</a></div>`:''}<span class="st ${x.status==='gotowe'?'ok':x.status==='błąd'?'err':''}">${esc(x.status)}</span> ${x.err?`<span class="muted">${esc(x.err)}</span>`:''}${x.status==='robi się'&&x.krok?`<span class="muted">${esc(x.krok)}</span>`:''}</div></div>`).join('')||'<div class="muted">Jeszcze nic.</div>';}
