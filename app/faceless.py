@@ -158,7 +158,13 @@ def gemini(prompt, temp=0.9):
         break
     k = _aistudio_key()
     if k:
-        for m in ("gemini-flash-latest", "gemini-2.5-flash", "gemini-3-flash-preview"):
+        try:
+            dost = json.loads((ROOT / "gemini_modele.json").read_text())
+        except Exception:
+            dost = []
+        pref = [m for m in ("gemini-flash-latest", "gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-flash-lite") if not dost or m in dost]
+        pref += [m for m in dost if "flash" in m and m not in pref and "image" not in m and "tts" not in m and "live" not in m][:3]
+        for m in pref:
             for proba in range(4):
                 r = httpx.post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", timeout=180,
                                headers={"x-goog-api-key": k},
@@ -472,12 +478,17 @@ def hook_stan(req: Request):
 async def api_klucz(req: Request):
     """Klucz Gemini z Google AI Studio (wpisywany w centrum, nie w czacie)."""
     k = str((await req.json()).get("key") or "").strip()
-    if not k.startswith("AIza") or len(k) < 30:
-        return JSONResponse({"error": "To nie wygląda na klucz z AI Studio (zaczyna się od AIza…)."}, status_code=400)
-    r = httpx.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", timeout=60,
-                   headers={"x-goog-api-key": k}, json={"contents": [{"role": "user", "parts": [{"text": "Odpowiedz jednym słowem: ok"}]}]})
+    if len(k) < 20 or " " in k:
+        return JSONResponse({"error": "Klucz wygląda na niepełny. Skopiuj go jeszcze raz w całości."}, status_code=400)
+    r = httpx.get("https://generativelanguage.googleapis.com/v1beta/models", timeout=60, headers={"x-goog-api-key": k})
     if r.status_code != 200:
-        return JSONResponse({"error": f"Google odrzucił klucz: {r.status_code} {r.text[:150]}"}, status_code=400)
+        try:
+            msg = r.json()["error"]["message"]
+        except Exception:
+            msg = r.text[:200]
+        return JSONResponse({"error": f"Google odrzucił klucz ({r.status_code}): {msg[:250]}"}, status_code=400)
+    modele = [m["name"].split("/")[-1] for m in r.json().get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
+    (ROOT / "gemini_modele.json").write_text(json.dumps(modele))
     KEYF.write_text(k)
     os.chmod(KEYF, 0o600)
     return {"ok": True}
