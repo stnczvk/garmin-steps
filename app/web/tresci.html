@@ -204,7 +204,22 @@ if(GRP==='strimy'){document.documentElement.classList.add('g-strimy');addEventLi
  const h=document.querySelector('h1');if(h)h.textContent='Kalendarz – Strimy w Pigułce';
  const sb=document.querySelector('.sub');if(sb)sb.textContent='Filmy i shorty kanału ze streamów. Przeciągnij kartę na inny dzień, żeby ją przesunąć.'})}
 </script>
-<style>.g-strimy #np,.g-strimy #nw,.g-strimy .side,.g-strimy .leg{display:none!important}.g-strimy .gr{grid-template-columns:1fr!important}</style>
+<style>.g-strimy #np,.g-strimy #nw,.g-strimy .side,.g-strimy .leg{display:none!important}.g-strimy .gr{grid-template-columns:1fr!important}
+/* ===== K2: tydzień jako 7 kolumn (jak na podglądzie), na telefonie lista ===== */
+@media(min-width:1101px){
+ .cal.wkv .wd{display:grid!important;margin-bottom:8px}.cal.wkv .wd div{font-size:12px;font-weight:600;color:var(--mut);padding:0 4px}
+ .cal.wkv .wd div.td{color:#c9bdff;background:none!important;box-shadow:none!important}
+ .cal.wkv .wk{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:10px}
+ .cal.wkv .c{display:flex!important;flex-direction:column;min-height:340px;gap:8px}
+ .cal.wkv .c .n .dl{display:none}.cal.wkv .c .n b{visibility:hidden;font-size:0}
+ .cal.wkv .cd{width:100%;box-sizing:border-box}.cal.wkv .cd .mt{flex-wrap:wrap}
+ .cal.wkv .cd{flex-direction:column!important}.cal.wkv .cd .th{display:none}
+}
+html:not([data-theme=light]) .cd.post{background:color-mix(in srgb,var(--sc) 13%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sc) 38%,transparent);border-radius:14px}
+html:not([data-theme=light]) .cd.post .tm2{color:var(--sc);font-family:"Space Grotesk",Geist,sans-serif}
+html:not([data-theme=light]) .cd .pfs b{background:rgba(255,255,255,.08);border-radius:99px;padding:2px 7px}
+html:not([data-theme=light]) .stat>*{border-radius:14px!important}
+</style>
 <script>
 const $=id=>document.getElementById(id);
 const STG={pomysl:['Pomysł','#ffc24b'],nagrane:['Nagrane','#5ad1ff'],zmontowane:['Zmontowane','#c9c2e3'],zaplanowane:['Zaplanowane','#8b7cc7'],opublikowane:['Opublikowane','#3ddc84']};
@@ -230,7 +245,7 @@ async function load(bg){const r=await api('/api/tresci?month='+(V==='w'?W.slice(
  if(!r||!r.ideas){if(!bg)$('grid').innerHTML='<p style="padding:30px;color:var(--soft)">Nie udało się wczytać.</p>';return}
  // odświeżanie w tle: rysujemy od nowa tylko, gdy coś się zmieniło (inaczej miniatury przeładowywały się i ekran migał)
  const sig=JSON.stringify([V,W,M,r.ideas,r.posts,r.results]);if(bg&&sig===SIG)return;SIG=sig;D=r;draw()}
-const STP={draft:['Do zatwierdzenia','#ffc24b'],approved:['Zaplanowany','#8b7cc7'],publishing:['Publikuje się…','#c9c2e3'],published:['Opublikowany','#3ddc84'],error:['Błąd publikacji','#ff6b7a']};
+const STP={draft:['Do zatwierdzenia','#ffc24b'],approved:['Zaplanowany','#9d8cf0'],publishing:['Publikuje się…','#f0a3c4'],published:['Opublikowany','#6fc3df'],error:['Błąd publikacji','#ff6b7a']};
 let pillInit=false;function pill(){const on=document.querySelector('#vw button.on'),p=document.querySelector('#vw .pill');if(!on||!p)return;if(!pillInit)p.style.transition='none';p.style.width=on.offsetWidth+'px';p.style.transform=`translateX(${on.offsetLeft-3}px)`;if(!pillInit){void p.offsetWidth;p.style.transition='';pillInit=true}}
 addEventListener('resize',()=>{pillInit=false;pill()});document.fonts&&document.fonts.ready.then(()=>{pillInit=false;pill()});
 function buckets(){const by={};const put=(k,x)=>(by[k]=by[k]||[]).push(x);
@@ -253,7 +268,7 @@ function draw(){
    h+='<div class="wk">';for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+w*7+i);if(d.getMonth()===m-1)days.push(ds(d));h+=cell(d,by,today,d.getMonth()!==m-1)}h+='</div>'}}
  $('grid').innerHTML=h;
  const dn=['pon','wt','śr','czw','pt','sob','nd'],tdi=(now.getDay()+6)%7,showT=V==='w'?W===ds(rollStart()):M===ym(now);
- $('wd').innerHTML=dn.map((n,i)=>{if(V!=='w')return `<div class="${M===ym(now)&&i===tdi?'td':''}">${n}</div>`;const d=pd(W);d.setDate(d.getDate()+i);return `<div class="${ds(d)===today?'td':''}">${n} ${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</div>`}).join('');
+ $('wd').innerHTML=dn.map((n,i)=>{if(V!=='w')return `<div class="${M===ym(now)&&i===tdi?'td':''}">${n}</div>`;const d=pd(W);d.setDate(d.getDate()+i);return `<div class="${ds(d)===today?'td':''}">${d.toLocaleDateString('pl-PL',{weekday:'short'}).replace('.','')} ${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</div>`}).join('');
  stat(days,by);
  const bank=D.ideas.filter(i=>!i.day&&i.stage!=='opublikowane');
  $('bank').innerHTML=bank.length?bank.map(ideaCh).join(''):'<div class="e">Tu lądują pomysły bez daty. Przeciągnij je na dzień w kalendarzu.</div>';
