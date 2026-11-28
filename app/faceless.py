@@ -190,7 +190,7 @@ Dla typu "karta": "karta": {{"duzy_tekst": "max 3 słowa, sam TEMAT, np. TEREN Z
 
 Zwróć JSON:
 {{"temat": "{temat}", "typ": ..., "scena": ..., "karta": ...,
- "hook_voice": "1 zdanie, zaczepka, np. 'Zdałbyś to pytanie z egzaminu?'", "hook_ekran": "max 4 słowa",
+ "hook_voice": "1 zdanie, zaczepka, np. 'Zdałbyś to pytanie z egzaminu?'", "hook_ekran": "max 4 słowa, pasujące do pytania, np. Zdałbyś to? albo Wiesz to?",
  "pytanie_voice": "pytanie czytane przez lektora, max 30 słów", "pytanie_ekran": "pytanie na ekranie, max 90 znaków",
  "odpowiedzi": ["2 albo 3 krótkie odpowiedzi, max 32 znaki każda"], "poprawna": indeks od 0,
  "werdykt_ekran": "max 4 słowa, np. 'Nie możesz!'", "wyjasnienie_voice": "zaczyna się od poprawnej odpowiedzi, 1–2 zdania, prosto, z podaniem zasady",
