@@ -122,7 +122,7 @@ def _migr():
 
 # ---------------------------------------------------------------- Google: Gemini + TTS
 MODELS = [m for m in [os.environ.get("FACELESS_MODEL", "")] if m] + [
-    "gemini-flash-latest", "gemini-2.5-flash", "gemini-3-flash", "gemini-2.5-flash-lite"]
+    "gemini-3-flash-preview", "gemini-3.1-flash-preview", "gemini-3-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
 _OK = {}
 
 
@@ -135,7 +135,7 @@ def _gurl(loc, m):
 
 def gemini(prompt, temp=0.9):
     from montaz import _vertex_token
-    combos = ([_OK["c"]] if _OK.get("c") else []) + [(l, m) for m in MODELS for l in ("global", "us-central1")]
+    combos = ([_OK["c"]] if _OK.get("c") else []) + [(l, m) for m in MODELS for l in ("us-central1", "global", "europe-west4")]
     err = []
     for loc, m in combos:
         for proba in range(4):
