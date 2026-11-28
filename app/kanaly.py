@@ -63,7 +63,7 @@ def api_kal(days: int = 35):
             for k in range(days):
                 dd = d0 + timedelta(days=k)
                 if dd.timestamp() > now and dd.strftime("%Y-%m-%d") not in dni.get(g, set()):
-                    E.append(_ev(g, "short", dd.timestamp(), c["name"] + ": nowy short", "plan"))
+                    E.append(_ev(g, "short", dd.timestamp(), c["name"] + ": film powstanie tego dnia rano (tytuł pojawi się po zrobieniu)", "plan"))
     except Exception as e:
         print("kanaly kalendarz faceless:", e, flush=True)
     E = [e for e in E if now - 7 * 86400 <= e["t"] <= end]
