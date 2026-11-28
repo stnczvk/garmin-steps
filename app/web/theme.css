@@ -133,11 +133,11 @@ html:not([data-theme=light]) body:after{background:
  radial-gradient(700px 500px at 50% 115%,rgba(240,163,196,.12),transparent 60%),#0b0b12!important}
 html:not([data-theme=light]) :is(.lg .glass,.lg .card,.lg .kpi,.lg .stage,.lg #panel,.t,.sec,.box){
  background:linear-gradient(165deg,rgba(255,255,255,.065),rgba(255,255,255,.018))!important;border:1px solid rgba(255,255,255,.085)!important;
- -webkit-backdrop-filter:blur(16px) saturate(130%)!important;backdrop-filter:blur(16px) saturate(130%)!important;
- box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 18px 44px -26px rgba(0,0,0,.9)!important;transition:transform .18s ease,border-color .18s ease}
-@media (hover:hover){html:not([data-theme=light]) :is(.t,.lg .card,.lg .kpi):hover{border-color:rgba(157,140,240,.38)!important;transform:translateY(-1px)}}
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 30px -24px rgba(0,0,0,.85)!important;transition:border-color .18s ease}
+@media (hover:hover){html:not([data-theme=light]) :is(.t,.lg .card,.lg .kpi):hover{border-color:rgba(157,140,240,.38)!important}}
 html:not([data-theme=light]) :is(.t .btn:not(.g),.lg .btn.pri,.lg .btn.primary,.lg button.main){background:linear-gradient(135deg,#9d8cf0,#7f6fd6)!important;color:#fff!important;box-shadow:0 10px 26px -12px rgba(157,140,240,.55)!important}
-html:not([data-theme=light]) :is(.lg #side,.side){background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;-webkit-backdrop-filter:blur(18px) saturate(130%)!important;backdrop-filter:blur(18px) saturate(130%)!important;border:1px solid rgba(255,255,255,.08)!important}
+html:not([data-theme=light]) :is(.lg #side,.side){background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015))!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background-color:rgba(18,18,28,.92)!important;border:1px solid rgba(255,255,255,.08)!important}
 html:not([data-theme=light]) #snav button[aria-current=page]{background:linear-gradient(135deg,rgba(157,140,240,.26),rgba(111,195,223,.09))!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(157,140,240,.38),0 8px 22px -14px rgba(157,140,240,.6)!important}
 html:not([data-theme=light]) #snav button[aria-current=page]:before{background:#9d8cf0!important;box-shadow:0 0 12px #9d8cf0!important}
 html:not([data-theme=light]) #snav button[aria-current=page] i{color:#d7ceff!important}
