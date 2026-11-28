@@ -130,7 +130,19 @@ body:not(.zd) #c-zdrowie{display:none}
 body.rt .wrap>*:not(#c-long):not(h1):not(script){display:none!important}body.rt #c-long{display:block!important}
 </style>
 <link rel="stylesheet" href="/glass.css"><link rel="stylesheet" href="/v3.css" media="all" id="v3css"><script src="/glass.js"></script>
-<style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}</style>
+<style id="nox">/*nox-bar*/@media(max-width:900px){body{padding-bottom:calc(100px + var(--sab,0px))!important}}html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}@supports (overflow:clip){html,body{overflow-x:clip}}img,video,iframe{max-width:100%}
+/* ===== K2 ===== */
+html:not([data-theme=light]) .dlc label{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:99px;padding:7px 13px;transition:background .15s,border-color .15s}
+html:not([data-theme=light]) .dlc label:has(input:checked){background:linear-gradient(135deg,rgba(157,140,240,.3),rgba(111,195,223,.12));border-color:rgba(157,140,240,.5);color:#fff}
+html:not([data-theme=light]) .dlc input[type=checkbox]{accent-color:#9d8cf0}
+html:not([data-theme=light]) .dli{border-top:0;padding:14px 16px;margin:0 0 10px;border-radius:18px;background:rgba(255,255,255,.03);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+html:not([data-theme=light]) .dli:hover{box-shadow:inset 0 0 0 1px rgba(157,140,240,.35)}
+html:not([data-theme=light]) .dli b{font-size:15px}
+html:not([data-theme=light]) .dli a{color:#9d8cf0}
+html:not([data-theme=light]) .st{border-radius:99px!important;padding:3px 10px!important;font-weight:700!important;font-size:11px!important}
+html:not([data-theme=light]) .st.bad{background:rgba(255,107,122,.15)!important;color:#ff8a96!important}
+html:not([data-theme=light]) .st.ok{background:rgba(61,220,132,.14)!important;color:#3ddc84!important}
+</style>
 </head>
 <body class="lg">
 <script>const CHN=new URLSearchParams(location.search).get("ch");if(CHN==="zdrowie"||CHN==="historia"||CHN==="osiedle")document.body.classList.add("zd");else document.body.classList.add("rt")</script>
