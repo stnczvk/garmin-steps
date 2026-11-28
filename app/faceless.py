@@ -122,7 +122,7 @@ def _migr():
 
 # ---------------------------------------------------------------- Google: Gemini + TTS
 MODELS = [m for m in [os.environ.get("FACELESS_MODEL", "")] if m] + [
-    "gemini-3-flash-preview", "gemini-3.1-flash-preview", "gemini-3-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
+    "gemini-2.5-flash", "gemini-3-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-flash-latest"]
 _OK = {}
 
 
@@ -146,9 +146,8 @@ def gemini(prompt, temp=0.9):
             txt = "".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought"))
             _OK["c"] = (loc, m)
             return json.loads(txt)
-        err.append(f"{m}@{loc}: {r.status_code}")
-        if r.status_code not in (400, 404):
-            err.append(r.text[:200])
+        err.append(f"{m}@{loc}: {r.status_code} {r.text[:120]}" if r.status_code != 404 else f"{m}@{loc}: 404")
+        if r.status_code not in (400, 403, 404):
             break
     raise RuntimeError("Gemini: " + " | ".join(err))
 
