@@ -181,7 +181,13 @@ def claude(prompt, model=FAST, max_tokens=1500, system="", web=False):
     if model in (SMART, FAST):
         model = MODELS[prov][0 if model == SMART else 1]
     if prov == "openai":
-        return _openai(prompt, model, max_tokens, system, web)
+        try:
+            return _openai(prompt, model, max_tokens, system, web)
+        except Exception as e:
+            if not re.search(r"credit|quota|billing|insufficient|rate limit|429|exceeded", str(e), re.I):
+                raise
+            import faceless   # zapas: Gemini, gdy OpenAI nie ma kredytów
+            return faceless.gemini_text(prompt, system, max_tokens)
     key, url = _ai_key()
     if not key:
         raise RuntimeError("Brak ANTHROPIC_API_KEY (dziennik/.env albo social/.env)")

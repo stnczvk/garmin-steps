@@ -530,12 +530,21 @@ def produce_osiedle(vid, d, c, sc):
     return finish(vid, d, sc, cds, c)
 
 
+GV = {"onyx": "Charon", "nova": "Leda", "echo": "Fenrir", "alloy": "Puck", "shimmer": "Kore", "fable": "Orus", "ash": "Iapetus", "coral": "Aoede", "sage": "Zephyr"}
+
+
 def tts(text, out, voice):
     r = httpx.post("https://api.openai.com/v1/audio/speech", headers=_key(), timeout=300,
                    json={"model": "tts-1", "voice": voice, "input": text[:4000], "response_format": "mp3"})
-    if r.status_code >= 300:
-        raise RuntimeError("TTS: " + r.text[:200])
-    out.write_bytes(r.content)
+    if r.status_code < 300:
+        out.write_bytes(r.content)
+        return
+    try:   # zapas: Google TTS (kredyty Google Cloud), ten sam głos dla tej samej postaci
+        import faceless
+        lang = "pl-PL" if LANG == "pl" else "en-US"
+        faceless.tts(text[:4000], out, f"{lang}-Chirp3-HD-{GV.get(voice, 'Charon')}", 1.05)
+    except Exception as e:
+        raise RuntimeError("TTS: " + r.text[:120] + " | Google: " + str(e)[:120])
 
 
 def image(prompt, out, quality, size="1536x1024", style=None):
@@ -552,8 +561,35 @@ def image(prompt, out, quality, size="1536x1024", style=None):
             err = str((j.get("error") or {}).get("message", j))[:200]
         except Exception as e:
             err = str(e)[:200]
+        if re.search(r"billing|credit|quota|insufficient", err, re.I):
+            break
         time.sleep(5 * (a + 1))
+    try:   # zapas: Imagen w Google Cloud (Vertex)
+        _imagen(prompt + ". " + (style or STYLE), out, size)
+        return
+    except Exception as e:
+        err += " | Imagen: " + str(e)[:150]
     raise RuntimeError("obraz: " + err)
+
+
+def _imagen(prompt, out, size):
+    import montaz as M
+    w, h = (int(x) for x in size.split("x"))
+    ar = "16:9" if w / h > 1.4 else "4:3" if w > h else "9:16" if h / w > 1.4 else "3:4" if h > w else "1:1"
+    last = ""
+    for model in ("imagen-4.0-fast-generate-001", "imagen-4.0-generate-001", "imagen-3.0-fast-generate-001"):
+        r = httpx.post(M._vx_url(model, "predict"), timeout=180, headers={"Authorization": "Bearer " + M._vertex_token()},
+                       json={"instances": [{"prompt": prompt[:3500]}], "parameters": {"sampleCount": 1, "aspectRatio": ar}})
+        p = (r.json().get("predictions") or [{}])[0] if r.status_code < 300 else {}
+        if p.get("bytesBase64Encoded"):
+            tmp = out.with_suffix(".src.png")
+            tmp.write_bytes(base64.b64decode(p["bytesBase64Encoded"]))
+            subprocess.run(["ffmpeg", "-y", "-i", str(tmp), "-vf", f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}", str(out)],
+                           check=True, capture_output=True)
+            tmp.unlink(missing_ok=True)
+            return
+        last = f"{model}: {r.status_code} {r.text[:120]}"
+    raise RuntimeError(last)
 
 
 def dur(f):
@@ -783,7 +819,9 @@ def napisy_short(f, d):
                        files={"file": (a.name, fh, "audio/mpeg")},
                        data={"model": "whisper-1", "language": "pl", "response_format": "verbose_json", "timestamp_granularities[]": "word"})
     a.unlink(missing_ok=True)
-    r.raise_for_status()
+    if r.status_code >= 300:   # bez kredytów OpenAI short wychodzi bez napisów, ale wychodzi
+        log("dlugi", f"napisy pominięte: {r.text[:120]}")
+        return
     W = [w for w in (r.json().get("words") or []) if str(w.get("word", "")).strip()]
     if not W:
         return

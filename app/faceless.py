@@ -223,6 +223,29 @@ def gemini(prompt, temp=0.9):
     raise RuntimeError("AI: " + " | ".join(err[:6]))
 
 
+def gemini_text(prompt, system="", max_tokens=8000):
+    """Zwykły tekst z Gemini (AI Studio, potem Vertex) – zapas dla reszty centrum, gdy OpenAI nie działa."""
+    body = {"contents": [{"role": "user", "parts": [{"text": prompt}]}], "generationConfig": {"maxOutputTokens": max(2048, max_tokens * 2)}}
+    if system:
+        body["systemInstruction"] = {"parts": [{"text": system}]}
+    txt = lambda j: "".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought"))
+    err = []
+    k = _aistudio_key()
+    if k:
+        for m in ([_OK["ai"]] if _OK.get("ai") else []) + ["gemini-flash-latest", "gemini-3-flash-preview", "gemini-2.5-flash"]:
+            try:
+                r = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", {"x-goog-api-key": k}, body)
+            except RuntimeError as e:
+                err.append(f"{m}: {e}"); continue
+            if r.status_code == 200:
+                _OK["ai"] = m
+                return txt(r.json())
+            err.append(f"{m}: {r.status_code}")
+            if r.status_code == 402:
+                break
+    raise RuntimeError("Gemini (zapas): " + " | ".join(err[:4]))
+
+
 KEYF = ROOT / "gemini_key"
 
 
@@ -555,4 +578,8 @@ def hook_diag(req: Request):
         r = httpx.post(_gurl(loc, m), timeout=60, headers={"Authorization": "Bearer " + _vertex_token()},
                        json={"contents": [{"role": "user", "parts": [{"text": "ok"}]}]})
         out.append({"m": m, "loc": loc, "st": r.status_code, "txt": r.text[:400]})
+    for m in ("imagen-4.0-fast-generate-001", "imagen-3.0-fast-generate-001"):
+        r = httpx.post(_gurl("us-central1", m).replace(":generateContent", ":predict"), timeout=120, headers={"Authorization": "Bearer " + _vertex_token()},
+                       json={"instances": [{"prompt": "a red apple on a table"}], "parameters": {"sampleCount": 1}})
+        out.append({"m": m, "st": r.status_code, "txt": r.text[:200] if r.status_code >= 300 else "ok"})
     return out
