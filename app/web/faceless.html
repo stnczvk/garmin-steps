@@ -8,7 +8,8 @@ h1{font-size:22px;margin:4px 0 14px}.k{display:grid;gap:12px;grid-template-colum
 button{background:#ffc800;color:#111;border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}
 button.sec{background:#262d40;color:#e8eaf2}label{display:flex;gap:6px;align-items:center;color:#aab}
 .it{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #1f2535}
-.it video{width:90px;border-radius:8px;background:#000}.st{font-size:12px;padding:2px 8px;border-radius:99px;background:#262d40}
+.it video{width:180px;aspect-ratio:9/16;border-radius:10px;background:#000;flex:none}
+.it a{color:#ffc800}.st{font-size:12px;padding:2px 8px;border-radius:99px;background:#262d40}
 .ok{background:#1f5a36}.err{background:#6a2228}.muted{color:#8b93a7;font-size:13px}
 </style>
 <h1>Teoria w 30 sekund · Rekrutacja bez Stresu</h1>
@@ -22,9 +23,9 @@ document.getElementById('k').innerHTML=Object.entries(s.kanaly).map(([k,c])=>`<d
 <div class="row"><label><input type="checkbox" data-k="${k}" data-f="enabled" ${c.enabled?'checked':''}> włączony</label>
 <label><input type="checkbox" data-k="${k}" data-f="auto" ${c.auto?'checked':''}> publikuj bez zatwierdzania</label></div>
 <div class="row"><button data-run="${k}" ${c.busy?'disabled':''}>Zrób film teraz</button></div></div>`).join('');
-document.getElementById('l').innerHTML=s.items.map(x=>`<div class="it">${x.status==='gotowe'?`<video src="/api/faceless/plik/${x.id}" controls preload="none"></video>`:''}
+document.getElementById('l').innerHTML=s.items.map(x=>`<div class="it">${x.status==='gotowe'?`<video src="/api/faceless/plik/${x.id}#t=1" controls preload="metadata" playsinline></video>`:''}
 <div><div><b>${esc(x.title||x.name)}</b></div><div class="muted">${esc(x.name)} · ${esc(x.date)} · ${esc(x.why||'')}</div>
-<span class="st ${x.status==='gotowe'?'ok':x.status==='błąd'?'err':''}">${esc(x.status)}</span> ${x.err?`<span class="muted">${esc(x.err)}</span>`:''}</div></div>`).join('')||'<div class="muted">Jeszcze nic.</div>';}
+${x.status==='gotowe'?`<div><a href="/api/faceless/plik/${x.id}" target="_blank">Otwórz film w nowej karcie</a></div>`:''}<span class="st ${x.status==='gotowe'?'ok':x.status==='błąd'?'err':''}">${esc(x.status)}</span> ${x.err?`<span class="muted">${esc(x.err)}</span>`:''}</div></div>`).join('')||'<div class="muted">Jeszcze nic.</div>';}
 document.addEventListener('change',async e=>{const t=e.target;if(!t.dataset.k)return;await api(`/api/faceless/${t.dataset.k}/cfg`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({[t.dataset.f]:t.checked})});load();});
 document.addEventListener('click',async e=>{const k=e.target.dataset.run;if(!k)return;e.target.disabled=true;await api(`/api/faceless/${k}/run`,{method:'POST'});setTimeout(load,1500);});
 load();setInterval(load,20000);
