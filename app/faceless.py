@@ -178,6 +178,14 @@ def gemini(prompt, temp=0.9):
                 j = r.json()
                 return json.loads("".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought")))
             err.insert(0, f"AI Studio {m}: {r.status_code} {r.text[:150]}")
+    ok = os.environ.get("OPENAI_API_KEY", "")
+    if ok:   # ostatni zapas: OpenAI (gdy doładowane)
+        r = httpx.post("https://api.openai.com/v1/chat/completions", timeout=180, headers={"Authorization": "Bearer " + ok},
+                       json={"model": os.environ.get("AGENCY_MODEL_SMART", "gpt-4.1"), "temperature": temp,
+                             "response_format": {"type": "json_object"}, "messages": [{"role": "user", "content": prompt}]})
+        if r.status_code == 200:
+            return json.loads(r.json()["choices"][0]["message"]["content"])
+        err.insert(0, f"OpenAI: {r.status_code} {r.text[:120]}")
     raise RuntimeError("Gemini: " + " | ".join(err))
 
 
