@@ -133,29 +133,34 @@ def _gurl(loc, m):
     return f"https://{host}/v1/projects/{p}/locations/{loc}/publishers/google/models/{m}:generateContent"
 
 
+def _post(url, headers, body, tries=4):
+    """POST z ponawianiem przy limicie, błędach serwera i timeoutach."""
+    r = None
+    for proba in range(tries):
+        try:
+            r = httpx.post(url, timeout=httpx.Timeout(300, connect=20), headers=headers, json=body)
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            if proba < tries - 1:
+                time.sleep(15)
+                continue
+            raise RuntimeError(f"brak odpowiedzi ({type(e).__name__})")
+        if r.status_code in (429, 500, 502, 503, 504) and proba < tries - 1:
+            time.sleep(20 * (proba + 1))
+            continue
+        return r
+    return r
+
+
+def _txt(j):
+    return json.loads("".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought")))
+
+
 def gemini(prompt, temp=0.9):
     from montaz import _vertex_token
-    combos = ([_OK["c"]] if _OK.get("c") else []) + [(l, m) for m in MODELS for l in ("us-central1", "global", "europe-west4")]
+    body = {"contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"responseMimeType": "application/json", "temperature": temp}}
     err = []
-    for loc, m in combos:
-        for proba in range(4):
-            r = httpx.post(_gurl(loc, m), timeout=180, headers={"Authorization": "Bearer " + _vertex_token()},
-                           json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                                 "generationConfig": {"responseMimeType": "application/json", "temperature": temp}})
-            if r.status_code in (429, 500, 503) and proba < 3:
-                time.sleep(20 * (proba + 1))
-                continue
-            break
-        if r.status_code == 200:
-            j = r.json()
-            txt = "".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought"))
-            _OK["c"] = (loc, m)
-            return json.loads(txt)
-        if r.status_code in (400, 403, 404):
-            err.append(f"{m}@{loc}: {r.status_code}")
-            continue
-        err.insert(0, f"{m}@{loc}: {r.status_code} {r.text[:200]}")
-        break
+    # 1) AI Studio (klucz w centrum) – główna droga, gdy jest klucz
     k = _aistudio_key()
     if k:
         try:
@@ -163,30 +168,52 @@ def gemini(prompt, temp=0.9):
         except Exception:
             dost = []
         pref = [m for m in ("gemini-flash-latest", "gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-flash-lite") if not dost or m in dost]
-        pref += [m for m in dost if "flash" in m and m not in pref and "image" not in m and "tts" not in m and "live" not in m][:3]
+        pref += [m for m in dost if "flash" in m and m not in pref and not any(x in m for x in ("image", "tts", "live", "audio"))][:3]
+        if _OK.get("ai") in pref:
+            pref.remove(_OK["ai"]); pref.insert(0, _OK["ai"])
         for m in pref:
-            for proba in range(4):
-                r = httpx.post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", timeout=180,
-                               headers={"x-goog-api-key": k},
-                               json={"contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                                     "generationConfig": {"responseMimeType": "application/json", "temperature": temp}})
-                if r.status_code in (429, 500, 503) and proba < 3:
-                    time.sleep(20 * (proba + 1))
-                    continue
-                break
+            try:
+                r = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent", {"x-goog-api-key": k}, body)
+            except RuntimeError as e:
+                err.append(f"AI Studio {m}: {e}")
+                continue
             if r.status_code == 200:
-                j = r.json()
-                return json.loads("".join(p.get("text", "") for p in j["candidates"][0]["content"]["parts"] if not p.get("thought")))
-            err.insert(0, f"AI Studio {m}: {r.status_code} {r.text[:150]}")
+                _OK["ai"] = m
+                return _txt(r.json())
+            err.append(f"AI Studio {m}: {r.status_code} {r.text[:150]}")
+            if r.status_code == 402:
+                break
+    # 2) Vertex (Google Cloud) – pomijane przez godzinę, jeśli wszystkie modele dały 404
+    if time.time() - _OK.get("vx_off", 0) > 3600:
+        combos = ([_OK["c"]] if _OK.get("c") else []) + [(l, m) for m in MODELS for l in ("us-central1", "global")]
+        n404 = 0
+        for loc, m in combos:
+            try:
+                r = _post(_gurl(loc, m), {"Authorization": "Bearer " + _vertex_token()}, body, tries=3)
+            except RuntimeError as e:
+                err.append(f"{m}@{loc}: {e}")
+                continue
+            if r.status_code == 200:
+                _OK["c"] = (loc, m)
+                return _txt(r.json())
+            n404 += r.status_code in (403, 404)
+            err.append(f"{m}@{loc}: {r.status_code}")
+        if n404 == len(combos):
+            _OK["vx_off"] = time.time()
+            err.append("Google Cloud: brak dostępu do Gemini")
+    # 3) OpenAI
     ok = os.environ.get("OPENAI_API_KEY", "")
-    if ok:   # ostatni zapas: OpenAI (gdy doładowane)
-        r = httpx.post("https://api.openai.com/v1/chat/completions", timeout=180, headers={"Authorization": "Bearer " + ok},
-                       json={"model": os.environ.get("AGENCY_MODEL_SMART", "gpt-4.1"), "temperature": temp,
-                             "response_format": {"type": "json_object"}, "messages": [{"role": "user", "content": prompt}]})
-        if r.status_code == 200:
-            return json.loads(r.json()["choices"][0]["message"]["content"])
-        err.insert(0, f"OpenAI: {r.status_code} {r.text[:120]}")
-    raise RuntimeError("Gemini: " + " | ".join(err))
+    if ok:
+        try:
+            r = _post("https://api.openai.com/v1/chat/completions", {"Authorization": "Bearer " + ok},
+                      {"model": os.environ.get("AGENCY_MODEL_SMART", "gpt-4.1"), "temperature": temp,
+                       "response_format": {"type": "json_object"}, "messages": [{"role": "user", "content": prompt}]}, tries=2)
+            if r.status_code == 200:
+                return json.loads(r.json()["choices"][0]["message"]["content"])
+            err.insert(0, f"OpenAI: {r.status_code} {r.text[:120]}")
+        except RuntimeError as e:
+            err.append(f"OpenAI: {e}")
+    raise RuntimeError("AI: " + " | ".join(err[:6]))
 
 
 KEYF = ROOT / "gemini_key"
