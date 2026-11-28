@@ -132,7 +132,7 @@ body.dash #dash{padding:12px 26px 48px!important}
 
 /* ===== ODŚWIEŻENIE 11.2026 (tylko ciemny motyw) – usuń ten blok, żeby wrócić do poprzedniego wyglądu ===== */
 :root:not([data-theme=light]){--acc:#9a88e0;--acc2:#7aa2ff;--glow:rgba(139,124,199,.35)}
-html:not([data-theme=light]) body.lg{background:
+:root:not([data-theme=light]) html body.lg,:root:not([data-theme=light]) body.lg{background:
   radial-gradient(900px 520px at 12% -8%,rgba(139,124,199,.20),transparent 60%),
   radial-gradient(700px 480px at 100% 0%,rgba(122,162,255,.10),transparent 60%),
   radial-gradient(800px 600px at 60% 110%,rgba(139,124,199,.10),transparent 60%),#0b0c12!important;background-attachment:fixed!important}
